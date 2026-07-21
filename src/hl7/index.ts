@@ -44,6 +44,17 @@ export {
   EXAMPLE_ORDER_SERVICES,
   EXAMPLE_VACCINES,
 } from "./example-codes.js";
+export {
+  generateHl7Quirk,
+  hl7QuirkRoundTrip,
+  hl7QuirkCorpus,
+  hl7QuirkProfile,
+  HL7_QUIRKS,
+  type Hl7QuirkName,
+  type Hl7QuirkKind,
+  type GenerateHl7QuirkOptions,
+  type Hl7QuirkCorpusOptions,
+} from "./quirk.js";
 
 /**
  * Every HL7 v2 message kind Phase 2 generates — the `MSH-9` label used as the corpus `kind`. `ADT`

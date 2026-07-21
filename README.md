@@ -19,7 +19,9 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 > `buildCcda`); Phase 5 **X12 generation** (837P/I/D, 835, 271 in HIPAA 005010 via `@cosyte/x12`);
 > Phase 6 **NCPDP generation** (SCRIPT NewRx / RxRenewal / RxChange + Telecom B1/B2/B3 via
 > `@cosyte/ncpdp`) and **ASTM generation** (E1394 `H`/`P`/`O`/`R`/`C`/`L` record reports + E1381 framing
-> via `@cosyte/astm`) — completing the spec-clean generation core across all six formats.
+> via `@cosyte/astm`) — completing the spec-clean generation core across all six formats; Phase 7
+> **vendor-quirk generation** — profile-driven off-spec fixtures for **HL7 v2, C-CDA, and ASTM**, each
+> round-tripping to exactly the intended parser warning (the intended-warning contract).
 
 ## Install
 
@@ -213,8 +215,41 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-cle
 
 `@cosyte/astm` is an **optional peer dependency**, needed only for the `@cosyte/synth/astm` subpath.
 
-**Deferred:** **vendor-quirk mode** (lowercase ASTM checksums, framing dropped over TCP, and the other
-tolerances `@cosyte/astm`'s profile system advertises) is Phase 7.
+## Generate a vendor-quirk fixture
+
+Spec-clean fixtures test that a parser reads a _correct_ message; **quirk mode** tests that it tolerates
+the realistic vendor deviations real traffic carries — and surfaces exactly the right diagnostic. The
+quirk vocabulary **is the parsers' own profile systems**: a quirk deviates the message _structure_ so it
+round-trips to **exactly one intended, stable warning code** (the **intended-warning contract**), and
+where a built-in **public** parser profile claims the deviation, it round-trips cleanly under it
+(suppressed, or re-badged to `PROFILE_QUIRK_APPLIED`). A quirk never introduces a real-looking value —
+it changes shape, never provenance, so the synthetic-safety gate still passes.
+
+Phase 7 ships quirks for the three richest profile systems — **HL7 v2, C-CDA, and ASTM**:
+
+```ts
+import { generateHl7Quirk, hl7QuirkRoundTrip } from "@cosyte/synth/hl7";
+import { generateCcdaQuirk, ccdaQuirkRoundTrip } from "@cosyte/synth/ccda";
+import { generateAstmQuirk, astmQuirkRoundTrip } from "@cosyte/synth/astm";
+
+// A site-defined HL7 v2 Z-segment → exactly UNKNOWN_SEGMENT; the `visage` profile suppresses it.
+hl7QuirkRoundTrip(generateHl7Quirk({ seed: 1, quirk: "unknown-zsegment" })).warnings; // ["UNKNOWN_SEGMENT"]
+
+// A deprecated C-CDA LOINC → exactly DEPRECATED_LOINC; `smartScorecard` re-badges it.
+ccdaQuirkRoundTrip(generateCcdaQuirk({ seed: 1, quirk: "deprecated-loinc" })).withProfile
+  ?.tolerated; // true
+
+// A non-standard ASTM &Z& escape → exactly ASTM_UNKNOWN_ESCAPE_SEQUENCE; `referenceCorpus` re-badges it.
+astmQuirkRoundTrip(generateAstmQuirk({ seed: 1, quirk: "unknown-escape" })).intendedWarningHeld; // true
+```
+
+A quirk a format's profile system does not support fails closed with a stable `SYNTH_UNSUPPORTED_QUIRK`
+diagnostic — never a silently-wrong fixture. Every quirk is grounded in a **publicly-documented**
+deviation or a parser's **public** profile (ADR 0018), never a private vendor corpus.
+
+**Deferred:** quirk recipes for **FHIR, X12, and NCPDP** (whose profile/quirk surface lands in a later
+phase), and any quirk that would need a **private, vendor-attributed corpus** to ground (kept
+`REAL-CORPUS`-gated, exactly as the parsers' named per-vendor profiles are).
 
 ## Draw a synthetic value
 

@@ -26,7 +26,8 @@
         "guides-ccda",
         "guides-x12",
         "guides-ncpdp",
-        "guides-astm"
+        "guides-astm",
+        "guides-quirks"
       ]
     },
     {

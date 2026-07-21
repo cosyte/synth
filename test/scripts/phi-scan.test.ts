@@ -24,7 +24,13 @@ import { tmpdir } from "node:os";
 
 import { generate837P, roundTrip } from "../../src/x12/index.js";
 import { generateNewRx, generateB1 } from "../../src/ncpdp/index.js";
-import { generateAstmResult, generateAstmResultFramed } from "../../src/astm/index.js";
+import {
+  generateAstmResult,
+  generateAstmResultFramed,
+  generateAstmQuirk,
+} from "../../src/astm/index.js";
+import { generateHl7Quirk } from "../../src/hl7/index.js";
+import { generateCcdaQuirk } from "../../src/ccda/index.js";
 
 const REPO_ROOT = process.cwd();
 const SCANNER_PATH = join(REPO_ROOT, "scripts", "phi-scan.ts");
@@ -316,6 +322,31 @@ describe("phi-scan: ASTM structured detection (SYNTH-8)", () => {
     const r = scan("real-id.astm", content);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toMatch(/synthetic-AA-scoped/);
+  });
+});
+
+describe("phi-scan: synthetic-safety holds in QUIRK mode (SYNTH-9)", () => {
+  it("passes every HL7 v2 quirk artifact — a quirk deviates structure, never provenance", () => {
+    for (const quirk of ["unknown-zsegment", "unknown-escape"] as const) {
+      const r = scan(`quirk-${quirk}.hl7`, generateHl7Quirk({ seed: 9101, quirk }).content);
+      expect(r.code, `${quirk} stderr: ${r.stderr}`).toBe(0);
+    }
+  });
+  it("passes every C-CDA quirk artifact", () => {
+    for (const quirk of [
+      "template-extension-absent",
+      "deprecated-loinc",
+      "deprecated-code-system",
+    ] as const) {
+      const r = scan(`quirk-${quirk}.xml`, generateCcdaQuirk({ seed: 9201, quirk }).content);
+      expect(r.code, `${quirk} stderr: ${r.stderr}`).toBe(0);
+    }
+  });
+  it("passes every ASTM quirk artifact", () => {
+    for (const quirk of ["unknown-escape", "unknown-record-type"] as const) {
+      const r = scan(`quirk-${quirk}.astm`, generateAstmQuirk({ seed: 9301, quirk }).content);
+      expect(r.code, `${quirk} stderr: ${r.stderr}`).toBe(0);
+    }
   });
 });
 

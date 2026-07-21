@@ -44,6 +44,17 @@ export {
   SMOKING_STATUSES,
   ROUTES,
 } from "./example-codes.js";
+export {
+  generateCcdaQuirk,
+  injectCcdaQuirk,
+  ccdaQuirkRoundTrip,
+  ccdaQuirkCorpus,
+  ccdaQuirkProfile,
+  CCDA_QUIRKS,
+  type CcdaQuirkName,
+  type GenerateCcdaQuirkOptions,
+  type CcdaQuirkCorpusOptions,
+} from "./quirk.js";
 
 /** Every C-CDA document kind {@link ccdaCorpus} generates — the `documentType` used as the corpus `kind`. */
 export type CcdaCorpusKind = CcdaDocumentType;

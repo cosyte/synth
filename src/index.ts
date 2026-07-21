@@ -86,5 +86,20 @@ export {
 // ── The profile growth-loop skeleton (roadmap §Phase 1) ──
 export { defineSynthProfile, type SynthProfile, type SynthProfileSpec } from "./profile.js";
 
+// ── The quirk core (roadmap §Phase 7 — the differentiator; format recipes live per-subpath) ──
+export {
+  resolveQuirk,
+  sameCodeSet,
+  profileTolerated,
+  validateProfileQuirks,
+  assertIntendedWarnings,
+  PROFILE_QUIRK_APPLIED,
+  type QuirkDescriptor,
+  type QuirkArtifact,
+  type QuirkProfileDisposition,
+  type QuirkProfiledVerdict,
+  type QuirkRoundTripResult,
+} from "./quirk.js";
+
 // ── Stable fatal codes + the typed error (roadmap §Phase 1) ──
 export { SYNTH_FATAL_CODES, SynthError, type SynthFatalCode } from "./codes.js";

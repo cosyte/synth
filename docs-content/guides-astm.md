@@ -68,8 +68,10 @@ corpus.artifacts.length; // => 2
 corpus.artifacts.every((a) => a.warnings.length === 0); // => true
 ```
 
-## What is deferred
+## Vendor-quirk mode
 
-**Quirk mode** (a later phase) — lowercase ASTM checksums, framing dropped over TCP, and the other
-vendor tolerances `@cosyte/astm`'s profile system advertises, each round-tripping to exactly the intended
-warning — is not yet shipped. The spec-clean generation core is feature-complete across all six formats.
+**Quirk mode ships for ASTM** — a non-standard `&Z&` escape round-trips to exactly
+`ASTM_UNKNOWN_ESCAPE_SEQUENCE`, re-badged by `@cosyte/astm`'s public `referenceCorpus` profile, and a
+site-defined record type round-trips to `ASTM_RECORD_UNKNOWN_TYPE`. See
+[Vendor-quirk generation](./guides-quirks.md). The frame-layer transport quirks (a deliberately-wrong
+checksum, framing dropped over TCP) target non-profile diagnostics and are a later addition.

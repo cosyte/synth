@@ -53,6 +53,17 @@ export {
   ASTM_COMMENT_TEXT,
   type AstmExampleTest,
 } from "./example-codes.js";
+export {
+  generateAstmQuirk,
+  astmQuirkRoundTrip,
+  astmQuirkCorpus,
+  astmQuirkProfile,
+  ASTM_QUIRKS,
+  type AstmQuirkName,
+  type AstmQuirkKind,
+  type GenerateAstmQuirkOptions,
+  type AstmQuirkCorpusOptions,
+} from "./quirk.js";
 
 /** Every ASTM message kind {@link astmCorpus} generates — the label used as the corpus `kind`. */
 export type AstmCorpusKind = "Result" | "Order";
