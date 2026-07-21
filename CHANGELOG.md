@@ -355,6 +355,10 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 - Replaced the parser-archetype scaffold stubs (`parseSynth`, `WARNING_CODES`, `FATAL_CODES`) with the
   generator surface — `@cosyte/synth` is a synthetic-fixture **generator**, not a parser.
+- **Docs:** refreshed the `README.md` status block to describe the **feature-complete** generator surface
+  (all six spec-clean formats + quirk mode for HL7 v2/C-CDA/ASTM + the `@cosyte/deid` pairing loop) with
+  its honest deferrals, replacing the stale forward-looking Phase 1–7 roadmap narrative. Status remains
+  pre-alpha (`0.0.x`), not yet published to npm.
 
 ### Deprecated
 

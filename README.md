@@ -11,17 +11,22 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 **format/conformance generator, not a clinical simulator** — it does not model disease progression
 (that is Synthea).
 
-> **Status:** pre-alpha (`0.0.x`), not yet published to npm. Phase 1 ships the seeded-PRNG core, the
-> synthetic-safety providers, and the round-trip harness; Phase 2 the full HL7 v2 message set; Phase 3
-> FHIR R4 / US Core (Patient + the clinical spine + Bundles); Phase 4 the rest of the US Core clinical
-> set (`Encounter`, `DiagnosticReport`, `Immunization`, `AllergyIntolerance`, `Procedure`) and the
-> `document` Bundle shape; Phase 4 **C-CDA generation** (CCD + Referral Note via `@cosyte/ccda`'s
-> `buildCcda`); Phase 5 **X12 generation** (837P/I/D, 835, 271 in HIPAA 005010 via `@cosyte/x12`);
-> Phase 6 **NCPDP generation** (SCRIPT NewRx / RxRenewal / RxChange + Telecom B1/B2/B3 via
-> `@cosyte/ncpdp`) and **ASTM generation** (E1394 `H`/`P`/`O`/`R`/`C`/`L` record reports + E1381 framing
-> via `@cosyte/astm`) — completing the spec-clean generation core across all six formats; Phase 7
-> **vendor-quirk generation** — profile-driven off-spec fixtures for **HL7 v2, C-CDA, and ASTM**, each
-> round-tripping to exactly the intended parser warning (the intended-warning contract).
+> **Status:** pre-alpha (`0.0.x`), not yet published to npm. The generator is **feature-complete**: the
+> seeded-PRNG core, the synthetic-safety providers, and the round-trip harness; **spec-clean generation
+> across all six formats** — HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`), FHIR R4 / US Core (the full clinical
+> set + `collection`/`transaction`/`document` Bundles), C-CDA R2.1 (CCD + Referral Note), X12 005010
+> (837P/I/D, 835, 271), NCPDP (SCRIPT NewRx / RxRenewal / RxChange + Telecom B1/B2/B3), and ASTM (E1394
+> record reports + E1381 framing), each built **through its parser's own builder/serializer**; **vendor-quirk
+> mode** — profile-driven off-spec fixtures for the three richest profile systems (**HL7 v2, C-CDA, ASTM**),
+> each round-tripping to exactly the intended parser warning (the intended-warning contract); and the
+> **`@cosyte/deid` pairing loop** — a closed-loop co-validation harness that de-identifies generated output
+> and proves every planted synthetic PHI sentinel is removed.
+>
+> **Deferred (honestly out of scope for now):** quirk recipes for **FHIR / X12 / NCPDP** (and any quirk
+> needing a private vendor corpus); the X12 **270** eligibility _request_ and NCPDP SCRIPT lifecycle
+> **responses** (both track the parsers' builder surfaces); **NCPDP SCRIPT / ASTM / DICOM** de-identify
+> pairing (no `@cosyte/deid` adapter, or not generated); and optional **Synthea** clinical-content ingestion.
+> The two remaining founder gates are the actual `npm publish` and the repo public-flip.
 
 ## Install
 
