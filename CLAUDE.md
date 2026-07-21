@@ -19,16 +19,27 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
 
 ## Status
 
-- **Phase 1 shipped (SYNTH-1).** Pre-alpha `0.0.x`, not yet published to npm. The generator core is in
-  place: the seeded PRNG (`createRng`, `src/rng/`), the synthetic-safety providers (`src/safe/`), the
-  `Corpus` abstraction, `defineSynthProfile`, the `SYNTH_FATAL_CODES`/`SynthError`, and HL7 v2
-  generation at the `@cosyte/synth/hl7` subpath (`generateAdt`/`roundTrip`/`hl7Corpus`), proving the
-  round-trip harness + synthetic-safety CI gate end-to-end. `@cosyte/hl7` is an **optional peer dep**,
-  vendored for dev/test (`vendor/cosyte-hl7-0.0.0.tgz`) via the `mllp` pattern; refresh it by re-running
-  `pnpm -C ../hl7 build && pnpm -C ../hl7 pack --out ../synth/vendor/cosyte-hl7-0.0.0.tgz` then
-  `pnpm add -D @cosyte/hl7@file:vendor/cosyte-hl7-0.0.0.tgz` (restore the `peerDependencies` entry after
-  if `pnpm remove` stripped it). **Third-party runtime deps stay at 0.** The remaining formats (the
-  rest of HL7, FHIR, C-CDA, X12, NCPDP, ASTM) and quirk generation are later phases.
+- **Phases 1–3 shipped (SYNTH-1 … SYNTH-3).** Pre-alpha `0.0.x`, not yet published to npm. The
+  generator core is in place: the seeded PRNG (`createRng`, `src/rng/`), the synthetic-safety providers
+  (`src/safe/`), the `Corpus` abstraction, `defineSynthProfile`, the `SYNTH_FATAL_CODES`/`SynthError`.
+  Two formats are wired:
+  - **HL7 v2** at the `@cosyte/synth/hl7` subpath (`generateAdt`/`generateOru`/`generateOrm`/
+    `generateSiu`/`generateVxu`/`generateHl7`/`hl7Corpus`/`roundTrip`), built through `@cosyte/hl7`'s
+    `buildMessage`, round-tripping with zero warnings.
+  - **FHIR R4 / US Core (SYNTH-3)** at the `@cosyte/synth/fhir` subpath: `generatePatient` (base +
+    `profile:"us-core"`), `generateCondition`, `generateObservationLab`, `generateVitalSign`,
+    `generateMedicationRequest`, `generateBundle` (collection + transaction), `fhirCorpus`, and the FHIR
+    `roundTrip` harness. Built through `@cosyte/fhir`'s model constructors + serializer (spec-clean by
+    construction); US Core conformance is validated firsthand against the **real US Core 6.1.0
+    profiles** committed under `test/us-core-profiles/` (BYO — no IG bundled). Deferred to SYNTH-4:
+    `Encounter`, `DiagnosticReport`, `Immunization`, `AllergyIntolerance`, `Procedure`, the `document`
+    Bundle shape, and quirk mode (Phase 7).
+- Both parsers are **optional peer deps**, vendored for dev/test via the `mllp` pattern
+  (`vendor/cosyte-hl7-0.0.0.tgz`, `vendor/cosyte-fhir-0.0.0.tgz`). Refresh one by re-running, e.g.,
+  `pnpm -C ../fhir build && pnpm -C ../fhir pack --out ../synth/vendor/cosyte-fhir-0.0.0.tgz` then
+  `pnpm add -D @cosyte/fhir@file:vendor/cosyte-fhir-0.0.0.tgz` (restore the `peerDependencies` entry
+  after if `pnpm remove` stripped it). **Third-party runtime deps stay at 0.** The remaining formats
+  (C-CDA, X12, NCPDP, ASTM) and quirk generation are later phases.
 
 ## Tech Stack (the shared `@cosyte/*` standard)
 

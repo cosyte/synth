@@ -393,6 +393,75 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): void {
   // A generated fixture is swept at its real PHI loci (PID name / SSN / phone) and every value must be
   // provably synthetic — the executable, format-aware half of the synthetic-safety gate (roadmap §4.4).
   scanHl7(target.path, text, allow, hits);
+
+  // FHIR R4 / US Core (Phase 3). A generated resource (or Bundle) is swept at its real PHI loci —
+  // HumanName (`family`/`given`) and ContactPoint (`telecom` phone) — against the synthetic sources.
+  scanFhir(target.path, text, allow, hits);
+}
+
+/**
+ * FHIR structured PHI detection. Parses a JSON fixture and recursively visits every object, checking the
+ * two identity-bearing shapes wherever they sit (a standalone resource or a Bundle entry): a `HumanName`
+ * (`family` / `given` tokens must be declared-synthetic names) and a phone `ContactPoint`
+ * (`{ system: "phone", value }` must carry the reserved `555-01xx` tail). A non-JSON target (or one with
+ * no such shapes) falls straight through. Emails and SSNs are already covered by {@link scanCommonShapes}.
+ */
+function scanFhir(path: string, text: string, allow: AllowList, hits: Hit[]): void {
+  if (!path.endsWith(".json")) return;
+  let root: unknown;
+  try {
+    root = JSON.parse(text);
+  } catch {
+    return; // not JSON — nothing to do.
+  }
+
+  const checkName = (obj: Record<string, unknown>): void => {
+    const tokens: string[] = [];
+    if (typeof obj["family"] === "string") tokens.push(obj["family"]);
+    if (Array.isArray(obj["given"])) {
+      for (const g of obj["given"]) if (typeof g === "string") tokens.push(g);
+    }
+    for (const t of tokens) {
+      const token = t.trim();
+      if (token.length > 0 && !allow.names.has(token.toUpperCase())) {
+        hits.push({
+          path,
+          segment: "Patient.name",
+          value: token,
+          reason: "name not declared synthetic",
+        });
+      }
+    }
+  };
+
+  const checkTelecom = (obj: Record<string, unknown>): void => {
+    if (obj["system"] === "phone" && typeof obj["value"] === "string") {
+      const digits = obj["value"].replace(/\D/g, "");
+      if (/\d{7,}/.test(digits) && !isSyntheticPhone(obj["value"])) {
+        hits.push({
+          path,
+          segment: "Patient.telecom",
+          value: obj["value"],
+          reason: "phone not in 555-01xx block",
+        });
+      }
+    }
+  };
+
+  const visit = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      for (const item of node) visit(item);
+      return;
+    }
+    if (node === null || typeof node !== "object") return;
+    const obj = node as Record<string, unknown>;
+    // A HumanName has `family` and/or `given`; a phone ContactPoint has `system: "phone"` + `value`.
+    if ("family" in obj || "given" in obj) checkName(obj);
+    if ("system" in obj && "value" in obj) checkTelecom(obj);
+    for (const value of Object.values(obj)) visit(value);
+  };
+
+  visit(root);
 }
 
 /** Whether a phone-shaped value carries the NANP reserved `555-01xx` fictional tail. */
