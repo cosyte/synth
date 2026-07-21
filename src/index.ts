@@ -43,6 +43,7 @@ export {
   identifier,
   address,
   dateYmd,
+  npi,
   type SyntheticName,
   type SyntheticAddress,
   type SyntheticIdentifier,
@@ -53,10 +54,14 @@ export {
   isSyntheticPhone,
   isSyntheticEmail,
   isSyntheticIp,
+  isSyntheticNpi,
+  npiCheckDigit,
+  luhnMod10,
   SYNTHETIC_ASSIGNING_AUTHORITY,
   RESERVED_EMAIL_DOMAINS,
   TEST_NET_V4_PREFIXES,
   DOC_V6_PREFIX,
+  NPI_LUHN_PREFIX,
 } from "./safe/reserved.js";
 export {
   SYNTHETIC_GIVEN_NAMES,

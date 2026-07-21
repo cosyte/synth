@@ -15,6 +15,11 @@
  *   `.test`, `.invalid`, `.localhost` TLDs.
  * - **IP** — RFC 5737 IPv4 TEST-NET-1/2/3 (`192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`) and
  *   RFC 3849 IPv6 documentation prefix `2001:db8::/32`.
+ * - **NPI** — a real National Provider Identifier is a 10-digit number whose last digit is a Luhn
+ *   check digit computed over the `80840` prefix + the 9-digit base (CMS NPI check-digit rule, ISO
+ *   7812). A number whose check digit is **wrong** therefore cannot be a NPPES-issued NPI. `synth`
+ *   emits NPIs with a deliberately-invalid check digit, so no generated NPI can collide with a real
+ *   provider (roadmap §4.1 "fake NPI checkdigit range").
  *
  * @module
  */
@@ -52,6 +57,79 @@ export const TEST_NET_V4_PREFIXES: readonly string[] = Object.freeze([
 
 /** RFC 3849 IPv6 documentation prefix. */
 export const DOC_V6_PREFIX = "2001:db8";
+
+/**
+ * The `80840` prefix prepended to a 10-digit NPI before the Luhn check (the CMS NPI check-digit
+ * rule — `80840` is the ISO 7812 issuer identifier for the US health-application namespace). A real
+ * NPI satisfies `luhn("80840" + npi) ≡ 0 (mod 10)`.
+ */
+export const NPI_LUHN_PREFIX = "80840";
+
+/**
+ * The Luhn sum (mod 10) of a numeric string, doubling every second digit from the right. Used to
+ * verify (or deliberately break) an NPI check digit.
+ *
+ * @param digits - A string of decimal digits.
+ * @returns The Luhn sum modulo 10 (0 ⇒ the string passes the Luhn check).
+ * @internal
+ */
+export function luhnMod10(digits: string): number {
+  let sum = 0;
+  // Standard Luhn: the RIGHTMOST digit is never doubled; doubling starts one position in and
+  // alternates. For a full payload+check string this makes a Luhn-valid string sum to 0 (mod 10);
+  // for a payload with a `0` placeholder in the check position it yields the complement of the
+  // correct check digit.
+  let double = false;
+  for (let i = digits.length - 1; i >= 0; i -= 1) {
+    let d = digits.charCodeAt(i) - 48;
+    if (d < 0 || d > 9) continue;
+    if (double) {
+      d *= 2;
+      if (d > 9) d -= 9;
+    }
+    sum += d;
+    double = !double;
+  }
+  return sum % 10;
+}
+
+/**
+ * The correct NPI check digit for a 9-digit base — the value that makes `80840` + base + check pass
+ * the Luhn check.
+ *
+ * @param base9 - The 9-digit NPI base (positions 1–9).
+ * @returns The check digit (`0`–`9`) a real NPI would carry for this base.
+ * @example
+ * ```ts
+ * import { npiCheckDigit } from "@cosyte/synth";
+ * npiCheckDigit("123456789"); // 3 — so 1234567893 is a Luhn-valid NPI shape
+ * ```
+ */
+export function npiCheckDigit(base9: string): number {
+  // Luhn over "80840" + base9 with a trailing 0 check placeholder; the check digit closes the sum.
+  const partial = luhnMod10(`${NPI_LUHN_PREFIX}${base9}0`);
+  return (10 - partial) % 10;
+}
+
+/**
+ * Whether a 10-digit NPI is **provably synthetic** — i.e. its check digit is invalid, so it cannot be
+ * a NPPES-issued NPI. A Luhn-valid 10-digit NPI (which *could* denote a real registered provider)
+ * returns `false`; a non-10-digit value returns `false` (not an NPI shape).
+ *
+ * @param value - The candidate NPI (digits only, or with incidental separators).
+ * @returns `true` when the NPI's check digit is wrong (never a real NPI).
+ * @example
+ * ```ts
+ * import { isSyntheticNpi } from "@cosyte/synth";
+ * isSyntheticNpi("1234567894"); // true  — invalid check digit (valid would be 1234567893)
+ * isSyntheticNpi("1234567893"); // false — Luhn-valid, could be a real NPI
+ * ```
+ */
+export function isSyntheticNpi(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length !== 10) return false;
+  return luhnMod10(`${NPI_LUHN_PREFIX}${digits}`) !== 0;
+}
 
 /**
  * Whether a `ddd-dd-dddd` (or `ddddddddd`) SSN string is drawn from an SSA never-issued / reserved

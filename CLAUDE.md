@@ -19,10 +19,10 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
 
 ## Status
 
-- **Phases 1–5 shipped (SYNTH-1 … SYNTH-5).** Pre-alpha `0.0.x`, not yet published to npm. The
+- **Phases 1–6 shipped (SYNTH-1 … SYNTH-6).** Pre-alpha `0.0.x`, not yet published to npm. The
   generator core is in place: the seeded PRNG (`createRng`, `src/rng/`), the synthetic-safety providers
-  (`src/safe/`), the `Corpus` abstraction, `defineSynthProfile`, the `SYNTH_FATAL_CODES`/`SynthError`.
-  Two formats are wired:
+  (`src/safe/` — incl. `safe.npi`, a deliberately-invalid-Luhn NPI + `isSyntheticNpi`), the `Corpus`
+  abstraction, `defineSynthProfile`, the `SYNTH_FATAL_CODES`/`SynthError`. Four formats are wired:
   - **HL7 v2** at the `@cosyte/synth/hl7` subpath (`generateAdt`/`generateOru`/`generateOrm`/
     `generateSiu`/`generateVxu`/`generateHl7`/`hl7Corpus`/`roundTrip`), built through `@cosyte/hl7`'s
     `buildMessage`, round-tripping with zero warnings.
@@ -42,14 +42,24 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
     Immunizations, Procedures, and Social History, reusing the FHIR generators' license-clean
     example-code pools (adapted to `@cosyte/ccda`'s OID-coded `BuildCode`). `buildCcda`'s default
     `effectiveTime: new Date()` is **always overridden** with a synthetic date, so the reproducibility
-    contract holds. Deferred to SYNTH-6: X12 generation; quirk mode is Phase 7.
-- The three parsers are **optional peer deps**, vendored for dev/test via the `mllp` pattern
-  (`vendor/cosyte-hl7-0.0.0.tgz`, `vendor/cosyte-fhir-0.0.0.tgz`, `vendor/cosyte-ccda-0.0.1.tgz`).
-  Refresh one by re-running, e.g.,
-  `pnpm -C ../ccda build && pnpm -C ../ccda pack --out ../synth/vendor/cosyte-ccda-0.0.1.tgz` then
-  `pnpm add -D @cosyte/ccda@file:vendor/cosyte-ccda-0.0.1.tgz` (restore the `peerDependencies` entry
+    contract holds.
+  - **X12 005010 (SYNTH-6)** at the `@cosyte/synth/x12` subpath — `generate837P`/`generate837I`/
+    `generate837D` (claims), `generate835` (remittance, balance-checked by construction), `generate271`
+    (eligibility), the shared `generate837(variant, …)`, `x12Corpus`, the `x12*` identity minters, the
+    `dec`/`money` helpers, and the X12 `roundTrip` harness. Built through `@cosyte/x12`'s domain builders
+    (`build837P/I/D`, `build835`, `build271`), so the ISA/GS/ST…SE/GE/IEA envelope + HL spine are the
+    builder's own and each transaction round-trips through `@cosyte/x12` with zero warnings. The
+    identity-dense synthetic-safety invariant: NPIs carry a **deliberately-invalid Luhn** check digit
+    (never a real NPI), provider tax ids are 900-range SSNs at `REF*SY`, member ids are synthetic-AA
+    scoped. The `phi-scan` gains X12-aware structured detection (NM1/PER/REF loci; a Luhn-valid NPI is a
+    hard hit). **Deferred: the 270 request (`@cosyte/x12` ships no `build270`).** Quirk mode is Phase 7.
+- The four parsers are **optional peer deps**, vendored for dev/test via the `mllp` pattern
+  (`vendor/cosyte-hl7-0.0.0.tgz`, `vendor/cosyte-fhir-0.0.0.tgz`, `vendor/cosyte-ccda-0.0.1.tgz`,
+  `vendor/cosyte-x12-0.0.1.tgz`). Refresh one by re-running, e.g.,
+  `pnpm -C ../x12 build && pnpm -C ../x12 pack --pack-destination ../synth/vendor` then
+  `pnpm add -D @cosyte/x12@file:vendor/cosyte-x12-0.0.1.tgz` (restore the `peerDependencies` entry
   after if `pnpm remove` stripped it). **Third-party runtime deps stay at 0.** The remaining formats
-  (X12, NCPDP, ASTM) and quirk generation are later phases.
+  (NCPDP, ASTM) and quirk generation are later phases.
 
 ## Tech Stack (the shared `@cosyte/*` standard)
 

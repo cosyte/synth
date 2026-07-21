@@ -11,7 +11,7 @@
  */
 
 /** The format an artifact was generated for. Extended as later phases add formats. */
-export type SynthFormat = "hl7v2" | "fhir" | "ccda";
+export type SynthFormat = "hl7v2" | "fhir" | "ccda" | "x12";
 
 /**
  * One generated artifact — the serialized wire text plus the metadata needed to reproduce and check

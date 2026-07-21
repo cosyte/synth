@@ -144,6 +144,36 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   - **`@cosyte/ccda` vendored as an optional peer dep** (`file:vendor/cosyte-ccda-0.0.1.tgz`), lazily
     loaded per format — importing the package root never pulls it; third-party runtime deps stay at
     zero. Deferred to SYNTH-6: X12 generation; quirk mode remains Phase 7.
+- **Phase 5 / X12 — spec-clean HIPAA 005010 generation (SYNTH-6).** A new `@cosyte/synth/x12` subpath
+  generating X12 EDI transactions **through `@cosyte/x12`'s domain builders**, so every interchange is
+  spec-clean by construction — it round-trips through `@cosyte/x12` with **zero warnings**, is
+  byte-stable, seed-deterministic, and synthetic by construction:
+  - **New generators:** `generate837P` / `generate837I` / `generate837D` (Professional / Institutional /
+    Dental claims via `build837P/I/D`), `generate835` (Health Care Claim Payment/Advice via `build835`,
+    **balance-checked by construction** — line, claim, and remit balance identities are satisfied before
+    the builder is called), and `generate271` (Health Care Eligibility Benefit Response via `build271`).
+    A shared `generate837(variant, …)` selects the claim variant. The builder computes the HL spine and
+    the ISA/GS/ST…SE/GE/IEA envelope + control numbers, so `synth` never hand-writes a byte.
+  - **`x12Corpus`** builds a reproducible mixed corpus (one of each of 837P/I/D + 835 + 271 by default);
+    `roundTrip` is the X12 round-trip-through-the-parser harness (serialize → parse → serialize, judged
+    by the parser). `x12Person` / `x12Organization` / `x12ProviderPerson` / `x12Payer` /
+    `x12TradingPartners` / `x12EnvelopeTiming` mint the synthetic identity; `dec` / `money` are the
+    shared `X12Decimal` money helpers.
+  - **Synthetic-safety is the hardest-attacked invariant here** (an 837/271 is identity-dense). New
+    provider **`safe.npi`** emits a 10-digit NPI with a **deliberately-invalid Luhn check digit** — a real
+    NPI must satisfy the CMS `80840`-prefixed Luhn check, so a `synth` NPI can **never** be a NPPES-issued
+    provider (new `isSyntheticNpi` / `npiCheckDigit` / `luhnMod10` + `NPI_LUHN_PREFIX`). Provider tax ids
+    are SSA never-issued (900-range) SSNs at `REF*SY`; member ids are synthetic-assigning-authority
+    scoped; person names are from the shipped fake-name pool; DOBs/dates come from the seeded generator.
+  - The repo **`phi-scan` gains X12-aware structured detection** (NM1 person names + member ids + NPIs,
+    PER contact names + phones, `REF*SY` provider SSNs, and a hard refusal of `NM1*34` raw SSNs). A
+    Luhn-**valid** XX-qualified NPI is a hard hit — it could denote a real provider. Seed-determinism and
+    synthetic-safety property suites (120-seed sweeps) + committed `.edi` golden fixtures added.
+  - **`@cosyte/x12` vendored as an optional peer dep** (`file:vendor/cosyte-x12-0.0.1.tgz`), lazily loaded
+    per format — importing the package root never pulls it; third-party runtime deps stay at zero.
+  - **Deferred:** the **270** eligibility _request_ (`@cosyte/x12` ships `build271` but no `build270`, and
+    `synth` never hand-writes bytes around a missing builder — coverage tracks the builder); vendor-quirk
+    mode remains Phase 7 / SYNTH-7.
 - `VERSION` export.
 
 ### Changed
