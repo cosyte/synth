@@ -19,7 +19,7 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
 
 ## Status
 
-- **Phases 1–7 shipped (SYNTH-1 … SYNTH-9).** Pre-alpha `0.0.x`, not yet published to npm. The
+- **Phases 1–8 shipped (SYNTH-1 … SYNTH-10).** Pre-alpha `0.0.x`, not yet published to npm. The
   generator core is in place: the seeded PRNG (`createRng`, `src/rng/`), the synthetic-safety providers
   (`src/safe/` — incl. `safe.npi`, a deliberately-invalid-Luhn NPI + `isSyntheticNpi`, and `safe.dea`, a
   deliberately-invalid-checksum DEA + `isSyntheticDea`/`deaCheckDigit`), the `Corpus` abstraction,
@@ -94,14 +94,32 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
     `SYNTH_UNSUPPORTED_QUIRK`; synthetic-safety still holds (a quirk deviates structure, never provenance —
     the `phi-scan` gate stays zero over quirk output). All quirks are **publicly grounded** (ADR 0018);
     quirk recipes for **FHIR/X12/NCPDP are deferred**, as is any quirk needing a private vendor corpus.
-- The six parsers are **optional peer deps**, vendored for dev/test via the `mllp` pattern
-  (`vendor/cosyte-hl7-0.0.0.tgz`, `vendor/cosyte-fhir-0.0.0.tgz`, `vendor/cosyte-ccda-0.0.1.tgz`,
-  `vendor/cosyte-x12-0.0.1.tgz`, `vendor/cosyte-ncpdp-0.0.1.tgz`, `vendor/cosyte-astm-0.0.0.tgz`). Refresh
-  one by re-running, e.g.,
-  `pnpm -C ../astm build && pnpm -C ../astm pack --pack-destination ../synth/vendor` then
-  `pnpm add -D @cosyte/astm@file:vendor/cosyte-astm-0.0.0.tgz` (restore the `peerDependencies` entry
+  - **The `@cosyte/deid` pairing loop (SYNTH-10, Phase 8)** — a deterministic, seeded **closed-loop
+    co-validation harness** at the `@cosyte/synth/deid` subpath: **generate → plant tagged synthetic PHI
+    sentinels at the patient loci → de-identify via `@cosyte/deid` → verify every sentinel is gone**
+    (a surviving sentinel is a hard failure) **and** the clinical payload survives (the over-scrub guard).
+    Per-format loops `{hl7,fhir,x12,ncpdpTelecom,ccda}DeidLoop` returning an immutable `DeidLoopResult`,
+    plus `summarizeDeidCoverage`, `deidLoopPolicy` (Safe Harbor with MRN/beneficiary/account → `redact`,
+    so **no key context** is needed and the loop is a pure function of the seed), and the testable
+    primitives `identifierSentinels`/`recordTargetSentinels`/`sweepSurvivors`/`clinicalRetention`. The
+    removal check is **locus-scoped and collision-proof**: sentinels come from the patient PHI loci
+    (deid's own extractors for HL7/FHIR/X12/NCPDP; a `<recordTarget>` scan for C-CDA — deid's C-CDA
+    extractor needs a DOM), decomposed to literal distinctive synthetic tokens, and the sweep reads only
+    the de-identified values remaining **at those former PHI loci** — so provider/organization identity a
+    de-identifier legitimately retains (drawn from the same synthetic pools) never reads as a false
+    survivor. It is a **co-validation harness, not an independent audit** of deid; `blocked` counts as
+    removed; it **consumes the shipped generators unchanged**. **Deferred:** NCPDP **SCRIPT** / **ASTM** /
+    **DICOM** pairing (no `@cosyte/deid` adapter, or not generated — `DEID_LOOP_SKIPPED` names each), and
+    optional **Synthea** clinical-content ingestion (roadmap §Phase 8 — a documented future concern).
+- The six parsers **and `@cosyte/deid`** are **optional peer deps**, vendored for dev/test via the
+  `mllp` pattern (`vendor/cosyte-hl7-0.0.0.tgz`, `vendor/cosyte-fhir-0.0.0.tgz`,
+  `vendor/cosyte-ccda-0.0.1.tgz`, `vendor/cosyte-x12-0.0.1.tgz`, `vendor/cosyte-ncpdp-0.0.1.tgz`,
+  `vendor/cosyte-astm-0.0.0.tgz`, `vendor/cosyte-deid-0.0.0.tgz`). Refresh one by re-running, e.g.,
+  `pnpm -C ../deid build && pnpm -C ../deid pack --pack-destination ../synth/vendor` then
+  `pnpm add -D @cosyte/deid@file:vendor/cosyte-deid-0.0.0.tgz` (restore the `peerDependencies` entry
   after if `pnpm remove` stripped it). **Third-party runtime deps stay at 0.** Quirk generation (Phase 7)
-  ships for HL7 v2/C-CDA/ASTM; FHIR/X12/NCPDP quirks and the `deid` pairing loop (Phase 8) are later phases.
+  ships for HL7 v2/C-CDA/ASTM; FHIR/X12/NCPDP quirks are deferred, and the `deid` pairing loop (Phase 8)
+  ships for HL7/FHIR/C-CDA/X12/NCPDP Telecom.
 
 ## Tech Stack (the shared `@cosyte/*` standard)
 

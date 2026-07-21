@@ -13,5 +13,6 @@ export default cosyteTsup({
     "src/x12/index.ts",
     "src/ncpdp/index.ts",
     "src/astm/index.ts",
+    "src/deid/index.ts",
   ],
 });

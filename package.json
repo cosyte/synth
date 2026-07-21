@@ -100,6 +100,16 @@
         "default": "./dist/astm/index.cjs"
       }
     },
+    "./deid": {
+      "import": {
+        "types": "./dist/deid/index.d.ts",
+        "default": "./dist/deid/index.mjs"
+      },
+      "require": {
+        "types": "./dist/deid/index.d.cts",
+        "default": "./dist/deid/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -117,6 +127,7 @@
   "peerDependencies": {
     "@cosyte/astm": ">=0.0.0",
     "@cosyte/ccda": ">=0.0.0",
+    "@cosyte/deid": ">=0.0.0",
     "@cosyte/fhir": ">=0.0.0",
     "@cosyte/hl7": ">=0.0.0",
     "@cosyte/ncpdp": ">=0.0.1",
@@ -127,6 +138,9 @@
       "optional": true
     },
     "@cosyte/ccda": {
+      "optional": true
+    },
+    "@cosyte/deid": {
       "optional": true
     },
     "@cosyte/fhir": {
@@ -169,6 +183,7 @@
     "@changesets/cli": "2.31.0",
     "@cosyte/astm": "file:vendor/cosyte-astm-0.0.0.tgz",
     "@cosyte/ccda": "file:vendor/cosyte-ccda-0.0.1.tgz",
+    "@cosyte/deid": "file:vendor/cosyte-deid-0.0.0.tgz",
     "@cosyte/eslint-config": "^0.0.4",
     "@cosyte/fhir": "file:vendor/cosyte-fhir-0.0.0.tgz",
     "@cosyte/hl7": "file:vendor/cosyte-hl7-0.0.0.tgz",
