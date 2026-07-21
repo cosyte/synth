@@ -24,11 +24,16 @@ import {
   SYNTHETIC_ASSIGNING_AUTHORITY,
 } from "../../src/index.js";
 import {
+  generateAllergyIntolerance,
   generateBundle,
   generateCondition,
+  generateDiagnosticReport,
+  generateEncounter,
+  generateImmunization,
   generateMedicationRequest,
   generateObservationLab,
   generatePatient,
+  generateProcedure,
   generateVitalSign,
 } from "../../src/fhir/index.js";
 
@@ -100,7 +105,13 @@ describe("synthetic-safety gate — generated FHIR output (must be ZERO)", () =>
           generateObservationLab({ seed: s }),
           generateVitalSign({ seed: s }),
           generateMedicationRequest({ seed: s }),
+          generateEncounter({ seed: s }),
+          generateImmunization({ seed: s }),
+          generateAllergyIntolerance({ seed: s }),
+          generateProcedure({ seed: s }),
+          generateDiagnosticReport({ seed: s }),
           generateBundle({ seed: s, type: "transaction" }),
+          generateBundle({ seed: s, type: "document" }),
         ];
         for (const r of resources) {
           expect(realDataHits(serializeResource(r))).toEqual([]);
@@ -133,6 +144,17 @@ describe("synthetic-safety gate — generated FHIR output (must be ZERO)", () =>
           serializeResource(generateBundle({ seed: s, type: "collection" })),
         );
         expect(structuredHits(json)).toEqual([]);
+      }),
+      { numRuns: 200 },
+    );
+  });
+
+  it("a document Bundle (Composition + full spine) is synthetic at every identity locus", () => {
+    fc.assert(
+      fc.property(seed(), (s) => {
+        const content = serializeResource(generateBundle({ seed: s, type: "document" }));
+        expect(realDataHits(content)).toEqual([]);
+        expect(structuredHits(JSON.parse(content))).toEqual([]);
       }),
       { numRuns: 200 },
     );

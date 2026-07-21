@@ -14,11 +14,16 @@ import { serializeResource } from "@cosyte/fhir";
 
 import {
   fhirCorpus,
+  generateAllergyIntolerance,
   generateBundle,
   generateCondition,
+  generateDiagnosticReport,
+  generateEncounter,
+  generateImmunization,
   generateMedicationRequest,
   generateObservationLab,
   generatePatient,
+  generateProcedure,
   generateVitalSign,
   roundTrip,
 } from "../../src/fhir/index.js";
@@ -26,7 +31,7 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIX_DIR = join(HERE, "..", "fixtures", "fhir");
 
-/** Every Phase-3 resource generator, by label, as a nullary factory. */
+/** Every FHIR resource generator, by label, as a nullary factory. */
 const GENERATORS: Record<string, () => ReturnType<typeof generatePatient>> = {
   "patient-base": () => generatePatient({ seed: 1, profile: "base" }),
   "patient-us-core": () => generatePatient({ seed: 1, profile: "us-core" }),
@@ -34,8 +39,14 @@ const GENERATORS: Record<string, () => ReturnType<typeof generatePatient>> = {
   "observation-lab": () => generateObservationLab({ seed: 3 }),
   "vital-sign": () => generateVitalSign({ seed: 4 }),
   "medication-request": () => generateMedicationRequest({ seed: 5 }),
+  encounter: () => generateEncounter({ seed: 11 }),
+  immunization: () => generateImmunization({ seed: 13 }),
+  "allergy-intolerance": () => generateAllergyIntolerance({ seed: 15 }),
+  procedure: () => generateProcedure({ seed: 17 }),
+  "diagnostic-report": () => generateDiagnosticReport({ seed: 19 }),
   "bundle-collection": () => generateBundle({ seed: 6, type: "collection" }),
   "bundle-transaction": () => generateBundle({ seed: 7, type: "transaction" }),
+  "bundle-document": () => generateBundle({ seed: 8, type: "document" }),
 };
 
 describe("FHIR round-trip — spec-clean by construction (zero errors, byte-stable)", () => {
@@ -65,11 +76,29 @@ describe("FHIR round-trip — spec-clean by construction (zero errors, byte-stab
     expect(txn).toContain('"request"');
   });
 
-  it("the fhirCorpus is spec-clean and self-describing", () => {
-    const corpus = fhirCorpus({ seed: 42, count: 6 });
-    expect(corpus.artifacts).toHaveLength(6);
+  it("a document Bundle leads with a Composition and carries an identifier + timestamp", () => {
+    const doc = serializeResource(generateBundle({ seed: 8, type: "document" }));
+    const parsed = JSON.parse(doc) as {
+      type: string;
+      identifier?: unknown;
+      timestamp?: string;
+      entry: { resource: { resourceType: string } }[];
+    };
+    expect(parsed.type).toBe("document");
+    expect(parsed.identifier).toBeDefined(); // bdl-9
+    expect(parsed.timestamp).toBeDefined(); // bdl-10
+    expect(parsed.entry[0]?.resource.resourceType).toBe("Composition"); // bdl-11
+    // A document forbids entry.request (bdl-3a).
+    expect(doc).not.toContain('"request"');
+  });
+
+  it("the fhirCorpus is spec-clean and self-describing across the full spine", () => {
+    const corpus = fhirCorpus({ seed: 42, count: 11 });
+    expect(corpus.artifacts).toHaveLength(11);
     expect(corpus.artifacts.every((a) => a.warnings.length === 0)).toBe(true);
     expect(corpus.manifest.formats).toEqual(["fhir"]);
+    expect(corpus.manifest.counts["Encounter"]).toBe(1);
+    expect(corpus.manifest.counts["DiagnosticReport"]).toBe(1);
     expect(corpus.seed).toBe(42);
   });
 });
@@ -82,8 +111,14 @@ describe("FHIR golden fixtures regenerate byte-for-byte (reproducibility contrac
     "observation-lab-seed2002.json": () => generateObservationLab({ seed: 2002 }),
     "vital-sign-seed2003.json": () => generateVitalSign({ seed: 2003 }),
     "medication-request-seed2004.json": () => generateMedicationRequest({ seed: 2004 }),
+    "encounter-seed2005.json": () => generateEncounter({ seed: 2005 }),
+    "immunization-seed2006.json": () => generateImmunization({ seed: 2006 }),
+    "allergy-intolerance-seed2007.json": () => generateAllergyIntolerance({ seed: 2007 }),
+    "procedure-seed2008.json": () => generateProcedure({ seed: 2008 }),
+    "diagnostic-report-seed2009.json": () => generateDiagnosticReport({ seed: 2009 }),
     "bundle-collection-seed3001.json": () => generateBundle({ seed: 3001, type: "collection" }),
     "bundle-transaction-seed3002.json": () => generateBundle({ seed: 3002, type: "transaction" }),
+    "bundle-document-seed3003.json": () => generateBundle({ seed: 3003, type: "document" }),
   };
 
   for (const [file, make] of Object.entries(FIXTURES)) {

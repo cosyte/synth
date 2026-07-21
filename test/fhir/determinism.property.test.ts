@@ -10,11 +10,16 @@ import { serializeResource } from "@cosyte/fhir";
 
 import {
   fhirCorpus,
+  generateAllergyIntolerance,
   generateBundle,
   generateCondition,
+  generateDiagnosticReport,
+  generateEncounter,
+  generateImmunization,
   generateMedicationRequest,
   generateObservationLab,
   generatePatient,
+  generateProcedure,
   generateVitalSign,
 } from "../../src/fhir/index.js";
 
@@ -39,6 +44,21 @@ describe("FHIR seed-determinism (mandatory property)", () => {
         expect(serializeResource(generateMedicationRequest({ seed: s }))).toBe(
           serializeResource(generateMedicationRequest({ seed: s })),
         );
+        expect(serializeResource(generateEncounter({ seed: s }))).toBe(
+          serializeResource(generateEncounter({ seed: s })),
+        );
+        expect(serializeResource(generateImmunization({ seed: s }))).toBe(
+          serializeResource(generateImmunization({ seed: s })),
+        );
+        expect(serializeResource(generateAllergyIntolerance({ seed: s }))).toBe(
+          serializeResource(generateAllergyIntolerance({ seed: s })),
+        );
+        expect(serializeResource(generateProcedure({ seed: s }))).toBe(
+          serializeResource(generateProcedure({ seed: s })),
+        );
+        expect(serializeResource(generateDiagnosticReport({ seed: s }))).toBe(
+          serializeResource(generateDiagnosticReport({ seed: s })),
+        );
       }),
       { numRuns: 250 },
     );
@@ -48,7 +68,7 @@ describe("FHIR seed-determinism (mandatory property)", () => {
     fc.assert(
       fc.property(
         seed(),
-        fc.constantFrom("collection" as const, "transaction" as const),
+        fc.constantFrom("collection" as const, "transaction" as const, "document" as const),
         (s, type) => {
           expect(serializeResource(generateBundle({ seed: s, type }))).toBe(
             serializeResource(generateBundle({ seed: s, type })),

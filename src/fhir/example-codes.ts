@@ -229,3 +229,144 @@ export const EXAMPLE_ETHNICITY_CATEGORIES: readonly CodeConcept[] = Object.freez
     display: "Not Hispanic or Latino",
   }),
 ]);
+
+/**
+ * CVX vaccine-administered example codes (for a US Core `Immunization.vaccineCode`). Public CDC CVX
+ * identifiers used as structural fillers; `@cosyte/synth` bundles no CVX content (SYNTH-4).
+ */
+export const EXAMPLE_VACCINES: readonly CodeConcept[] = Object.freeze([
+  Object.freeze({
+    system: SYSTEM.CVX,
+    code: "140",
+    display: "Influenza, seasonal, injectable, preservative free",
+  }),
+  Object.freeze({ system: SYSTEM.CVX, code: "03", display: "MMR" }),
+  Object.freeze({ system: SYSTEM.CVX, code: "20", display: "DTaP" }),
+  Object.freeze({ system: SYSTEM.CVX, code: "133", display: "Pneumococcal conjugate PCV 13" }),
+  Object.freeze({
+    system: SYSTEM.CVX,
+    code: "208",
+    display: "COVID-19, mRNA, LNP-S, PF, 30 mcg/0.3 mL dose",
+  }),
+]);
+
+/**
+ * Allergen-substance example codes (for a US Core `AllergyIntolerance.code`). Public RxNorm / SNOMED CT
+ * identifiers used as structural fillers; no terminology content is bundled (SYNTH-4).
+ */
+export const EXAMPLE_ALLERGENS: readonly CodeConcept[] = Object.freeze([
+  Object.freeze({ system: SYSTEM.RXNORM, code: "7980", display: "Penicillin G" }),
+  Object.freeze({ system: SYSTEM.RXNORM, code: "2670", display: "Codeine" }),
+  Object.freeze({ system: SYSTEM.SNOMED, code: "762952008", display: "Peanut (substance)" }),
+  Object.freeze({ system: SYSTEM.SNOMED, code: "227493005", display: "Cashew nuts (substance)" }),
+  Object.freeze({ system: SYSTEM.SNOMED, code: "3718001", display: "Cow's milk (substance)" }),
+]);
+
+/**
+ * Allergy-reaction manifestation example codes (for `AllergyIntolerance.reaction.manifestation`).
+ * Public SNOMED CT clinical-finding identifiers used as structural fillers (SYNTH-4).
+ */
+export const EXAMPLE_ALLERGY_MANIFESTATIONS: readonly CodeConcept[] = Object.freeze([
+  Object.freeze({ system: SYSTEM.SNOMED, code: "247472004", display: "Wheal (finding)" }),
+  Object.freeze({ system: SYSTEM.SNOMED, code: "126485001", display: "Urticaria (disorder)" }),
+  Object.freeze({
+    system: SYSTEM.SNOMED,
+    code: "271807003",
+    display: "Eruption of skin (disorder)",
+  }),
+  Object.freeze({ system: SYSTEM.SNOMED, code: "267036007", display: "Dyspnea (finding)" }),
+  Object.freeze({ system: SYSTEM.SNOMED, code: "422587007", display: "Nausea (finding)" }),
+]);
+
+/**
+ * SNOMED CT procedure example codes (for a US Core `Procedure.code`). Public SNOMED identifiers used as
+ * structural fillers — **not** CPT (which is never bundled, roadmap §2) (SYNTH-4).
+ */
+export const EXAMPLE_PROCEDURES: readonly CodeConcept[] = Object.freeze([
+  Object.freeze({
+    system: SYSTEM.SNOMED,
+    code: "80146002",
+    display: "Excision of appendix (procedure)",
+  }),
+  Object.freeze({ system: SYSTEM.SNOMED, code: "73761001", display: "Colonoscopy (procedure)" }),
+  Object.freeze({
+    system: SYSTEM.SNOMED,
+    code: "5880005",
+    display: "Physical examination procedure (procedure)",
+  }),
+  Object.freeze({
+    system: SYSTEM.SNOMED,
+    code: "108252007",
+    display: "Laboratory procedure (procedure)",
+  }),
+  Object.freeze({ system: SYSTEM.SNOMED, code: "71651007", display: "Mammography (procedure)" }),
+]);
+
+/**
+ * LOINC diagnostic-report example codes (for a US Core Laboratory `DiagnosticReport.code`). Public LOINC
+ * panel identifiers used as structural fillers (SYNTH-4).
+ */
+export const EXAMPLE_DIAGNOSTIC_REPORTS: readonly CodeConcept[] = Object.freeze([
+  Object.freeze({
+    system: SYSTEM.LOINC,
+    code: "24323-8",
+    display: "Comprehensive metabolic 2000 panel - Serum or Plasma",
+  }),
+  Object.freeze({
+    system: SYSTEM.LOINC,
+    code: "58410-2",
+    display: "CBC panel - Blood by Automated count",
+  }),
+  Object.freeze({
+    system: SYSTEM.LOINC,
+    code: "24357-6",
+    display: "Urinalysis complete panel - Urine",
+  }),
+  Object.freeze({
+    system: SYSTEM.LOINC,
+    code: "24331-1",
+    display: "Lipid 1996 panel - Serum or Plasma",
+  }),
+  Object.freeze({
+    system: SYSTEM.LOINC,
+    code: "24321-2",
+    display: "Basic metabolic 1998 panel - Serum or Plasma",
+  }),
+]);
+
+/**
+ * SNOMED CT encounter-type example codes (for a US Core `Encounter.type`). Public SNOMED identifiers
+ * used as structural fillers (SYNTH-4).
+ */
+export const EXAMPLE_ENCOUNTER_TYPES: readonly CodeConcept[] = Object.freeze([
+  Object.freeze({
+    system: SYSTEM.SNOMED,
+    code: "308335008",
+    display: "Patient encounter procedure (procedure)",
+  }),
+  Object.freeze({
+    system: SYSTEM.SNOMED,
+    code: "185349003",
+    display: "Encounter for check up (procedure)",
+  }),
+  Object.freeze({
+    system: SYSTEM.SNOMED,
+    code: "185347001",
+    display: "Encounter for problem (procedure)",
+  }),
+  Object.freeze({
+    system: SYSTEM.SNOMED,
+    code: "390906007",
+    display: "Follow-up encounter (procedure)",
+  }),
+]);
+
+/**
+ * HL7 v3 `ActCode` encounter-class example codes (for `Encounter.class`, a single `Coding`). Public
+ * ActCode identifiers used as structural fillers (SYNTH-4).
+ */
+export const EXAMPLE_ENCOUNTER_CLASSES: readonly CodeConcept[] = Object.freeze([
+  Object.freeze({ system: SYSTEM.V3_ACT_CODE, code: "AMB", display: "ambulatory" }),
+  Object.freeze({ system: SYSTEM.V3_ACT_CODE, code: "EMER", display: "emergency" }),
+  Object.freeze({ system: SYSTEM.V3_ACT_CODE, code: "IMP", display: "inpatient encounter" }),
+]);

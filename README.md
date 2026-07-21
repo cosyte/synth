@@ -13,7 +13,9 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 
 > **Status:** pre-alpha (`0.0.x`), not yet published to npm. Phase 1 ships the seeded-PRNG core, the
 > synthetic-safety providers, and the round-trip harness; Phase 2 the full HL7 v2 message set; Phase 3
-> FHIR R4 / US Core (Patient + the clinical spine + Bundles).
+> FHIR R4 / US Core (Patient + the clinical spine + Bundles); Phase 4 the rest of the US Core clinical
+> set (`Encounter`, `DiagnosticReport`, `Immunization`, `AllergyIntolerance`, `Procedure`) and the
+> `document` Bundle shape.
 
 ## Install
 
@@ -54,8 +56,10 @@ generateHl7("VXU^V04", 12345);
 The `@cosyte/synth/fhir` subpath builds resources **through `@cosyte/fhir`'s model constructors**, so
 they are spec-clean by construction — validating under `validateResource` and, against the **real US
 Core 6.1.0 profiles** (bring your own `StructureDefinition`s — none is bundled), conformant to US Core.
-The clinical spine covers `Patient` (base + US Core), `Condition`, `Observation` (US Core Laboratory
-Result + Vital Signs), `MedicationRequest`, and `Bundle` (collection + transaction).
+The clinical set covers `Patient` (base + US Core), `Condition`, `Observation` (US Core Laboratory
+Result + Vital Signs), `MedicationRequest`, `Encounter`, `DiagnosticReport`, `Immunization`,
+`AllergyIntolerance`, and `Procedure`, assembled into a `collection`, `transaction`, or `document`
+`Bundle`.
 
 ```ts
 import { generatePatient, generateBundle, fhirCorpus, roundTrip } from "@cosyte/synth/fhir";
