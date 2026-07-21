@@ -2,23 +2,33 @@
 
 ## Project
 
-**`@cosyte/synth`** — a developer-focused Synthetic Data parser + utility library for Node.js/TypeScript,
-published under the Cosyte brand. Open-source (MIT). One of the sibling `@cosyte/*` healthcare-standard
-parsers that **mirror each other's API** — `@cosyte/hl7` is the reference; this repo deliberately
-copies its shape.
+**`@cosyte/synth`** — a deterministic, seedable **synthetic healthcare-fixture generator** for
+Node.js/TypeScript, published under the Cosyte brand. Open-source (MIT). It is a **consumer** of the
+sibling `@cosyte/*` parsers, **not a parser** — it builds artifacts _through_ each parser's own
+builder/serializer (spec-clean by construction) and draws every value from a guaranteed-non-colliding
+synthetic source. See the roadmap `operations/roadmaps/synth.md` in the meta-repo.
 
-**North star (the archetype):** a developer can parse a real-world, vendor-quirky Synthetic Data message
-and pull useful fields out in one line — without reading the spec. Liberal on parse (quirks become
-warnings), conservative on emit (always spec-clean). See `documentation/conventions.md` →
-"The standard parser archetype" in the meta-repo for the full contract this repo must satisfy:
-Postel's Law, the tiered tolerance model, stable warning codes, zero runtime deps, dual ESM + CJS,
-immutability + explicit mutation, and the profile system.
+**North star:** a developer writes `generateAdt({ seed: 12345 })` and gets a structurally-valid HL7 v2
+message whose every identifier/name/date is provably synthetic and which round-trips through
+`@cosyte/hl7` with zero warnings — and the _same seed_ on any machine yields the _byte-identical_
+message. The central reflex is neither the parser's liberal parse nor a de-identifier's fail-closed —
+it is **synthetic-by-construction**: no code path can emit a value not drawn from a reserved range or
+the shipped fake-name pool. It borrows the archetype's _disciplines_ (immutability, stable typed codes,
+the profile system) but its correctness is round-trip fidelity + seed-determinism + synthetic-safety,
+not wire tolerance. **It is a format/conformance generator, NOT a clinical simulator (that is Synthea).**
 
 ## Status
 
-- **Scaffolded from the shared `@cosyte/*` parser template.** Pre-alpha `0.0.x`, not yet published to
-  npm. `src/index.ts` carries archetype **stubs** (`parseSynth`, `WARNING_CODES`, `FATAL_CODES`)
-  — the real parser lands in subsequent phases.
+- **Phase 1 shipped (SYNTH-1).** Pre-alpha `0.0.x`, not yet published to npm. The generator core is in
+  place: the seeded PRNG (`createRng`, `src/rng/`), the synthetic-safety providers (`src/safe/`), the
+  `Corpus` abstraction, `defineSynthProfile`, the `SYNTH_FATAL_CODES`/`SynthError`, and HL7 v2
+  generation at the `@cosyte/synth/hl7` subpath (`generateAdt`/`roundTrip`/`hl7Corpus`), proving the
+  round-trip harness + synthetic-safety CI gate end-to-end. `@cosyte/hl7` is an **optional peer dep**,
+  vendored for dev/test (`vendor/cosyte-hl7-0.0.0.tgz`) via the `mllp` pattern; refresh it by re-running
+  `pnpm -C ../hl7 build && pnpm -C ../hl7 pack --out ../synth/vendor/cosyte-hl7-0.0.0.tgz` then
+  `pnpm add -D @cosyte/hl7@file:vendor/cosyte-hl7-0.0.0.tgz` (restore the `peerDependencies` entry after
+  if `pnpm remove` stripped it). **Third-party runtime deps stay at 0.** The remaining formats (the
+  rest of HL7, FHIR, C-CDA, X12, NCPDP, ASTM) and quirk generation are later phases.
 
 ## Tech Stack (the shared `@cosyte/*` standard)
 

@@ -6,46 +6,53 @@ sidebar_position: 1
 
 # Troubleshooting
 
-Common symptoms when integrating `@cosyte/synth`, and how to read what the parser is telling you.
+Common questions when generating fixtures with `@cosyte/synth`.
 
-## The parse "succeeded" but the result looks wrong
+## "I got a different message than last run"
 
-`@cosyte/synth` is lenient — it recovers from vendor quirks rather than throwing. That means a surprising
-result usually comes with an explanation in `warnings`. Inspect them first:
+You almost certainly changed the **seed**, or let the format's builder fill a nondeterministic default.
+`synth` supplies a seeded control id and timestamp to `@cosyte/hl7` precisely so the bytes are
+reproducible — pass the same `seed` and you get byte-identical output:
 
-```ts
-const { value, warnings } = parseSynth(raw);
+```ts runnable
+import { generateAdt } from "@cosyte/synth/hl7";
 
-for (const w of warnings) {
-  console.warn(w.code, w.message, w.position);
-}
+generateAdt({ seed: 5 }).toString() === generateAdt({ seed: 5 }).toString(); // => true
 ```
 
-Each warning carries a **stable code** (`WARNING_CODES`) and positional context. If a deviation
-should be a hard failure for your integration, re-parse with `{ strict: true }` to have it thrown
-instead.
+Note that a **`synth` version bump may change the seed→bytes mapping** — that is a documented breaking
+change, so pin the version alongside the seed for a long-lived golden fixture.
 
-## A parse threw
+## "Cannot find module @cosyte/hl7"
 
-Only **Tier-3 fatal** conditions (`FATAL_CODES`) throw in lenient mode — these mark input the parser
-cannot recover into a structured result. In `{ strict: true }` mode, any tolerated deviation throws
-too. Catch and inspect the error's code to tell the two apart.
+The `@cosyte/synth/hl7` subpath needs the optional peer `@cosyte/hl7` installed. The package **core**
+(`@cosyte/synth`) has no such requirement — import from there if you only need the PRNG and the safe
+providers.
 
-## Warning messages and logs
+## An unsupported request threw
 
-Warning `message` fields are safe to log — they **never contain PHI**. Never log the raw payload
-itself; it may carry protected health information.
+A generator has nothing to tolerate, so it **fails closed**. Asking for a format or quirk this build
+cannot produce spec-clean throws a typed `SynthError` with a stable `SYNTH_FATAL_CODES` value — never a
+hand-written byte workaround:
 
-## Known limitations
+```ts runnable throws
+import { defineSynthProfile } from "@cosyte/synth";
 
-> **Status:** `@cosyte/synth` is a pre-alpha scaffold. `parseSynth` currently returns a structural stub
-> (`{ value: {}, warnings: [] }`); the real lenient tokenizer, immutable model, serializer, and the
-> full warning/fatal code sets land in subsequent phases.
+// A blank profile name is a programming error, and is rejected up front — this block is expected
+// to throw (a TypeError), and the docs gate asserts that it does.
+defineSynthProfile({ name: "" });
+```
 
-- **`string` input only** for now — `Buffer` / `Uint8Array` support arrives with the real parser.
-- **Placeholder code registries** — `WARNING_CODES` / `FATAL_CODES` hold example entries until the
-  parser populates the real ones.
-- **No serializer yet** — the spec-clean emit side is added in a later phase.
+## Is the generated output safe to commit and log?
 
-The **API Reference** always reflects exactly what this release ships — treat it as the source of
-truth over any prose above.
+Yes — that is the whole point. **Every** value is drawn from a reserved/synthetic source, proven by the
+synthetic-safety gate (the inverse of a de-identifier's leak test: `synth` proves plausibly-real PHI was
+*never generated*). You can commit a generated corpus as a fixture without a PHI review of its contents.
+
+## Known limitations (Phase 1)
+
+- **HL7 v2 `ADT` only** so far — `A01`/`A04`/`A08`. The full HL7 message set (ORU/ORM/SIU/VXU) and the
+  other formats (FHIR / C-CDA / X12 / NCPDP / ASTM) land in later phases.
+- **Spec-clean only** — deliberate vendor-quirk generation is a later phase.
+
+The **API Reference** always reflects exactly what this release ships.

@@ -342,9 +342,24 @@ function buildTargetsForStaged(): Target[] {
 // Cross-cutting shape checks — the format-agnostic FLOOR
 // ---------------------------------------------------------------------------
 
+/**
+ * Whether a 9-digit SSN (dashes optional) is drawn from an SSA never-issued / reserved space — area
+ * `000`, `666`, or `900–999`. This is the one place a *synthetic-data generator's* PHI gate must
+ * differ from a parser's: `synth` legitimately emits `900-xx-xxxx` never-issued SSNs and the
+ * `987-65-432x` advertising block, and those are *proof of synthetic*, not PHI. A real, issuable SSN
+ * (area `001–899`, excluding `666`) is still a hard hit (roadmap §4.1, §4.4).
+ */
+function isSyntheticSsn(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length !== 9) return false;
+  const area = Number(digits.slice(0, 3));
+  return area === 0 || area === 666 || area >= 900;
+}
+
 function scanCommonShapes(path: string, content: string, allow: AllowList, hits: Hit[]): void {
-  // Dashed SSN anywhere (a dashed \d{3}-\d{2}-\d{4} is always a hit).
+  // Dashed SSN anywhere — a hit UNLESS it is a provably-synthetic never-issued/reserved SSN.
   for (const m of content.matchAll(/\b\d{3}-\d{2}-\d{4}\b/g)) {
+    if (isSyntheticSsn(m[0])) continue;
     hits.push({ path, segment: "(ssn)", value: m[0], reason: "dashed SSN pattern" });
   }
   // Emails whose domain is not an allow-listed reserved / test domain.
@@ -371,35 +386,65 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): void {
   }
   const text = buf.toString("utf8");
 
-  // The format-agnostic floor: dashed SSN + non-test email. This runs on every
-  // target and is all the starter detects.
+  // The format-agnostic floor: dashed SSN (synthetic-area-aware) + non-test email.
   scanCommonShapes(target.path, text, allow, hits);
 
-  // ── TODO: add Synthetic Data-specific structured field-level PHI detection here ──
-  //
-  //   The floor above ONLY catches SSN/email shapes. Before you rely on this
-  //   scanner as a real safety gate you MUST add structured, field-level
-  //   detection for Synthetic Data's PHI — at minimum: person NAMES, DATE OF BIRTH,
-  //   MRN / MEMBER ID, ADDRESS, and PHONE — parsing `text` according to the
-  //   Synthetic Data wire format and checking each PHI-bearing field against the
-  //   allow-list (`allow.names` / `allow.dobs` / `allow.ids`), pushing a `Hit`
-  //   for anything not positively declared synthetic.
-  //
-  //   Parse the format properly (delimiters / segments / elements / tags) — do
-  //   NOT bolt on a blind text regex for names: coded values (`CBC^Complete
-  //   Blood Count`, `Boston^MA`) produce false confidence. See the sibling
-  //   parsers named in the STARTER banner at the top of this file for worked,
-  //   spec-aware examples you can adapt:
-  //
-  //     const d = detectSynthetic DataDelimiters(text);          // if applicable
-  //     for (const record of splitSynthetic Data(text, d)) {
-  //       // check name / dob / id / address / phone fields against `allow`
-  //       // hits.push({ path: target.path, segment: "<field>", value, reason });
-  //     }
-  //
-  //   Until this section is implemented, treat a green `pnpm phi-scan` as
-  //   "no SSN/email shapes found" — NOT as "no PHI".
-  // ───────────────────────────────────────────────────────────────────────────
+  // Structured, field-level detection for the format synth actually generates in Phase 1: HL7 v2.
+  // A generated fixture is swept at its real PHI loci (PID name / SSN / phone) and every value must be
+  // provably synthetic — the executable, format-aware half of the synthetic-safety gate (roadmap §4.4).
+  scanHl7(target.path, text, allow, hits);
+}
+
+/** Whether a phone-shaped value carries the NANP reserved `555-01xx` fictional tail. */
+function isSyntheticPhone(value: string): boolean {
+  const tail = value.replace(/\D/g, "").slice(-7);
+  return /^55501\d\d$/.test(tail);
+}
+
+/**
+ * HL7 v2 structured PID detection. Locates each `PID` segment, derives the field/component delimiters
+ * from the message's own `MSH`, and checks the PHI-bearing loci — PID-5 (name), PID-13 (phone), PID-19
+ * (SSN) — against the synthetic sources. A name token not on the allow-list, a real-area SSN, or a
+ * non-reserved phone is a hard hit. Non-HL7 targets fall straight through (no `MSH`).
+ */
+function scanHl7(path: string, text: string, allow: AllowList, hits: Hit[]): void {
+  const segments = text.split(/\r\n|\r|\n/);
+  const msh = segments.find((s) => s.startsWith("MSH"));
+  if (msh === undefined || msh.length < 5) return;
+  const fieldSep = msh.charAt(3); // MSH-1
+  const compSep = msh.charAt(4); // MSH-2, first char (component separator)
+
+  for (const seg of segments) {
+    if (!seg.startsWith(`PID${fieldSep}`)) continue;
+    const fields = seg.split(fieldSep);
+    const at = (n: number): string => fields[n] ?? ""; // fields[n] is HL7 field n (0 = "PID").
+
+    // PID-5 — patient name (XPN). Each component token must be a declared-synthetic name.
+    for (const token of at(5).split(compSep)) {
+      const t = token.trim();
+      if (t.length === 0) continue;
+      if (!allow.names.has(t.toUpperCase())) {
+        hits.push({ path, segment: "PID-5", value: t, reason: "name not declared synthetic" });
+      }
+    }
+
+    // PID-19 — SSN. Any SSN-shaped value must be from a never-issued/reserved area.
+    const ssnValue = at(19).trim();
+    if (/^\d{9}$/.test(ssnValue.replace(/\D/g, "")) && !isSyntheticSsn(ssnValue)) {
+      hits.push({ path, segment: "PID-19", value: ssnValue, reason: "SSN not in synthetic range" });
+    }
+
+    // PID-13 — phone (XTN). A phone-shaped value must carry the reserved 555-01xx tail.
+    const phoneValue = at(13).trim();
+    if (/\d{7,}/.test(phoneValue.replace(/\D/g, "")) && !isSyntheticPhone(phoneValue)) {
+      hits.push({
+        path,
+        segment: "PID-13",
+        value: phoneValue,
+        reason: "phone not in 555-01xx block",
+      });
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
