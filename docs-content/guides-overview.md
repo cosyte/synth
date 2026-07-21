@@ -9,8 +9,9 @@ sidebar_position: 1
 Task-oriented recipes — "how do I X?" — for `@cosyte/synth`. Each guide is a short, copy-pasteable answer
 to one real fixture-generation question.
 
-> **Status:** Phase 1 ships the seeded-PRNG core, the synthetic-safety providers, and the HL7 v2
-> round-trip harness. The guide set grows as later phases add formats and quirk generation; a guide is
+> **Status:** Phase 1 shipped the seeded-PRNG core, the synthetic-safety providers, and the HL7 v2
+> round-trip harness; Phase 2 completes the HL7 v2 message set (`ADT`, `ORU^R01`, `ORM^O01`, `SIU^S12`,
+> `VXU^V04`). The guide set grows as later phases add formats and quirk generation; a guide is
 > only written once the behavior it documents is shipped and its runnable example passes the
 > doc/code-agreement check.
 

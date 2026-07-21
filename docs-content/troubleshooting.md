@@ -47,12 +47,15 @@ defineSynthProfile({ name: "" });
 
 Yes — that is the whole point. **Every** value is drawn from a reserved/synthetic source, proven by the
 synthetic-safety gate (the inverse of a de-identifier's leak test: `synth` proves plausibly-real PHI was
-*never generated*). You can commit a generated corpus as a fixture without a PHI review of its contents.
+_never generated_). You can commit a generated corpus as a fixture without a PHI review of its contents.
 
-## Known limitations (Phase 1)
+## Known limitations (Phase 2)
 
-- **HL7 v2 `ADT` only** so far — `A01`/`A04`/`A08`. The full HL7 message set (ORU/ORM/SIU/VXU) and the
-  other formats (FHIR / C-CDA / X12 / NCPDP / ASTM) land in later phases.
+- **HL7 v2 only** so far — the full v2 set is here (`ADT` `A01`/`A04`/`A08`, `ORU^R01`, `ORM^O01`,
+  `SIU^S12`, `VXU^V04`), but the other formats (FHIR / C-CDA / X12 / NCPDP / ASTM) land in later phases.
 - **Spec-clean only** — deliberate vendor-quirk generation is a later phase.
+- **Structural, not clinical** — a generated `ORU`/`VXU` is a valid _shape_, not a clinically-coherent
+  record (that is Synthea's job); codes come from a small illustrative example pool, not bundled
+  terminology.
 
 The **API Reference** always reflects exactly what this release ships.

@@ -26,9 +26,19 @@ import {
   SYNTHETIC_FAMILY_NAMES,
   SYNTHETIC_ASSIGNING_AUTHORITY,
 } from "../../src/index.js";
-import { generateAdt } from "../../src/hl7/index.js";
+import { generateAdt, generateHl7, type Hl7MessageKind } from "../../src/hl7/index.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
+
+const ALL_KINDS: readonly Hl7MessageKind[] = [
+  "ADT^A01",
+  "ADT^A04",
+  "ADT^A08",
+  "ORU^R01",
+  "ORM^O01",
+  "SIU^S12",
+  "VXU^V04",
+];
 
 /** A conservative real-data sweep: any dashed SSN in issuable-area form, or any non-reserved email. */
 function realDataHits(content: string): string[] {
@@ -76,6 +86,26 @@ describe("synthetic-safety gate — generated HL7 output (must be ZERO)", () => 
       fc.property(seed(), fc.constantFrom(...(["A01", "A04", "A08"] as const)), (s, trigger) => {
         const content = generateAdt({ seed: s, trigger }).toString();
         expect(realDataHits(content)).toEqual([]);
+      }),
+      { numRuns: 400 },
+    );
+  });
+
+  it("every Phase 2 family's PID loci are provably synthetic and leak no real-data shape", () => {
+    fc.assert(
+      fc.property(seed(), fc.constantFrom(...ALL_KINDS), (s, kind) => {
+        const content = generateHl7(kind, s).toString();
+        // The whole-message cross-cutting sweep: no dashed real SSN, no non-reserved email, anywhere.
+        expect(realDataHits(content)).toEqual([]);
+
+        // Every family carries a PID — its identity loci must all be synthetic-by-construction.
+        const msg = parseHL7(content);
+        expect(isSyntheticSsn(msg.get("PID.19") ?? ""), `${kind} SSN`).toBe(true);
+        expect(isSyntheticPhone(msg.get("PID.13") ?? ""), `${kind} phone`).toBe(true);
+        expect(SYNTHETIC_FAMILY_NAMES).toContain(msg.get("PID.5.1"));
+        expect(SYNTHETIC_GIVEN_NAMES).toContain(msg.get("PID.5.2"));
+        expect(msg.get("PID.3.4")).toBe(SYNTHETIC_ASSIGNING_AUTHORITY.namespaceId);
+        expect(msg.get("PID.11.5")).toBe("00000");
       }),
       { numRuns: 400 },
     );

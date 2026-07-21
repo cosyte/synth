@@ -9,9 +9,19 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 
 import { createRng } from "../../src/index.js";
-import { generateAdt, hl7Corpus } from "../../src/hl7/index.js";
+import { generateAdt, generateHl7, hl7Corpus, type Hl7MessageKind } from "../../src/hl7/index.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
+
+const ALL_KINDS: readonly Hl7MessageKind[] = [
+  "ADT^A01",
+  "ADT^A04",
+  "ADT^A08",
+  "ORU^R01",
+  "ORM^O01",
+  "SIU^S12",
+  "VXU^V04",
+];
 
 describe("seed-determinism (mandatory property)", () => {
   it("the raw RNG stream is identical for the same seed", () => {
@@ -31,6 +41,15 @@ describe("seed-determinism (mandatory property)", () => {
         const a = generateAdt({ seed: s, trigger }).toString();
         const b = generateAdt({ seed: s, trigger }).toString();
         expect(a).toBe(b);
+      }),
+      { numRuns: 300 },
+    );
+  });
+
+  it("every HL7 v2 family is byte-identical for the same seed", () => {
+    fc.assert(
+      fc.property(seed(), fc.constantFrom(...ALL_KINDS), (s, kind) => {
+        expect(generateHl7(kind, s).toString()).toBe(generateHl7(kind, s).toString());
       }),
       { numRuns: 300 },
     );

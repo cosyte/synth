@@ -24,14 +24,26 @@ package core has **zero third-party runtime dependencies**.
 
 ## Generate a spec-clean HL7 v2 message
 
+The HL7 v2 set covers `ADT` (`A01`/`A04`/`A08`), `ORU^R01`, `ORM^O01`, `SIU^S12`, and `VXU^V04` —
+each built through `@cosyte/hl7`'s `buildMessage`, so it is spec-clean by construction.
+
 ```ts
-import { generateAdt, roundTrip } from "@cosyte/synth/hl7";
+import { generateAdt, generateOru, generateHl7, hl7Corpus, roundTrip } from "@cosyte/synth/hl7";
 
 // Same seed → byte-identical message, on any machine, any run.
-const message = generateAdt({ seed: 12345, trigger: "A01" });
+const adt = generateAdt({ seed: 12345, trigger: "A01" });
+const oru = generateOru({ seed: 12345 });
 
 // Spec-clean by construction: it round-trips through @cosyte/hl7 with zero warnings.
-roundTrip(message).specClean; // true
+roundTrip(adt).specClean; // true
+roundTrip(oru).specClean; // true
+
+// Or generate a reproducible mixed corpus across every family:
+const corpus = hl7Corpus({ seed: 42, count: 7 }); // one of each family, cycled
+corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-clean
+
+// Dispatch by kind when the message type is data:
+generateHl7("VXU^V04", 12345);
 ```
 
 ## Draw a synthetic value
