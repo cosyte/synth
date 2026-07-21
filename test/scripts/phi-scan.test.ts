@@ -23,6 +23,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { generate837P, roundTrip } from "../../src/x12/index.js";
+import { generateNewRx, generateB1 } from "../../src/ncpdp/index.js";
 
 const REPO_ROOT = process.cwd();
 const SCANNER_PATH = join(REPO_ROOT, "scripts", "phi-scan.ts");
@@ -214,6 +215,62 @@ describe("phi-scan: X12 structured detection (SYNTH-6)", () => {
     const r = scan("ssn-qual-837p.edi", content);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toMatch(/qualifier 34/);
+  });
+});
+
+describe("phi-scan: NCPDP structured detection (SYNTH-7)", () => {
+  it("passes a clean, generated SCRIPT NewRx (all identity synthetic-by-construction)", () => {
+    const r = scan("clean-newrx.xml", generateNewRx({ seed: 7001 }));
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("passes a clean, generated Telecom B1 (all identity synthetic-by-construction)", () => {
+    const r = scan("clean-b1.ncpdp", generateB1({ seed: 7004 }));
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("flags a real prescriber name in a SCRIPT message (exit 1)", () => {
+    const content = generateNewRx({ seed: 7001 }).replace(
+      /<LastName>[^<]+<\/LastName>/,
+      "<LastName>Smith</LastName>",
+    );
+    const r = scan("real-name.xml", content);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/not declared synthetic/);
+  });
+
+  it("flags a Luhn-VALID <NPI> in a SCRIPT message — it could be a real provider", () => {
+    const content = generateNewRx({ seed: 7001 }).replace(
+      /<NPI>\d{10}<\/NPI>/,
+      "<NPI>1234567893</NPI>",
+    );
+    const r = scan("valid-npi.xml", content);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/Luhn/);
+  });
+
+  it("flags a checksum-VALID <DEANumber> in a SCRIPT message — it could be a real DEA", () => {
+    const content = generateNewRx({ seed: 7001 }).replace(
+      /<DEANumber>[^<]+<\/DEANumber>/,
+      "<DEANumber>AB3512349</DEANumber>",
+    );
+    const r = scan("valid-dea.xml", content);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/DEA passes the checksum/);
+  });
+
+  it("flags a Luhn-VALID prescriber NPI (DB) in a Telecom claim (exit 1)", () => {
+    const content = generateB1({ seed: 7004 }).replace(/\x1cDB\d{10}/, "\x1cDB1234567893");
+    const r = scan("valid-db-npi.ncpdp", content);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/Luhn/);
+  });
+
+  it("flags a real phone (CQ) outside the 555-01xx block in a Telecom claim (exit 1)", () => {
+    const content = generateB1({ seed: 7004 }).replace(/\x1cCQ\d+/, "\x1cCQ2028675309");
+    const r = scan("real-phone.ncpdp", content);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/555-01xx/);
   });
 });
 

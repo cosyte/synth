@@ -19,10 +19,11 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
 
 ## Status
 
-- **Phases 1–6 shipped (SYNTH-1 … SYNTH-6).** Pre-alpha `0.0.x`, not yet published to npm. The
+- **Phases 1–6 shipped (SYNTH-1 … SYNTH-7).** Pre-alpha `0.0.x`, not yet published to npm. The
   generator core is in place: the seeded PRNG (`createRng`, `src/rng/`), the synthetic-safety providers
-  (`src/safe/` — incl. `safe.npi`, a deliberately-invalid-Luhn NPI + `isSyntheticNpi`), the `Corpus`
-  abstraction, `defineSynthProfile`, the `SYNTH_FATAL_CODES`/`SynthError`. Four formats are wired:
+  (`src/safe/` — incl. `safe.npi`, a deliberately-invalid-Luhn NPI + `isSyntheticNpi`, and `safe.dea`, a
+  deliberately-invalid-checksum DEA + `isSyntheticDea`/`deaCheckDigit`), the `Corpus` abstraction,
+  `defineSynthProfile`, the `SYNTH_FATAL_CODES`/`SynthError`. Five formats are wired:
   - **HL7 v2** at the `@cosyte/synth/hl7` subpath (`generateAdt`/`generateOru`/`generateOrm`/
     `generateSiu`/`generateVxu`/`generateHl7`/`hl7Corpus`/`roundTrip`), built through `@cosyte/hl7`'s
     `buildMessage`, round-tripping with zero warnings.
@@ -53,13 +54,26 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
     (never a real NPI), provider tax ids are 900-range SSNs at `REF*SY`, member ids are synthetic-AA
     scoped. The `phi-scan` gains X12-aware structured detection (NM1/PER/REF loci; a Luhn-valid NPI is a
     hard hit). **Deferred: the 270 request (`@cosyte/x12` ships no `build270`).** Quirk mode is Phase 7.
-- The four parsers are **optional peer deps**, vendored for dev/test via the `mllp` pattern
+  - **NCPDP (SYNTH-7)** at the `@cosyte/synth/ncpdp` subpath — **SCRIPT** ePrescribing (`generateNewRx`
+    via the validated `buildNewRx`; `generateRxRenewalRequest`/`generateRxChangeRequest` via
+    `@cosyte/ncpdp`'s public typed `ScriptMessage` model + `serializeScript` — the X12 typed-model→
+    serializer pattern, never hand-written bytes) and **Telecom** vD.0 claims (`generateB1`/`generateB2`/
+    `generateB3` via `buildTelecomRequest` + `serializeTelecom`), plus `generateTelecom`, `ncpdpCorpus`,
+    the `scriptRoundTrip`/`telecomRoundTrip` harnesses, the `ncpdp*` identity minters, and a
+    license-clean `EXAMPLE_DRUGS` pool (invented `00000`-labeler NDCs — no NCPDP prose bundled). Each
+    message round-trips through `@cosyte/ncpdp` with zero warnings, byte-stable. The identity invariant
+    adds the **prescriber DEA** (invalid checksum, `safe.dea`) alongside the NPI (invalid Luhn);
+    patient/cardholder ids are synthetic-AA scoped (`MBR`-prefixed). The `phi-scan` gains an NCPDP arm
+    (SCRIPT `<NPI>`/`<DEANumber>`/name tags; Telecom field-id-keyed CA/CB/CC/CD/CQ/CY/C2/DB — a
+    Luhn-valid NPI or checksum-valid DEA is a hard hit). **Deferred: SCRIPT lifecycle _responses_
+    (track the parser's builder surface); ASTM (SYNTH-8, gated on `ASTM-7`).** Quirk mode is Phase 7.
+- The five parsers are **optional peer deps**, vendored for dev/test via the `mllp` pattern
   (`vendor/cosyte-hl7-0.0.0.tgz`, `vendor/cosyte-fhir-0.0.0.tgz`, `vendor/cosyte-ccda-0.0.1.tgz`,
-  `vendor/cosyte-x12-0.0.1.tgz`). Refresh one by re-running, e.g.,
-  `pnpm -C ../x12 build && pnpm -C ../x12 pack --pack-destination ../synth/vendor` then
-  `pnpm add -D @cosyte/x12@file:vendor/cosyte-x12-0.0.1.tgz` (restore the `peerDependencies` entry
-  after if `pnpm remove` stripped it). **Third-party runtime deps stay at 0.** The remaining formats
-  (NCPDP, ASTM) and quirk generation are later phases.
+  `vendor/cosyte-x12-0.0.1.tgz`, `vendor/cosyte-ncpdp-0.0.1.tgz`). Refresh one by re-running, e.g.,
+  `pnpm -C ../ncpdp build && pnpm -C ../ncpdp pack --pack-destination ../synth/vendor` then
+  `pnpm add -D @cosyte/ncpdp@file:vendor/cosyte-ncpdp-0.0.1.tgz` (restore the `peerDependencies` entry
+  after if `pnpm remove` stripped it). **Third-party runtime deps stay at 0.** The remaining format
+  (ASTM) and quirk generation are later phases.
 
 ## Tech Stack (the shared `@cosyte/*` standard)
 

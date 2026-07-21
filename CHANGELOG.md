@@ -174,6 +174,42 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   - **Deferred:** the **270** eligibility _request_ (`@cosyte/x12` ships `build271` but no `build270`, and
     `synth` never hand-writes bytes around a missing builder — coverage tracks the builder); vendor-quirk
     mode remains Phase 7 / SYNTH-7.
+- **Phase 6 / NCPDP — spec-clean SCRIPT + Telecom generation (SYNTH-7).** A new `@cosyte/synth/ncpdp`
+  subpath generating both NCPDP standards **through `@cosyte/ncpdp`'s own emit surface**, so every
+  message is spec-clean by construction — it round-trips through the parser with **zero warnings**, is
+  byte-stable, seed-deterministic, and synthetic by construction:
+  - **New SCRIPT (XML ePrescribing) generators:** `generateNewRx` (via the validated `buildNewRx`
+    builder) and `generateRxRenewalRequest` / `generateRxChangeRequest` (built as `@cosyte/ncpdp`'s
+    **public typed `ScriptMessage` model** + `serializeScript` — the same typed-model→serializer path
+    the X12 arm uses, never a hand-written byte). Each round-trips through `parseScript` cleanly.
+  - **New Telecom (vD.0 pharmacy claim) generators:** `generateB1` (billing), `generateB2` (reversal),
+    and `generateB3` (rebill) via `buildTelecomRequest` + `serializeTelecom` — the fixed Transaction
+    Header, the FS/GS/RS framing, and every field id are the parser's own emit. A shared
+    `generateTelecom(code, …)` selects the transaction.
+  - **`ncpdpCorpus`** builds a reproducible mixed corpus (one of each of NewRx + RxRenewalRequest +
+    RxChangeRequest + B1 + B2 + B3 by default); `scriptRoundTrip` / `telecomRoundTrip` are the NCPDP
+    round-trip-through-the-parser harnesses. `ncpdpPatient` / `ncpdpPrescriber` / `ncpdpPharmacy` /
+    `ncpdpCardholder` / `ncpdpScriptRouting` mint the synthetic identity; a small license-clean
+    example-drug pool (`EXAMPLE_DRUGS`, invented `00000`-labeler NDCs) supplies drug content — **no
+    NCPDP-copyrighted text is bundled**.
+  - **Synthetic-safety carries a new identity locus X12 did not have — the prescriber DEA.** New
+    provider **`safe.dea`** emits a `XX`+7-digit DEA number with a **deliberately-invalid checksum** — a
+    real DEA number's 7th digit satisfies the published `(d1+d3+d5)+2·(d2+d4+d6)` checksum, so a `synth`
+    DEA can **never** be a validly-issued registration (new `isSyntheticDea` / `deaCheckDigit` +
+    `DEA_REGISTRANT_TYPES`). Prescriber NPIs remain invalid-Luhn; patient / cardholder / member ids are
+    synthetic-assigning-authority scoped (`MBR`-prefixed); names from the fake-name pool; DOBs and dates
+    (including SCRIPT `SentTime`) from the seeded generator (never wall-clock).
+  - The repo **`phi-scan` gains an NCPDP arm** — SCRIPT (`<FirstName>`/`<LastName>`/`<MiddleName>`
+    names, `<NPI>` Luhn, `<DEANumber>` checksum) and Telecom (field-id-keyed CA/CB/CC/CD names, CQ
+    phone, CY/C2 ids, DB prescriber NPI). A Luhn-**valid** NPI or a checksum-**valid** DEA is a hard hit
+    — it could denote a real provider. Seed-determinism + synthetic-safety property suites (120-seed
+    sweeps) and committed `.xml` (SCRIPT) + `.ncpdp` (Telecom) golden fixtures added.
+  - **`@cosyte/ncpdp` vendored as an optional peer dep** (`file:vendor/cosyte-ncpdp-0.0.1.tgz`), lazily
+    loaded per format — importing the package root never pulls it; third-party runtime deps stay at zero.
+  - **Deferred:** SCRIPT coverage tracks the parser's builder surface — the renewal/change **responses**
+    and other lifecycle transactions land as `@cosyte/ncpdp` grows its builders (`synth` never
+    hand-writes bytes around a missing builder). **ASTM** generation is gated on `@cosyte/astm`'s
+    serializer (`ASTM-7`, not yet shipped — SYNTH-8), and vendor-quirk mode remains Phase 7.
 - `VERSION` export.
 
 ### Changed

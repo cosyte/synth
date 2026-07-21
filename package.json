@@ -80,6 +80,16 @@
         "default": "./dist/x12/index.cjs"
       }
     },
+    "./ncpdp": {
+      "import": {
+        "types": "./dist/ncpdp/index.d.ts",
+        "default": "./dist/ncpdp/index.mjs"
+      },
+      "require": {
+        "types": "./dist/ncpdp/index.d.cts",
+        "default": "./dist/ncpdp/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -98,6 +108,7 @@
     "@cosyte/ccda": ">=0.0.0",
     "@cosyte/fhir": ">=0.0.0",
     "@cosyte/hl7": ">=0.0.0",
+    "@cosyte/ncpdp": ">=0.0.1",
     "@cosyte/x12": ">=0.0.1"
   },
   "peerDependenciesMeta": {
@@ -108,6 +119,9 @@
       "optional": true
     },
     "@cosyte/hl7": {
+      "optional": true
+    },
+    "@cosyte/ncpdp": {
       "optional": true
     },
     "@cosyte/x12": {
@@ -143,6 +157,7 @@
     "@cosyte/eslint-config": "^0.0.4",
     "@cosyte/fhir": "file:vendor/cosyte-fhir-0.0.0.tgz",
     "@cosyte/hl7": "file:vendor/cosyte-hl7-0.0.0.tgz",
+    "@cosyte/ncpdp": "file:vendor/cosyte-ncpdp-0.0.1.tgz",
     "@cosyte/prettier-config": "^0.0.2",
     "@cosyte/test-utils": "^0.0.1",
     "@cosyte/tsconfig": "^0.0.2",

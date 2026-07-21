@@ -112,6 +112,71 @@ export function npiCheckDigit(base9: string): number {
 }
 
 /**
+ * The DEA-registration prefix letters `@cosyte/synth` draws a synthetic DEA number's first character
+ * from. A real DEA number is `<registrant-type><last-name-initial>` + 7 digits; the first letter is the
+ * registrant type (A/B/F/G/M/P/R/X are the widely-published values; the second letter is the
+ * registrant's last-name initial). These letters are a **fact** about the number's shape, not
+ * copyrighted prose — they only shape the value; the synthetic guarantee is the deliberately-**invalid
+ * checksum** (see {@link dea} / {@link isSyntheticDea}).
+ */
+export const DEA_REGISTRANT_TYPES: readonly string[] = Object.freeze([
+  "A",
+  "B",
+  "F",
+  "G",
+  "M",
+  "P",
+  "R",
+  "X",
+]);
+
+/**
+ * The correct DEA check digit for a 7-digit numeric base. The published DEA checksum is
+ * `(d1 + d3 + d5) + 2·(d2 + d4 + d6)`, whose **units digit** is the 7th (check) digit. A real DEA
+ * number satisfies this; a number whose 7th digit differs cannot be a validly-issued DEA registration.
+ *
+ * @param base6 - The first 6 digits of the DEA number (positions 1–6).
+ * @returns The check digit (`0`–`9`) a real DEA number would carry for this base.
+ * @example
+ * ```ts
+ * import { deaCheckDigit } from "@cosyte/synth";
+ * deaCheckDigit("123456"); // the units digit of (1+3+5) + 2·(2+4+6)
+ * ```
+ */
+export function deaCheckDigit(base6: string): number {
+  let odd = 0;
+  let even = 0;
+  for (let i = 0; i < 6; i += 1) {
+    const digit = base6.charCodeAt(i) - 48;
+    if (i % 2 === 0) odd += digit;
+    else even += digit;
+  }
+  return (odd + 2 * even) % 10;
+}
+
+/**
+ * Whether a DEA number (`XX` + 7 digits, case-insensitive) is **provably synthetic** — its check digit
+ * (the 7th digit) does **not** match the published DEA checksum, so it cannot be a validly-issued DEA
+ * registration. A checksum-valid DEA number (which *could* denote a real prescriber) returns `false`; a
+ * value that is not the DEA shape returns `false`.
+ *
+ * @param value - The candidate DEA number (with or without incidental separators).
+ * @returns `true` when the DEA number's checksum is wrong (never a real DEA registration).
+ * @example
+ * ```ts
+ * import { isSyntheticDea } from "@cosyte/synth";
+ * isSyntheticDea("AF1234561"); // depends on the base — true when the 7th digit is wrong
+ * ```
+ */
+export function isSyntheticDea(value: string): boolean {
+  const compact = value.replace(/[\s-]/g, "").toUpperCase();
+  if (!/^[A-Z]{2}\d{7}$/.test(compact)) return false;
+  const digits = compact.slice(2);
+  const check = digits.charCodeAt(6) - 48;
+  return deaCheckDigit(digits.slice(0, 6)) !== check;
+}
+
+/**
  * Whether a 10-digit NPI is **provably synthetic** — i.e. its check digit is invalid, so it cannot be
  * a NPPES-issued NPI. A Luhn-valid 10-digit NPI (which *could* denote a real registered provider)
  * returns `false`; a non-10-digit value returns `false` (not an NPI shape).
