@@ -19,7 +19,7 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
 
 ## Status
 
-- **Phases 1–6 shipped (SYNTH-1 … SYNTH-8).** Pre-alpha `0.0.x`, not yet published to npm. The
+- **Phases 1–7 shipped (SYNTH-1 … SYNTH-9).** Pre-alpha `0.0.x`, not yet published to npm. The
   generator core is in place: the seeded PRNG (`createRng`, `src/rng/`), the synthetic-safety providers
   (`src/safe/` — incl. `safe.npi`, a deliberately-invalid-Luhn NPI + `isSyntheticNpi`, and `safe.dea`, a
   deliberately-invalid-checksum DEA + `isSyntheticDea`/`deaCheckDigit`), the `Corpus` abstraction,
@@ -78,7 +78,22 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
     practice-assigned + laboratory-assigned patient IDs minted independently (synthetic-AA scoped,
     `PRA`/`LAB`-prefixed) so they stay **distinct**. The `phi-scan` gains an ASTM arm (P-record name field
     6 + practice/lab ID fields 3/4, tolerating an E1381 frame prefix). This **completes the spec-clean
-    generation core across all six formats**. Quirk mode is Phase 7.
+    generation core across all six formats**.
+  - **Vendor-quirk mode (SYNTH-9, Phase 7)** — the differentiator. Profile-driven off-spec fixtures for the
+    three richest profile systems (**HL7 v2, C-CDA, ASTM**) at the `@cosyte/synth/{hl7,ccda,astm}` subpaths:
+    `generate{Hl7,Ccda,Astm}Quirk` + `{hl7,ccda,astm}QuirkRoundTrip` + `{hl7,ccda,astm}QuirkCorpus`, plus the
+    format-agnostic core in `src/quirk.ts` (`QuirkDescriptor`/`QuirkArtifact`/`QuirkRoundTripResult`,
+    `resolveQuirk`, `profileTolerated`, `validateProfileQuirks`, `PROFILE_QUIRK_APPLIED`). Each quirk is a
+    **post-serialize transform** (roadmap §10 Q4: profile tolerance is parse-side) that round-trips to
+    **exactly one intended parser warning** (the intended-warning contract): HL7 `unknown-zsegment`→
+    `UNKNOWN_SEGMENT` (suppressed by the public `visage` profile) + `unknown-escape`→`UNKNOWN_ESCAPE_SEQUENCE`;
+    C-CDA `template-extension-absent`→`TEMPLATE_EXTENSION_ABSENT` (`legacyR11`), `deprecated-loinc`→
+    `DEPRECATED_LOINC` + `deprecated-code-system`→`DEPRECATED_CODE_SYSTEM` (`smartScorecard`), each re-badged
+    to `PROFILE_QUIRK_APPLIED`; ASTM `unknown-escape`→`ASTM_UNKNOWN_ESCAPE_SEQUENCE` (`referenceCorpus`
+    re-badge) + `unknown-record-type`→`ASTM_RECORD_UNKNOWN_TYPE`. An unsupported quirk is a fatal
+    `SYNTH_UNSUPPORTED_QUIRK`; synthetic-safety still holds (a quirk deviates structure, never provenance —
+    the `phi-scan` gate stays zero over quirk output). All quirks are **publicly grounded** (ADR 0018);
+    quirk recipes for **FHIR/X12/NCPDP are deferred**, as is any quirk needing a private vendor corpus.
 - The six parsers are **optional peer deps**, vendored for dev/test via the `mllp` pattern
   (`vendor/cosyte-hl7-0.0.0.tgz`, `vendor/cosyte-fhir-0.0.0.tgz`, `vendor/cosyte-ccda-0.0.1.tgz`,
   `vendor/cosyte-x12-0.0.1.tgz`, `vendor/cosyte-ncpdp-0.0.1.tgz`, `vendor/cosyte-astm-0.0.0.tgz`). Refresh
@@ -86,7 +101,7 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
   `pnpm -C ../astm build && pnpm -C ../astm pack --pack-destination ../synth/vendor` then
   `pnpm add -D @cosyte/astm@file:vendor/cosyte-astm-0.0.0.tgz` (restore the `peerDependencies` entry
   after if `pnpm remove` stripped it). **Third-party runtime deps stay at 0.** Quirk generation (Phase 7)
-  and the `deid` pairing loop (Phase 8) are later phases.
+  ships for HL7 v2/C-CDA/ASTM; FHIR/X12/NCPDP quirks and the `deid` pairing loop (Phase 8) are later phases.
 
 ## Tech Stack (the shared `@cosyte/*` standard)
 

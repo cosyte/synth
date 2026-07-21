@@ -245,6 +245,42 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   - **Deferred:** vendor-quirk mode (lowercase ASTM checksums, framing dropped over TCP, and the other
     tolerances `@cosyte/astm`'s profile system advertises, each round-tripping to exactly the intended
     warning) remains Phase 7.
+- **Phase 7 — vendor-quirk generation, the differentiator (SYNTH-9).** Profile-driven **off-spec**
+  fixtures whose vocabulary **is the parsers' own profile systems** — a quirk deviates message
+  _structure_ so it round-trips to **exactly one intended, stable parser warning** (the
+  **intended-warning contract**), and where a **public** built-in parser profile claims the deviation it
+  round-trips cleanly under it (suppressed, or re-badged to `PROFILE_QUIRK_APPLIED`). Shipped for the
+  three richest profile systems — **HL7 v2, C-CDA, ASTM**:
+  - **Format-agnostic quirk core** (`src/quirk.ts`, root subpath): `QuirkDescriptor` / `QuirkArtifact` /
+    `QuirkRoundTripResult` / `QuirkProfiledVerdict` / `QuirkProfileDisposition`, `resolveQuirk` (fail-closed
+    `SYNTH_UNSUPPORTED_QUIRK`), `sameCodeSet`, `profileTolerated`, `validateProfileQuirks`,
+    `assertIntendedWarnings`, and the `PROFILE_QUIRK_APPLIED` marker. Quirks are applied **post-serialize**
+    (roadmap §10 Q4: profile tolerance is parse-side) as a deterministic transform of the parser's own
+    emit, and every `generate*Quirk` **self-checks the intended-warning contract at generation time**
+    (`assertIntendedWarnings`) — a fixture whose bare parse does not produce exactly the declared code is a
+    fatal error, never a silently-mislabeled golden file.
+  - **HL7 v2** (`@cosyte/synth/hl7`): `generateHl7Quirk` / `hl7QuirkRoundTrip` / `hl7QuirkCorpus` /
+    `hl7QuirkProfile` / `HL7_QUIRKS`. `unknown-zsegment` → `UNKNOWN_SEGMENT` (suppressed by the public
+    `visage` PACS profile's `ZDS` claim); `unknown-escape` → `UNKNOWN_ESCAPE_SEQUENCE`.
+  - **C-CDA** (`@cosyte/synth/ccda`): `generateCcdaQuirk` / `injectCcdaQuirk` / `ccdaQuirkRoundTrip` /
+    `ccdaQuirkCorpus` / `ccdaQuirkProfile` / `CCDA_QUIRKS`. `template-extension-absent` →
+    `TEMPLATE_EXTENSION_ABSENT` (re-badged by the public `legacyR11` profile); `deprecated-loinc` →
+    `DEPRECATED_LOINC` and `deprecated-code-system` → `DEPRECATED_CODE_SYSTEM` (re-badged by the public
+    `smartScorecard` profile). Structural (seed-robust) XML anchors that hold for **every generable
+    document type** (CCD **and** Referral Note — the `template-extension-absent` quirk drops the R2.1
+    stamp on each document-type template root).
+  - **ASTM** (`@cosyte/synth/astm`): `generateAstmQuirk` / `astmQuirkRoundTrip` / `astmQuirkCorpus` /
+    `astmQuirkProfile` / `ASTM_QUIRKS`. `unknown-escape` → `ASTM_UNKNOWN_ESCAPE_SEQUENCE` (re-badged by the
+    public `referenceCorpus` OSS profile); `unknown-record-type` → `ASTM_RECORD_UNKNOWN_TYPE`.
+  - **Synthetic-safety holds in quirk mode** — a quirk changes shape, never provenance, so the `phi-scan`
+    gate stays zero over quirk output (proven by scanner tests + committed quirk fixtures under
+    `test/fixtures/{hl7,ccda,astm}/quirk/`). Mandatory property suites: intended-warning (every quirk ×
+    seed × kind → exactly the intended code), seed-determinism (byte-identical), synthetic-safety.
+  - **Grounding:** every quirk is **publicly grounded** (ADR 0018 — a published IG, a vendor interface
+    spec, or a redistributable OSS corpus), never a private vendor corpus. **Deferred:** quirk recipes for
+    **FHIR / X12 / NCPDP**, and any quirk that would need a private, vendor-attributed corpus
+    (`REAL-CORPUS`-gated). New `@cosyte/synth/ccda` export `injectCcdaQuirk`; a new **quirk guide** in
+    `docs-content/`.
 - `VERSION` export.
 
 ### Changed
