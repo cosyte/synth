@@ -94,6 +94,32 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   - **Vendored `@cosyte/fhir`** as an optional peer dep via the same `file:vendor/*.tgz` pattern —
     third-party runtime deps stay at **zero**. Deferred to SYNTH-4: `Encounter`, `DiagnosticReport`,
     `Immunization`, `AllergyIntolerance`, `Procedure`, the `document` Bundle shape, and quirk mode.
+- **Phase 4 — the rest of the US Core clinical set (SYNTH-4).** Extends the `@cosyte/synth/fhir` subpath
+  from the SYNTH-3 clinical spine to the full US Core clinical set, each built **through `@cosyte/fhir`'s
+  own model constructors** and validated firsthand against the **real, published US Core 6.1.0
+  `StructureDefinition`s** (BYO — none bundled):
+  - **New generators:** `generateEncounter` (US Core Encounter), `generateDiagnosticReport` (US Core
+    Laboratory DiagnosticReport — carries the mandated `LAB` category slice and `effectiveDateTime` +
+    `issued` for the `us-core-8`/`us-core-9` invariants, with optional `result` wiring),
+    `generateImmunization` (US Core Immunization), `generateAllergyIntolerance` (US Core
+    AllergyIntolerance — `clinicalStatus` + `verificationStatus` emitted together for `ait-1`/`ait-2`),
+    and `generateProcedure` (US Core Procedure). Each takes a `subject`/`patient` reference and claims US
+    Core via `meta.profile` by default (`usCore:false` opts out).
+  - **The `document` Bundle shape:** `generateBundle({ type: "document" })` leads with the FHIR-mandated
+    `Composition` (`bdl-11`) plus a synthetic `Organization` author/custodian, and carries the required
+    `identifier` (`bdl-9`) and `timestamp` (`bdl-10`). `buildComposition` is exported. The shared Bundle
+    spine now assembles the **full clinical set** wired by `urn:uuid:` `fullUrl`s so **every reference
+    resolves in-bundle** (the `DiagnosticReport.result` points at the in-bundle lab `Observation`).
+  - **New license-clean example-code pools** (public code facts, no terminology bundled): `EXAMPLE_VACCINES`
+    (CVX), `EXAMPLE_ALLERGENS` + `EXAMPLE_ALLERGY_MANIFESTATIONS` (RxNorm/SNOMED), `EXAMPLE_PROCEDURES`
+    (SNOMED — never CPT), `EXAMPLE_DIAGNOSTIC_REPORTS` (LOINC panels), `EXAMPLE_ENCOUNTER_TYPES` (SNOMED),
+    `EXAMPLE_ENCOUNTER_CLASSES` (v3 ActCode); plus the matching `SYSTEM`/`US_CORE_PROFILE` identifiers.
+  - **`fhirCorpus`** now cycles the full clinical set by default; every new generator is covered by the
+    round-trip (zero-error, byte-stable), US-Core-conformance (zero-error over a 200-seed sweep),
+    seed-determinism, synthetic-safety, and golden-fixture suites. The five new US Core 6.1.0 profiles
+    (`us-core-encounter`, `us-core-diagnosticreport-lab`, `us-core-immunization`,
+    `us-core-allergyintolerance`, `us-core-procedure`) are committed under `test/us-core-profiles/`.
+    Deferred to SYNTH-5: C-CDA generation; quirk mode remains Phase 7.
 - `VERSION` export.
 
 ### Changed

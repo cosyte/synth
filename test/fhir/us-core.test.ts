@@ -19,10 +19,15 @@ import { dirname, join } from "node:path";
 import { loadStructureDefinition, parseResource, type StructureDefinition } from "@cosyte/fhir";
 
 import {
+  generateAllergyIntolerance,
   generateCondition,
+  generateDiagnosticReport,
+  generateEncounter,
+  generateImmunization,
   generateMedicationRequest,
   generateObservationLab,
   generatePatient,
+  generateProcedure,
   generateVitalSign,
   roundTrip,
 } from "../../src/fhir/index.js";
@@ -43,6 +48,11 @@ const SD = {
   observationLab: loadSD("us-core-observation-lab"),
   vitalSigns: loadSD("us-core-vital-signs"),
   medicationRequest: loadSD("us-core-medicationrequest"),
+  encounter: loadSD("us-core-encounter"),
+  immunization: loadSD("us-core-immunization"),
+  allergyIntolerance: loadSD("us-core-allergyintolerance"),
+  procedure: loadSD("us-core-procedure"),
+  diagnosticReportLab: loadSD("us-core-diagnosticreport-lab"),
 };
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
@@ -109,9 +119,75 @@ describe("US Core conformance — validated against the real US Core 6.1.0 profi
     );
   });
 
+  it("US Core Encounter validates clean against us-core-encounter", () => {
+    fc.assert(
+      fc.property(seed(), (s) => {
+        const rt = roundTrip(generateEncounter({ seed: s }), { profiles: [SD.encounter] });
+        expect(rt.errors, `encounter seed ${String(s)}`).toEqual([]);
+        expect(rt.specClean).toBe(true);
+      }),
+      { numRuns: 200 },
+    );
+  });
+
+  it("US Core Immunization validates clean against us-core-immunization", () => {
+    fc.assert(
+      fc.property(seed(), (s) => {
+        const rt = roundTrip(generateImmunization({ seed: s }), { profiles: [SD.immunization] });
+        expect(rt.errors, `immunization seed ${String(s)}`).toEqual([]);
+        expect(rt.specClean).toBe(true);
+      }),
+      { numRuns: 200 },
+    );
+  });
+
+  it("US Core AllergyIntolerance validates clean (incl. ait-1/ait-2)", () => {
+    fc.assert(
+      fc.property(seed(), (s) => {
+        const rt = roundTrip(generateAllergyIntolerance({ seed: s }), {
+          profiles: [SD.allergyIntolerance],
+        });
+        expect(rt.errors, `allergy seed ${String(s)}`).toEqual([]);
+        expect(rt.specClean).toBe(true);
+      }),
+      { numRuns: 200 },
+    );
+  });
+
+  it("US Core Procedure validates clean against us-core-procedure", () => {
+    fc.assert(
+      fc.property(seed(), (s) => {
+        const rt = roundTrip(generateProcedure({ seed: s }), { profiles: [SD.procedure] });
+        expect(rt.errors, `procedure seed ${String(s)}`).toEqual([]);
+        expect(rt.specClean).toBe(true);
+      }),
+      { numRuns: 200 },
+    );
+  });
+
+  it("US Core Laboratory DiagnosticReport validates clean (incl. LAB category + us-core-8/9)", () => {
+    fc.assert(
+      fc.property(seed(), (s) => {
+        const rt = roundTrip(generateDiagnosticReport({ seed: s }), {
+          profiles: [SD.diagnosticReportLab],
+        });
+        expect(rt.errors, `diagnostic-report seed ${String(s)}`).toEqual([]);
+        expect(rt.specClean).toBe(true);
+      }),
+      { numRuns: 200 },
+    );
+  });
+
   it("the profiles under test are the published US Core 6.1.0 artifacts", () => {
     expect(SD.patient.url).toBe("http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient");
+    expect(SD.encounter.url).toBe(
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter",
+    );
+    expect(SD.diagnosticReportLab.url).toBe(
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-lab",
+    );
     // A snapshot must be present — validation binds against the profile's own element set.
     expect(SD.patient.snapshot?.length ?? 0).toBeGreaterThan(0);
+    expect(SD.procedure.snapshot?.length ?? 0).toBeGreaterThan(0);
   });
 });

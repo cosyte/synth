@@ -16,7 +16,7 @@
  * @module
  */
 
-/** The canonical `meta.profile` URLs for the US Core 6.1.0 profiles Phase 3 generates. */
+/** The canonical `meta.profile` URLs for the US Core 6.1.0 profiles `@cosyte/synth` generates. */
 export const US_CORE_PROFILE = Object.freeze({
   /** US Core Patient. */
   PATIENT: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient",
@@ -29,6 +29,17 @@ export const US_CORE_PROFILE = Object.freeze({
   VITAL_SIGNS: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-vital-signs",
   /** US Core MedicationRequest. */
   MEDICATION_REQUEST: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationrequest",
+  /** US Core Encounter (SYNTH-4). */
+  ENCOUNTER: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter",
+  /** US Core DiagnosticReport Profile for Laboratory Results Reporting (SYNTH-4). */
+  DIAGNOSTIC_REPORT_LAB:
+    "http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-lab",
+  /** US Core Immunization (SYNTH-4). */
+  IMMUNIZATION: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-immunization",
+  /** US Core AllergyIntolerance (SYNTH-4). */
+  ALLERGY_INTOLERANCE: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-allergyintolerance",
+  /** US Core Procedure (SYNTH-4). */
+  PROCEDURE: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-procedure",
 } as const);
 
 /** The US Core `us-core-race` extension URL (a Patient must-support extension). */
@@ -64,10 +75,20 @@ export const SYSTEM = Object.freeze({
   LOINC: "http://loinc.org",
   /** SNOMED CT — `Condition.code`. */
   SNOMED: "http://snomed.info/sct",
-  /** RxNorm — `MedicationRequest.medicationCodeableConcept`. */
+  /** RxNorm — `MedicationRequest.medicationCodeableConcept` + an allergen substance. */
   RXNORM: "http://www.nlm.nih.gov/research/umls/rxnorm",
   /** UCUM — `Quantity.system` for units of measure. */
   UCUM: "http://unitsofmeasure.org",
+  /** CVX (CDC vaccine administered) — `Immunization.vaccineCode` (SYNTH-4). */
+  CVX: "http://hl7.org/fhir/sid/cvx",
+  /** HL7 v3 `ActCode` — `Encounter.class` (SYNTH-4). */
+  V3_ACT_CODE: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+  /** HL7 v2 `0074` diagnostic-service-section — `DiagnosticReport.category` (`LAB`) (SYNTH-4). */
+  DIAGNOSTIC_SERVICE_SECTION: "http://terminology.hl7.org/CodeSystem/v2-0074",
+  /** HL7 Terminology `allergyintolerance-clinical` — `AllergyIntolerance.clinicalStatus` (SYNTH-4). */
+  ALLERGY_CLINICAL: "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+  /** HL7 Terminology `allergyintolerance-verification` — `AllergyIntolerance.verificationStatus`. */
+  ALLERGY_VERIFICATION: "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
 } as const);
 
 /** A US Core profile canonical URL. */

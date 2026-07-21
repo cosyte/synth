@@ -19,21 +19,22 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
 
 ## Status
 
-- **Phases 1–3 shipped (SYNTH-1 … SYNTH-3).** Pre-alpha `0.0.x`, not yet published to npm. The
+- **Phases 1–4 shipped (SYNTH-1 … SYNTH-4).** Pre-alpha `0.0.x`, not yet published to npm. The
   generator core is in place: the seeded PRNG (`createRng`, `src/rng/`), the synthetic-safety providers
   (`src/safe/`), the `Corpus` abstraction, `defineSynthProfile`, the `SYNTH_FATAL_CODES`/`SynthError`.
   Two formats are wired:
   - **HL7 v2** at the `@cosyte/synth/hl7` subpath (`generateAdt`/`generateOru`/`generateOrm`/
     `generateSiu`/`generateVxu`/`generateHl7`/`hl7Corpus`/`roundTrip`), built through `@cosyte/hl7`'s
     `buildMessage`, round-tripping with zero warnings.
-  - **FHIR R4 / US Core (SYNTH-3)** at the `@cosyte/synth/fhir` subpath: `generatePatient` (base +
-    `profile:"us-core"`), `generateCondition`, `generateObservationLab`, `generateVitalSign`,
-    `generateMedicationRequest`, `generateBundle` (collection + transaction), `fhirCorpus`, and the FHIR
-    `roundTrip` harness. Built through `@cosyte/fhir`'s model constructors + serializer (spec-clean by
-    construction); US Core conformance is validated firsthand against the **real US Core 6.1.0
-    profiles** committed under `test/us-core-profiles/` (BYO — no IG bundled). Deferred to SYNTH-4:
-    `Encounter`, `DiagnosticReport`, `Immunization`, `AllergyIntolerance`, `Procedure`, the `document`
-    Bundle shape, and quirk mode (Phase 7).
+  - **FHIR R4 / US Core (SYNTH-3 + SYNTH-4)** at the `@cosyte/synth/fhir` subpath — the full US Core
+    clinical set: `generatePatient` (base + `profile:"us-core"`), `generateCondition`,
+    `generateObservationLab`, `generateVitalSign`, `generateMedicationRequest`, `generateEncounter`,
+    `generateDiagnosticReport`, `generateImmunization`, `generateAllergyIntolerance`,
+    `generateProcedure`, `generateBundle` (collection + transaction + `document`), `buildComposition`,
+    `fhirCorpus`, and the FHIR `roundTrip` harness. Built through `@cosyte/fhir`'s model constructors +
+    serializer (spec-clean by construction); US Core conformance is validated firsthand against the
+    **real US Core 6.1.0 profiles** committed under `test/us-core-profiles/` (BYO — no IG bundled).
+    Deferred to SYNTH-5: C-CDA generation; quirk mode is Phase 7.
 - Both parsers are **optional peer deps**, vendored for dev/test via the `mllp` pattern
   (`vendor/cosyte-hl7-0.0.0.tgz`, `vendor/cosyte-fhir-0.0.0.tgz`). Refresh one by re-running, e.g.,
   `pnpm -C ../fhir build && pnpm -C ../fhir pack --out ../synth/vendor/cosyte-fhir-0.0.0.tgz` then
