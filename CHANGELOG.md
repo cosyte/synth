@@ -62,6 +62,38 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
     repo `phi-scan` gains HL7-PID structured detection (synthetic-SSN-range aware).
   - **Vendored `@cosyte/hl7`** as an optional peer dep via the `mllp` pattern (`file:vendor/*.tgz`
     devDependency) — third-party runtime deps stay at **zero**.
+- **Phase 3 — FHIR R4 / US Core (SYNTH-3).** A new `@cosyte/synth/fhir` subpath generating the US Core
+  clinical spine **through `@cosyte/fhir`'s own model constructors and serializer**, so every resource
+  is spec-clean by construction — validating under `@cosyte/fhir.validateResource` and, against the
+  **real, published US Core 6.1.0 `StructureDefinition`s** (BYO — none bundled), conformant to US Core:
+  - **New generators** at the `@cosyte/synth/fhir` subpath: `generatePatient` (base + `profile:"us-core"`
+    with the race/ethnicity/birthsex must-support extensions), `generateCondition` (US Core
+    problem-list item), `generateObservationLab` (US Core Laboratory Result), `generateVitalSign` (US
+    Core Vital Signs), `generateMedicationRequest` (US Core, satisfying the `us-core-21` requester
+    invariant), and `generateBundle` (`collection` + `transaction`, wired by `urn:uuid:` references).
+  - **`fhirCorpus(seed, count?, mix?)`** — a reproducible mixed corpus across the spine; **`roundTrip`**
+    — the FHIR round-trip/validate harness (serialize → parse → validate(strict) → serialize), which
+    accepts caller-supplied (BYO) US Core / vendor profiles. For FHIR, **spec-clean means zero
+    `error`/`fatal` findings + byte-stable** (the harness exposes both `errors` and `warnings`);
+    advisory findings a valid resource may legally carry — `REFERENCE_UNRESOLVED` on a collection
+    Bundle's external reference, `MUST_SUPPORT_ABSENT`, `INVARIANT_UNCHECKED`, base `dom-6` — are **not**
+    spec-cleanliness violations, unlike the HL7-side "zero warnings" contract (FHIR warnings are not all
+    conformance failures).
+  - **Model-construction helpers** (`prop`/`str`/`dec`/`bool`/`coding`/`codeableConcept`/`reference`/
+    `narrative`/`meta`/`mrnIdentifier`/`fhirPatientIdentity`/`toFhirDate`) that build through
+    `@cosyte/fhir`; US Core canonical URLs + code-system identifiers (`US_CORE_PROFILE`, `SYSTEM`, the
+    race/ethnicity/birthsex extension URLs) as **facts only**; and a small **license-clean** FHIR
+    example-code pool (`EXAMPLE_LAB_OBSERVATIONS`, `EXAMPLE_VITAL_SIGNS`, `EXAMPLE_CONDITIONS`,
+    `EXAMPLE_MEDICATIONS`, `EXAMPLE_RACE_CATEGORIES`, `EXAMPLE_ETHNICITY_CATEGORIES` — public LOINC/
+    SNOMED/RxNorm/OMB code facts). **No** US Core IG or terminology content is bundled.
+  - **US Core conformance is validated firsthand** against the committed real US Core 6.1.0 profiles
+    (`test/us-core-profiles/`, BYO reference inputs) — every US-Core generator validates with **zero
+    errors** across a 200-seed sweep; plus FHIR seed-determinism, synthetic-safety, and golden-fixture
+    property/regression suites, and FHIR-aware structured detection (HumanName + phone `ContactPoint`)
+    in the repo `phi-scan`.
+  - **Vendored `@cosyte/fhir`** as an optional peer dep via the same `file:vendor/*.tgz` pattern —
+    third-party runtime deps stay at **zero**. Deferred to SYNTH-4: `Encounter`, `DiagnosticReport`,
+    `Immunization`, `AllergyIntolerance`, `Procedure`, the `document` Bundle shape, and quirk mode.
 - `VERSION` export.
 
 ### Changed

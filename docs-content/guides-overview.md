@@ -11,9 +11,9 @@ to one real fixture-generation question.
 
 > **Status:** Phase 1 shipped the seeded-PRNG core, the synthetic-safety providers, and the HL7 v2
 > round-trip harness; Phase 2 completes the HL7 v2 message set (`ADT`, `ORU^R01`, `ORM^O01`, `SIU^S12`,
-> `VXU^V04`). The guide set grows as later phases add formats and quirk generation; a guide is
-> only written once the behavior it documents is shipped and its runnable example passes the
-> doc/code-agreement check.
+> `VXU^V04`); Phase 3 adds FHIR R4 / US Core (see the [FHIR guide](./guides-fhir)). The guide set grows
+> as later phases add formats and quirk generation; a guide is only written once the behavior it
+> documents is shipped and its runnable example passes the doc/code-agreement check.
 
 ## Pin a seed for a reusable golden fixture
 

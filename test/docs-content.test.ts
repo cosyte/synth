@@ -19,6 +19,7 @@ import { docSnippetSuite } from "@cosyte/vitest-config/snippets";
 const root = join(import.meta.dirname, "..");
 const rootEntry = join(root, "dist", "index.mjs");
 const hl7Entry = join(root, "dist", "hl7", "index.mjs");
+const fhirEntry = join(root, "dist", "fhir", "index.mjs");
 
 beforeAll(() => {
   execFileSync("pnpm", ["build"], { cwd: root, stdio: "inherit" });
@@ -29,6 +30,7 @@ docSnippetSuite({
   resolve: (specifier) => {
     if (specifier === "@cosyte/synth") return rootEntry;
     if (specifier === "@cosyte/synth/hl7") return hl7Entry;
+    if (specifier === "@cosyte/synth/fhir") return fhirEntry;
     return undefined;
   },
 });

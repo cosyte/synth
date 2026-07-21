@@ -50,6 +50,16 @@
         "default": "./dist/hl7/index.cjs"
       }
     },
+    "./fhir": {
+      "import": {
+        "types": "./dist/fhir/index.d.ts",
+        "default": "./dist/fhir/index.mjs"
+      },
+      "require": {
+        "types": "./dist/fhir/index.d.cts",
+        "default": "./dist/fhir/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -65,9 +75,13 @@
   },
   "prettier": "@cosyte/prettier-config",
   "peerDependencies": {
+    "@cosyte/fhir": ">=0.0.0",
     "@cosyte/hl7": ">=0.0.0"
   },
   "peerDependenciesMeta": {
+    "@cosyte/fhir": {
+      "optional": true
+    },
     "@cosyte/hl7": {
       "optional": true
     }
@@ -98,6 +112,7 @@
     "@arethetypeswrong/cli": "0.18.4",
     "@changesets/cli": "2.31.0",
     "@cosyte/eslint-config": "^0.0.4",
+    "@cosyte/fhir": "file:vendor/cosyte-fhir-0.0.0.tgz",
     "@cosyte/hl7": "file:vendor/cosyte-hl7-0.0.0.tgz",
     "@cosyte/prettier-config": "^0.0.2",
     "@cosyte/test-utils": "^0.0.1",

@@ -134,6 +134,49 @@ describe("phi-scan: HL7 v2 structured PID detection catches real-looking PHI", (
   });
 });
 
+describe("phi-scan: FHIR structured detection catches real-looking PHI", () => {
+  const patient = (family: string, given: string, phone: string): string =>
+    JSON.stringify({
+      resourceType: "Patient",
+      name: [{ use: "official", family, given: [given] }],
+      telecom: [{ system: "phone", value: phone }],
+      gender: "female",
+      birthDate: "1980-10-20",
+    });
+
+  it("a fully-synthetic generated Patient passes (exit 0)", () => {
+    const r = scan("fhir-clean.json", patient("Mockridge", "Exampla", "(476) 555-0161"));
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("catches a HumanName not on the allow-list (exit 1)", () => {
+    const r = scan("fhir-name.json", patient("Smith", "John", "(476) 555-0161"));
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/Patient\.name/);
+    expect(r.stderr).toMatch(/not declared synthetic/);
+  });
+
+  it("catches a phone ContactPoint outside the 555-01xx block (exit 1)", () => {
+    const r = scan("fhir-phone.json", patient("Mockridge", "Exampla", "(212) 867-5309"));
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/Patient\.telecom/);
+    expect(r.stderr).toMatch(/555-01xx/);
+  });
+
+  it("catches real-looking names inside a Bundle entry (exit 1)", () => {
+    const bundle = JSON.stringify({
+      resourceType: "Bundle",
+      type: "collection",
+      entry: [
+        { resource: { resourceType: "Patient", name: [{ family: "Johnson", given: ["Alice"] }] } },
+      ],
+    });
+    const r = scan("fhir-bundle.json", bundle);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/Patient\.name/);
+  });
+});
+
 describe("phi-scan starter: the override-log gate", () => {
   it("rejects --allow-fixture without a matching override entry (exit 2)", () => {
     const clean = join(dir, "override-me.txt");
