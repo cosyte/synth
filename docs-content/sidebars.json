@@ -20,7 +20,14 @@
     {
       "type": "category",
       "label": "Guides",
-      "items": ["guides-overview", "guides-fhir", "guides-ccda", "guides-x12", "guides-ncpdp"]
+      "items": [
+        "guides-overview",
+        "guides-fhir",
+        "guides-ccda",
+        "guides-x12",
+        "guides-ncpdp",
+        "guides-astm"
+      ]
     },
     {
       "type": "category",

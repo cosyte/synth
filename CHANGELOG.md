@@ -208,8 +208,43 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
     loaded per format — importing the package root never pulls it; third-party runtime deps stay at zero.
   - **Deferred:** SCRIPT coverage tracks the parser's builder surface — the renewal/change **responses**
     and other lifecycle transactions land as `@cosyte/ncpdp` grows its builders (`synth` never
-    hand-writes bytes around a missing builder). **ASTM** generation is gated on `@cosyte/astm`'s
-    serializer (`ASTM-7`, not yet shipped — SYNTH-8), and vendor-quirk mode remains Phase 7.
+    hand-writes bytes around a missing builder). Vendor-quirk mode remains Phase 7.
+- **Phase 6 / ASTM — spec-clean E1394 + E1381 generation (SYNTH-8).** A new `@cosyte/synth/astm` subpath
+  generating ASTM/CLSI-LIS laboratory messages **through `@cosyte/astm`'s own emit surface**, so every
+  message is spec-clean by construction — it round-trips through the parser with **zero warnings**, is
+  byte-stable, seed-deterministic, and synthetic by construction. This **completes the spec-clean
+  generation core across all six formats** (ASTM was gated on `@cosyte/astm`'s serializer/builder,
+  `ASTM-7`, now shipped):
+  - **New record generators (E1394):** `generateAstmResult` (a full `H`/`P`/`O`/`R`…/`C`/`L` result
+    report) and `generateAstmOrder` (`H`/`P`/`O`/`L`), built through `buildAstmMessage` — the `H|\^&`
+    delimiter declaration, record type letters, per-type sequence counters, and `L` terminator are the
+    parser's own conservative emit, never a hand-written byte. Each round-trips through
+    `parseAstmRecords` cleanly and re-serializes byte-identically.
+  - **New framing generator (E1381):** `generateAstmResultFramed` frames the same records via
+    `composeAstmFrames` into `<STX> FN text <ETB|ETX> CS <CR><LF>` — the **modulo-256 checksum and the
+    `0`–`7` frame number are computed by `@cosyte/astm`, never faked** — round-tripping through
+    `parseFramedAstm` with **zero frame and zero record warnings**.
+  - **`astmCorpus`** builds a reproducible mixed corpus (a result report + an order by default);
+    `astmRoundTrip` / `astmFramedRoundTrip` are the ASTM round-trip-through-the-parser harnesses.
+    `astmPatient` / `astmOrder` / `astmHeaderIdentity` mint the synthetic identity; a small license-clean
+    `EXAMPLE_ASTM_TESTS` pool (public LOINC codes + invented local analyzer codes) supplies test content
+    — **no terminology prose is bundled**.
+  - **Synthetic-safety at ASTM's PHI-dense `P` (patient) record:** the patient name comes from the
+    shipped fake-name pool, the birthdate is seeded (never wall-clock), and the **practice-assigned**
+    and **laboratory-assigned** patient IDs are minted **independently** under the synthetic assigning
+    authority (`PRA` / `LAB`-prefixed) so they stay **distinct** — exactly as `@cosyte/astm` keeps them
+    distinct on parse. The order accession is `ACC`-prefixed synthetic.
+  - The repo **`phi-scan` gains an ASTM arm** — the `P`-record name (field 6, `Last^First^Middle`) and
+    the practice/lab patient IDs (fields 3/4), tolerating an E1381 frame prefix so a framed fixture is
+    swept identically to a bare record stream. A name not declared synthetic, or a patient ID not
+    recognized as synthetic-AA-scoped, is a hard hit. Seed-determinism + synthetic-safety + spec-clean
+    round-trip property suites (150-seed sweeps, record and framed) and committed `.astm` (record) +
+    `.frame` (framed) golden fixtures added.
+  - **`@cosyte/astm` vendored as an optional peer dep** (`file:vendor/cosyte-astm-0.0.0.tgz`), lazily
+    loaded per format — importing the package root never pulls it; third-party runtime deps stay at zero.
+  - **Deferred:** vendor-quirk mode (lowercase ASTM checksums, framing dropped over TCP, and the other
+    tolerances `@cosyte/astm`'s profile system advertises, each round-tripping to exactly the intended
+    warning) remains Phase 7.
 - `VERSION` export.
 
 ### Changed

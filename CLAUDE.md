@@ -19,11 +19,11 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
 
 ## Status
 
-- **Phases 1–6 shipped (SYNTH-1 … SYNTH-7).** Pre-alpha `0.0.x`, not yet published to npm. The
+- **Phases 1–6 shipped (SYNTH-1 … SYNTH-8).** Pre-alpha `0.0.x`, not yet published to npm. The
   generator core is in place: the seeded PRNG (`createRng`, `src/rng/`), the synthetic-safety providers
   (`src/safe/` — incl. `safe.npi`, a deliberately-invalid-Luhn NPI + `isSyntheticNpi`, and `safe.dea`, a
   deliberately-invalid-checksum DEA + `isSyntheticDea`/`deaCheckDigit`), the `Corpus` abstraction,
-  `defineSynthProfile`, the `SYNTH_FATAL_CODES`/`SynthError`. Five formats are wired:
+  `defineSynthProfile`, the `SYNTH_FATAL_CODES`/`SynthError`. All six formats are wired:
   - **HL7 v2** at the `@cosyte/synth/hl7` subpath (`generateAdt`/`generateOru`/`generateOrm`/
     `generateSiu`/`generateVxu`/`generateHl7`/`hl7Corpus`/`roundTrip`), built through `@cosyte/hl7`'s
     `buildMessage`, round-tripping with zero warnings.
@@ -66,14 +66,27 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
     patient/cardholder ids are synthetic-AA scoped (`MBR`-prefixed). The `phi-scan` gains an NCPDP arm
     (SCRIPT `<NPI>`/`<DEANumber>`/name tags; Telecom field-id-keyed CA/CB/CC/CD/CQ/CY/C2/DB — a
     Luhn-valid NPI or checksum-valid DEA is a hard hit). **Deferred: SCRIPT lifecycle _responses_
-    (track the parser's builder surface); ASTM (SYNTH-8, gated on `ASTM-7`).** Quirk mode is Phase 7.
-- The five parsers are **optional peer deps**, vendored for dev/test via the `mllp` pattern
+    (track the parser's builder surface).** Quirk mode is Phase 7.
+  - **ASTM (SYNTH-8)** at the `@cosyte/synth/astm` subpath — E1394 record reports (`generateAstmResult`
+    = `H`/`P`/`O`/`R`…/`C`/`L`; `generateAstmOrder` = `H`/`P`/`O`/`L`) built through `@cosyte/astm`'s
+    `buildAstmMessage`, and the E1381-**framed** twin (`generateAstmResultFramed`) via `composeAstmFrames`
+    (the modulo-256 checksum + `0`–`7` frame numbers are the parser's own, never faked), plus `astmCorpus`,
+    the `astmRoundTrip`/`astmFramedRoundTrip` harnesses, the `astmPatient`/`astmOrder`/`astmHeaderIdentity`
+    identity minters, and a license-clean `EXAMPLE_ASTM_TESTS` pool (public LOINC + invented local codes;
+    no terminology prose bundled). Each message round-trips through `@cosyte/astm` with zero warnings,
+    byte-stable. The `P`-record identity invariant: name from the pool, DOB seeded, and the
+    practice-assigned + laboratory-assigned patient IDs minted independently (synthetic-AA scoped,
+    `PRA`/`LAB`-prefixed) so they stay **distinct**. The `phi-scan` gains an ASTM arm (P-record name field
+    6 + practice/lab ID fields 3/4, tolerating an E1381 frame prefix). This **completes the spec-clean
+    generation core across all six formats**. Quirk mode is Phase 7.
+- The six parsers are **optional peer deps**, vendored for dev/test via the `mllp` pattern
   (`vendor/cosyte-hl7-0.0.0.tgz`, `vendor/cosyte-fhir-0.0.0.tgz`, `vendor/cosyte-ccda-0.0.1.tgz`,
-  `vendor/cosyte-x12-0.0.1.tgz`, `vendor/cosyte-ncpdp-0.0.1.tgz`). Refresh one by re-running, e.g.,
-  `pnpm -C ../ncpdp build && pnpm -C ../ncpdp pack --pack-destination ../synth/vendor` then
-  `pnpm add -D @cosyte/ncpdp@file:vendor/cosyte-ncpdp-0.0.1.tgz` (restore the `peerDependencies` entry
-  after if `pnpm remove` stripped it). **Third-party runtime deps stay at 0.** The remaining format
-  (ASTM) and quirk generation are later phases.
+  `vendor/cosyte-x12-0.0.1.tgz`, `vendor/cosyte-ncpdp-0.0.1.tgz`, `vendor/cosyte-astm-0.0.0.tgz`). Refresh
+  one by re-running, e.g.,
+  `pnpm -C ../astm build && pnpm -C ../astm pack --pack-destination ../synth/vendor` then
+  `pnpm add -D @cosyte/astm@file:vendor/cosyte-astm-0.0.0.tgz` (restore the `peerDependencies` entry
+  after if `pnpm remove` stripped it). **Third-party runtime deps stay at 0.** Quirk generation (Phase 7)
+  and the `deid` pairing loop (Phase 8) are later phases.
 
 ## Tech Stack (the shared `@cosyte/*` standard)
 

@@ -90,6 +90,16 @@
         "default": "./dist/ncpdp/index.cjs"
       }
     },
+    "./astm": {
+      "import": {
+        "types": "./dist/astm/index.d.ts",
+        "default": "./dist/astm/index.mjs"
+      },
+      "require": {
+        "types": "./dist/astm/index.d.cts",
+        "default": "./dist/astm/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -105,6 +115,7 @@
   },
   "prettier": "@cosyte/prettier-config",
   "peerDependencies": {
+    "@cosyte/astm": ">=0.0.0",
     "@cosyte/ccda": ">=0.0.0",
     "@cosyte/fhir": ">=0.0.0",
     "@cosyte/hl7": ">=0.0.0",
@@ -112,6 +123,9 @@
     "@cosyte/x12": ">=0.0.1"
   },
   "peerDependenciesMeta": {
+    "@cosyte/astm": {
+      "optional": true
+    },
     "@cosyte/ccda": {
       "optional": true
     },
@@ -153,6 +167,7 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.4",
     "@changesets/cli": "2.31.0",
+    "@cosyte/astm": "file:vendor/cosyte-astm-0.0.0.tgz",
     "@cosyte/ccda": "file:vendor/cosyte-ccda-0.0.1.tgz",
     "@cosyte/eslint-config": "^0.0.4",
     "@cosyte/fhir": "file:vendor/cosyte-fhir-0.0.0.tgz",

@@ -24,6 +24,7 @@ import { tmpdir } from "node:os";
 
 import { generate837P, roundTrip } from "../../src/x12/index.js";
 import { generateNewRx, generateB1 } from "../../src/ncpdp/index.js";
+import { generateAstmResult, generateAstmResultFramed } from "../../src/astm/index.js";
 
 const REPO_ROOT = process.cwd();
 const SCANNER_PATH = join(REPO_ROOT, "scripts", "phi-scan.ts");
@@ -271,6 +272,50 @@ describe("phi-scan: NCPDP structured detection (SYNTH-7)", () => {
     const r = scan("real-phone.ncpdp", content);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toMatch(/555-01xx/);
+  });
+});
+
+describe("phi-scan: ASTM structured detection (SYNTH-8)", () => {
+  it("passes a clean, generated ASTM result message (all P-record identity synthetic)", () => {
+    const r = scan("clean-result.astm", generateAstmResult({ seed: 8001 }));
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("passes a clean, generated framed (E1381) ASTM message", () => {
+    const bytes = generateAstmResultFramed({ seed: 8004 });
+    let content = "";
+    for (const b of bytes) content += String.fromCharCode(b);
+    const r = scan("clean-framed.frame", content);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("flags a real patient name in the P record (exit 1)", () => {
+    const content = generateAstmResult({ seed: 8001 }).replace(
+      /\rP\|([^\r]*)/,
+      (_m, body: string) => {
+        // Swap the name field (field 6, index 5) for a real-looking name.
+        const fields = `P|${body}`.split("|");
+        fields[5] = "Smith^Robert^J";
+        return `\r${fields.join("|")}`;
+      },
+    );
+    const r = scan("real-name.astm", content);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/not declared synthetic/);
+  });
+
+  it("flags a non-synthetic-AA practice id in the P record (exit 1)", () => {
+    const content = generateAstmResult({ seed: 8001 }).replace(
+      /\rP\|([^\r]*)/,
+      (_m, body: string) => {
+        const fields = `P|${body}`.split("|");
+        fields[2] = "123456789"; // a bare 9-digit id, area 123 — not a synthetic shape.
+        return `\r${fields.join("|")}`;
+      },
+    );
+    const r = scan("real-id.astm", content);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/synthetic-AA-scoped/);
   });
 });
 
