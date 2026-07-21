@@ -422,6 +422,77 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): void {
   // Non-NCPDP targets fall straight through.
   scanNcpdpScript(target.path, text, allow, hits);
   scanNcpdpTelecom(target.path, text, allow, hits);
+
+  // ASTM E1394 / E1381 (Phase 6 / SYNTH-8). A generated H/P/O/R/C/L record stream (or its E1381-framed
+  // twin) is swept at its real PHI locus — the `P` (patient) record — against the synthetic sources
+  // (roadmap §4.4): every name component (field 6, `Last^First^Middle`) must be declared synthetic, and
+  // the practice-assigned (field 3) and laboratory-assigned (field 4) patient ids must be recognized as
+  // synthetic-AA-scoped. The detector tolerates a leading frame prefix (`<STX><FN>`), so a framed
+  // fixture is swept identically to a bare record stream. DOB (field 8) is intentionally not value-gated
+  // — a synthetic DOB is seeded and indistinguishable from a real one, and there is no reserved DOB
+  // range (roadmap §4.3), matching every other synth arm. Non-ASTM targets fall straight through.
+  scanAstm(target.path, text, allow, hits);
+}
+
+/**
+ * Whether an ASTM `P`-record patient id (practice- or laboratory-assigned) is a recognized synthetic
+ * shape: minted under the synthetic assigning authority (the `PRA` / `LAB` / `ACC` / `MBR`-prefixed
+ * forms `synth` emits — roadmap §4.1, there is no reserved patient-id range for ASTM, so the *namespace*
+ * is the guarantee). A short all-digit id under the synthetic AA is acceptable; a 9-digit SSN-shaped
+ * value must instead be in the SSA never-issued range.
+ */
+function isSyntheticAstmId(id: string): boolean {
+  const v = id.trim().toUpperCase();
+  if (v.length === 0) return true;
+  if (/^(PRA|LAB|ACC|MBR)[-_]?[0-9A-Z]*$/.test(v)) return true;
+  const digits = v.replace(/\D/g, "");
+  if (digits.length === 9 && v.length === digits.length) return isSyntheticSsn(v);
+  return /^[0-9]{1,8}$/.test(v);
+}
+
+/**
+ * ASTM structured PHI detection. Over an ASTM record stream — bare (E1394) or framed (E1381) — locates
+ * each `P` (patient) record and checks its identity loci: every name-component token (len ≥ 2) in field
+ * 6 must be a declared-synthetic name, and the practice-assigned (field 3) and laboratory-assigned
+ * (field 4) patient ids must be synthetic-AA-scoped. The P-record matcher tolerates an optional leading
+ * `<STX><frame-number>` so a framed fixture is swept exactly like a bare stream. A non-ASTM target (no
+ * canonical `H|\^&` delimiter declaration) falls straight through.
+ */
+function scanAstm(path: string, text: string, allow: AllowList, hits: Hit[]): void {
+  // The canonical ASTM header delimiter declaration is the reliable, format-unique marker.
+  if (!text.includes("H|\\^&")) return;
+  // Match each P record (fields up to the next record/frame terminator), tolerating a leading frame prefix.
+  for (const m of text.matchAll(/(?:[\r\n]|^|\x02[0-7])P\|([^\r\n\x03\x17]*)/g)) {
+    // ASTM fields are 1-based with the record type as field 1, so field K lives at array index K-1
+    // (`P|seq|practice|lab|…` → field 3 = index 2, field 6 = index 5).
+    const fields = `P|${m[1] ?? ""}`.split("|");
+    const field = (n: number): string => fields[n - 1] ?? "";
+
+    // Field 6 — patient name (`Last^First^Middle`). Each multi-char component must be declared synthetic.
+    for (const token of field(6).split("^")) {
+      const t = token.trim();
+      if (t.length < 2) continue; // a single-char middle initial is structurally non-identifying.
+      if (!allow.names.has(t.toUpperCase())) {
+        hits.push({ path, segment: "P-6", value: t, reason: "name not declared synthetic" });
+      }
+    }
+
+    // Fields 3 + 4 — practice- and laboratory-assigned patient ids. Both must be synthetic-AA-scoped.
+    for (const [fieldNo, label] of [
+      [3, "P-3 (practice id)"],
+      [4, "P-4 (lab id)"],
+    ] as const) {
+      const idValue = field(fieldNo).trim();
+      if (idValue.length > 0 && !isSyntheticAstmId(idValue)) {
+        hits.push({
+          path,
+          segment: label,
+          value: idValue,
+          reason: "patient-id shape not recognized as synthetic-AA-scoped",
+        });
+      }
+    }
+  }
 }
 
 /**

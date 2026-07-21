@@ -3,8 +3,8 @@
 > Deterministic, seedable **synthetic healthcare-fixture generator** for Node.js and TypeScript —
 > spec-clean by construction, and **never real PHI**.
 
-`@cosyte/synth` generates reproducible synthetic test corpora across the cosyte formats (HL7 v2,
-FHIR R4 / US Core, C-CDA, X12, and NCPDP today; ASTM in a later phase). It is a **consumer** of the
+`@cosyte/synth` generates reproducible synthetic test corpora across the six cosyte formats (HL7 v2,
+FHIR R4 / US Core, C-CDA, X12, NCPDP, and ASTM). It is a **consumer** of the
 cosyte parsers, not a parser: it builds each artifact **through the parser's own builder/serializer**
 (so the output is spec-clean by the same mechanism the parser proves) and draws every identifier, name,
 date, phone, and address from a **guaranteed-non-colliding synthetic source**. It is a
@@ -18,18 +18,20 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 > `document` Bundle shape; Phase 4 **C-CDA generation** (CCD + Referral Note via `@cosyte/ccda`'s
 > `buildCcda`); Phase 5 **X12 generation** (837P/I/D, 835, 271 in HIPAA 005010 via `@cosyte/x12`);
 > Phase 6 **NCPDP generation** (SCRIPT NewRx / RxRenewal / RxChange + Telecom B1/B2/B3 via
-> `@cosyte/ncpdp`).
+> `@cosyte/ncpdp`) and **ASTM generation** (E1394 `H`/`P`/`O`/`R`/`C`/`L` record reports + E1381 framing
+> via `@cosyte/astm`) — completing the spec-clean generation core across all six formats.
 
 ## Install
 
 ```bash
-npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cosyte/ncpdp
+npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cosyte/ncpdp @cosyte/astm
 ```
 
-`@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, and `@cosyte/ncpdp` are **optional peer
-dependencies**, each needed only for its subpath (`@cosyte/synth/hl7`, `@cosyte/synth/fhir`,
-`@cosyte/synth/ccda`, `@cosyte/synth/x12`, `@cosyte/synth/ncpdp`) — install only the parsers whose
-fixtures you generate. The package core has **zero third-party runtime dependencies**.
+`@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, `@cosyte/ncpdp`, and `@cosyte/astm` are
+**optional peer dependencies**, each needed only for its subpath (`@cosyte/synth/hl7`,
+`@cosyte/synth/fhir`, `@cosyte/synth/ccda`, `@cosyte/synth/x12`, `@cosyte/synth/ncpdp`,
+`@cosyte/synth/astm`) — install only the parsers whose fixtures you generate. The package core has
+**zero third-party runtime dependencies**.
 
 ## Generate a spec-clean HL7 v2 message
 
@@ -176,8 +178,43 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-cle
 `@cosyte/ncpdp` is an **optional peer dependency**, needed only for the `@cosyte/synth/ncpdp` subpath.
 
 **Deferred:** SCRIPT coverage tracks the parser's builder surface (the renewal/change _responses_ land
-as `@cosyte/ncpdp` grows builders); **ASTM** generation is gated on `@cosyte/astm`'s serializer
-(SYNTH-8); **vendor-quirk mode** is Phase 7.
+as `@cosyte/ncpdp` grows builders); **vendor-quirk mode** is Phase 7.
+
+## Generate a spec-clean ASTM message
+
+The `@cosyte/synth/astm` subpath builds ASTM laboratory messages **through `@cosyte/astm`'s own emit
+surface** — `buildAstmMessage` for the E1394 record layer, `composeAstmFrames` for the E1381 frame
+layer — so each message round-trips through the parser with **zero warnings**. It emits the
+`H`/`P`/`O`/`R`…/`C`/`L` **result report** (`generateAstmResult`), the `H`/`P`/`O`/`L` **order**
+(`generateAstmOrder`), and the **framed** twin (`generateAstmResultFramed`).
+
+```ts
+import {
+  generateAstmResult,
+  generateAstmResultFramed,
+  astmRoundTrip,
+  astmFramedRoundTrip,
+  astmCorpus,
+} from "@cosyte/synth/astm";
+
+// Same seed → byte-identical output. The P (patient) record carries the name, birthdate, and the
+// practice- and laboratory-assigned patient ids — all synthetic-by-construction: names from the shipped
+// fake-name pool, DOB seeded, and the two ids minted independently under a synthetic assigning authority
+// (so they stay DISTINCT, exactly as @cosyte/astm keeps them on parse).
+astmRoundTrip(generateAstmResult({ seed: 12345 })).specClean; // true — zero warnings, byte-stable
+
+// The E1381-framed twin: the modulo-256 checksum and 0–7 frame numbers are computed by @cosyte/astm.
+astmFramedRoundTrip(generateAstmResultFramed({ seed: 12345 })).specClean; // true
+
+// Or a reproducible mixed corpus (a result report + an order):
+const corpus = astmCorpus({ seed: 42 });
+corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-clean
+```
+
+`@cosyte/astm` is an **optional peer dependency**, needed only for the `@cosyte/synth/astm` subpath.
+
+**Deferred:** **vendor-quirk mode** (lowercase ASTM checksums, framing dropped over TCP, and the other
+tolerances `@cosyte/astm`'s profile system advertises) is Phase 7.
 
 ## Draw a synthetic value
 
