@@ -1,0 +1,54 @@
+<Message version="2017071">
+  <Header>
+    <To>SYNTHPHARMACY</To>
+    <From>SYNTHPRESCRIBER</From>
+    <MessageID>SYNTH-3595535178</MessageID>
+    <SentTime>2025-02-08T09:24:00Z</SentTime>
+    <PrescriberOrderNumber>PON96117702</PrescriberOrderNumber>
+  </Header>
+  <Body>
+    <NewRx>
+      <Patient>
+        <Name>
+          <LastName>Fabricant</LastName>
+          <FirstName>Seedwin</FirstName>
+        </Name>
+        <Gender>1</Gender>
+        <DateOfBirth>20060517</DateOfBirth>
+      </Patient>
+      <Pharmacy>
+        <BusinessName>SYNTH COMMUNITY PHARMACY</BusinessName>
+        <Identification>
+          <NPI>5391568355</NPI>
+          <NCPDPID>0088959</NCPDPID>
+        </Identification>
+      </Pharmacy>
+      <Prescriber>
+        <Name>
+          <LastName>Dummerton</LastName>
+          <FirstName>Fabrica</FirstName>
+        </Name>
+        <Identification>
+          <NPI>8774536361</NPI>
+          <DEANumber>GD7079154</DEANumber>
+        </Identification>
+      </Prescriber>
+      <MedicationPrescribed>
+        <DrugDescription>Levothyroxine 50 MCG Oral Tablet</DrugDescription>
+        <DrugCoded>
+          <ProductCode Qualifier="ND">00000070707</ProductCode>
+        </DrugCoded>
+        <Quantity>
+          <Value>88</Value>
+          <CodeListQualifier>38</CodeListQualifier>
+          <QuantityUnitOfMeasure>EA</QuantityUnitOfMeasure>
+        </Quantity>
+        <DaysSupply>30</DaysSupply>
+        <Substitutions>1</Substitutions>
+        <NumberOfRefills>5</NumberOfRefills>
+        <WrittenDate>2025-02-08</WrittenDate>
+        <SigText>Take 1 tablet by mouth once daily</SigText>
+      </MedicationPrescribed>
+    </NewRx>
+  </Body>
+</Message>

@@ -21,6 +21,7 @@ import {
   address,
   dateYmd,
   npi,
+  dea,
 } from "./providers.js";
 
 export * from "./providers.js";
@@ -51,4 +52,5 @@ export const safe = Object.freeze({
   address,
   dateYmd,
   npi,
+  dea,
 });

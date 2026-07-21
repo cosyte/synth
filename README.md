@@ -4,7 +4,7 @@
 > spec-clean by construction, and **never real PHI**.
 
 `@cosyte/synth` generates reproducible synthetic test corpora across the cosyte formats (HL7 v2,
-FHIR R4 / US Core, C-CDA, and X12 today; NCPDP / ASTM in later phases). It is a **consumer** of the
+FHIR R4 / US Core, C-CDA, X12, and NCPDP today; ASTM in a later phase). It is a **consumer** of the
 cosyte parsers, not a parser: it builds each artifact **through the parser's own builder/serializer**
 (so the output is spec-clean by the same mechanism the parser proves) and draws every identifier, name,
 date, phone, and address from a **guaranteed-non-colliding synthetic source**. It is a
@@ -16,18 +16,20 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 > FHIR R4 / US Core (Patient + the clinical spine + Bundles); Phase 4 the rest of the US Core clinical
 > set (`Encounter`, `DiagnosticReport`, `Immunization`, `AllergyIntolerance`, `Procedure`) and the
 > `document` Bundle shape; Phase 4 **C-CDA generation** (CCD + Referral Note via `@cosyte/ccda`'s
-> `buildCcda`); Phase 5 **X12 generation** (837P/I/D, 835, 271 in HIPAA 005010 via `@cosyte/x12`).
+> `buildCcda`); Phase 5 **X12 generation** (837P/I/D, 835, 271 in HIPAA 005010 via `@cosyte/x12`);
+> Phase 6 **NCPDP generation** (SCRIPT NewRx / RxRenewal / RxChange + Telecom B1/B2/B3 via
+> `@cosyte/ncpdp`).
 
 ## Install
 
 ```bash
-npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12
+npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cosyte/ncpdp
 ```
 
-`@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, and `@cosyte/x12` are **optional peer dependencies**,
-each needed only for its subpath (`@cosyte/synth/hl7`, `@cosyte/synth/fhir`, `@cosyte/synth/ccda`,
-`@cosyte/synth/x12`) — install only the parsers whose fixtures you generate. The package core has
-**zero third-party runtime dependencies**.
+`@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, and `@cosyte/ncpdp` are **optional peer
+dependencies**, each needed only for its subpath (`@cosyte/synth/hl7`, `@cosyte/synth/fhir`,
+`@cosyte/synth/ccda`, `@cosyte/synth/x12`, `@cosyte/synth/ncpdp`) — install only the parsers whose
+fixtures you generate. The package core has **zero third-party runtime dependencies**.
 
 ## Generate a spec-clean HL7 v2 message
 
@@ -141,6 +143,41 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-cle
 
 **Deferred:** the **270** eligibility _request_ (`@cosyte/x12` ships a `build271` but no `build270`, and
 `synth` never hand-writes bytes around a missing builder) and **vendor-quirk mode** (Phase 7 / SYNTH-7).
+
+## Generate a spec-clean NCPDP message
+
+The `@cosyte/synth/ncpdp` subpath builds both NCPDP standards **through `@cosyte/ncpdp`'s own emit
+surface**, so each message round-trips through the parser with **zero warnings**. It emits **SCRIPT**
+ePrescribing (`generateNewRx` via `buildNewRx`; `generateRxRenewalRequest` / `generateRxChangeRequest`
+via the parser's typed `ScriptMessage` model + `serializeScript`) and **Telecom** pharmacy claims
+(`generateB1` billing / `generateB2` reversal / `generateB3` rebill via `buildTelecomRequest`).
+
+```ts
+import {
+  generateNewRx,
+  generateB1,
+  ncpdpCorpus,
+  scriptRoundTrip,
+  telecomRoundTrip,
+} from "@cosyte/synth/ncpdp";
+
+// Same seed → byte-identical output. NCPDP carries patient AND prescriber identity: the prescriber NPI
+// has a deliberately-INVALID Luhn check digit and the prescriber DEA a deliberately-INVALID checksum
+// (so neither can denote a real provider); patient/cardholder ids live under a synthetic assigning
+// authority, phones are reserved 555-01xx, and names come from the shipped fake-name pool.
+scriptRoundTrip(generateNewRx({ seed: 12345 })).specClean; // true — zero warnings, byte-stable
+telecomRoundTrip(generateB1({ seed: 777 })).specClean; // true
+
+// Or a reproducible mixed corpus (NewRx + RxRenewal + RxChange + B1 + B2 + B3):
+const corpus = ncpdpCorpus({ seed: 42 });
+corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-clean
+```
+
+`@cosyte/ncpdp` is an **optional peer dependency**, needed only for the `@cosyte/synth/ncpdp` subpath.
+
+**Deferred:** SCRIPT coverage tracks the parser's builder surface (the renewal/change _responses_ land
+as `@cosyte/ncpdp` grows builders); **ASTM** generation is gated on `@cosyte/astm`'s serializer
+(SYNTH-8); **vendor-quirk mode** is Phase 7.
 
 ## Draw a synthetic value
 

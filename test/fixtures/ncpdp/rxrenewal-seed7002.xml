@@ -1,0 +1,55 @@
+<Message version="2017071">
+  <Header>
+    <To>SYNTHPHARMACY</To>
+    <From>SYNTHPRESCRIBER</From>
+    <MessageID>SYNTH-4450776830</MessageID>
+    <SentTime>2025-01-11T08:46:00Z</SentTime>
+    <PrescriberOrderNumber>PON29212285</PrescriberOrderNumber>
+  </Header>
+  <Body>
+    <RxRenewalRequest>
+      <RequestReferenceNumber>REQ875729826</RequestReferenceNumber>
+      <Patient>
+        <Name>
+          <LastName>Seedman</LastName>
+          <FirstName>Voidwin</FirstName>
+        </Name>
+        <Gender>2</Gender>
+        <DateOfBirth>19950106</DateOfBirth>
+      </Patient>
+      <Pharmacy>
+        <BusinessName>SAMPLE APOTHECARY LLC</BusinessName>
+        <Identification>
+          <NPI>2968336613</NPI>
+          <NCPDPID>8929410</NCPDPID>
+        </Identification>
+      </Pharmacy>
+      <Prescriber>
+        <Name>
+          <LastName>Deterwood</LastName>
+          <FirstName>Deteria</FirstName>
+        </Name>
+        <Identification>
+          <NPI>4285228788</NPI>
+          <DEANumber>GD1123177</DEANumber>
+        </Identification>
+      </Prescriber>
+      <MedicationPrescribed>
+        <DrugDescription>Amoxicillin 500 MG Oral Capsule</DrugDescription>
+        <DrugCoded>
+          <ProductCode Qualifier="ND">00000010101</ProductCode>
+        </DrugCoded>
+        <Quantity>
+          <Value>37</Value>
+          <CodeListQualifier>38</CodeListQualifier>
+          <QuantityUnitOfMeasure>EA</QuantityUnitOfMeasure>
+        </Quantity>
+        <DaysSupply>30</DaysSupply>
+        <Substitutions>0</Substitutions>
+        <NumberOfRefills>3</NumberOfRefills>
+        <WrittenDate>2025-01-11</WrittenDate>
+        <SigText>Take 1 capsule by mouth twice daily with food</SigText>
+      </MedicationPrescribed>
+    </RxRenewalRequest>
+  </Body>
+</Message>

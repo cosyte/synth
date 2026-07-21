@@ -18,6 +18,8 @@ import {
   DOC_V6_PREFIX,
   SYNTHETIC_ASSIGNING_AUTHORITY,
   npiCheckDigit,
+  deaCheckDigit,
+  DEA_REGISTRANT_TYPES,
 } from "./reserved.js";
 import {
   SYNTHETIC_GIVEN_NAMES,
@@ -209,6 +211,33 @@ export function npi(rng: Rng): string {
   const base9 = rng.digits(9);
   const wrongCheck = (npiCheckDigit(base9) + 1) % 10;
   return `${base9}${String(wrongCheck)}`;
+}
+
+/**
+ * A **synthetic DEA number** — `<registrant-type><initial>` + 7 digits with a **deliberately-invalid
+ * checksum**, so it can never be a validly-issued DEA registration (a real DEA number's 7th digit
+ * satisfies the published DEA checksum — roadmap §4). The first letter is a registrant-type letter, the
+ * second is derived from `person` (its family initial) when supplied so the number reads plausibly; the
+ * 6-digit base is seeded and the check digit is set to `(correct + 1) mod 10`, guaranteeing the value
+ * fails validation. NCPDP carries prescriber DEA, and this is the identity locus a refuter attacks
+ * hardest, so — like {@link npi} — non-collision is a construction-level guarantee, not a heuristic.
+ *
+ * @param rng - The seeded generator.
+ * @param person - Optional name whose family initial becomes the DEA's second letter.
+ * @returns A DEA-shaped string that is provably not a real DEA registration.
+ * @example
+ * ```ts
+ * import { createRng, dea, isSyntheticDea } from "@cosyte/synth";
+ * isSyntheticDea(dea(createRng(1))); // true — invalid checksum by construction
+ * ```
+ */
+export function dea(rng: Rng, person?: SyntheticName): string {
+  const type = rng.pick(DEA_REGISTRANT_TYPES);
+  const initialSource = person?.family ?? rng.pick(SYNTHETIC_FAMILY_NAMES);
+  const initial = initialSource.slice(0, 1).toUpperCase();
+  const base6 = rng.digits(6);
+  const wrongCheck = (deaCheckDigit(base6) + 1) % 10;
+  return `${type}${initial}${base6}${String(wrongCheck)}`;
 }
 
 /**

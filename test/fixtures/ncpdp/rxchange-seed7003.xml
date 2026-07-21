@@ -1,0 +1,55 @@
+<Message version="2017071">
+  <Header>
+    <To>SYNTHPHARMACY</To>
+    <From>SYNTHPRESCRIBER</From>
+    <MessageID>SYNTH-2941254764</MessageID>
+    <SentTime>2024-11-11T01:42:00Z</SentTime>
+    <PrescriberOrderNumber>PON89379331</PrescriberOrderNumber>
+  </Header>
+  <Body>
+    <RxChangeRequest>
+      <RequestReferenceNumber>REQ565069340</RequestReferenceNumber>
+      <Patient>
+        <Name>
+          <LastName>Examplewood</LastName>
+          <FirstName>Fixtura</FirstName>
+        </Name>
+        <Gender>1</Gender>
+        <DateOfBirth>19610709</DateOfBirth>
+      </Patient>
+      <Pharmacy>
+        <BusinessName>FIXTURE DRUG MART</BusinessName>
+        <Identification>
+          <NPI>7261349031</NPI>
+          <NCPDPID>9439512</NCPDPID>
+        </Identification>
+      </Pharmacy>
+      <Prescriber>
+        <Name>
+          <LastName>Voidmark</LastName>
+          <FirstName>Corpora</FirstName>
+        </Name>
+        <Identification>
+          <NPI>3302043220</NPI>
+          <DEANumber>PV9088383</DEANumber>
+        </Identification>
+      </Prescriber>
+      <MedicationPrescribed>
+        <DrugDescription>Lisinopril 10 MG Oral Tablet</DrugDescription>
+        <DrugCoded>
+          <ProductCode Qualifier="ND">00000020202</ProductCode>
+        </DrugCoded>
+        <Quantity>
+          <Value>55</Value>
+          <CodeListQualifier>38</CodeListQualifier>
+          <QuantityUnitOfMeasure>EA</QuantityUnitOfMeasure>
+        </Quantity>
+        <DaysSupply>90</DaysSupply>
+        <Substitutions>0</Substitutions>
+        <NumberOfRefills>2</NumberOfRefills>
+        <WrittenDate>2024-11-11</WrittenDate>
+        <SigText>Take 1 tablet by mouth at bedtime</SigText>
+      </MedicationPrescribed>
+    </RxChangeRequest>
+  </Body>
+</Message>

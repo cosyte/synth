@@ -410,6 +410,165 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): void {
   // a real NPI), and a REF*SY SSN must be in the SSA never-issued range. Non-X12 targets (no ISA header)
   // fall straight through.
   scanX12(target.path, text, allow, hits);
+
+  // NCPDP (Phase 6 / SYNTH-7). Two structurally unrelated standards under one brand, each swept at its
+  // real PHI loci against the synthetic sources (roadmap §4.4):
+  //   - SCRIPT (XML): patient + prescriber <FirstName>/<LastName>/<MiddleName> must be declared
+  //     synthetic; a <NPI> must fail the NPI Luhn check; a <DEANumber> must fail the DEA checksum — so
+  //     neither prescriber id can denote a real provider.
+  //   - Telecom (FS/GS/RS-framed): keyed off the 2-char field ids — CA/CB/CC/CD (name), CQ (phone),
+  //     CY (patient id) / C2 (cardholder id) — plus the prescriber DB (NPI) Luhn check. Keying off the
+  //     globally-unique field id (not the enclosing segment) is bypass-resistant.
+  // Non-NCPDP targets fall straight through.
+  scanNcpdpScript(target.path, text, allow, hits);
+  scanNcpdpTelecom(target.path, text, allow, hits);
+}
+
+/**
+ * Whether a DEA number (`XX` + 7 digits) is **provably synthetic** — its 7th digit fails the published
+ * DEA checksum `(d1+d3+d5) + 2·(d2+d4+d6)`, so it can never be a validly-issued DEA registration. A
+ * checksum-valid DEA (which *could* be a real prescriber) is a hit. Mirrors
+ * `src/safe/reserved.ts#isSyntheticDea` — kept inline because the scanner is a zero-import Node script.
+ */
+function isSyntheticDea(value: string): boolean {
+  const compact = value.replace(/[\s-]/g, "").toUpperCase();
+  if (!/^[A-Z]{2}\d{7}$/.test(compact)) return false;
+  const d = compact
+    .slice(2)
+    .split("")
+    .map((c) => c.charCodeAt(0) - 48);
+  const odd = (d[0] ?? 0) + (d[2] ?? 0) + (d[4] ?? 0);
+  const even = (d[1] ?? 0) + (d[3] ?? 0) + (d[5] ?? 0);
+  return (odd + 2 * even) % 10 !== (d[6] ?? -1);
+}
+
+/**
+ * Whether an NCPDP member / cardholder / patient id is a recognized synthetic shape: minted under the
+ * synthetic assigning authority (the `MBR`-prefixed form `synth` emits — roadmap §4.1, there is no
+ * reserved id range so the *namespace* is the guarantee). A 9-digit SSN-shaped value must instead be in
+ * the SSA never-issued range.
+ */
+function isSyntheticNcpdpId(id: string): boolean {
+  const v = id.trim().toUpperCase();
+  if (/^MBR[-_]?[0-9A-Z]*$/.test(v)) return true;
+  const digits = v.replace(/\D/g, "");
+  if (digits.length === 9 && v.length === digits.length) return isSyntheticSsn(v);
+  // A short all-digit id under the synthetic AA is acceptable; a long bare id is not distinguishable.
+  return /^[0-9]{1,8}$/.test(v);
+}
+
+/**
+ * SCRIPT (XML) structured PHI detection. Over a SCRIPT message, checks the patient + prescriber identity
+ * loci: every `<FirstName>` / `<LastName>` / `<MiddleName>` name token must be declared synthetic, every
+ * `<NPI>` must fail the NPI Luhn check, and every `<DEANumber>` must fail the DEA checksum. A non-SCRIPT
+ * target (no `<Message`/SCRIPT markers) falls straight through; C-CDA `<given>`/`<family>` is handled by
+ * {@link scanCcda}, so the two XML arms never collide.
+ */
+function scanNcpdpScript(path: string, text: string, allow: AllowList, hits: Hit[]): void {
+  if (!path.endsWith(".xml")) return;
+  // SCRIPT markers — a <Message> root and a SCRIPT transaction/party element. Avoids running on C-CDA.
+  if (
+    !/<Message\b/.test(text) ||
+    !/<(NewRx|RxRenewalRequest|RxChangeRequest|Prescriber|Patient)\b/.test(text)
+  ) {
+    return;
+  }
+  for (const m of text.matchAll(/<(LastName|FirstName|MiddleName)(?:\s[^>]*)?>([^<]+)<\/\1>/g)) {
+    const token = (m[2] ?? "").trim();
+    if (token.length === 0) continue;
+    if (!allow.names.has(token.toUpperCase())) {
+      hits.push({
+        path,
+        segment: `<${m[1] ?? "Name"}>`,
+        value: token,
+        reason: "name not declared synthetic",
+      });
+    }
+  }
+  for (const m of text.matchAll(/<NPI(?:\s[^>]*)?>([^<]+)<\/NPI>/g)) {
+    const value = (m[1] ?? "").trim();
+    if (/^\d{10}$/.test(value) && !isSyntheticNpi(value)) {
+      hits.push({
+        path,
+        segment: "<NPI>",
+        value,
+        reason: "NPI passes the Luhn check — could be a real NPI",
+      });
+    }
+  }
+  for (const m of text.matchAll(/<DEANumber(?:\s[^>]*)?>([^<]+)<\/DEANumber>/g)) {
+    const value = (m[1] ?? "").trim();
+    if (/^[A-Za-z]{2}\d{7}$/.test(value) && !isSyntheticDea(value)) {
+      hits.push({
+        path,
+        segment: "<DEANumber>",
+        value,
+        reason: "DEA passes the checksum — could be a real DEA registration",
+      });
+    }
+  }
+}
+
+/** Telecom 2-char field ids that carry patient / cardholder PHI, keyed to the category to check. */
+const TELECOM_PHI_FIELDS: Readonly<Record<string, "name" | "phone" | "id">> = {
+  CA: "name", // Patient First Name
+  CB: "name", // Patient Last Name
+  CC: "name", // Cardholder First Name
+  CD: "name", // Cardholder Last Name
+  CQ: "phone", // Patient Phone
+  CY: "id", // Patient ID
+  C2: "id", // Cardholder ID
+};
+
+/**
+ * Telecom (FS/GS/RS-framed) structured PHI detection. Tokenizes on the union of the three NCPDP
+ * separators — each token is a `<2-char field id><value>` pair — and checks the identity-bearing field
+ * ids against the synthetic sources: names (CA/CB/CC/CD) must be declared synthetic, phones (CQ) must
+ * carry the reserved 555-01xx tail, ids (CY/C2) must be synthetic-AA-scoped, and any prescriber id (DB)
+ * that is a 10-digit NPI must fail the Luhn check. A non-Telecom target (no control chars) falls
+ * straight through. DOB (C4) is not value-gated — a synthetic DOB is seeded and indistinguishable from
+ * a real one, and there is no reserved DOB range (roadmap §4.3), matching every other synth arm.
+ */
+function scanNcpdpTelecom(path: string, text: string, allow: AllowList, hits: Hit[]): void {
+  if (!/[\x1c\x1d\x1e]/.test(text)) return;
+  for (const token of text.split(/[\x1c\x1d\x1e]/)) {
+    if (token.length < 2) continue;
+    const id = token.slice(0, 2);
+    const value = token.slice(2);
+    if (id === "DB") {
+      if (/^\d{10}$/.test(value) && !isSyntheticNpi(value)) {
+        hits.push({
+          path,
+          segment: "DB",
+          value,
+          reason: "prescriber NPI passes the Luhn check — could be real",
+        });
+      }
+      continue;
+    }
+    const category = TELECOM_PHI_FIELDS[id];
+    if (category === undefined) continue;
+    if (category === "name") {
+      const t = value.trim();
+      if (t.length > 0 && !allow.names.has(t.toUpperCase())) {
+        hits.push({ path, segment: id, value: t, reason: "name not declared synthetic" });
+      }
+    } else if (category === "phone") {
+      if (/\d{7,}/.test(value.replace(/\D/g, "")) && !isSyntheticPhone(value)) {
+        hits.push({ path, segment: id, value, reason: "phone not in 555-01xx block" });
+      }
+    } else {
+      const t = value.trim();
+      if (t.length > 0 && !isSyntheticNcpdpId(t)) {
+        hits.push({
+          path,
+          segment: id,
+          value: t,
+          reason: "id not recognized as synthetic-AA-scoped",
+        });
+      }
+    }
+  }
 }
 
 /** Whether a byte string is an X12 interchange — starts with `ISA` and is at least a full ISA wide. */
