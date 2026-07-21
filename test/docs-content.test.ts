@@ -20,6 +20,7 @@ const root = join(import.meta.dirname, "..");
 const rootEntry = join(root, "dist", "index.mjs");
 const hl7Entry = join(root, "dist", "hl7", "index.mjs");
 const fhirEntry = join(root, "dist", "fhir", "index.mjs");
+const ccdaEntry = join(root, "dist", "ccda", "index.mjs");
 
 beforeAll(() => {
   execFileSync("pnpm", ["build"], { cwd: root, stdio: "inherit" });
@@ -31,6 +32,7 @@ docSnippetSuite({
     if (specifier === "@cosyte/synth") return rootEntry;
     if (specifier === "@cosyte/synth/hl7") return hl7Entry;
     if (specifier === "@cosyte/synth/fhir") return fhirEntry;
+    if (specifier === "@cosyte/synth/ccda") return ccdaEntry;
     return undefined;
   },
 });

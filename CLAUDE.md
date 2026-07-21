@@ -19,7 +19,7 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
 
 ## Status
 
-- **Phases 1–4 shipped (SYNTH-1 … SYNTH-4).** Pre-alpha `0.0.x`, not yet published to npm. The
+- **Phases 1–5 shipped (SYNTH-1 … SYNTH-5).** Pre-alpha `0.0.x`, not yet published to npm. The
   generator core is in place: the seeded PRNG (`createRng`, `src/rng/`), the synthetic-safety providers
   (`src/safe/`), the `Corpus` abstraction, `defineSynthProfile`, the `SYNTH_FATAL_CODES`/`SynthError`.
   Two formats are wired:
@@ -34,13 +34,22 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
     `fhirCorpus`, and the FHIR `roundTrip` harness. Built through `@cosyte/fhir`'s model constructors +
     serializer (spec-clean by construction); US Core conformance is validated firsthand against the
     **real US Core 6.1.0 profiles** committed under `test/us-core-profiles/` (BYO — no IG bundled).
-    Deferred to SYNTH-5: C-CDA generation; quirk mode is Phase 7.
-- Both parsers are **optional peer deps**, vendored for dev/test via the `mllp` pattern
-  (`vendor/cosyte-hl7-0.0.0.tgz`, `vendor/cosyte-fhir-0.0.0.tgz`). Refresh one by re-running, e.g.,
-  `pnpm -C ../fhir build && pnpm -C ../fhir pack --out ../synth/vendor/cosyte-fhir-0.0.0.tgz` then
-  `pnpm add -D @cosyte/fhir@file:vendor/cosyte-fhir-0.0.0.tgz` (restore the `peerDependencies` entry
+  - **C-CDA R2.1 (SYNTH-5)** at the `@cosyte/synth/ccda` subpath — `generateCcd` (Continuity of Care
+    Document), `generateReferralNote`, the generic `generateCcda({ documentType })`, `ccdaCorpus`,
+    `ccdaPatientIdentity`, and the C-CDA `roundTrip` harness. Built through `@cosyte/ccda`'s `buildCcda`
+    (spec-clean by construction), so each document round-trips through `parseCcda` with zero warnings.
+    Populates the CCD SHALL sections (Problems/Allergies/Medications/Results/Vital Signs) plus
+    Immunizations, Procedures, and Social History, reusing the FHIR generators' license-clean
+    example-code pools (adapted to `@cosyte/ccda`'s OID-coded `BuildCode`). `buildCcda`'s default
+    `effectiveTime: new Date()` is **always overridden** with a synthetic date, so the reproducibility
+    contract holds. Deferred to SYNTH-6: X12 generation; quirk mode is Phase 7.
+- The three parsers are **optional peer deps**, vendored for dev/test via the `mllp` pattern
+  (`vendor/cosyte-hl7-0.0.0.tgz`, `vendor/cosyte-fhir-0.0.0.tgz`, `vendor/cosyte-ccda-0.0.1.tgz`).
+  Refresh one by re-running, e.g.,
+  `pnpm -C ../ccda build && pnpm -C ../ccda pack --out ../synth/vendor/cosyte-ccda-0.0.1.tgz` then
+  `pnpm add -D @cosyte/ccda@file:vendor/cosyte-ccda-0.0.1.tgz` (restore the `peerDependencies` entry
   after if `pnpm remove` stripped it). **Third-party runtime deps stay at 0.** The remaining formats
-  (C-CDA, X12, NCPDP, ASTM) and quirk generation are later phases.
+  (X12, NCPDP, ASTM) and quirk generation are later phases.
 
 ## Tech Stack (the shared `@cosyte/*` standard)
 

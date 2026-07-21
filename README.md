@@ -3,8 +3,8 @@
 > Deterministic, seedable **synthetic healthcare-fixture generator** for Node.js and TypeScript —
 > spec-clean by construction, and **never real PHI**.
 
-`@cosyte/synth` generates reproducible synthetic test corpora across the cosyte formats (HL7 v2 and
-FHIR R4 / US Core today; C-CDA / X12 / NCPDP / ASTM in later phases). It is a **consumer** of the
+`@cosyte/synth` generates reproducible synthetic test corpora across the cosyte formats (HL7 v2,
+FHIR R4 / US Core, and C-CDA today; X12 / NCPDP / ASTM in later phases). It is a **consumer** of the
 cosyte parsers, not a parser: it builds each artifact **through the parser's own builder/serializer**
 (so the output is spec-clean by the same mechanism the parser proves) and draws every identifier, name,
 date, phone, and address from a **guaranteed-non-colliding synthetic source**. It is a
@@ -15,17 +15,17 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 > synthetic-safety providers, and the round-trip harness; Phase 2 the full HL7 v2 message set; Phase 3
 > FHIR R4 / US Core (Patient + the clinical spine + Bundles); Phase 4 the rest of the US Core clinical
 > set (`Encounter`, `DiagnosticReport`, `Immunization`, `AllergyIntolerance`, `Procedure`) and the
-> `document` Bundle shape.
+> `document` Bundle shape; **C-CDA generation** (CCD + Referral Note via `@cosyte/ccda`'s `buildCcda`).
 
 ## Install
 
 ```bash
-npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir
+npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda
 ```
 
-`@cosyte/hl7` and `@cosyte/fhir` are **optional peer dependencies**, each needed only for its subpath
-(`@cosyte/synth/hl7`, `@cosyte/synth/fhir`) — install only the parsers whose fixtures you generate. The
-package core has **zero third-party runtime dependencies**.
+`@cosyte/hl7`, `@cosyte/fhir`, and `@cosyte/ccda` are **optional peer dependencies**, each needed only
+for its subpath (`@cosyte/synth/hl7`, `@cosyte/synth/fhir`, `@cosyte/synth/ccda`) — install only the
+parsers whose fixtures you generate. The package core has **zero third-party runtime dependencies**.
 
 ## Generate a spec-clean HL7 v2 message
 
@@ -79,6 +79,35 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-cle
 ```
 
 `@cosyte/fhir` is an **optional peer dependency**, needed only for the `@cosyte/synth/fhir` subpath.
+
+## Generate a spec-clean C-CDA document
+
+The `@cosyte/synth/ccda` subpath builds Consolidated CDA R2.1 documents **through `@cosyte/ccda`'s
+`buildCcda`**, so template IDs, LOINC section codes, and structured/narrative agreement are the
+builder's own — the document round-trips through `parseCcda` with **zero warnings**. It emits a
+**CCD** (`generateCcd`) or a **Referral Note** (`generateReferralNote`), each with the CCD sections
+(Problems, Allergies, Medications, Results, Vital Signs, Immunizations, Procedures, Social History)
+populated from the reused, license-clean example-code pools.
+
+```ts
+import { serializeCcda } from "@cosyte/ccda";
+import { generateCcd, generateReferralNote, ccdaCorpus, roundTrip } from "@cosyte/synth/ccda";
+
+// Same seed → byte-identical document. The patient name is from the shipped fake-name pool, the MRN
+// lives under a synthetic assigning-authority OID, and every date comes from the seeded generator.
+const ccd = generateCcd({ seed: 12345 });
+serializeCcda(ccd); // spec-clean C-CDA R2.1 XML
+
+// Spec-clean by construction: it round-trips through @cosyte/ccda with zero warnings.
+roundTrip(ccd).specClean; // true
+roundTrip(generateReferralNote({ seed: 12345 })).specClean; // true
+
+// Or a reproducible mixed corpus (CCD + Referral Note, cycled):
+const corpus = ccdaCorpus({ seed: 42, count: 4 });
+corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-clean
+```
+
+`@cosyte/ccda` is an **optional peer dependency**, needed only for the `@cosyte/synth/ccda` subpath.
 
 ## Draw a synthetic value
 
