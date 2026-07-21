@@ -1,0 +1,38 @@
+name: Fuzz
+
+# Nightly extended seed-sweep fuzz of the generator (roadmap §6 — the inverted fuzz: `synth` feeds
+# fuzzing more than it is fuzzed). The same property suite runs in every CI at a lower case count; this
+# job scales it up (SYNTH_FUZZ_RUNS) so a rare degenerate seed/count/format combination gets more
+# chances to surface off the PR critical path. Self-contained by design: fuzzing is an extra, scheduled
+# surface, not one of the shared CI gates.
+
+on:
+  schedule:
+    - cron: "31 4 * * *" # nightly, 04:31 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    # Each case does real generation + round-trip through a parser builder, so the nightly count is
+    # lower than a byte-level parser fuzz — still ~24x the in-CI default across the full format sweep.
+    env:
+      SYNTH_FUZZ_RUNS: "6000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:fuzz

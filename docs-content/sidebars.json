@@ -15,7 +15,7 @@
       "type": "category",
       "label": "Core Concepts",
       "collapsed": false,
-      "items": ["concepts-archetype"]
+      "items": ["concepts-archetype", "limitations"]
     },
     {
       "type": "category",
