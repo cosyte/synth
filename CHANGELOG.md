@@ -318,6 +318,37 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
     **Deferred:** NCPDP SCRIPT / ASTM / DICOM pairing (blocked on `@cosyte/deid` adapters), optional
     Synthea clinical-content ingestion (roadmap §Phase 8 — documented future concern), and SYNTH-11
     release hardening.
+- **Phase 9 — release hardening (SYNTH-11), the final roadmap phase.** No new runtime API; this phase
+  is the property/fuzz suite, coverage, publish dry-run, and honesty docs that make the package
+  release-shaped. The generator is feature-complete across all six formats.
+  - **Consolidated conformance property suite** (`test/property/all-formats.property.test.ts`) — every
+    one of the six spec-clean format generators is driven through the **same three mandatory
+    properties** (round-trip spec-clean · seed-determinism · synthetic-safety) so no format can silently
+    ship without one; plus an **intended-warning** arm proving each quirk corpus (HL7 v2 / C-CDA / ASTM)
+    is non-vacuous and stays synthetic-safe. Non-vacuity is asserted directly (the registry is proved to
+    cover every `SynthFormat`; every corpus is proved non-empty with non-trivial content).
+  - **Seed-sweep generation fuzz** (`test/property/seed-sweep.fuzz.property.test.ts`, the inverted fuzz
+    of roadmap §6) — sweeps seed × count × format across the six spec-clean corpora and the three quirk
+    corpora, asserting generation is **total**: it never throws outside the sanctioned `SYNTH_FATAL_CODES`
+    set, never hangs, and every output still passes the round-trip + synthetic-safety gates. Scales via
+    `SYNTH_FUZZ_RUNS`; new `test:fuzz` script + a nightly `Fuzz` workflow (`.github/workflows/fuzz.yml`).
+  - **Dual ESM/CJS release-shape smoke** (`scripts/smoke.mjs`, new `smoke` script, run by `verify.sh`) —
+    for **every published subpath** (`.`/`hl7`/`fhir`/`ccda`/`x12`/`ncpdp`/`astm`/`deid`) it imports the
+    ESM entry and requires the CJS entry from `dist/`, generates synthetic output through each, and
+    asserts ESM/CJS agree byte-for-byte for the same seed — catching a broken dual build a source-only
+    suite would not.
+  - **Publish dry-run proven:** `attw` green (per-condition types across all eight subpaths) and an
+    `npm publish --dry-run` clean 58-file tarball carrying every subpath's `.d.ts`/`.mjs`/`.cjs` plus
+    `README`/`LICENSE`/`CHANGELOG`. Per-dir **≥90 coverage** continues to gate.
+  - **Honesty docs** — `docs-content/limitations.md` (registered in the sidebar and gated by the
+    doc/code-agreement runner) leads with the governing sentence (_format/conformance generator, not a
+    clinical simulator; synthetic-by-construction; deterministic per seed within a version window; no
+    bundled terminology; no DICOM in v1_) and states the full **synthetic-safety posture** (the
+    900-range SSN, invalid-Luhn NPI, invalid-checksum DEA, `555-01xx` phone, `example.*` domain,
+    TEST-NET IP, and synthetic-assigning-authority MRN floors), the structural-not-clinical / not-Synthea
+    scoping, and the deferred surfaces (FHIR/X12/NCPDP quirks, NCPDP SCRIPT responses, X12 270 request,
+    DICOM, Synthea ingestion). **Founder-gated tail (not crossed):** the actual `npm publish` and the
+    repo public-flip remain the two standing human stops.
 - `VERSION` export.
 
 ### Changed

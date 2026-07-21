@@ -19,7 +19,21 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
 
 ## Status
 
-- **Phases 1–8 shipped (SYNTH-1 … SYNTH-10).** Pre-alpha `0.0.x`, not yet published to npm. The
+- **Phases 1–9 shipped (SYNTH-1 … SYNTH-11) — the roadmap is complete.** Pre-alpha `0.0.x`, not yet
+  published to npm; the actual `npm publish` and the repo public-flip are the two standing founder gates
+  (the only remaining tail). **SYNTH-11 (Phase 9, release hardening)** added no runtime API — it is the
+  release-readiness layer: a **consolidated conformance property suite**
+  (`test/property/all-formats.property.test.ts`) driving every spec-clean format generator through the
+  same three mandatory properties (round-trip · seed-determinism · synthetic-safety) with an
+  intended-warning arm for the HL7 v2 / C-CDA / ASTM quirk corpora and non-vacuity asserted directly; a
+  **seed-sweep generation fuzz** (`test/property/seed-sweep.fuzz.property.test.ts`, the inverted fuzz of
+  roadmap §6) proving generation is total over seed × count × format, scaled by `SYNTH_FUZZ_RUNS` with a
+  `test:fuzz` script + nightly `Fuzz` workflow; a **dual ESM/CJS release-shape smoke**
+  (`scripts/smoke.mjs`, `smoke` script, run by `verify.sh`) across all eight subpaths; a proven publish
+  dry-run (`attw` green + a clean `npm publish --dry-run` tarball); per-dir ≥90 coverage still gating;
+  and the honesty doc `docs-content/limitations.md` (does/does-not + the full synthetic-safety posture:
+  900-range SSN, invalid-Luhn NPI, invalid-checksum DEA, `555-01xx`, `example.*`, TEST-NET, synthetic-AA
+  MRN; structural-not-clinical / not-Synthea; the deferred surfaces). The
   generator core is in place: the seeded PRNG (`createRng`, `src/rng/`), the synthetic-safety providers
   (`src/safe/` — incl. `safe.npi`, a deliberately-invalid-Luhn NPI + `isSyntheticNpi`, and `safe.dea`, a
   deliberately-invalid-checksum DEA + `isSyntheticDea`/`deaCheckDigit`), the `Corpus` abstraction,

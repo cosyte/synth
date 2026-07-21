@@ -49,13 +49,13 @@ Yes — that is the whole point. **Every** value is drawn from a reserved/synthe
 synthetic-safety gate (the inverse of a de-identifier's leak test: `synth` proves plausibly-real PHI was
 _never generated_). You can commit a generated corpus as a fixture without a PHI review of its contents.
 
-## Known limitations (Phase 2)
+## Known limitations
 
-- **HL7 v2 only** so far — the full v2 set is here (`ADT` `A01`/`A04`/`A08`, `ORU^R01`, `ORM^O01`,
-  `SIU^S12`, `VXU^V04`), but the other formats (FHIR / C-CDA / X12 / NCPDP / ASTM) land in later phases.
-- **Spec-clean only** — deliberate vendor-quirk generation is a later phase.
-- **Structural, not clinical** — a generated `ORU`/`VXU` is a valid _shape_, not a clinically-coherent
-  record (that is Synthea's job); codes come from a small illustrative example pool, not bundled
-  terminology.
+All six formats are wired (HL7 v2, FHIR, C-CDA, X12, NCPDP, ASTM), with vendor-quirk mode for HL7
+v2 / C-CDA / ASTM and the `deid` pairing loop for HL7 v2 / FHIR / C-CDA / X12 / NCPDP Telecom. The
+honest shape of what `synth` does, does **not** do, and defers — plus the full synthetic-safety posture
+— lives in **[What it does — and does not do](./limitations.md)**. The headline: `synth` is a
+**format/conformance generator, not a clinical simulator**; every value is synthetic-by-construction;
+output is deterministic per seed within a version window; and no terminology is bundled.
 
 The **API Reference** always reflects exactly what this release ships.
