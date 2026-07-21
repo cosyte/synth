@@ -120,6 +120,30 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
     (`us-core-encounter`, `us-core-diagnosticreport-lab`, `us-core-immunization`,
     `us-core-allergyintolerance`, `us-core-procedure`) are committed under `test/us-core-profiles/`.
     Deferred to SYNTH-5: C-CDA generation; quirk mode remains Phase 7.
+- **Phase 4 / C-CDA — spec-clean C-CDA generation (SYNTH-5).** A new `@cosyte/synth/ccda` subpath
+  generating Consolidated CDA R2.1 documents **through `@cosyte/ccda`'s `buildCcda`**, so every document
+  is spec-clean by construction — it round-trips through `parseCcda` with **zero warnings**, is
+  seed-deterministic (byte-identical for a seed), and is synthetic by construction:
+  - **New generators:** `generateCcd` (Continuity of Care Document), `generateReferralNote` (the second
+    document type `buildCcda` supports, with its Reason-for-Referral + Assessment narrative sections),
+    and the generic `generateCcda({ documentType })`. Each populates the CCD SHALL sections (Problems,
+    Allergies, Medications, Results, Vital Signs) plus Immunizations, Procedures, and Social History
+    (Smoking Status).
+  - **`ccdaCorpus`** builds a reproducible mixed corpus (CCD + Referral Note by default); `roundTrip`
+    is the C-CDA round-trip-through-the-parser harness (serialize → parse → serialize, judged by the
+    parser). `ccdaPatientIdentity` mints the synthetic `recordTarget`.
+  - **Reuses the license-clean example-code pools** (the same public LOINC/RxNorm/SNOMED/CVX facts the
+    FHIR generators ship, adapted to `@cosyte/ccda`'s OID-coded `BuildCode`) plus a small Social-History
+    (SNOMED smoking status) and NCI-route pool. No terminology content is bundled.
+  - **Synthetic-by-construction:** the patient name is from the shipped fake-name pool, the MRN lives
+    under the synthetic assigning-authority OID (never a real facility namespace), and every date comes
+    from the seeded generator — `buildCcda`'s default `effectiveTime: new Date()` is always overridden
+    with a synthetic date so the reproducibility contract holds. Seed-determinism and synthetic-safety
+    property suites (250-seed sweeps) + golden fixtures added; the repo `phi-scan` gains C-CDA-aware
+    structured detection (recordTarget `name` + `telecom`).
+  - **`@cosyte/ccda` vendored as an optional peer dep** (`file:vendor/cosyte-ccda-0.0.1.tgz`), lazily
+    loaded per format — importing the package root never pulls it; third-party runtime deps stay at
+    zero. Deferred to SYNTH-6: X12 generation; quirk mode remains Phase 7.
 - `VERSION` export.
 
 ### Changed

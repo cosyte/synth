@@ -397,6 +397,49 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): void {
   // FHIR R4 / US Core (Phase 3). A generated resource (or Bundle) is swept at its real PHI loci —
   // HumanName (`family`/`given`) and ContactPoint (`telecom` phone) — against the synthetic sources.
   scanFhir(target.path, text, allow, hits);
+
+  // C-CDA R2.1 (Phase 4 / SYNTH-5). A generated document is swept at its real PHI loci — the
+  // recordTarget patient `name` (`given` / `family`) and any `telecom` phone — against the synthetic
+  // sources (roadmap §4.4). Non-XML targets fall straight through.
+  scanCcda(target.path, text, allow, hits);
+}
+
+/**
+ * C-CDA structured PHI detection. Over a C-CDA XML fixture, checks the recordTarget patient identity
+ * loci: every `<given>` / `<family>` name token must be a declared-synthetic name, and every
+ * `<telecom value="tel:…">` phone must carry the reserved `555-01xx` tail. A non-XML target (no such
+ * elements) falls straight through. Dashed SSNs and non-test emails are already covered by
+ * {@link scanCommonShapes}.
+ */
+function scanCcda(path: string, text: string, allow: AllowList, hits: Hit[]): void {
+  if (!path.endsWith(".xml")) return;
+
+  // Patient name tokens — <given>…</given> and <family>…</family>. Each must be declared synthetic.
+  for (const m of text.matchAll(/<(given|family)(?:\s[^>]*)?>([^<]+)<\/\1>/g)) {
+    const token = (m[2] ?? "").trim();
+    if (token.length === 0) continue;
+    if (!allow.names.has(token.toUpperCase())) {
+      hits.push({
+        path,
+        segment: `recordTarget/${m[1] ?? "name"}`,
+        value: token,
+        reason: "name not declared synthetic",
+      });
+    }
+  }
+
+  // Telecom phone — <telecom value="tel:+1..."/>. A phone-shaped value must be reserved 555-01xx.
+  for (const m of text.matchAll(/<telecom\b[^>]*\bvalue="tel:([^"]+)"/g)) {
+    const value = m[1] ?? "";
+    if (/\d{7,}/.test(value.replace(/\D/g, "")) && !isSyntheticPhone(value)) {
+      hits.push({
+        path,
+        segment: "recordTarget/telecom",
+        value,
+        reason: "phone not in 555-01xx block",
+      });
+    }
+  }
 }
 
 /**
