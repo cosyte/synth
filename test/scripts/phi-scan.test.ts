@@ -87,6 +87,53 @@ describe("phi-scan starter: clean + allow-listed content passes", () => {
   });
 });
 
+describe("phi-scan: synthetic-area SSNs are NOT flagged (generator-aware floor)", () => {
+  it("a never-issued 900-area dashed SSN passes (exit 0)", () => {
+    const r = scan("synth-ssn.txt", "generated id 900-12-3456 is never issued\n");
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("the 987-65-432x advertising block passes (exit 0)", () => {
+    const r = scan("advert-ssn.txt", "advertising ssn 987-65-4321 reserved\n");
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+});
+
+describe("phi-scan: HL7 v2 structured PID detection catches real-looking PHI", () => {
+  const MSH =
+    "MSH|^~\\&|COSYTE-SYNTH|SYNTH-FAC|RECEIVER|RECV-FAC|20250101000000||ADT^A01|CID|P|2.5";
+  const pid = (name: string, phone: string, ssn: string): string =>
+    `PID|1||65413620^^^COSYTE-SYNTH^MR||${name}||19801020|F|||9764 Placeholder Avenue^^Testford^ID^00000||${phone}||||||${ssn}`;
+  const msg = (name: string, phone: string, ssn: string): string =>
+    `${MSH}\r${pid(name, phone, ssn)}\rPV1|1|I|SYNTHWARD^815^01\r`;
+
+  it("a fully-synthetic generated message passes (exit 0)", () => {
+    const r = scan("hl7-clean.hl7", msg("Mockridge^Exampla", "(476) 555-0161", "951140760"));
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("catches a real PID-5 name not on the allow-list (exit 1)", () => {
+    const r = scan("hl7-name.hl7", msg("Smith^John", "(476) 555-0161", "951140760"));
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/PID-5/);
+    expect(r.stderr).toMatch(/not declared synthetic/);
+  });
+
+  it("catches a real-area PID-19 SSN (exit 1)", () => {
+    const r = scan("hl7-ssn.hl7", msg("Mockridge^Exampla", "(476) 555-0161", "123456789"));
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/PID-19/);
+    expect(r.stderr).toMatch(/not in synthetic range/);
+  });
+
+  it("catches a real PID-13 phone outside the 555-01xx block (exit 1)", () => {
+    const r = scan("hl7-phone.hl7", msg("Mockridge^Exampla", "(212) 867-5309", "951140760"));
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/PID-13/);
+    expect(r.stderr).toMatch(/555-01xx/);
+  });
+});
+
 describe("phi-scan starter: the override-log gate", () => {
   it("rejects --allow-fixture without a matching override entry (exit 2)", () => {
     const clean = join(dir, "override-me.txt");

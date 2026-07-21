@@ -30,6 +30,51 @@ EMAILDOMAIN example.test
 # --- Synthetic person-name tokens (example — extend for your fixtures) ---
 # NAME DOE
 # NAME JOHN
+#
+# The shipped clearly-fake name pool (src/safe/names-pool.ts). Every PID-5 name token in a generated
+# HL7 fixture must appear here — the structured HL7 detector in scripts/phi-scan.ts flags any name
+# token not positively declared synthetic. Keep this in sync with the pool.
+NAME TESTINA
+NAME FIXTURA
+NAME SYNTHOS
+NAME PLACEHOLDA
+NAME SAMPLETON
+NAME PROTIUS
+NAME PROTOTIUS
+NAME STUBBINA
+NAME EXAMPLA
+NAME QUILLIAM
+NAME FABRICA
+NAME SIMULA
+NAME TESTRY
+NAME SEEDWIN
+NAME CORPORA
+NAME REPRODO
+NAME MOCKTAVIA
+NAME DUMMETT
+NAME VOIDWIN
+NAME DETERIA
+NAME RANDOMIR
+NAME TESTERSON
+NAME FAUXMAN
+NAME PLACEHOLT
+NAME MOCKRIDGE
+NAME FIXTINGHAM
+NAME SYNTHWELL
+NAME DUMMERTON
+NAME EXAMPLEWOOD
+NAME FABRICANT
+NAME SIMULACRE
+NAME NONESUCH
+NAME SEEDMAN
+NAME CORPUSWORTH
+NAME REPRODUS
+NAME VOIDMARK
+NAME DETERWOOD
+NAME RANDOMSON
+NAME QUILLFEATHER
+NAME NOTREAL
+NAME GENFIELD
 
 # --- Synthetic dates of birth (example — normalize to your detector's format) ---
 # DOB 19800115

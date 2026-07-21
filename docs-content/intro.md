@@ -6,34 +6,46 @@ sidebar_position: 1
 
 # @cosyte/synth
 
-Parse real-world, vendor-quirky Synthetic Data and pull fields out in one line — without reading the spec.
-`@cosyte/synth` is a zero-dependency TypeScript toolkit following the cosyte parser archetype: a lenient
-parser, an immutable model, a spec-clean serializer, and a profile system for vendor quirks. It
-mirrors the API shape of the reference parser, `@cosyte/hl7`.
+Generate **deterministic, seedable synthetic healthcare fixtures** — spec-clean HL7 v2 (and, in later
+phases, FHIR / C-CDA / X12 / NCPDP / ASTM) — without hand-writing a byte of the wire format, and
+**without any chance the "patient" you just generated is a real person**.
 
-> **Status:** pre-alpha (`0.0.x`), not yet published to npm. This page describes the scaffold; the
-> real parser lands in subsequent phases.
+`@cosyte/synth` is a **consumer** of the cosyte parsers, not a parser. It builds each artifact **through
+the parser's own builder/serializer** (so the output is spec-clean by construction) and draws every
+identifier, name, date, phone, and address from a **guaranteed-non-colliding synthetic source** (SSA
+never-issued SSNs, NANP `555-01xx` phones, `example.*` domains, TEST-NET IPs, a synthetic assigning
+authority for MRNs, and a shipped clearly-fake name pool). It is a **format/conformance generator, not a
+clinical simulator** — it does not model disease progression (that is Synthea).
+
+> **Status:** pre-alpha (`0.0.x`), not yet published to npm. Phase 1 ships the seeded-PRNG core, the
+> synthetic-safety providers, and the round-trip harness proven on HL7 v2.
 
 ## Install
 
 ```bash
-npm install @cosyte/synth
+npm install @cosyte/synth @cosyte/hl7
 ```
 
-## Parse a message
+`@cosyte/hl7` is an **optional peer dependency** — install it only if you use the `@cosyte/synth/hl7`
+subpath. The package core (PRNG + safe providers) has **zero third-party runtime dependencies**.
 
-```ts
-import { parseSynth } from "@cosyte/synth";
+## Generate a spec-clean message
 
-const result = parseSynth(raw);
+```ts runnable
+import { generateAdt, roundTrip } from "@cosyte/synth/hl7";
 
-result.warnings; // stable, positional tolerance warnings
+// Same seed → byte-identical message, on any machine, any run.
+const message = generateAdt({ seed: 12345, trigger: "A01" });
+
+// It round-trips through @cosyte/hl7 with zero warnings — spec-clean by construction.
+roundTrip(message).specClean; // => true
 ```
 
-The parser is **lenient by default** — vendor quirks become warnings, not failures — while the
-serializer always emits spec-clean output (Postel's Law). A `{ strict: true }` mode (to be added)
-escalates every tolerated deviation to a thrown error.
+Every value in that message is provably synthetic: the SSN is never-issued (`900–999` area), the phone
+is in the reserved `555-01xx` block, the name is from a clearly-fake pool, and the MRN lives under a
+synthetic assigning authority.
 
 ## Next
 
-- Read the **API reference** for every export, generated from source.
+- [Quickstart](./quickstart) — the core primitives and the HL7 corpus.
+- [Core Concepts](./concepts-archetype) — synthetic-by-construction, determinism, the round-trip gate.

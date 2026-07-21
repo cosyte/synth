@@ -1,4 +1,7 @@
+import { execFileSync } from "node:child_process";
 import { join } from "node:path";
+
+import { beforeAll } from "vitest";
 
 import { docSnippetSuite } from "@cosyte/vitest-config/snippets";
 
@@ -7,12 +10,25 @@ import { docSnippetSuite } from "@cosyte/vitest-config/snippets";
  * compiled, and executed, and its inline `// =>` assertions are checked — so a documented example can
  * never silently drift from the shipped code (the documentation analog of the conformance runners).
  *
- * `resolve` points a snippet's `import ... from "@cosyte/synth"` at this repo's source, the same way the
- * rest of the suite imports it — a fast local gate. To assert against the *built* artifact a consumer
- * installs, run `pnpm build` first and map the specifier to `../dist/index.js` instead.
+ * Snippets import the package the way a consumer does — against the **built** ESM artifacts, not the
+ * source tree: the harness runs each block as a standalone ES module, so it cannot resolve the source's
+ * internal `.js`→`.ts` imports, but the bundled `dist/*.mjs` are self-contained (and are exactly what
+ * an installer loads). The shared CI gate runs `test` before `build`, so `dist/` is provisioned on
+ * demand here rather than assuming build order.
  */
+const root = join(import.meta.dirname, "..");
+const rootEntry = join(root, "dist", "index.mjs");
+const hl7Entry = join(root, "dist", "hl7", "index.mjs");
+
+beforeAll(() => {
+  execFileSync("pnpm", ["build"], { cwd: root, stdio: "inherit" });
+}, 120_000);
+
 docSnippetSuite({
-  docsDir: join(import.meta.dirname, "..", "docs-content"),
-  resolve: (specifier) =>
-    specifier === "@cosyte/synth" ? join(import.meta.dirname, "..", "src", "index.ts") : undefined,
+  docsDir: join(root, "docs-content"),
+  resolve: (specifier) => {
+    if (specifier === "@cosyte/synth") return rootEntry;
+    if (specifier === "@cosyte/synth/hl7") return hl7Entry;
+    return undefined;
+  },
 });

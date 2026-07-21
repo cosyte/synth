@@ -1,14 +1,15 @@
 {
   "name": "@cosyte/synth",
   "version": "0.0.0",
-  "description": "Synthetic Data parser, serializer, and builder for Node.js and TypeScript — lenient on parse, spec-clean on emit.",
+  "description": "Deterministic, seedable synthetic healthcare-fixture generator for Node.js and TypeScript — spec-clean by construction, never real PHI.",
   "keywords": [
     "synth",
-    "parser",
+    "synthetic-data",
+    "test-fixtures",
     "healthcare",
     "interoperability",
     "typescript",
-    "serializer"
+    "hl7"
   ],
   "homepage": "https://github.com/cosyte/synth#readme",
   "bugs": {
@@ -39,6 +40,16 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./hl7": {
+      "import": {
+        "types": "./dist/hl7/index.d.ts",
+        "default": "./dist/hl7/index.mjs"
+      },
+      "require": {
+        "types": "./dist/hl7/index.d.cts",
+        "default": "./dist/hl7/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -53,6 +64,14 @@
     "provenance": true
   },
   "prettier": "@cosyte/prettier-config",
+  "peerDependencies": {
+    "@cosyte/hl7": ">=0.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@cosyte/hl7": {
+      "optional": true
+    }
+  },
   "scripts": {
     "build": "tsup",
     "changeset": "changeset",
@@ -67,7 +86,7 @@
     "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist coverage",
     "pack:docs": "bash scripts/build-docs-artifacts.sh",
-    "attw": "attw --pack .",
+    "attw": "attw --pack . --profile node16",
     "release": "changeset publish",
     "prepublishOnly": "pnpm clean && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm attw",
     "prepare": "command -v simple-git-hooks >/dev/null 2>&1 && simple-git-hooks || true"
@@ -79,6 +98,7 @@
     "@arethetypeswrong/cli": "0.18.4",
     "@changesets/cli": "2.31.0",
     "@cosyte/eslint-config": "^0.0.4",
+    "@cosyte/hl7": "file:vendor/cosyte-hl7-0.0.0.tgz",
     "@cosyte/prettier-config": "^0.0.2",
     "@cosyte/test-utils": "^0.0.1",
     "@cosyte/tsconfig": "^0.0.2",
@@ -95,6 +115,5 @@
     "typescript": "5.9.3",
     "vite": "7.3.6",
     "vitest": "4.1.4"
-  },
-  "dependencies": {}
+  }
 }

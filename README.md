@@ -1,48 +1,61 @@
 # @cosyte/synth
 
-> Synthetic Data parser, serializer, and builder for Node.js and TypeScript — **lenient on parse,
-> spec-clean on emit**.
+> Deterministic, seedable **synthetic healthcare-fixture generator** for Node.js and TypeScript —
+> spec-clean by construction, and **never real PHI**.
 
-`@cosyte/synth` is a zero-dependency TypeScript toolkit that follows the cosyte parser archetype: a lenient
-parser that turns real-world, vendor-quirky input into **warnings** rather than failures, paired with
-a serializer that always emits spec-clean output (Postel's Law). It mirrors the API shape of the
-reference parser, [`@cosyte/hl7`](https://github.com/cosyte/hl7).
+`@cosyte/synth` generates reproducible synthetic test corpora across the cosyte formats (HL7 v2 today;
+FHIR / C-CDA / X12 / NCPDP / ASTM in later phases). It is a **consumer** of the cosyte parsers, not a
+parser: it builds each artifact **through the parser's own builder/serializer** (so the output is
+spec-clean by the same mechanism the parser proves) and draws every identifier, name, date, phone, and
+address from a **guaranteed-non-colliding synthetic source**. It is a **format/conformance generator,
+not a clinical simulator** — it does not model disease progression (that is Synthea).
 
-> **Status:** pre-alpha (`0.0.x`), not yet published to npm. The public API below is the scaffold;
-> the real parser lands in subsequent phases.
+> **Status:** pre-alpha (`0.0.x`), not yet published to npm. Phase 1 ships the seeded-PRNG core, the
+> synthetic-safety providers, and the round-trip harness proven on HL7 v2.
 
 ## Install
 
 ```bash
-npm install @cosyte/synth
+npm install @cosyte/synth @cosyte/hl7
 ```
 
-## Parse
+`@cosyte/hl7` is an **optional peer dependency**, needed only for the `@cosyte/synth/hl7` subpath. The
+package core has **zero third-party runtime dependencies**.
+
+## Generate a spec-clean HL7 v2 message
 
 ```ts
-import { parseSynth } from "@cosyte/synth";
+import { generateAdt, roundTrip } from "@cosyte/synth/hl7";
 
-const result = parseSynth(raw);
+// Same seed → byte-identical message, on any machine, any run.
+const message = generateAdt({ seed: 12345, trigger: "A01" });
 
-result.warnings; // stable, positional tolerance warnings (never throws on quirks)
+// Spec-clean by construction: it round-trips through @cosyte/hl7 with zero warnings.
+roundTrip(message).specClean; // true
 ```
 
-The parser is **lenient by default** — vendor quirks become warnings, not failures. A
-`{ strict: true }` mode (to be added) escalates every tolerated deviation to a thrown error.
+## Draw a synthetic value
 
-## The cosyte parser archetype
+```ts
+import { createRng, safe, isSyntheticSsn } from "@cosyte/synth";
 
-- **Postel's Law** — liberal parser (lenient default + warnings), conservative serializer (always
-  spec-clean), so quirks don't propagate downstream on round-trip.
-- **Tiered tolerance** — Tier 0/1 silent, Tier 2 warning + recovery (escalates in strict mode),
-  Tier 3 fatal always.
-- **Stable warning codes** — warnings carry stable string codes + positional context; consumers
-  branch on `w.code`, so renaming a code is a breaking change.
-- **Zero runtime dependencies** — Node stdlib only (healthcare integrations vet every dependency).
-- **Dual ESM + CJS** — built with `tsup`, validated with `attw`.
-- **Immutability** — parsed models are immutable; mutation is via explicit methods.
-- **Profile system** — a `defineProfile()` API for vendor quirks (to be added), with built-in
-  profiles authored through the same public API.
+const rng = createRng(42);
+isSyntheticSsn(safe.ssn(rng)); // true — always an SSA never-issued SSN
+```
+
+## What makes it trustworthy
+
+- **Synthetic-by-construction** — no code path emits a value not drawn from a reserved range or the
+  shipped fake-name pool (SSA never-issued SSNs, NANP `555-01xx` phones, RFC 2606/6761 `example.*`
+  domains, RFC 5737/3849 TEST-NET IPs, a synthetic assigning authority for MRNs). A CI gate proves it.
+  **No generated value can be real or plausibly-real PHI.**
+- **Spec-clean by the parser's own judgment** — built through the parser's conservative serializer, and
+  checked by feeding the artifact straight back in: a spec-clean artifact re-parses with zero warnings.
+- **Deterministic** — a hand-rolled seeded PRNG (`sfc32`/`splitmix32`); `Math.random` is lint-banned.
+  A seed, and only the seed, determines the output — byte-for-byte, anywhere.
+- **Immutable** — generated artifacts and the `Corpus` result are deep-frozen.
+- **Zero third-party runtime dependencies** — the parser peers are first-party cosyte packages,
+  vendored for dev/test; dual ESM + CJS, validated with `attw`.
 
 ## License
 
