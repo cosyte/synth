@@ -27,7 +27,8 @@
         "guides-x12",
         "guides-ncpdp",
         "guides-astm",
-        "guides-quirks"
+        "guides-quirks",
+        "guides-deid"
       ]
     },
     {

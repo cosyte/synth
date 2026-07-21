@@ -24,6 +24,7 @@ const ccdaEntry = join(root, "dist", "ccda", "index.mjs");
 const x12Entry = join(root, "dist", "x12", "index.mjs");
 const ncpdpEntry = join(root, "dist", "ncpdp", "index.mjs");
 const astmEntry = join(root, "dist", "astm", "index.mjs");
+const deidEntry = join(root, "dist", "deid", "index.mjs");
 
 beforeAll(() => {
   execFileSync("pnpm", ["build"], { cwd: root, stdio: "inherit" });
@@ -39,6 +40,7 @@ docSnippetSuite({
     if (specifier === "@cosyte/synth/x12") return x12Entry;
     if (specifier === "@cosyte/synth/ncpdp") return ncpdpEntry;
     if (specifier === "@cosyte/synth/astm") return astmEntry;
+    if (specifier === "@cosyte/synth/deid") return deidEntry;
     return undefined;
   },
 });

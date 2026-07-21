@@ -20,6 +20,9 @@ importers:
       '@cosyte/ccda':
         specifier: file:vendor/cosyte-ccda-0.0.1.tgz
         version: file:vendor/cosyte-ccda-0.0.1.tgz
+      '@cosyte/deid':
+        specifier: file:vendor/cosyte-deid-0.0.0.tgz
+        version: file:vendor/cosyte-deid-0.0.0.tgz(@cosyte/ccda@file:vendor/cosyte-ccda-0.0.1.tgz)(@cosyte/fhir@file:vendor/cosyte-fhir-0.0.0.tgz)(@cosyte/hl7@file:vendor/cosyte-hl7-0.0.0.tgz)(@cosyte/ncpdp@file:vendor/cosyte-ncpdp-0.0.1.tgz)(@cosyte/x12@file:vendor/cosyte-x12-0.0.1.tgz)
       '@cosyte/eslint-config':
         specifier: ^0.0.4
         version: 0.0.4(eslint@10.5.0)(typescript@5.9.3)
@@ -194,6 +197,31 @@ packages:
     resolution: {integrity: sha512-uH7A0/ySsTkPnYjAXT2kGV6ITTWt+djcO97i2SBQZpTwAhAJtQ1TjM5fNi+fIvtEde5VQyGlmDnUo5v2KhIq3g==, tarball: file:vendor/cosyte-ccda-0.0.1.tgz}
     version: 0.0.1
     engines: {node: '>=22.0.0'}
+
+  '@cosyte/deid@file:vendor/cosyte-deid-0.0.0.tgz':
+    resolution: {integrity: sha512-nEs4kXGIhcGhUoTk2C/M6uBmRN3FhECkvFmBeFf6mR8YpvDvuBsr/t7Ic6O2/N7rHq87MPj5U166kvlq0BNVVA==, tarball: file:vendor/cosyte-deid-0.0.0.tgz}
+    version: 0.0.0
+    engines: {node: '>=22.0.0'}
+    peerDependencies:
+      '@cosyte/ccda': '>=0.0.0'
+      '@cosyte/dicom': '>=0.0.0'
+      '@cosyte/fhir': '>=0.0.0'
+      '@cosyte/hl7': '>=0.0.0'
+      '@cosyte/ncpdp': '>=0.0.0'
+      '@cosyte/x12': '>=0.0.0'
+    peerDependenciesMeta:
+      '@cosyte/ccda':
+        optional: true
+      '@cosyte/dicom':
+        optional: true
+      '@cosyte/fhir':
+        optional: true
+      '@cosyte/hl7':
+        optional: true
+      '@cosyte/ncpdp':
+        optional: true
+      '@cosyte/x12':
+        optional: true
 
   '@cosyte/eslint-config@0.0.4':
     resolution: {integrity: sha512-CHQheUswQqC90jYlS4EsFn4jg3T2pjlf8Wgr9xX930MJ6yOAHpN2kuQ4FvmUfOPk1s3xv0CzbZ267gHogvwTPg==}
@@ -2217,6 +2245,14 @@ snapshots:
   '@cosyte/ccda@file:vendor/cosyte-ccda-0.0.1.tgz':
     dependencies:
       '@xmldom/xmldom': 0.9.10
+
+  '@cosyte/deid@file:vendor/cosyte-deid-0.0.0.tgz(@cosyte/ccda@file:vendor/cosyte-ccda-0.0.1.tgz)(@cosyte/fhir@file:vendor/cosyte-fhir-0.0.0.tgz)(@cosyte/hl7@file:vendor/cosyte-hl7-0.0.0.tgz)(@cosyte/ncpdp@file:vendor/cosyte-ncpdp-0.0.1.tgz)(@cosyte/x12@file:vendor/cosyte-x12-0.0.1.tgz)':
+    optionalDependencies:
+      '@cosyte/ccda': file:vendor/cosyte-ccda-0.0.1.tgz
+      '@cosyte/fhir': file:vendor/cosyte-fhir-0.0.0.tgz
+      '@cosyte/hl7': file:vendor/cosyte-hl7-0.0.0.tgz
+      '@cosyte/ncpdp': file:vendor/cosyte-ncpdp-0.0.1.tgz
+      '@cosyte/x12': file:vendor/cosyte-x12-0.0.1.tgz
 
   '@cosyte/eslint-config@0.0.4(eslint@10.5.0)(typescript@5.9.3)':
     dependencies:
