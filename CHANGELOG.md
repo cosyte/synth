@@ -38,6 +38,25 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   - **HL7 v2 generation** at the `@cosyte/synth/hl7` subpath (`generateAdt`, `roundTrip`, `hl7Corpus`,
     `componentsField`) — builds `ADT^A01/A04/A08` **through `@cosyte/hl7`'s `buildMessage`**, so output
     is spec-clean by construction and round-trips with zero warnings.
+- **Phase 2 — the rest of the HL7 v2 set (SYNTH-2).** Extends HL7 v2 generation from `ADT` alone to
+  the full Phase 2 family, all built **through `@cosyte/hl7`'s `buildMessage`** and all round-tripping
+  through the parser with **zero warnings**, seed-deterministic, and synthetic-safe:
+  - **New generators** at the `@cosyte/synth/hl7` subpath: `generateOru` (`ORU^R01`, an OBR/OBX result
+    group), `generateOrm` (`ORM^O01`, an ORC/OBR order), `generateSiu` (`SIU^S12`, an SCH schedule
+    activity), and `generateVxu` (`VXU^V04`, a PID + ORC/RXA/RXR immunization). Each emits exactly the
+    segments the parser's structure net requires for its trigger, so nothing warns.
+  - **`generateHl7(kind, seed)`** — a dispatch over every `Hl7MessageKind`
+    (`ADT^A01`/`A04`/`A08`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`).
+  - **`hl7Corpus` now generates a mixed corpus** across every family by default (`mix?` to choose,
+    `triggers?` kept for SYNTH-1 ADT-only back-compat).
+  - **Shared HL7 building blocks** (`mshScaffold`, `patientIdentity`, `pidSegment`, `seededTimestamp`)
+    so every family mints identity from the same synthetic-safety providers in the same draw order;
+    `ADT` now uses them (byte-identical output preserved).
+  - **A small, license-clean example-code pool** (`EXAMPLE_LAB_OBSERVATIONS`, `EXAMPLE_ORDER_SERVICES`,
+    `EXAMPLE_VACCINES` — public LOINC/CVX code facts) to fill coded fields. **No** terminology is
+    bundled; codes are illustrative structural fillers only.
+  - **Tier-1 fixtures** for the new families and the synthetic-safety + seed-determinism property tests
+    extended to sweep every family (PID loci provably synthetic; whole-message real-data sweep zero).
   - **The round-trip harness + synthetic-safety CI gate** — property tests prove seed-determinism,
     zero-warning round-trips, and that no generated value escapes a reserved/synthetic source; the
     repo `phi-scan` gains HL7-PID structured detection (synthetic-SSN-range aware).

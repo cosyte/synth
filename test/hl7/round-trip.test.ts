@@ -2,14 +2,26 @@ import { describe, expect, it } from "vitest";
 
 import {
   generateAdt,
+  generateHl7,
   roundTrip,
   hl7Corpus,
   componentsField,
   type AdtTrigger,
+  type Hl7MessageKind,
 } from "../../src/hl7/index.js";
 import { isSyntheticSsn, isSyntheticPhone } from "../../src/index.js";
 
 const TRIGGERS: readonly AdtTrigger[] = ["A01", "A04", "A08"];
+
+const ALL_KINDS: readonly Hl7MessageKind[] = [
+  "ADT^A01",
+  "ADT^A04",
+  "ADT^A08",
+  "ORU^R01",
+  "ORM^O01",
+  "SIU^S12",
+  "VXU^V04",
+];
 
 describe("HL7 v2 ADT generation — the round-trip harness proof", () => {
   it("every trigger round-trips through @cosyte/hl7 with zero warnings", () => {
@@ -53,17 +65,36 @@ describe("HL7 v2 ADT generation — the round-trip harness proof", () => {
     expect(a).toBe(b);
   });
 
-  it("hl7Corpus builds a reproducible, spec-clean corpus", () => {
-    const c1 = hl7Corpus({ seed: 42, count: 9 });
-    const c2 = hl7Corpus({ seed: 42, count: 9 });
+  it("hl7Corpus builds a reproducible, spec-clean corpus across every family", () => {
+    const c1 = hl7Corpus({ seed: 42, count: 14 });
+    const c2 = hl7Corpus({ seed: 42, count: 14 });
     expect(c1.artifacts.map((a) => a.content)).toEqual(c2.artifacts.map((a) => a.content));
-    expect(c1.artifacts).toHaveLength(9);
+    expect(c1.artifacts).toHaveLength(14);
     for (const artifact of c1.artifacts) {
       expect(artifact.warnings).toEqual([]);
       expect(artifact.format).toBe("hl7v2");
     }
-    expect(c1.manifest.counts).toEqual({ "ADT^A01": 3, "ADT^A04": 3, "ADT^A08": 3 });
+    // The default mix is one of every Phase 2 family, cycled — 14 messages = 2 of each.
+    expect(c1.manifest.counts).toEqual({
+      "ADT^A01": 2,
+      "ADT^A04": 2,
+      "ADT^A08": 2,
+      "ORU^R01": 2,
+      "ORM^O01": 2,
+      "SIU^S12": 2,
+      "VXU^V04": 2,
+    });
     expect(hl7Corpus({ seed: 1 }).artifacts).toHaveLength(1);
+  });
+
+  it("the ADT-only triggers knob still restricts the corpus (SYNTH-1 back-compat)", () => {
+    const c = hl7Corpus({ seed: 42, count: 9, triggers: ["A01", "A04", "A08"] });
+    expect(c.manifest.counts).toEqual({ "ADT^A01": 3, "ADT^A04": 3, "ADT^A08": 3 });
+  });
+
+  it("an explicit mix cycles exactly the requested kinds", () => {
+    const c = hl7Corpus({ seed: 7, count: 4, mix: ["ORU^R01", "VXU^V04"] });
+    expect(c.manifest.counts).toEqual({ "ORU^R01": 2, "VXU^V04": 2 });
   });
 
   it("componentsField lays out HL7 components without escaping", () => {
@@ -76,6 +107,52 @@ describe("HL7 v2 ADT generation — the round-trip harness proof", () => {
     const b = generateAdt({ seed: 0, trigger: "A01" }).toString();
     expect(a).toBe(b);
     expect(a).toContain("ADT^A01");
+  });
+
+  it("every Phase 2 family round-trips with zero warnings across many seeds", () => {
+    for (const kind of ALL_KINDS) {
+      for (let seed = 0; seed < 120; seed += 1) {
+        const result = roundTrip(generateHl7(kind, seed));
+        expect(result.warnings, `${kind} seed=${String(seed)}`).toEqual([]);
+        expect(result.byteStable, `${kind} seed=${String(seed)}`).toBe(true);
+        expect(result.specClean).toBe(true);
+      }
+    }
+  });
+
+  it("each family carries the segments its trigger structure requires", () => {
+    const oru = generateHl7("ORU^R01", 3).toString();
+    expect(oru).toContain("ORU^R01");
+    expect(oru).toContain("\rOBR|");
+    expect(oru).toContain("\rOBX|");
+
+    const orm = generateHl7("ORM^O01", 3).toString();
+    expect(orm).toContain("ORM^O01");
+    expect(orm).toContain("\rORC|NW|");
+
+    const siu = generateHl7("SIU^S12", 3).toString();
+    expect(siu).toContain("SIU^S12");
+    expect(siu).toContain("\rSCH|");
+
+    const vxu = generateHl7("VXU^V04", 3).toString();
+    expect(vxu).toContain("VXU^V04");
+    expect(vxu).toContain("\rRXA|");
+    expect(vxu).toContain("\rPID|1||");
+  });
+
+  it("every family is deterministic — same seed yields byte-identical output", () => {
+    for (const kind of ALL_KINDS) {
+      expect(generateHl7(kind, 555).toString()).toBe(generateHl7(kind, 555).toString());
+    }
+  });
+
+  it("each family defaults its seed to 0 when options are omitted", async () => {
+    const { generateOru, generateOrm, generateSiu, generateVxu } =
+      await import("../../src/hl7/index.js");
+    expect(generateOru().toString()).toBe(generateHl7("ORU^R01", 0).toString());
+    expect(generateOrm().toString()).toBe(generateHl7("ORM^O01", 0).toString());
+    expect(generateSiu().toString()).toBe(generateHl7("SIU^S12", 0).toString());
+    expect(generateVxu().toString()).toBe(generateHl7("VXU^V04", 0).toString());
   });
 
   it("roundTrip surfaces the parser's warning codes on a non-spec-clean message", async () => {
