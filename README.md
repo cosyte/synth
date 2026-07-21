@@ -4,7 +4,7 @@
 > spec-clean by construction, and **never real PHI**.
 
 `@cosyte/synth` generates reproducible synthetic test corpora across the cosyte formats (HL7 v2,
-FHIR R4 / US Core, and C-CDA today; X12 / NCPDP / ASTM in later phases). It is a **consumer** of the
+FHIR R4 / US Core, C-CDA, and X12 today; NCPDP / ASTM in later phases). It is a **consumer** of the
 cosyte parsers, not a parser: it builds each artifact **through the parser's own builder/serializer**
 (so the output is spec-clean by the same mechanism the parser proves) and draws every identifier, name,
 date, phone, and address from a **guaranteed-non-colliding synthetic source**. It is a
@@ -15,17 +15,19 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 > synthetic-safety providers, and the round-trip harness; Phase 2 the full HL7 v2 message set; Phase 3
 > FHIR R4 / US Core (Patient + the clinical spine + Bundles); Phase 4 the rest of the US Core clinical
 > set (`Encounter`, `DiagnosticReport`, `Immunization`, `AllergyIntolerance`, `Procedure`) and the
-> `document` Bundle shape; **C-CDA generation** (CCD + Referral Note via `@cosyte/ccda`'s `buildCcda`).
+> `document` Bundle shape; Phase 4 **C-CDA generation** (CCD + Referral Note via `@cosyte/ccda`'s
+> `buildCcda`); Phase 5 **X12 generation** (837P/I/D, 835, 271 in HIPAA 005010 via `@cosyte/x12`).
 
 ## Install
 
 ```bash
-npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda
+npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12
 ```
 
-`@cosyte/hl7`, `@cosyte/fhir`, and `@cosyte/ccda` are **optional peer dependencies**, each needed only
-for its subpath (`@cosyte/synth/hl7`, `@cosyte/synth/fhir`, `@cosyte/synth/ccda`) — install only the
-parsers whose fixtures you generate. The package core has **zero third-party runtime dependencies**.
+`@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, and `@cosyte/x12` are **optional peer dependencies**,
+each needed only for its subpath (`@cosyte/synth/hl7`, `@cosyte/synth/fhir`, `@cosyte/synth/ccda`,
+`@cosyte/synth/x12`) — install only the parsers whose fixtures you generate. The package core has
+**zero third-party runtime dependencies**.
 
 ## Generate a spec-clean HL7 v2 message
 
@@ -109,13 +111,45 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-cle
 
 `@cosyte/ccda` is an **optional peer dependency**, needed only for the `@cosyte/synth/ccda` subpath.
 
+## Generate a spec-clean X12 transaction
+
+The `@cosyte/synth/x12` subpath builds HIPAA **005010** transactions **through `@cosyte/x12`'s domain
+builders** (`build837P/I/D`, `build835`, `build271`), so the ISA/GS/ST…SE/GE/IEA envelope, the
+computed HL spine, the control numbers, and every segment are the builder's own — each transaction
+round-trips through `@cosyte/x12` with **zero warnings**. It emits **837** professional / institutional
+/ dental claims, the **835** remittance (balance-checked by construction), and the **271** eligibility
+response.
+
+```ts
+import { generate837P, generate835, generate271, x12Corpus, roundTrip } from "@cosyte/synth/x12";
+
+// Same seed → byte-identical EDI. Every subscriber/patient/provider identifier is
+// synthetic-by-construction: the provider NPI has a deliberately-INVALID Luhn check digit (so it can
+// never be a NPPES-issued NPI), the provider tax id is an SSA never-issued 900-range SSN, member ids
+// live under a synthetic assigning authority, and names come from the shipped fake-name pool.
+const claim = generate837P({ seed: 12345 });
+roundTrip(claim).specClean; // true — re-parses through @cosyte/x12 with zero warnings, byte-stable
+roundTrip(generate835({ seed: 7 })).specClean; // true
+roundTrip(generate271({ seed: 3 })).specClean; // true
+
+// Or a reproducible mixed corpus (837P/I/D + 835 + 271):
+const corpus = x12Corpus({ seed: 42 });
+corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-clean
+```
+
+`@cosyte/x12` is an **optional peer dependency**, needed only for the `@cosyte/synth/x12` subpath.
+
+**Deferred:** the **270** eligibility _request_ (`@cosyte/x12` ships a `build271` but no `build270`, and
+`synth` never hand-writes bytes around a missing builder) and **vendor-quirk mode** (Phase 7 / SYNTH-7).
+
 ## Draw a synthetic value
 
 ```ts
-import { createRng, safe, isSyntheticSsn } from "@cosyte/synth";
+import { createRng, safe, isSyntheticSsn, isSyntheticNpi } from "@cosyte/synth";
 
 const rng = createRng(42);
 isSyntheticSsn(safe.ssn(rng)); // true — always an SSA never-issued SSN
+isSyntheticNpi(safe.npi(rng)); // true — always a deliberately-invalid-Luhn NPI (never a real NPI)
 ```
 
 ## What makes it trustworthy

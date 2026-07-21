@@ -402,6 +402,186 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): void {
   // recordTarget patient `name` (`given` / `family`) and any `telecom` phone — against the synthetic
   // sources (roadmap §4.4). Non-XML targets fall straight through.
   scanCcda(target.path, text, allow, hits);
+
+  // X12 EDI (Phase 5 / SYNTH-6). A generated 837 / 835 / 271 is swept at its real PHI loci — NM1 person
+  // names + member ids + provider NPIs, PER contact names + phones, and REF*SY provider SSNs — against
+  // the synthetic sources (roadmap §4.4). The X12 identity invariant is the hardest-attacked: a member
+  // id must be synthetic-AA-scoped, an XX-qualified NPI must fail the NPI Luhn check (so it can never be
+  // a real NPI), and a REF*SY SSN must be in the SSA never-issued range. Non-X12 targets (no ISA header)
+  // fall straight through.
+  scanX12(target.path, text, allow, hits);
+}
+
+/** Whether a byte string is an X12 interchange — starts with `ISA` and is at least a full ISA wide. */
+function isX12(text: string): boolean {
+  const t = text.replace(/^\uFEFF/, "");
+  return t.startsWith("ISA") && t.length >= 106;
+}
+
+/** Split raw X12 into segments → elements using the ISA-declared delimiters (byte 3 / byte 105). */
+function splitX12Segments(text: string): string[][] {
+  const t = text.replace(/^\uFEFF/, "");
+  const elementSep = t.charAt(3);
+  const segmentTerm = t.charAt(105);
+  return t
+    .split(segmentTerm)
+    .map((s) => s.replace(/[\r\n]+/g, "").trim())
+    .filter((s) => s.length > 0)
+    .map((s) => s.split(elementSep));
+}
+
+/** Word tokens (len >= 2, alphabetic) inside an X12 name element. */
+function x12NameTokens(value: string): string[] {
+  return value
+    .split(/[\s,.'-]+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2 && /[A-Za-z]/.test(t));
+}
+
+/**
+ * Whether a 10-digit NPI is **provably synthetic** — its check digit fails the CMS NPI Luhn check
+ * (`80840` prefix), so it can never be a NPPES-issued NPI. A Luhn-valid NPI (which *could* be a real
+ * registered provider) is a hit. Mirrors `src/safe/reserved.ts#isSyntheticNpi` — kept inline because
+ * the scanner is a standalone, zero-import Node script.
+ */
+function isSyntheticNpi(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length !== 10) return false;
+  const s = `80840${digits}`;
+  let sum = 0;
+  let double = false; // rightmost digit is never doubled.
+  for (let i = s.length - 1; i >= 0; i -= 1) {
+    let d = s.charCodeAt(i) - 48;
+    if (d < 0 || d > 9) continue;
+    if (double) {
+      d *= 2;
+      if (d > 9) d -= 9;
+    }
+    sum += d;
+    double = !double;
+  }
+  return sum % 10 !== 0; // non-zero ⇒ invalid check digit ⇒ never a real NPI.
+}
+
+/**
+ * Whether an X12 member/cardholder id is a recognized synthetic shape: minted under the synthetic
+ * assigning authority (the `MBR`-prefixed or all-digit forms `synth` emits — roadmap §4.1, there is no
+ * reserved member-id range so the *namespace* is the guarantee).
+ */
+function isSyntheticMemberId(id: string): boolean {
+  const v = id.toUpperCase();
+  if (/^MBR[-_]?[0-9A-Z]*$/.test(v)) return true;
+  if (/^[0-9]+$/.test(v)) return true;
+  return false;
+}
+
+/**
+ * X12 structured PHI detection. Over an X12 interchange, checks the identity-bearing loci against the
+ * synthetic sources:
+ *
+ * - **NM1** — a person entity (`NM1-02 = 1`): every name token (NM1-03/04/05) must be declared
+ *   synthetic; a member id (`NM1-08 = MI`) must be a synthetic shape; an SSN qualifier (`NM1-08 = 34`)
+ *   must never appear. Any entity: a 10-digit NPI (`NM1-08 = XX`) must fail the NPI Luhn check.
+ * - **PER** — contact name (PER-02) tokens must be declared synthetic; comm numbers (PER-04/06/08) must
+ *   carry the reserved `555` fake-exchange convention.
+ * - **REF** — a provider SSN (`REF-01 = SY`, 9 digits) must be in the SSA never-issued range.
+ *
+ * A non-X12 target falls straight through. Dates of birth (DMG) are intentionally NOT value-gated —
+ * a synthetic DOB is seeded and structurally indistinguishable from a real one, and (like the HL7 /
+ * FHIR / C-CDA arms) there is no reserved DOB range to check against; the synthetic guarantee for a DOB
+ * is that it is drawn from the seeded generator, not a value pattern (roadmap §4.3).
+ */
+function scanX12(path: string, text: string, allow: AllowList, hits: Hit[]): void {
+  if (!isX12(text)) return;
+  for (const elems of splitX12Segments(text)) {
+    const id = elems[0] ?? "";
+    if (id === "NM1") {
+      const entityType = elems[2] ?? "";
+      const qualifier = elems[8] ?? "";
+      const idValue = elems[9] ?? "";
+      if (qualifier === "34" && idValue.length > 0) {
+        hits.push({
+          path,
+          segment: "NM1",
+          value: idValue,
+          reason: "SSN (NM1 qualifier 34) in fixture",
+        });
+      }
+      if (entityType === "1") {
+        for (const el of [elems[3], elems[4], elems[5]]) {
+          if (el === undefined || el.length === 0) continue;
+          for (const tok of x12NameTokens(el)) {
+            if (!allow.names.has(tok.toUpperCase())) {
+              hits.push({
+                path,
+                segment: "NM1",
+                value: tok,
+                reason: "name not declared synthetic",
+              });
+            }
+          }
+        }
+        if (qualifier === "MI" && idValue.length > 0 && !isSyntheticMemberId(idValue)) {
+          hits.push({
+            path,
+            segment: "NM1",
+            value: idValue,
+            reason: "member-id shape not recognized as synthetic",
+          });
+        }
+      }
+      if (qualifier === "XX" && /^[0-9]{10}$/.test(idValue) && !isSyntheticNpi(idValue)) {
+        hits.push({
+          path,
+          segment: "NM1",
+          value: idValue,
+          reason: "NPI passes the Luhn check — could be a real NPI",
+        });
+      }
+    } else if (id === "PER") {
+      const perName = elems[2];
+      if (perName !== undefined) {
+        for (const tok of x12NameTokens(perName)) {
+          if (!allow.names.has(tok.toUpperCase())) {
+            hits.push({
+              path,
+              segment: "PER",
+              value: tok,
+              reason: "contact-name not declared synthetic",
+            });
+          }
+        }
+      }
+      for (const idx of [4, 6, 8]) {
+        const comm = elems[idx];
+        if (comm === undefined) continue;
+        const digits = comm.replace(/[^0-9]/g, "");
+        if (digits.length >= 10 && !digits.includes("555")) {
+          hits.push({
+            path,
+            segment: "PER",
+            value: comm,
+            reason: "phone without the 555 fake-exchange convention",
+          });
+        }
+      }
+    } else if (id === "REF") {
+      const qualifier = elems[1] ?? "";
+      const value = elems[2] ?? "";
+      if (
+        qualifier === "SY" &&
+        /^\d{9}$/.test(value.replace(/\D/g, "")) &&
+        !isSyntheticSsn(value)
+      ) {
+        hits.push({
+          path,
+          segment: "REF*SY",
+          value,
+          reason: "provider SSN not in synthetic range",
+        });
+      }
+    }
+  }
 }
 
 /**

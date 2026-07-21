@@ -17,6 +17,7 @@ import {
   TEST_NET_V4_PREFIXES,
   DOC_V6_PREFIX,
   SYNTHETIC_ASSIGNING_AUTHORITY,
+  npiCheckDigit,
 } from "./reserved.js";
 import {
   SYNTHETIC_GIVEN_NAMES,
@@ -188,6 +189,26 @@ export function uuid(rng: Rng): string {
   bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80; // variant 10xx
   const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0"));
   return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10, 16).join("")}`;
+}
+
+/**
+ * A **synthetic NPI** — a 10-digit National Provider Identifier with a **deliberately-invalid Luhn
+ * check digit**, so it can never be a NPPES-issued NPI (a real NPI must satisfy the `80840`-prefixed
+ * Luhn check — roadmap §4.1). The 9-digit base is drawn from the seeded generator; the check digit is
+ * set to `(correct + 1) mod 10`, guaranteeing the full value fails validation.
+ *
+ * @param rng - The seeded generator.
+ * @returns A 10-digit NPI-shaped string that is provably not a real NPI.
+ * @example
+ * ```ts
+ * import { createRng, npi, isSyntheticNpi } from "@cosyte/synth";
+ * isSyntheticNpi(npi(createRng(1))); // true — invalid check digit by construction
+ * ```
+ */
+export function npi(rng: Rng): string {
+  const base9 = rng.digits(9);
+  const wrongCheck = (npiCheckDigit(base9) + 1) % 10;
+  return `${base9}${String(wrongCheck)}`;
 }
 
 /**

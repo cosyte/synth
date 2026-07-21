@@ -22,6 +22,8 @@ import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
+import { generate837P, roundTrip } from "../../src/x12/index.js";
+
 const REPO_ROOT = process.cwd();
 const SCANNER_PATH = join(REPO_ROOT, "scripts", "phi-scan.ts");
 const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
@@ -174,6 +176,44 @@ describe("phi-scan: FHIR structured detection catches real-looking PHI", () => {
     const r = scan("fhir-bundle.json", bundle);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toMatch(/Patient\.name/);
+  });
+});
+
+describe("phi-scan: X12 structured detection (SYNTH-6)", () => {
+  it("passes a clean, generated 837P (all identity synthetic-by-construction)", () => {
+    const content = roundTrip(generate837P({ seed: 6001 })).content;
+    const r = scan("clean-837p.edi", content);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("flags a Luhn-VALID NPI (NM1*XX) — it could be a real provider", () => {
+    // Take a clean 837P and swap the invalid-Luhn NPI for a Luhn-valid one (1234567893).
+    const content = roundTrip(generate837P({ seed: 6001 })).content.replace(
+      /(NM1\*85\*2\*[^~]*XX\*)\d{10}/,
+      "$11234567893",
+    );
+    const r = scan("valid-npi-837p.edi", content);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/Luhn/);
+  });
+
+  it("flags a REF*SY provider SSN in a real (issuable) area", () => {
+    const content = roundTrip(generate837P({ seed: 6001 })).content.replace(
+      /REF\*SY\*\d{9}/,
+      "REF*SY*123456789",
+    );
+    const r = scan("real-ssn-837p.edi", content);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/SSN not in synthetic range/);
+  });
+
+  it("flags an SSN qualifier (NM1*34) — a raw SSN must never appear in a synthetic fixture", () => {
+    // Append a segment carrying an SSN (NM1-08 = 34). The scanner splits on the ISA-declared
+    // terminator, so an appended NM1 is scanned like any other segment.
+    const content = `${roundTrip(generate837P({ seed: 6001 })).content}NM1*IL*1*TESTINA*FIXTURA****34*900112222~`;
+    const r = scan("ssn-qual-837p.edi", content);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toMatch(/qualifier 34/);
   });
 });
 
