@@ -2,9 +2,9 @@
 "@cosyte/synth": patch
 ---
 
-Phase 5 (SYNTH-6): spec-clean HIPAA 005010 X12 generation at the `@cosyte/synth/x12` subpath, built
-**through `@cosyte/x12`'s domain builders** — spec-clean by construction, round-tripping through the
-parser with zero warnings, byte-stable, seed-deterministic, and synthetic by construction.
+Spec-clean HIPAA 005010 X12 generation, synthetic and seed-deterministic by construction, built
+through `@cosyte/x12`'s domain builders so output round-trips with zero warnings. It lives at the
+`@cosyte/synth/x12` subpath and is byte-stable.
 
 - New generators: `generate837P` / `generate837I` / `generate837D` (claims via `build837P/I/D`),
   `generate835` (remittance via `build835`, balance-checked by construction), and `generate271`

@@ -2,9 +2,9 @@
 "@cosyte/synth": patch
 ---
 
-Phase 6 (SYNTH-7): spec-clean NCPDP generation at the `@cosyte/synth/ncpdp` subpath, built **through
-`@cosyte/ncpdp`'s own emit surface** — spec-clean by construction, round-tripping through the parser
-with zero warnings, byte-stable, seed-deterministic, and synthetic by construction.
+Spec-clean NCPDP generation, synthetic and seed-deterministic by construction, built through
+`@cosyte/ncpdp`'s own emit surface so output round-trips through the parser with zero warnings. It
+lives at the `@cosyte/synth/ncpdp` subpath and is byte-stable.
 
 - New SCRIPT generators: `generateNewRx` (via the validated `buildNewRx` builder) and
   `generateRxRenewalRequest` / `generateRxChangeRequest` (via `@cosyte/ncpdp`'s public typed
