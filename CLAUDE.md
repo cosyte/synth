@@ -183,3 +183,42 @@ Mirrors the three disciplines in the meta-repo's `documentation/conventions.md` 
    `[Unreleased]` entry per meaningful change. Renaming a stable warning code is a **breaking change**.
 3. **Crew + knowledgebase loop** — if this parser's public API or warning codes change, flag/update
    the matching `crew` healthcare skill + the KB product doc.
+4. **No internal project bookkeeping on a public surface** (founder directive, 2026-07-27). What a
+   consumer reads (`README.md`, `docs-content/`, the npm `description`, a release body) says what the
+   software does and what changed. Item identifiers (`SYNTH-4`), phase and wave language, ADR numbers,
+   meta-repo paths and `roadmap §N` citations belong in the changeset, `CHANGELOG.md`, the commit, the
+   PR and the roadmap. It is a **translation** at the boundary, not a deletion, and when you strip an
+   identifier off the front of a line, repair the head: a fragment reads worse than the text it
+   replaced. Gated by `pnpm check:no-internal-refs`. The gate keys on known project prefixes, so **a
+   new programme prefix has to be added to it by hand**; and it catches identifiers and citations, not
+   English sentences about our process, so the reviewer still owns half the rule.
+
+   **`SYNTH` is BOTH our item prefix AND the marker this package writes into what it generates.**
+   `SYNTH-4` is one of our units of work; `SYNTH-FAC` (the `MSH-4` sending facility), `SYNTH-LIS` and
+   `SYNTH-ANALYZER` (the ASTM `H` header) are the PHI discipline made visible in the output, and the
+   generated NCPDP message id is `SYNTH-` plus ten random digits. The separation is the explicit
+   `SYNTHETIC_FIXTURE_TOKEN` list in the gate, never a shape rule. **Never re-key the identifier rule
+   on the `WORD-N` shape**, and never "resync" the prefix list with a sibling repo's copy without
+   re-reading why `SYNTH` is PRESENT in this one and ABSENT from `ncpdp`'s.
+
+   **Four surfaces, three different answers.** Markdown a reader browses and the npm metadata are
+   **gated**. `/** */` doc comments compile into `dist/*.d.ts` and render in a consumer's editor, so
+   they are **gated**. String literals are **gated too**, and in a generator that pass matters more
+   than anywhere else: these literals are not commentary about the software, they are **the bytes it
+   emits**. `//` and plain `/* */` comments are **not gated** and identifiers are **welcome** in them,
+   because **the convention says source comments are a place identifiers belong**. That is the whole
+   reason. **Do not justify this boundary from what reaches `dist/`** — two attempts to, in a sibling
+   repo, were both false and both caught by a refuter. Measured here: `dist` is `files[0]`, there is no
+   `.npmignore`, the emitted bundles carry `//` comments verbatim (17 lines each in
+   `dist/index.mjs` and `dist/index.cjs`), and the sixteen `dist/**/*.map` carry the full text of 66 of
+   the 67 tracked `src/**/*.ts` in `sourcesContent`, so **effectively everything in `src/` is in the
+   tarball** and the bundle leg carries the argument on its own. The line is not what reaches a
+   consumer's disk (all of it does) but what a consumer is **shown**.
+
+   Two consequences: **removing a doc comment to satisfy the gate is a regression**, not a fix (JSDoc
+   with `@example` on every public export is a hard guardrail above, and neither lint nor coverage will
+   catch its loss); and **when a stale claim is what carries the phase number, cut the sentence rather
+   than reword it**. Three subpath headers here documented quirk generation as still to come, three
+   lines above the export that ships it; rewording would have left a falsehood standing in cleaner
+   clothes. What the gate cannot do is read `dist/` itself: `dist/` is untracked build output, so this
+   is a gate on the source of the published text, not on the published text.

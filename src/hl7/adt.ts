@@ -1,7 +1,7 @@
 /**
  * Spec-clean HL7 v2 `ADT` generation, built **through `@cosyte/hl7`'s `buildMessage`** so MSH
  * delimiters, segment layout, and escaping are the parser's own conservative emit — spec-clean *by
- * construction* (roadmap §1, §Phase 1 harness proof). Every PHI-bearing field (name, DOB, SSN, MRN,
+ * construction*. Every PHI-bearing field (name, DOB, SSN, MRN,
  * address, phone) is drawn from the synthetic-safety providers (`../safe`), so no value can be real.
  *
  * `ADT^A01/A04/A08` all require the `PID` (patient) + `PV1` (visit) groups the parser's structure net

@@ -1,13 +1,13 @@
 /**
  * The reserved / never-collide identifier facts that make a `@cosyte/synth` value **provably
- * synthetic** — the ground truth behind the synthetic-safety invariant (roadmap §4).
+ * synthetic** — the ground truth behind the synthetic-safety invariant.
  *
  * These are **facts**, not copyrighted prose: authoritative ranges published by SSA, NANPA, and the
  * IETF that are guaranteed never to denote a real person or a real routable resource. Every provider
  * draws only from these; the predicates here are the executable half of the CI synthetic-safety gate —
- * they let a test assert that no emitted value falls **outside** a reserved source (roadmap §6).
+ * they let a test assert that no emitted value falls **outside** a reserved source.
  *
- * Sources (roadmap §11, verified firsthand):
+ * Sources:
  * - **SSN** — SSA never issues area numbers `000`, `666`, or `900–999`; the `987-65-4320…4329` block
  *   is SSA's explicitly-reserved advertising range. (ssa.gov)
  * - **Phone** — NANP reserves `555-0100…555-0199` as the fictional/non-working line range. (nanpa.com)
@@ -19,7 +19,7 @@
  *   check digit computed over the `80840` prefix + the 9-digit base (CMS NPI check-digit rule, ISO
  *   7812). A number whose check digit is **wrong** therefore cannot be a NPPES-issued NPI. `synth`
  *   emits NPIs with a deliberately-invalid check digit, so no generated NPI can collide with a real
- *   provider (roadmap §4.1 "fake NPI checkdigit range").
+ *   provider.
  *
  * @module
  */
@@ -27,7 +27,7 @@
 /**
  * The synthetic **assigning authority** `@cosyte/synth` mints MRNs / account / member identifiers
  * under. There is **no** reserved MRN range (an MRN is unique only within its assigning-authority /
- * OID namespace), so — a documented design decision (roadmap §4.1, §10 Q2) — every synthetic identifier
+ * OID namespace), so — a documented design decision — every synthetic identifier
  * is scoped to a namespace that clearly cannot be a real facility's: a `SYNTH`-labelled authority whose
  * OID lives under HL7's designated **example** root `2.16.840.1.113883.19`. A value under this AA can
  * never collide with a real record because the *namespace itself* is synthetic.

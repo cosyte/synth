@@ -3,7 +3,7 @@
  * drives every value `@cosyte/synth` generates. Chosen over `mulberry32` (whose author flags that it
  * skips ~1/3 of 32-bit outputs) and over a CSPRNG (`node:crypto`, which is **not seedable** and would
  * defeat reproducibility). A synthetic-fixture generator has **no secrets** — statistical quality plus
- * byte-for-byte reproducibility is exactly the right trade (roadmap §5).
+ * byte-for-byte reproducibility is exactly the right trade.
  *
  * The state is four 32-bit words. This module exposes the raw step function; {@link ../rng/rng.Rng}
  * wraps it with a seed-expansion ({@link ./splitmix32.splitmix32}) and the ergonomic draw helpers.
@@ -31,7 +31,7 @@ export interface Sfc32State {
  * This is the canonical `sfc32` step. The state object is mutated (the counter `d` increments and the
  * mixing words rotate); callers that need reproducible independence hold their own state and never
  * share it — {@link ../rng/rng.Rng} creates a fresh state per seed so two runs from the same seed are
- * identical (roadmap §5).
+ * identical.
  *
  * @param s - The state to advance. Mutated in place.
  * @returns The next `uint32` in the stream.

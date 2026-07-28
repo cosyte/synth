@@ -3,7 +3,7 @@
  * resources (`Observation.code`, `Condition.code`, `MedicationRequest.medication[x]`, and the OMB
  * race/ethnicity categories). These are **public code facts** — codes drawn from the published FHIR R4
  * and US Core specification examples — not copyrighted terminology tables: `@cosyte/synth` bundles
- * **no** SNOMED/LOINC/RxNorm content (roadmap §2 "no bundled terminology"). The pool exists only so a
+ * **no** SNOMED/LOINC/RxNorm content. The pool exists only so a
  * generated resource is *structurally* realistic; a consumer who needs their own codes supplies them.
  *
  * Nothing here is PHI — codes and their display text are not patient identifiers. The synthetic-safety
@@ -95,7 +95,7 @@ export const EXAMPLE_LAB_OBSERVATIONS: readonly QuantConcept[] = Object.freeze([
 /**
  * LOINC vital-sign example codes (for a US Core Vital Signs `Observation`). Public LOINC identifiers
  * with their required UCUM units and synthetic value bands. Simple single-value vitals only —
- * multi-component vitals (e.g. blood-pressure panel `85354-9`) are deferred to SYNTH-4.
+ * multi-component vitals (e.g. blood-pressure panel `85354-9`) are not generated.
  */
 export const EXAMPLE_VITAL_SIGNS: readonly QuantConcept[] = Object.freeze([
   Object.freeze({
@@ -232,7 +232,7 @@ export const EXAMPLE_ETHNICITY_CATEGORIES: readonly CodeConcept[] = Object.freez
 
 /**
  * CVX vaccine-administered example codes (for a US Core `Immunization.vaccineCode`). Public CDC CVX
- * identifiers used as structural fillers; `@cosyte/synth` bundles no CVX content (SYNTH-4).
+ * identifiers used as structural fillers; `@cosyte/synth` bundles no CVX content.
  */
 export const EXAMPLE_VACCINES: readonly CodeConcept[] = Object.freeze([
   Object.freeze({
@@ -252,7 +252,7 @@ export const EXAMPLE_VACCINES: readonly CodeConcept[] = Object.freeze([
 
 /**
  * Allergen-substance example codes (for a US Core `AllergyIntolerance.code`). Public RxNorm / SNOMED CT
- * identifiers used as structural fillers; no terminology content is bundled (SYNTH-4).
+ * identifiers used as structural fillers; no terminology content is bundled.
  */
 export const EXAMPLE_ALLERGENS: readonly CodeConcept[] = Object.freeze([
   Object.freeze({ system: SYSTEM.RXNORM, code: "7980", display: "Penicillin G" }),
@@ -264,7 +264,7 @@ export const EXAMPLE_ALLERGENS: readonly CodeConcept[] = Object.freeze([
 
 /**
  * Allergy-reaction manifestation example codes (for `AllergyIntolerance.reaction.manifestation`).
- * Public SNOMED CT clinical-finding identifiers used as structural fillers (SYNTH-4).
+ * Public SNOMED CT clinical-finding identifiers used as structural fillers.
  */
 export const EXAMPLE_ALLERGY_MANIFESTATIONS: readonly CodeConcept[] = Object.freeze([
   Object.freeze({ system: SYSTEM.SNOMED, code: "247472004", display: "Wheal (finding)" }),
@@ -280,7 +280,7 @@ export const EXAMPLE_ALLERGY_MANIFESTATIONS: readonly CodeConcept[] = Object.fre
 
 /**
  * SNOMED CT procedure example codes (for a US Core `Procedure.code`). Public SNOMED identifiers used as
- * structural fillers — **not** CPT (which is never bundled, roadmap §2) (SYNTH-4).
+ * structural fillers — **not** CPT (which is never bundled).
  */
 export const EXAMPLE_PROCEDURES: readonly CodeConcept[] = Object.freeze([
   Object.freeze({
@@ -304,7 +304,7 @@ export const EXAMPLE_PROCEDURES: readonly CodeConcept[] = Object.freeze([
 
 /**
  * LOINC diagnostic-report example codes (for a US Core Laboratory `DiagnosticReport.code`). Public LOINC
- * panel identifiers used as structural fillers (SYNTH-4).
+ * panel identifiers used as structural fillers.
  */
 export const EXAMPLE_DIAGNOSTIC_REPORTS: readonly CodeConcept[] = Object.freeze([
   Object.freeze({
@@ -336,7 +336,7 @@ export const EXAMPLE_DIAGNOSTIC_REPORTS: readonly CodeConcept[] = Object.freeze(
 
 /**
  * SNOMED CT encounter-type example codes (for a US Core `Encounter.type`). Public SNOMED identifiers
- * used as structural fillers (SYNTH-4).
+ * used as structural fillers.
  */
 export const EXAMPLE_ENCOUNTER_TYPES: readonly CodeConcept[] = Object.freeze([
   Object.freeze({
@@ -363,7 +363,7 @@ export const EXAMPLE_ENCOUNTER_TYPES: readonly CodeConcept[] = Object.freeze([
 
 /**
  * HL7 v3 `ActCode` encounter-class example codes (for `Encounter.class`, a single `Coding`). Public
- * ActCode identifiers used as structural fillers (SYNTH-4).
+ * ActCode identifiers used as structural fillers.
  */
 export const EXAMPLE_ENCOUNTER_CLASSES: readonly CodeConcept[] = Object.freeze([
   Object.freeze({ system: SYSTEM.V3_ACT_CODE, code: "AMB", display: "ambulatory" }),

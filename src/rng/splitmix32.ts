@@ -6,8 +6,7 @@
  * `state = seed`-style initialization.
  *
  * Zero-dependency, `Math.random`-free (lint-enforced): the whole point of the library is that a seed —
- * and only the seed — determines the output, on any machine, any run. See the meta-repo roadmap
- * `operations/roadmaps/synth.md` §5 and the reproducibility contract in `documentation/`.
+ * and only the seed — determines the output, on any machine, any run.
  *
  * @module
  */

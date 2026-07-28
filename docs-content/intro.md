@@ -6,9 +6,9 @@ sidebar_position: 1
 
 # @cosyte/synth
 
-Generate **deterministic, seedable synthetic healthcare fixtures** — spec-clean HL7 v2 and FHIR R4 /
-US Core (and, in later phases, C-CDA / X12 / NCPDP / ASTM) — without hand-writing a byte of the wire
-format, and **without any chance the "patient" you just generated is a real person**.
+Generate **deterministic, seedable synthetic healthcare fixtures** — spec-clean HL7 v2, FHIR R4 /
+US Core, C-CDA, X12, NCPDP and ASTM — without hand-writing a byte of the wire format, and **without
+any chance the "patient" you just generated is a real person**.
 
 `@cosyte/synth` is a **consumer** of the cosyte parsers, not a parser. It builds each artifact **through
 the parser's own builder/serializer** (so the output is spec-clean by construction) and draws every
@@ -17,12 +17,7 @@ never-issued SSNs, NANP `555-01xx` phones, `example.*` domains, TEST-NET IPs, a 
 authority for MRNs, and a shipped clearly-fake name pool). It is a **format/conformance generator, not a
 clinical simulator** — it does not model disease progression (that is Synthea).
 
-> **Status:** pre-alpha (`0.0.x`), not yet published to npm. Phase 1 shipped the seeded-PRNG core, the
-> synthetic-safety providers, and the round-trip harness; Phase 2 completes the HL7 v2 message set
-> (`ADT`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`); Phases 3–4 add FHIR R4 / US Core (`Patient` and
-> the clinical set — `Condition`, `Observation`, `MedicationRequest`, `Encounter`, `DiagnosticReport`,
-> `Immunization`, `AllergyIntolerance`, `Procedure` — plus `collection` / `transaction` / `document`
-> `Bundle`s).
+> **Status:** pre-alpha (`0.0.x`), not yet published to npm.
 
 ## Install
 

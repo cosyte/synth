@@ -1,6 +1,6 @@
 /**
  * Spec-clean HL7 v2 `ORM^O01` (general order) generation, built **through `@cosyte/hl7`'s
- * `buildMessage`** (roadmap §Phase 2). The parser's structure net requires the common-order segment
+ * `buildMessage`**. The parser's structure net requires the common-order segment
  * (`ORC`) for `ORM^O01`; this generator emits `ORC` + a matching `OBR`, plus a fully-populated `PID`,
  * so the message round-trips with **zero warnings**. Identity comes from `../safe`; the ordered service
  * comes from the license-clean example pool, never bundled terminology.

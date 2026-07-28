@@ -1,22 +1,22 @@
 /**
  * The `Corpus` abstraction — a seed plus a self-describing manifest of what was generated, so a
- * fixture set is itself reproducible and regenerable (roadmap §2, §5). A downstream repo pins a seed
+ * fixture set is itself reproducible and regenerable. A downstream repo pins a seed
  * and gets a stable fixture set that regenerates identically.
  *
  * Generated artifacts and the `Corpus` are **deep-frozen** — this is where the archetype's immutability
- * invariant lives in a generator (roadmap §6): a consumer cannot mutate a shared fixture out from under
+ * invariant lives in a generator: a consumer cannot mutate a shared fixture out from under
  * another test.
  *
  * @module
  */
 
-/** The format an artifact was generated for. Extended as later phases add formats. */
+/** The format an artifact was generated for. */
 export type SynthFormat = "hl7v2" | "fhir" | "ccda" | "x12" | "ncpdp" | "astm";
 
 /**
  * One generated artifact — the serialized wire text plus the metadata needed to reproduce and check
  * it. `warnings` records what the artifact's own parser reported on the round-trip (zero for a
- * spec-clean artifact — roadmap §6).
+ * spec-clean artifact).
  */
 export interface Artifact {
   /** The format this artifact belongs to. */
@@ -35,7 +35,7 @@ export interface CorpusManifest {
   readonly formats: readonly SynthFormat[];
   /** Per-kind artifact counts (e.g. `{ "ADT^A01": 3 }`). */
   readonly counts: Readonly<Record<string, number>>;
-  /** The quirk names applied (empty until Phase 7). */
+  /** The quirk names applied. */
   readonly quirks: readonly string[];
 }
 

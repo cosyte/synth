@@ -2,8 +2,8 @@
  * Shared HL7 v2 building blocks for every message family `@cosyte/synth` generates — the MSH scaffold,
  * the seeded timestamp, and the patient-identity bundle + its `PID` segment. Factored out so `ADT`,
  * `ORU`, `ORM`, `SIU`, and `VXU` all mint identity from the **same** synthetic-safety providers in the
- * **same** draw order, and all emit through `@cosyte/hl7`'s conservative serializer (roadmap §1, §Phase
- * 2). Nothing here draws a value that is not sourced from `../safe` — the synthetic-by-construction
+ * **same** draw order, and all emit through `@cosyte/hl7`'s conservative serializer. Nothing here draws a
+ * value that is not sourced from `../safe` — the synthetic-by-construction
  * invariant holds by construction for every family.
  *
  * @module
@@ -54,7 +54,7 @@ export interface MessageScaffold {
 /**
  * Build the MSH scaffold for a message of the given `MSH-9` type through `@cosyte/hl7`'s `buildMessage`,
  * so the delimiters, control id, and header layout are the parser's own conservative emit. Draws the
- * timestamp then the control id from `rng` (a fixed order — the reproducibility contract, roadmap §5).
+ * timestamp then the control id from `rng` (a fixed order — the reproducibility contract).
  *
  * @param rng - The seeded generator.
  * @param type - The `MSH-9` message type, e.g. `"ORU^R01"`.
@@ -82,7 +82,7 @@ export function mshScaffold(rng: Rng, type: string): MessageScaffold {
   return { message, timestamp, controlId };
 }
 
-/** A complete synthetic patient identity — every field drawn from `../safe` (roadmap §4). */
+/** A complete synthetic patient identity — every field drawn from `../safe`. */
 export interface PatientIdentity {
   /** Name from the shipped fake-name pool. */
   readonly person: SyntheticName;
@@ -102,7 +102,7 @@ export interface PatientIdentity {
 
 /**
  * Mint a complete synthetic {@link PatientIdentity}. Every value comes from a synthetic-safety provider
- * — no code path here can return a real or plausibly-real identifier (roadmap §4). The draw order is
+ * — no code path here can return a real or plausibly-real identifier. The draw order is
  * fixed (name → MRN → DOB → sex → address → phone → SSN) so the same seed yields the same identity.
  *
  * @param rng - The seeded generator.
@@ -127,7 +127,7 @@ export function patientIdentity(rng: Rng): PatientIdentity {
 /**
  * Lay out a fully-populated `PID` segment from a {@link PatientIdentity} as `addSegment` fields — the
  * PHI-dense segment shared by every family. Components go through {@link componentsField} so the parser
- * lays out the `^` separators (building *through* the parser, roadmap §1).
+ * lays out the `^` separators (building *through* the parser).
  *
  * @param id - The synthetic identity to render.
  * @returns The `PID` field list for `Hl7Message.addSegment("PID", …)`.

@@ -2,8 +2,7 @@
  * License-clean example drug + code pools for synthetic NCPDP generation. NCPDP charges for its
  * standards and is protective of their prose, so — like every other `synth` format — **no NCPDP
  * copyrighted text is bundled**: these are widely-known generic drug descriptions and invented,
- * clearly-example product codes, not lifted from any NCPDP data dictionary (roadmap §2 "no bundled
- * terminology"; the ncpdp `CLAUDE.md` standards-licensing rule).
+ * clearly-example product codes, not lifted from any NCPDP data dictionary.
  *
  * A drug code is **not** PHI — it names a product, never a patient — so realism here carries no
  * synthetic-safety hazard; the pool exists only to give a generated NewRx / claim a plausible,

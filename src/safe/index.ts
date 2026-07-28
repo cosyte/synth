@@ -2,7 +2,7 @@
  * The `safe` namespace — the single entry point for every synthetic-by-construction value provider.
  *
  * Grouped under one object so a consumer reads `safe.ssn(rng)` / `safe.phone(rng)` and it is
- * self-evident that the value is drawn from a guaranteed-non-colliding synthetic source (roadmap §4).
+ * self-evident that the value is drawn from a guaranteed-non-colliding synthetic source.
  * The individual functions and the reserved-range predicates are also exported by name from the
  * package root for direct import.
  *

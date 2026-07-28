@@ -1,11 +1,10 @@
 /**
- * HL7 v2 **vendor-quirk generation** (roadmap §Phase 7 — the differentiator). A quirk deviates the
+ * HL7 v2 **vendor-quirk generation**. A quirk deviates the
  * *structure* of an otherwise spec-clean message so it round-trips through `@cosyte/hl7` to **exactly**
  * one intended, stable warning code — the tolerance a `defineProfile` profile encodes. The deviation is
- * applied **post-serialize** (roadmap §10 Q4: HL7 v2 profile tolerance is parse-side, so the quirk is a
- * deterministic transform of the parser's own conservative emit, never a hand-written message).
+ * applied **post-serialize**.
  *
- * Two publicly-groundable quirks ship (ADR 0018 — cited-public, never a private vendor corpus):
+ * Two publicly-groundable quirks ship (cited-public, never a private vendor corpus):
  *
  * - **`unknown-zsegment`** → `UNKNOWN_SEGMENT`. HL7 v2.x §2.5 permits site-defined `Z`-segments; a
  *   receiver with no profile flags them. `@cosyte/hl7`'s public imaging/PACS profiles (`visage`,
@@ -16,8 +15,7 @@
  *   `"bare"` quirk (no built-in profile downgrades it).
  *
  * A quirk **never** introduces a real-looking value — it changes the message *shape*, never the
- * *provenance* of the data, so the synthetic-safety gate still runs and stays zero (roadmap §Phase 7
- * "Safety framing").
+ * *provenance* of the data, so the synthetic-safety gate still runs and stays zero.
  *
  * @module
  */
@@ -44,7 +42,7 @@ import { generateOrm } from "./orm.js";
 import { generateSiu } from "./siu.js";
 import { generateVxu } from "./vxu.js";
 
-/** Every HL7 v2 quirk this phase ships. */
+/** Every HL7 v2 quirk this package ships. */
 export type Hl7QuirkName = "unknown-zsegment" | "unknown-escape";
 
 /** The HL7 v2 message families a quirk can be injected into (the spec-clean base). */
@@ -59,7 +57,7 @@ export type Hl7QuirkKind =
 
 /**
  * The HL7 v2 quirk registry — each recipe bound to the exact `@cosyte/hl7` warning code it targets and
- * its public grounding (roadmap §Phase 7).
+ * its public grounding.
  */
 export const HL7_QUIRKS: Readonly<Record<Hl7QuirkName, QuirkDescriptor>> = Object.freeze({
   "unknown-zsegment": Object.freeze({
@@ -171,8 +169,8 @@ export function generateHl7Quirk(options: GenerateHl7QuirkOptions): QuirkArtifac
 }
 
 /**
- * Round-trip an HL7 v2 quirk artifact through `@cosyte/hl7` and report the intended-warning verdict
- * (roadmap §6): a bare parse must produce **exactly** the intended code(s), and — when a built-in public
+ * Round-trip an HL7 v2 quirk artifact through `@cosyte/hl7` and report the intended-warning verdict: a bare
+ * parse must produce **exactly** the intended code(s), and — when a built-in public
  * profile tolerates the quirk — the profiled parse must suppress it.
  *
  * @param artifact - The quirk artifact (from {@link generateHl7Quirk}).

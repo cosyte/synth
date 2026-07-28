@@ -2,9 +2,9 @@
  * The C-CDA example-code pool — a thin adapter that **reuses** the same license-clean, public
  * code facts the FHIR generators ship (`../fhir/example-codes.ts`), reshaped into `@cosyte/ccda`'s
  * `BuildCode` tuple (an OID `codeSystem` instead of a FHIR `system` URI). Reusing one source of truth
- * keeps the LOINC / RxNorm / SNOMED / CVX pools consistent across the FHIR and C-CDA surfaces (roadmap
- * §Phase 4 "reuse the existing example-code pools where they apply"); `@cosyte/synth` still bundles
- * **no** terminology content — these are public spec-example codes, not copyrighted tables (roadmap §2).
+ * keeps the LOINC / RxNorm / SNOMED / CVX pools consistent across the FHIR and C-CDA surfaces;
+ * `@cosyte/synth` still bundles
+ * **no** terminology content — these are public spec-example codes, not copyrighted tables.
  *
  * Nothing here is PHI: codes and their display text are not patient identifiers. The synthetic-safety
  * invariant governs identity fields (name / DOB / MRN / telecom), which come from `../safe`.
@@ -63,7 +63,7 @@ export function toBuildCode(concept: CodeConcept): BuildCode {
 /**
  * Draw a synthetic-but-structurally-sane {@link BuildQuantity} for a quantitative concept — a value in
  * the concept's plausible band (from the seeded generator, so reproducible) rendered to the concept's
- * decimal precision, with its UCUM unit. The value implies **no** real measurement (roadmap §4.3).
+ * decimal precision, with its UCUM unit. The value implies **no** real measurement.
  *
  * @param rng - The seeded generator.
  * @param concept - The quantitative concept (LOINC code + UCUM unit + value band).

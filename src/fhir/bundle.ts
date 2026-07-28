@@ -1,10 +1,10 @@
 /**
- * Synthetic FHIR R4 **`Bundle`** generation (roadmap §Phase 3) — a self-contained `collection`,
+ * Synthetic FHIR R4 **`Bundle`** generation — a self-contained `collection`,
  * `transaction`, or `document` Bundle assembling a synthetic US Core `Patient` and its full clinical
  * spine (`Condition`, lab + vital-sign `Observation`s, `MedicationRequest`, `Encounter`,
  * `Immunization`, `AllergyIntolerance`, `Procedure`, `DiagnosticReport`), wired by `urn:uuid:`
  * `fullUrl`s so every intra-bundle reference resolves. Built through `@cosyte/fhir`. The `document`
- * shape (SYNTH-4) prepends the FHIR-mandated `Composition` (invariant `bdl-11`) and a synthetic
+ * shape prepends the FHIR-mandated `Composition` (invariant `bdl-11`) and a synthetic
  * `Organization` author/custodian, and carries the required `identifier` + `timestamp` (`bdl-9`/`bdl-10`).
  *
  * @module

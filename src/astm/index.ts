@@ -1,26 +1,21 @@
 /**
  * `@cosyte/synth/astm` — the ASTM generation surface, exposed as its own subpath so importing the
- * package root does **not** pull `@cosyte/astm`. This is the **lazy, per-format** boundary the roadmap
- * mandates (roadmap §1 "optional peer-dep, lazily loaded per format"): a consumer who only needs ASTM
- * fixtures imports `@cosyte/synth/astm`; one who needs only the core primitives never loads a parser.
+ * package root does **not** pull `@cosyte/astm`. This is the **lazy, per-format** boundary: a consumer
+ * who only needs ASTM fixtures imports `@cosyte/synth/astm`; one who needs only the core primitives
+ * never loads a parser.
  * `@cosyte/astm` is an **optional peer dependency** — present only for this subpath.
  *
- * SYNTH-8 (roadmap §Phase 6, the ASTM arm — unblocked once `@cosyte/astm`'s serializer/builder shipped
- * with `ASTM-7`) ships spec-clean generation of the E1394 record report and its E1381 framed twin, each
+ * This subpath ships spec-clean generation of the E1394 record report and its E1381 framed twin, each
  * built through `@cosyte/astm`'s own emit surface:
  *
  * - **Records (E1394):** `generateAstmResult` (`H`/`P`/`O`/`R`…/`C`/`L`) and `generateAstmOrder`
  *   (`H`/`P`/`O`/`L`) via `buildAstmMessage` — each round-tripping through `parseAstmRecords` with zero
  *   warnings and byte-stable, and carrying a `P` record whose name / DOB / practice+lab IDs are all
- *   synthetic-by-construction (roadmap §4). The practice- and laboratory-assigned patient IDs are
+ *   synthetic-by-construction. The practice- and laboratory-assigned patient IDs are
  *   minted independently, so they stay **distinct**.
  * - **Framing (E1381):** `generateAstmResultFramed` via `composeAstmFrames` — the modulo-256 checksum
  *   and the `0`–`7` frame number are **computed by the parser, never faked**, and the bytes round-trip
  *   through `parseFramedAstm` with zero frame **and** record warnings.
- *
- * **Deferred (roadmap §Phase 7+):** quirk mode (lowercase ASTM checksum, framing-dropped-over-TCP, and
- * the other tolerances `@cosyte/astm`'s profile system advertises) is a later phase, noted in the README
- * + CHANGELOG. The spec-clean generation core is now feature-complete across all six formats.
  *
  * @module
  */

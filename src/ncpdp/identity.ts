@@ -1,7 +1,7 @@
 /**
  * Synthetic identity for NCPDP transactions — every patient, prescriber, pharmacy, and cardholder
  * identifier `synth` puts into a SCRIPT ePrescription or a Telecom claim is minted here, and **only**
- * from the synthetic-safety providers (roadmap §4). NCPDP is identity-dense in a way the refuter
+ * from the synthetic-safety providers. NCPDP is identity-dense in a way the refuter
  * attacks hardest: a NewRx carries the **patient** (name, DOB, gender) *and* the **prescriber** (name,
  * NPI, **DEA**); a Telecom claim adds the **cardholder / member** (name, member id). Every locus below
  * has a construction-level guarantee, not a heuristic:
@@ -11,7 +11,7 @@
  * - **DEA** — a deliberately **invalid checksum**, so it can never be a validly-issued DEA registration
  *   ({@link ../safe/reserved.isSyntheticDea}). This is the NCPDP-specific identity locus X12 did not have.
  * - **member / cardholder / patient id** — minted under the synthetic assigning authority with an
- *   `MBR` prefix (no reserved range exists; the *namespace* is the guarantee — roadmap §4.1).
+ *   `MBR` prefix (no reserved range exists; the *namespace* is the guarantee).
  * - **name** — the shipped clearly-fake pool; **DOB** — the seeded generator (no real event implied);
  *   **phone** — the reserved `555-01xx` block; **address** — synthetic street + reserved ZIP.
  *
@@ -80,7 +80,7 @@ export interface NcpdpCardholder {
 
 /**
  * Mint a synthetic patient. Fixed draw order (name → DOB → gender → id → phone → address) so the same
- * seed yields the same patient (roadmap §5).
+ * seed yields the same patient.
  *
  * @param rng - The seeded generator.
  * @returns A synthetic {@link NcpdpPatient}.
@@ -175,7 +175,7 @@ export interface NcpdpScriptRouting {
 
 /**
  * Mint a seeded SCRIPT routing bundle. The timestamp is drawn from the seeded generator in a recent
- * window (2024–2026) so a message reads current while staying byte-reproducible (roadmap §5).
+ * window (2024–2026) so a message reads current while staying byte-reproducible.
  *
  * @param rng - The seeded generator.
  * @returns A synthetic {@link NcpdpScriptRouting}.

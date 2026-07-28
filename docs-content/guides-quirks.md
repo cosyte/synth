@@ -19,9 +19,9 @@ leniency, and where a built-in **public** parser profile claims the deviation, t
 cleanly under it (suppressed, or re-badged to `PROFILE_QUIRK_APPLIED`).
 
 Every quirk changes the message *shape*, never the *provenance* of the data — so a quirk fixture is still
-**synthetic-by-construction** and passes the same synthetic-safety gate (roadmap §Phase 7).
+**synthetic-by-construction** and passes the same synthetic-safety gate.
 
-Three formats ship quirks in this phase: **HL7 v2**, **C-CDA**, and **ASTM** — the parsers with the
+Three formats ship quirks: **HL7 v2**, **C-CDA**, and **ASTM** — the parsers with the
 richest profile systems. A quirk a format's profile system does not support fails closed with a stable
 `SYNTH_UNSUPPORTED_QUIRK` diagnostic, never a silently-wrong fixture.
 
@@ -101,7 +101,6 @@ const corpus = ccdaQuirkCorpus({ seed: 42 });
 ## Grounding: public-only, never a private corpus
 
 Every shipped quirk is grounded in a **publicly-documented** deviation or a parser's **public** profile
-(ADR 0018) — a published IG, a vendor interface spec, or a redistributable OSS corpus. A quirk that would
-need a **private, vendor-attributed corpus** to ground is **not shipped** — it stays deferred, exactly as
-the parsers' named per-vendor profiles are `REAL-CORPUS`-gated. Quirk recipes for FHIR, X12, and NCPDP are
-a later phase.
+— a published IG, a vendor interface spec, or a redistributable OSS corpus. A quirk that would need a
+**private, vendor-attributed corpus** to ground is **not shipped**. Quirk recipes for FHIR, X12, and
+NCPDP are deferred.

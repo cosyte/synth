@@ -105,7 +105,7 @@ The spec-clean generation core is **feature-complete across all six formats**. Q
 
 - **Vendor-quirk mode** ships for the three richest profile systems — **HL7 v2, C-CDA, ASTM**. Quirk
   recipes for **FHIR / X12 / NCPDP are deferred**, as is any quirk needing a private vendor corpus
-  (built-in quirks are grounded only on **public** vendor profiles — ADR 0018).
+  (built-in quirks are grounded only on **public** vendor profiles).
 - **The `deid` pairing loop** ships for **HL7 v2, FHIR, C-CDA, X12, and NCPDP Telecom**. NCPDP
   **SCRIPT**, **ASTM**, and **DICOM** pairing are deferred (no adapter, or not generated —
   `DEID_LOOP_SKIPPED` names each).

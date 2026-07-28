@@ -1,6 +1,6 @@
 /**
  * Synthetic FHIR R4 **`Condition`** generation — a US Core "Problems and Health Concerns" problem-list
- * item (roadmap §Phase 3). Built through `@cosyte/fhir`; the `code` comes from the license-clean SNOMED
+ * item. Built through `@cosyte/fhir`; the `code` comes from the license-clean SNOMED
  * example pool, the `subject` from a supplied or derived synthetic Patient reference.
  *
  * @module

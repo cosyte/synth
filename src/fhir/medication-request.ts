@@ -1,6 +1,6 @@
 /**
  * Synthetic FHIR R4 **`MedicationRequest`** generation — a US Core MedicationRequest with an inline
- * `medicationCodeableConcept` (roadmap §Phase 3). Built through `@cosyte/fhir`; the medication comes
+ * `medicationCodeableConcept`. Built through `@cosyte/fhir`; the medication comes
  * from the license-clean RxNorm example pool. US Core invariant `us-core-21` requires a `requester`
  * whenever `intent = order`, so a synthetic requester reference is always emitted.
  *

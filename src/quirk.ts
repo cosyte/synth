@@ -1,5 +1,5 @@
 /**
- * The **quirk core** (roadmap §6, §Phase 7 — the differentiator). Where the spec-clean generators prove
+ * The **quirk core**. Where the spec-clean generators prove
  * *synthetic-by-construction* through each parser's own builder, the quirk layer proves the mirror
  * property: a **deliberately off-spec** fixture round-trips to **exactly the intended parser warning
  * code(s)** — no more, no fewer. The quirk vocabulary **is the parsers' own profile systems**
@@ -20,7 +20,7 @@ import type { SynthProfile } from "./profile.js";
 
 /**
  * How the parser's matching profile treats a quirk once it is active — the three shapes the parsers'
- * profile systems actually exhibit (verified firsthand against each parser, roadmap §6):
+ * profile systems actually exhibit (verified firsthand against each parser):
  *
  * - `"suppressed"` — the profile makes the warning **disappear** (HL7 v2: a `defineProfile`
  *   `customSegments` claim suppresses `UNKNOWN_SEGMENT` for a declared Z-segment).
@@ -40,7 +40,7 @@ export const PROFILE_QUIRK_APPLIED = "PROFILE_QUIRK_APPLIED";
 
 /**
  * A public, grounded description of one vendor quirk — the metadata that binds a quirk recipe to a real
- * parser warning code and a **publicly-groundable** deviation (ADR 0018: cited-public, never a private
+ * parser warning code and a **publicly-groundable** deviation (cited-public, never a private
  * vendor corpus).
  */
 export interface QuirkDescriptor {
@@ -55,7 +55,7 @@ export interface QuirkDescriptor {
   readonly intendedWarnings: readonly string[];
   /**
    * The **public** grounding for this quirk — the spec clause or the parser's public profile that
-   * documents the tolerance (ADR 0018). Never a private vendor-attributed corpus.
+   * documents the tolerance. Never a private vendor-attributed corpus.
    */
   readonly grounding: string;
   /** The parser profile that tolerates this quirk (when a built-in public one exists). */
@@ -93,7 +93,7 @@ export interface QuirkProfiledVerdict {
   readonly tolerated: boolean;
 }
 
-/** The verdict of round-tripping a quirk artifact through its parser (roadmap §6). */
+/** The verdict of round-tripping a quirk artifact through its parser. */
 export interface QuirkRoundTripResult {
   /** The quirked wire text that was parsed. */
   readonly content: string;
@@ -137,7 +137,7 @@ export function sameCodeSet(a: readonly string[], b: readonly string[]): boolean
 /**
  * Resolve a requested quirk name against a format's registry, or **fail closed**. A quirk the format's
  * profile system does not support is a fatal `SYNTH_UNSUPPORTED_QUIRK` — never a silent no-op and never
- * a fabricated quirk with a made-up warning (roadmap §Phase 7 "Fail-safe behavior").
+ * a fabricated quirk with a made-up warning.
  *
  * @param registry - The format's quirk descriptors, keyed by name.
  * @param format - The format being generated (for the error message).
@@ -199,7 +199,7 @@ export function profileTolerated(
 
 /**
  * Assert a freshly-generated quirk artifact **actually** round-trips to its intended warning(s), or
- * **fail closed**. This is the generator's self-check on the intended-warning contract (roadmap §6): a
+ * **fail closed**. This is the generator's self-check on the intended-warning contract: a
  * fixture whose bare parse does not produce exactly the declared code(s) is a *mislabeled* fixture — a
  * golden file that lies about the parser verdict it anchors — and must never be emitted. It is a
  * stronger guard than "the transform changed some bytes": a transform can mutate the wrong element (a
@@ -234,8 +234,7 @@ export function assertIntendedWarnings(
 /**
  * Validate the quirk names carried by a {@link SynthProfile} against a format's registry, failing closed
  * on the first unsupported one. Lets a consumer author a fixture recipe with `defineSynthProfile` and
- * have its quirks checked against the *parser's* real tolerance before any fixture is generated (roadmap
- * §Phase 1 skeleton → §Phase 7 wiring).
+ * have its quirks checked against the *parser's* real tolerance before any fixture is generated.
  *
  * @param profile - The synth profile whose `quirks` to validate.
  * @param registry - The format's quirk descriptors.

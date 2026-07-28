@@ -1,6 +1,6 @@
 /**
  * Spec-clean HIPAA 005010X221A1 **835** Health Care Claim Payment/Advice (ERA) generation, built
- * through `@cosyte/x12`'s `build835` (roadmap §Phase 5). The 835 is **balance-checked by construction**:
+ * through `@cosyte/x12`'s `build835`. The 835 is **balance-checked by construction**:
  * `build835` REFUSES an out-of-balance remit, so `synth` computes amounts that satisfy the three X12
  * balance identities — line (`charge = payment + Σ CAS`), claim (`totalCharge = totalPayment +
  * patientResponsibility`), and remit (`BPR-02 = Σ CLP-04 − Σ PLB`) — before handing them to the
@@ -41,7 +41,7 @@ export interface Generate835Options {
  * Generate a spec-clean 005010X221A1 835 remittance, built through `@cosyte/x12`'s `build835`. A single
  * balanced claim with one service line: `charge = payment + patientResponsibility`, and the remit
  * total equals the claim payment (no provider-level adjustments). Every identity value is
- * synthetic-by-construction (roadmap §4); the returned interchange round-trips with zero warnings.
+ * synthetic-by-construction; the returned interchange round-trips with zero warnings.
  *
  * @param options - The seed. See {@link Generate835Options}.
  * @returns A frozen `X12Interchange` (feed it to {@link ./round-trip.roundTrip} to verify).

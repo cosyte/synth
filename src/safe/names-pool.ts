@@ -2,7 +2,7 @@
  * The shipped **clearly-fake name pool** — `@cosyte/synth`'s own license-clean synthetic data.
  *
  * Deliberately **not** a `faker`-style realistic-name corpus (which could match a real person at a real
- * address — the exact hazard the synthetic-safety invariant forbids, roadmap §2, §4.3). Every token is
+ * address — the exact hazard the synthetic-safety invariant forbids). Every token is
  * an obviously-invented, fixture-flavoured word: a reader can tell at a glance it names no one. The pool
  * is small on purpose — structural coverage, not demographic realism, is the goal.
  *
@@ -73,7 +73,7 @@ export const SYNTHETIC_STREET_NAMES: readonly string[] = Object.freeze([
 
 /**
  * Obviously-synthetic city names. Combined only ever with a synthetic street + a fake name (the
- * *combination* is what identifies, and the combination is always synthetic — roadmap §4.3).
+ * *combination* is what identifies, and the combination is always synthetic).
  */
 export const SYNTHETIC_CITY_NAMES: readonly string[] = Object.freeze([
   "Faketon",

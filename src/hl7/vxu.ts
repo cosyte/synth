@@ -1,6 +1,6 @@
 /**
  * Spec-clean HL7 v2 `VXU^V04` (unsolicited vaccination record update) generation, built **through
- * `@cosyte/hl7`'s `buildMessage`** (roadmap §Phase 2). The parser's structure net requires the patient
+ * `@cosyte/hl7`'s `buildMessage`**. The parser's structure net requires the patient
  * group (`PID`) for `VXU^V04` (per the CDC IG, `RXA` lives in the optional order group); this generator
  * emits `PID` + `ORC` + `RXA` + `RXR`, so the message round-trips with **zero warnings**. Identity comes
  * from `../safe`; the vaccine code comes from the license-clean example pool, never bundled terminology.

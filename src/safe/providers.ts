@@ -1,7 +1,7 @@
 /**
  * The synthetic-safety provider layer — every identifier, contact point, name, and date
- * `@cosyte/synth` emits is minted here, and **only** from a guaranteed-non-colliding source
- * (roadmap §4). There is no code path that returns a value not drawn from a reserved range or the
+ * `@cosyte/synth` emits is minted here, and **only** from a guaranteed-non-colliding source. There is no code
+ * path that returns a value not drawn from a reserved range or the
  * shipped fake-name pool. This is the inverse of a parser's liberality: the generator is *closed-world*
  * on its data sources, so no output *can* be real or plausibly-real PHI.
  *
@@ -66,7 +66,7 @@ export type SsnBlock = "never-issued" | "advertising";
 /**
  * A **synthetic SSN** — dashed `AAA-GG-SSSS`. Default draws the SSA never-issued area space
  * (`900–999`); `block: "advertising"` draws SSA's reserved advertising block (`987-65-4320…4329`).
- * A value from this function can never be a real SSN (roadmap §4.1).
+ * A value from this function can never be a real SSN.
  *
  * @param rng - The seeded generator.
  * @param block - Which reserved space to draw from. Defaults to `"never-issued"`.
@@ -91,7 +91,7 @@ export function ssn(rng: Rng, block: SsnBlock = "never-issued"): string {
 /**
  * A **synthetic phone** in the NANP reserved fictional block — `(AAA) 555-01NN`. The reserved
  * guarantee is the `555-01NN` tail (exchange 555, line 0100–0199); the area code is any NANP-valid
- * `NXX`. Can never be a working number (roadmap §4.2).
+ * `NXX`. Can never be a working number.
  *
  * @param rng - The seeded generator.
  * @returns A formatted synthetic phone string.
@@ -141,7 +141,7 @@ export function email(rng: Rng, person?: SyntheticName): string {
 }
 
 /**
- * A **synthetic IPv4** in an RFC 5737 TEST-NET block — never routable (roadmap §4.2).
+ * A **synthetic IPv4** in an RFC 5737 TEST-NET block — never routable.
  *
  * @param rng - The seeded generator.
  * @returns A TEST-NET IPv4 address string.
@@ -174,7 +174,7 @@ export function ipv6(rng: Rng): string {
 /**
  * A **deterministic UUIDv4-shaped** surrogate key from the seeded generator. Because it is seeded (not
  * from `node:crypto`, which is not reproducible), the cryptographic non-collision argument is weaker —
- * acceptable because the identifier namespace is synthetic anyway, and noted honestly (roadmap §4.1).
+ * acceptable because the identifier namespace is synthetic anyway, and noted honestly.
  *
  * @param rng - The seeded generator.
  * @returns A canonical `8-4-4-4-12` lowercase-hex UUID string with version `4` and RFC 4122 variant.
@@ -196,7 +196,7 @@ export function uuid(rng: Rng): string {
 /**
  * A **synthetic NPI** — a 10-digit National Provider Identifier with a **deliberately-invalid Luhn
  * check digit**, so it can never be a NPPES-issued NPI (a real NPI must satisfy the `80840`-prefixed
- * Luhn check — roadmap §4.1). The 9-digit base is drawn from the seeded generator; the check digit is
+ * Luhn check). The 9-digit base is drawn from the seeded generator; the check digit is
  * set to `(correct + 1) mod 10`, guaranteeing the full value fails validation.
  *
  * @param rng - The seeded generator.
@@ -216,7 +216,7 @@ export function npi(rng: Rng): string {
 /**
  * A **synthetic DEA number** — `<registrant-type><initial>` + 7 digits with a **deliberately-invalid
  * checksum**, so it can never be a validly-issued DEA registration (a real DEA number's 7th digit
- * satisfies the published DEA checksum — roadmap §4). The first letter is a registrant-type letter, the
+ * satisfies the published DEA checksum). The first letter is a registrant-type letter, the
  * second is derived from `person` (its family initial) when supplied so the number reads plausibly; the
  * 6-digit base is seeded and the check digit is set to `(correct + 1) mod 10`, guaranteeing the value
  * fails validation. NCPDP carries prescriber DEA, and this is the identity locus a refuter attacks
@@ -242,8 +242,8 @@ export function dea(rng: Rng, person?: SyntheticName): string {
 
 /**
  * A **synthetic identifier** (MRN / account / member id) scoped to the synthetic assigning authority.
- * There is no reserved MRN range, so non-collision is guaranteed by the *namespace*, not the value
- * (roadmap §4.1, §10 Q2): the identifier lives under a `SYNTH` authority no real facility uses.
+ * There is no reserved MRN range, so non-collision is guaranteed by the *namespace*, not the value: the
+ * identifier lives under a `SYNTH` authority no real facility uses.
  *
  * @param rng - The seeded generator.
  * @param typeCode - The HL7 identifier type: `MR` (default), `AN`, or `MB`.
@@ -268,8 +268,7 @@ export function identifier(
 
 /**
  * A **synthetic address** — a fake street + city, a reserved non-real ZIP (`00000`). A real state
- * abbreviation may appear (structural only) but is never combined with a real street + name + DOB
- * (roadmap §4.3).
+ * abbreviation may appear (structural only) but is never combined with a real street + name + DOB.
  *
  * @param rng - The seeded generator.
  * @returns A {@link SyntheticAddress}.
@@ -291,8 +290,7 @@ export function address(rng: Rng): SyntheticAddress {
 
 /**
  * A **synthetic date** in HL7 `YYYYMMDD` form, drawn uniformly within an inclusive year range. Comes
- * from the seeded generator (never wall-clock), so it is reproducible and implies no real event
- * (roadmap §4.3, §5).
+ * from the seeded generator (never wall-clock), so it is reproducible and implies no real event.
  *
  * @param rng - The seeded generator.
  * @param minYear - Inclusive lower year bound (default `1930`).

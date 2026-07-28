@@ -3,13 +3,12 @@
  * cosyte healthcare formats. A *consumer* of the parsers, not a parser: it builds artifacts **through
  * each parser's own builder/serializer** (so output is spec-clean by construction) and draws every
  * value from a **guaranteed-non-colliding synthetic source** (so no output can be real or
- * plausibly-real PHI). It is a **format/conformance generator, not a clinical simulator** — see the
- * meta-repo roadmap `operations/roadmaps/synth.md`.
+ * plausibly-real PHI). It is a **format/conformance generator, not a clinical simulator**.
  *
  * This root entry point exposes the **format-agnostic core**: the seeded PRNG, the synthetic-safety
  * providers, the `Corpus` abstraction, the profile skeleton, and the fatal codes. Per-format
  * generation lives behind its own subpath (`@cosyte/synth/hl7`) so importing the root never pulls a
- * parser — the lazy per-format boundary (roadmap §1).
+ * parser — the lazy per-format boundary.
  *
  * @module
  */

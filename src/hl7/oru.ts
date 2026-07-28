@@ -1,10 +1,10 @@
 /**
  * Spec-clean HL7 v2 `ORU^R01` (unsolicited observation result) generation, built **through
- * `@cosyte/hl7`'s `buildMessage`** (roadmap §Phase 2). The parser's structure net requires the
+ * `@cosyte/hl7`'s `buildMessage`**. The parser's structure net requires the
  * result group (`OBR`/`OBX`) for `ORU^R01`; this generator always emits both, plus a fully-populated
  * `PID`, so the message round-trips with **zero warnings**. Patient identity comes from `../safe`;
  * observation codes come from the license-clean example pool (`./example-codes`), never bundled
- * terminology. A `synth` `ORU` is *structurally* valid, not clinically coherent (roadmap §2).
+ * terminology. A `synth` `ORU` is *structurally* valid, not clinically coherent.
  *
  * @module
  */

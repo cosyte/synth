@@ -1,12 +1,12 @@
 /**
  * Synthetic identity for ASTM (E1394 / CLSI LIS02) messages — every value `synth` puts into a `P`
  * (patient) record, an `O` (order) accession, or the `H` header is minted here, and **only** from the
- * synthetic-safety providers (roadmap §4). ASTM's PHI-dense locus is the **`P` record**: it carries the
- * patient **name** (`Last^First^Middle`), **birthdate**, **sex**, and — the detail the roadmap
- * stresses — the **practice-assigned** and **laboratory-assigned** patient IDs, which must stay
+ * synthetic-safety providers. ASTM's PHI-dense locus is the **`P` record**: it carries the
+ * patient **name** (`Last^First^Middle`), **birthdate**, **sex**, and the **practice-assigned** and
+ * **laboratory-assigned** patient IDs, which must stay
  * **distinct** (the parser keeps them distinct; a generator that let one default from the other would
  * defeat that). Every identifier is scoped to the synthetic assigning authority: there is no reserved
- * patient-ID range for ASTM (as for MRNs generally — roadmap §4.1), so the **namespace** is the
+ * patient-ID range for ASTM (as for MRNs generally), so the **namespace** is the
  * guarantee. The IDs carry a clearly-synthetic prefix (`PRA` / `LAB` / `ACC`) so the `phi-scan` ASTM
  * arm can recognize them as synthetic-AA-scoped and a real bare numeric MRN can never masquerade as one.
  *
@@ -47,7 +47,7 @@ export interface AstmPatient {
   readonly person: SyntheticName;
   /** Middle initial (clearly synthetic). */
   readonly middle: string;
-  /** Birthdate `YYYYMMDD`, from the seeded generator (no real event implied — roadmap §4.3). */
+  /** Birthdate `YYYYMMDD`, from the seeded generator (no real event implied). */
   readonly birthDate: string;
   /** Sex code, emitted verbatim (`M` / `F` — structural, never defaulted by the builder). */
   readonly sex: "M" | "F";
@@ -75,7 +75,7 @@ export interface AstmHeaderIdentity {
 
 /**
  * Mint a synthetic patient for a `P` record. Fixed draw order (name → middle → DOB → sex → practice id
- * → lab id) so the same seed yields the same patient (roadmap §5). The two patient IDs are minted from
+ * → lab id) so the same seed yields the same patient. The two patient IDs are minted from
  * **independent** synthetic-identifier draws, so they are distinct by construction.
  *
  * @param rng - The seeded generator.

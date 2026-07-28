@@ -6,7 +6,7 @@
  * treated as a component separator (the parser re-escapes on serialize, by design). To place true
  * components (a name's family/given, a CX's id/authority/type) we must hand `addSegment` a `RawField`
  * with explicit `components`, so the parser's own conservative serializer lays out the separators.
- * That is the whole point of building *through* the parser (roadmap §1).
+ * That is the whole point of building *through* the parser.
  *
  * @module
  */

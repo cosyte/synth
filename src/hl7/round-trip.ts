@@ -1,9 +1,9 @@
 /**
  * The **round-trip-through-the-parser harness** — the headline gate for the synthetic-fixture
- * generator (roadmap §6). A generated artifact is "spec-clean" only if `@cosyte/hl7` — not
+ * generator. A generated artifact is "spec-clean" only if `@cosyte/hl7` — not
  * `@cosyte/synth`'s own opinion — reads it back cleanly. This harness feeds a generated message
  * straight back into the parser and reports what the parser found, so a false "spec-clean" claim
- * cannot hide (roadmap §4.5, the first head of the two-headed hazard).
+ * cannot hide.
  *
  * @module
  */

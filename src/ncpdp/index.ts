@@ -1,12 +1,12 @@
 /**
  * `@cosyte/synth/ncpdp` — the NCPDP generation surface, exposed as its own subpath so importing the
- * package root does **not** pull `@cosyte/ncpdp`. This is the **lazy, per-format** boundary the roadmap
- * mandates (roadmap §1 "optional peer-dep, lazily loaded per format"): a consumer who only needs NCPDP
- * fixtures imports `@cosyte/synth/ncpdp`; one who needs only the core primitives never loads a parser.
+ * package root does **not** pull `@cosyte/ncpdp`. This is the **lazy, per-format** boundary: a consumer
+ * who only needs NCPDP fixtures imports `@cosyte/synth/ncpdp`; one who needs only the core primitives
+ * never loads a parser.
  * `@cosyte/ncpdp` is an **optional peer dependency** — present only for this subpath.
  *
- * SYNTH-7 (roadmap §Phase 6, the NCPDP arm) ships spec-clean generation across both NCPDP standards,
- * each built through `@cosyte/ncpdp`'s own emit surface:
+ * This subpath ships spec-clean generation across both NCPDP standards, each built through
+ * `@cosyte/ncpdp`'s own emit surface:
  *
  * - **SCRIPT** ePrescribing (`@cosyte/ncpdp/script`): `generateNewRx` (via the validated `buildNewRx`
  *   builder), `generateRxRenewalRequest`, and `generateRxChangeRequest` (via the parser's public typed
@@ -16,11 +16,10 @@
  *   `generateB3` (rebill) via `buildTelecomRequest` + `serializeTelecom` — each round-tripping through
  *   `parseTelecom` with zero warnings, with patient / cardholder identity from the synthetic providers.
  *
- * **Deferred (roadmap §Phase 6 / §3):** **ASTM** generation (gated on `@cosyte/astm`'s serializer,
- * `ASTM-7`, not yet shipped — SYNTH-8) and **quirk mode** (Phase 7). Both are noted in the README +
- * CHANGELOG. SCRIPT is limited to the transactions `@cosyte/ncpdp` can *build* — NewRx plus the
+ * **Deferred:** **quirk mode**. SCRIPT is limited to the transactions `@cosyte/ncpdp` can *build* — NewRx
+ * plus the
  * renewal/change **requests**; the renewal/change *responses* and the reversal cases beyond B2's
- * reference set track the parser's builder surface, never hand-written bytes (roadmap §3).
+ * reference set track the parser's builder surface, never hand-written bytes.
  *
  * @module
  */

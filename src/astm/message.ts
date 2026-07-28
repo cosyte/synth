@@ -2,7 +2,7 @@
  * Spec-clean ASTM (E1394 / CLSI LIS02) message generation — the `H`/`P`/`O`/`R`/`C`/`L` record report —
  * built through `@cosyte/astm`'s `buildAstmMessage` so the delimiter declaration (`H|\^&`), the record
  * type letters, the per-type sequence counters, the `L` terminator, and every escape are the parser's
- * own conservative emit (roadmap §Phase 6, the ASTM arm — SYNTH-8). Nothing clinical is defaulted: a
+ * own conservative emit. Nothing clinical is defaulted: a
  * result's status/flag/units/value are supplied from the example pool, never invented by the builder.
  *
  * A framed **E1381 / CLSI LIS01** variant is also offered ({@link generateAstmResultFramed}) via
@@ -10,9 +10,9 @@
  * **modulo-256 checksum and the `0`–`7` frame number computed by the parser** — never faked. Both round
  * trip through `@cosyte/astm` cleanly (`parseAstmRecords` / `parseFramedAstm` — see `./round-trip`).
  *
- * Every value at a PHI-bearing locus (the `P` record's name / DOB / practice+lab IDs, roadmap §4) is
+ * Every value at a PHI-bearing locus (the `P` record's name / DOB / practice+lab IDs) is
  * drawn from the synthetic-safety providers via `./identity`, so no output can be real or plausibly-real
- * PHI. `synth` is a **format/conformance generator, not a clinical simulator** (roadmap §2): a generated
+ * PHI. `synth` is a **format/conformance generator, not a clinical simulator**: a generated
  * result pairs a code and a value with no claim of clinical coherence.
  *
  * @module
@@ -50,7 +50,7 @@ function resultValue(rng: Rng, low: number, high: number, decimals: number): str
 /**
  * Assemble the typed record inputs (P → O → R… → C?) for a result message from a seeded generator. The
  * header and terminator are added by {@link buildAstmMessage}; this builds the body plus the header
- * fields so both the record and framed emitters share one construction (roadmap §5 determinism).
+ * fields so both the record and framed emitters share one construction.
  */
 function buildResultInput(options: GenerateAstmOptions): MessageInput {
   const rng = createRng(options.seed);
@@ -104,8 +104,8 @@ function buildResultInput(options: GenerateAstmOptions): MessageInput {
 
 /**
  * Generate a spec-clean ASTM **result message** — an `H`/`P`/`O`/`R`…/`C`/`L` record stream — built
- * through `@cosyte/astm`'s `buildAstmMessage`. Every identity value is synthetic-by-construction
- * (roadmap §4); the message round-trips through `parseAstmRecords` with zero warnings and re-serializes
+ * through `@cosyte/astm`'s `buildAstmMessage`. Every identity value is synthetic-by-construction; the message
+ * round-trips through `parseAstmRecords` with zero warnings and re-serializes
  * byte-identically (see `./round-trip`).
  *
  * @param options - The seed, optional result count, and whether to append a comment.

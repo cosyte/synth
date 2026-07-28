@@ -1,14 +1,13 @@
 /**
- * C-CDA **vendor-quirk generation** (roadmap §Phase 7 — the differentiator). A quirk deviates the
+ * C-CDA **vendor-quirk generation**. A quirk deviates the
  * *structure* of an otherwise spec-clean document (built through `@cosyte/ccda`'s `buildCcda`) so it
  * round-trips through `parseCcda` to **exactly** one intended, stable warning code — the tolerance a
  * `defineCcdaProfile` profile encodes. With the matching built-in profile active, that warning is
  * **re-badged** to the value-free `PROFILE_QUIRK_APPLIED` marker (`expected: true`, `toleratedCode` = the
  * original), exactly as the parser's `profileQuirkApplied` does.
  *
- * The deviation is applied **post-serialize** (roadmap §10 Q4: profile tolerance is parse-side, so the
- * quirk is a deterministic transform of the serializer's own conservative emit). Three quirks ship, each
- * publicly grounded (ADR 0018) and re-badged by a built-in public profile:
+ * The deviation is applied **post-serialize**. Three quirks ship, each
+ * publicly grounded and re-badged by a built-in public profile:
  *
  * - **`template-extension-absent`** → `TEMPLATE_EXTENSION_ABSENT` (profile `legacyR11`). The R2.1
  *   `@extension="2015-08-01"` version stamp is dropped from the document-type templateId — a legacy
@@ -19,7 +18,7 @@
  *   observation's value is swapped to a deprecated code system (ICD-9-CM `2.16.840.1.113883.6.103`).
  *
  * A quirk **never** introduces a real-looking value — it changes a template stamp or a code, never a PHI
- * locus, so the synthetic-safety gate still runs and stays zero (roadmap §Phase 7 "Safety framing").
+ * locus, so the synthetic-safety gate still runs and stays zero.
  *
  * @module
  */
@@ -42,7 +41,7 @@ import {
 
 import { generateCcda, type CcdaDocumentType } from "./ccd.js";
 
-/** Every C-CDA quirk this phase ships. */
+/** Every C-CDA quirk this package ships. */
 export type CcdaQuirkName =
   | "template-extension-absent"
   | "deprecated-loinc"
@@ -214,8 +213,8 @@ export function generateCcdaQuirk(options: GenerateCcdaQuirkOptions): QuirkArtif
 }
 
 /**
- * Round-trip a C-CDA quirk artifact through `@cosyte/ccda` and report the intended-warning verdict
- * (roadmap §6): a bare parse must produce **exactly** the intended code, and the matching public profile
+ * Round-trip a C-CDA quirk artifact through `@cosyte/ccda` and report the intended-warning verdict: a bare
+ * parse must produce **exactly** the intended code, and the matching public profile
  * must re-badge it to `PROFILE_QUIRK_APPLIED`.
  *
  * @param artifact - The quirk artifact (from {@link generateCcdaQuirk}).

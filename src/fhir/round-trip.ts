@@ -1,14 +1,14 @@
 /**
  * The **round-trip-through-the-parser harness** for FHIR — the headline gate for the synthetic-fixture
- * generator (roadmap §6). A generated resource is "spec-clean" only if `@cosyte/fhir` — not
+ * generator. A generated resource is "spec-clean" only if `@cosyte/fhir` — not
  * `@cosyte/synth`'s own opinion — reads it back, validates it, and re-serializes it byte-identically.
  * This harness serializes a generated resource, parses it back, validates it (optionally against
  * supplied US Core / vendor `StructureDefinition`s), and re-serializes, reporting what the parser found
- * so a false "spec-clean" claim cannot hide (roadmap §4.5, the first head of the two-headed hazard).
+ * so a false "spec-clean" claim cannot hide.
  *
  * `@cosyte/synth` bundles **no** profile content: to validate US Core conformance, a caller supplies
  * the `StructureDefinition`s via {@link RoundTripOptions.profiles} — exactly the content-free posture of
- * `@cosyte/fhir.validateResource({ profiles })` (roadmap §Phase 3).
+ * `@cosyte/fhir.validateResource({ profiles })`.
  *
  * @module
  */

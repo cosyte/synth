@@ -2,12 +2,12 @@
  * Spec-clean NCPDP **Telecommunication vD.0** claim generation — `B1` (billing), `B2` (reversal), and
  * `B3` (rebill) — built through `@cosyte/ncpdp`'s `buildTelecomRequest` + `serializeTelecom` so the
  * fixed Transaction Header, the FS/GS/RS framing, and every field are the parser's own conservative
- * emit (roadmap §Phase 6). Every field id below is a real 2-character NCPDP field identifier, and every
+ * emit. Every field id below is a real 2-character NCPDP field identifier, and every
  * value at a PHI-bearing locus is drawn from the synthetic-safety providers via {@link ./identity}: the
  * patient / cardholder names come from the fake-name pool, the DOB / dates from the seeded generator,
  * the phone from the reserved `555-01xx` block, the member / cardholder ids under the synthetic
  * assigning authority, and the prescriber NPI with an invalid Luhn check digit. Each transaction
- * round-trips through `parseTelecom` with zero warnings (roadmap §6).
+ * round-trips through `parseTelecom` with zero warnings.
  *
  * @module
  */
@@ -146,7 +146,7 @@ function claimSegment(rng: Rng, minimal: boolean): TelecomSegmentInput {
  * `@cosyte/ncpdp`'s `buildTelecomRequest` + `serializeTelecom`. `B1`/`B3` carry the full
  * patient / insurance / prescriber / claim segment set; `B2` (reversal) is the minimal
  * insurance + claim-reference set a reversal actually carries. Every identity value is
- * synthetic-by-construction (roadmap §4); the transaction round-trips through `parseTelecom` with zero
+ * synthetic-by-construction; the transaction round-trips through `parseTelecom` with zero
  * warnings.
  *
  * @param code - `"B1"` billing, `"B2"` reversal, or `"B3"` rebill.
