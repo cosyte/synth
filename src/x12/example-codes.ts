@@ -1,6 +1,5 @@
 /**
- * License-clean example code pools for X12 generation. Following the roadmap's BYO / public-domain
- * terminology posture (roadmap §2 "NO bundled terminology content"), `synth` ships only a tiny curated
+ * License-clean example code pools for X12 generation. `synth` ships only a tiny curated
  * set of **spec-example codes** — the same codes that appear in the WPC 005010 TR3 implementation-guide
  * examples and the `@cosyte/x12` builder test fixtures — never a bundled CPT/ICD/NDC table. They are
  * used purely to give a generated claim a structurally-valid code element; a consumer who needs a real
@@ -8,7 +7,7 @@
  *
  * Every code here is a *structural placeholder*: a `synth` claim may pair a diagnosis and a procedure
  * that make no clinical sense, and that is correct — `synth` exercises the *parser*, not clinical
- * coherence (roadmap §2, the Synthea boundary).
+ * coherence.
  *
  * @module
  */

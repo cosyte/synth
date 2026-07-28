@@ -1,9 +1,9 @@
 /**
  * The **round-trip-through-the-parser harness** for ASTM — the headline gate for the synthetic-fixture
- * generator (roadmap §6). A generated ASTM record stream (or framed byte stream) is "spec-clean" only
+ * generator. A generated ASTM record stream (or framed byte stream) is "spec-clean" only
  * if `@cosyte/astm` — not `@cosyte/synth`'s own opinion — reads it back cleanly. Each harness parses the
  * generated wire straight back through the parser and reports what it found, so a false "spec-clean"
- * claim cannot hide (roadmap §4.5, the first head of the two-headed hazard).
+ * claim cannot hide.
  *
  * The **record** layer (E1394) and the **frame** layer (E1381) are separate concerns, so each gets its
  * own harness; both report the same {@link AstmRoundTripResult} shape (the framed one additionally folds

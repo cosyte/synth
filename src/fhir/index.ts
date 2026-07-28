@@ -1,18 +1,17 @@
 /**
  * `@cosyte/synth/fhir` — the FHIR R4 / US Core generation surface, exposed as its own subpath so
- * importing the package root does **not** pull `@cosyte/fhir`. This is the **lazy, per-format** boundary
- * the roadmap mandates (roadmap §1 "optional peer-dep, lazily loaded per format"): a consumer who only
- * needs FHIR fixtures imports `@cosyte/synth/fhir`; one who needs only the core primitives never loads a
- * parser. `@cosyte/fhir` is an **optional peer dependency** — present only for this subpath.
+ * importing the package root does **not** pull `@cosyte/fhir`. This is the **lazy, per-format**
+ * boundary: a consumer who only needs FHIR fixtures imports `@cosyte/synth/fhir`; one who needs only
+ * the core primitives never loads a parser. `@cosyte/fhir` is an **optional peer dependency** — present only for this subpath.
  *
- * SYNTH-3 shipped the US Core clinical spine — `Patient` (base + US Core), `Condition`, `Observation`
- * (US Core Laboratory Result + US Core Vital Signs), `MedicationRequest`, and `Bundle` (collection +
- * transaction). **SYNTH-4** extends it to the rest of the US Core clinical set — `Encounter`,
+ * This subpath ships the US Core clinical set — `Patient` (base + US Core), `Condition`, `Observation`
+ * (US Core Laboratory Result + US Core Vital Signs), `MedicationRequest`, `Encounter`,
  * `DiagnosticReport` (Laboratory), `Immunization`, `AllergyIntolerance`, `Procedure` — plus the
- * `document` Bundle shape (a `Composition` + the wired spine). Each is built through `@cosyte/fhir`'s
+ * `collection`, `transaction` and `document` Bundle shapes (the last a `Composition` + the wired
+ * spine). Each is built through `@cosyte/fhir`'s
  * model constructors so it is **spec-clean by construction**, validating clean under
  * `@cosyte/fhir.validateResource` and, against caller-supplied (BYO) US Core `StructureDefinition`s,
- * conformant to US Core 6.1.0. Quirk generation is deferred to SYNTH-5 / Phase 7.
+ * conformant to US Core 6.1.0. Quirk generation is deferred.
  *
  * @module
  */

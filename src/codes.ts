@@ -4,15 +4,14 @@
  * Unlike a parser (which recovers from bad *input* into Tier-2 warnings), a **generator** has no input
  * to tolerate — its reflex is *synthetic-by-construction* and *fail-closed on impossibility*. So the
  * codes here are **fatal**: a caller asked for something the library cannot honor spec-clean, and the
- * only safe answer is to throw, never to silently fabricate a value or a byte workaround (roadmap §4,
- * §Phase 1 "Fail-safe behavior"). Codes are `key === value` and part of the public contract —
+ * only safe answer is to throw, never to silently fabricate a value or a byte workaround. Codes are `key === value` and part of the public contract —
  * renaming one is a breaking change.
  *
  * @module
  */
 
 /**
- * The stable **fatal** code registry. Additions-only thereafter (roadmap §Phase 1).
+ * The stable **fatal** code registry. Additions-only thereafter.
  *
  * @example
  * ```ts
@@ -34,7 +33,7 @@ export const SYNTH_FATAL_CODES = {
   SYNTH_UNSUPPORTED_FORMAT: "SYNTH_UNSUPPORTED_FORMAT",
   /**
    * A vendor quirk was requested that the target format's profile system does not support. Fatal —
-   * never a silent no-op and never a fabricated quirk (roadmap §Phase 1).
+   * never a silent no-op and never a fabricated quirk.
    */
   SYNTH_UNSUPPORTED_QUIRK: "SYNTH_UNSUPPORTED_QUIRK",
 } as const;

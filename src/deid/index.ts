@@ -1,5 +1,5 @@
 /**
- * `@cosyte/synth/deid` — the **`@cosyte/deid` pairing loop** (roadmap §Phase 8): a deterministic,
+ * `@cosyte/synth/deid` — the **`@cosyte/deid` pairing loop**: a deterministic,
  * seeded **co-validation harness** for the `synth` ⇄ `deid` pair.
  *
  * For each covered format it **generates** a spec-clean synthetic artifact through `@cosyte/synth`'s own
@@ -8,7 +8,7 @@
  * the de-identified output while the clinical payload survives. A surviving sentinel is a hard failure;
  * an over-scrubbed clinical value is a hard failure.
  *
- * **Scope & honesty (roadmap §Phase 8, §7).** This proves *the pair works on `synth`'s own output* — it
+ * **Scope & honesty.** This proves *the pair works on `synth`'s own output* — it
  * is **not** an independent audit of `@cosyte/deid` against real-world documents. The sentinels are
  * synthetic-by-construction (never realistic); a sentinel `deid` **blocks** rather than redacts still
  * passes (blocked = gone). The loop covers the five formats both packages support
@@ -100,7 +100,7 @@ export const DEID_LOOP_COVERED_FORMATS = Object.freeze([
 
 /**
  * The format paths the loop **deliberately skips**, each with the honest reason — so a coverage gap is
- * named, never silent (roadmap §Phase 8).
+ * named, never silent.
  *
  * @example
  * ```ts
@@ -112,7 +112,7 @@ export const DEID_LOOP_SKIPPED = Object.freeze([
   Object.freeze({
     format: "ncpdp-script",
     reason:
-      "@cosyte/deid ships no NCPDP SCRIPT locus map (deferred in deid's roadmap); synth generates SCRIPT but the loop cannot pair it.",
+      "@cosyte/deid ships no NCPDP SCRIPT locus map; synth generates SCRIPT but the loop cannot pair it.",
   }),
   Object.freeze({
     format: "astm",
@@ -120,8 +120,7 @@ export const DEID_LOOP_SKIPPED = Object.freeze([
   }),
   Object.freeze({
     format: "dicom",
-    reason:
-      "@cosyte/synth does not generate DICOM (deferred, roadmap §2), so there is nothing to pair.",
+    reason: "@cosyte/synth does not generate DICOM, so there is nothing to pair.",
   }),
 ] as const);
 
@@ -441,7 +440,7 @@ export interface DeidCoverageSummary {
 
 /**
  * Summarize a set of loop runs into a per-format coverage report — the "coverage summary per format" the
- * harness reports (roadmap §Phase 8).
+ * harness reports.
  *
  * @param results - The loop results to aggregate.
  * @returns The {@link DeidCoverageSummary}.

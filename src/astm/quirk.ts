@@ -1,17 +1,17 @@
 /**
- * ASTM E1394 **vendor-quirk generation** (roadmap §Phase 7 — the differentiator). A quirk deviates the
+ * ASTM E1394 **vendor-quirk generation**. A quirk deviates the
  * *structure* of an otherwise spec-clean record report (built through `@cosyte/astm`'s
  * `buildAstmMessage`) so it round-trips through `parseAstmRecords` to **exactly** one intended, stable
  * warning code — a code in the parser's `defineAstmProfile` tolerable set. Where a built-in public
  * profile tolerates the quirk, the warning is **re-badged** to the value-free `PROFILE_QUIRK_APPLIED`
  * marker (`expected: true`), exactly as the parser's `profileQuirkApplied` does.
  *
- * The deviation is applied **post-serialize** on the record stream (roadmap §10 Q4). Two quirks ship:
+ * The deviation is applied **post-serialize** on the record stream. Two quirks ship:
  *
  * - **`unknown-escape`** → `ASTM_UNKNOWN_ESCAPE_SEQUENCE` (profile `referenceCorpus`). A non-standard
  *   `&Z&` escape body is injected into a result's units field. Grounded on `@cosyte/astm`'s public
- *   `referenceCorpus` profile (the redistributable kxepal/python-astm + senaite OSS corpus, ADR 0018),
- *   which re-badges it.
+ *   `referenceCorpus` profile (the redistributable kxepal/python-astm + senaite OSS corpus), which
+ *   re-badges it.
  * - **`unknown-record-type`** → `ASTM_RECORD_UNKNOWN_TYPE`. A record's leading type letter is changed to
  *   a site-defined `Z` — a real ASTM tolerance (the parser's tolerable set includes this code), but no
  *   built-in profile tolerates it, so it is a `"bare"` quirk (a consumer authors a `defineAstmProfile`
@@ -41,7 +41,7 @@ import {
 
 import { generateAstmResult } from "./message.js";
 
-/** Every ASTM quirk this phase ships. */
+/** Every ASTM quirk this package ships. */
 export type AstmQuirkName = "unknown-escape" | "unknown-record-type";
 
 /**
@@ -170,8 +170,7 @@ export function generateAstmQuirk(options: GenerateAstmQuirkOptions): QuirkArtif
 }
 
 /**
- * Round-trip an ASTM quirk artifact through `@cosyte/astm` and report the intended-warning verdict
- * (roadmap §6): a bare parse must produce **exactly** the intended code, and — when a built-in public
+ * Round-trip an ASTM quirk artifact through `@cosyte/astm` and report the intended-warning verdict: a bare parse must produce **exactly** the intended code, and — when a built-in public
  * profile tolerates the quirk — the profiled parse must re-badge it to `PROFILE_QUIRK_APPLIED`.
  *
  * @param artifact - The quirk artifact (from {@link generateAstmQuirk}).

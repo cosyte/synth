@@ -1,9 +1,8 @@
 /**
- * Synthetic FHIR R4 **`Observation`** generation — US Core Laboratory Result and US Core Vital Signs
- * (roadmap §Phase 3). Built through `@cosyte/fhir`; `code` and the measured `valueQuantity` come from
+ * Synthetic FHIR R4 **`Observation`** generation — US Core Laboratory Result and US Core Vital Signs. Built through `@cosyte/fhir`; `code` and the measured `valueQuantity` come from
  * the license-clean LOINC/UCUM example pool, `subject` from a supplied or derived Patient reference.
  * The measured value is drawn from the seeded generator within a structurally-sane band — it implies no
- * real measurement (roadmap §2: structural, not clinical, realism).
+ * real measurement.
  *
  * @module
  */

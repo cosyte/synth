@@ -1,11 +1,11 @@
 /**
  * Spec-clean HIPAA 005010X279A1 **271** Health Care Eligibility Benefit Response generation, built
- * through `@cosyte/x12`'s `build271` (roadmap §Phase 5). The 271 carries subscriber identity (name,
+ * through `@cosyte/x12`'s `build271`. The 271 carries subscriber identity (name,
  * member id, DOB, address) plus benefit information across the 20→21→22 HL hierarchy; every identity
  * value is drawn from the synthetic-safety providers ({@link ./identity}). Every generated 271
- * round-trips through `@cosyte/x12` with zero warnings (roadmap §6).
+ * round-trips through `@cosyte/x12` with zero warnings.
  *
- * **Note (coverage tracks the builder — roadmap §3):** `@cosyte/x12` ships a **271** builder but no
+ * **Note (coverage tracks the builder):** `@cosyte/x12` ships a **271** builder but no
  * **270** (request) builder — the 270 is only *read* (as the echoed trace on the 271). Per the
  * through-the-builder discipline (never hand-write bytes around a missing builder), `synth` generates
  * the 271 and **defers 270** until `@cosyte/x12` grows a `build270` (noted in the README + CHANGELOG).
@@ -37,7 +37,7 @@ export interface Generate271Options {
 /**
  * Generate a spec-clean 005010X279A1 271 eligibility response, built through `@cosyte/x12`'s
  * `build271`: one information source (payer) → one information receiver (provider) → one subscriber
- * with an active-coverage benefit. Every identity value is synthetic-by-construction (roadmap §4); the
+ * with an active-coverage benefit. Every identity value is synthetic-by-construction; the
  * returned interchange round-trips with zero warnings.
  *
  * @param options - The seed. See {@link Generate271Options}.

@@ -152,7 +152,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-cle
 `@cosyte/x12` is an **optional peer dependency**, needed only for the `@cosyte/synth/x12` subpath.
 
 **Deferred:** the **270** eligibility _request_ (`@cosyte/x12` ships a `build271` but no `build270`, and
-`synth` never hand-writes bytes around a missing builder) and **vendor-quirk mode** (Phase 7 / SYNTH-7).
+`synth` never hand-writes bytes around a missing builder) and **vendor-quirk mode**.
 
 ## Generate a spec-clean NCPDP message
 
@@ -186,7 +186,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-cle
 `@cosyte/ncpdp` is an **optional peer dependency**, needed only for the `@cosyte/synth/ncpdp` subpath.
 
 **Deferred:** SCRIPT coverage tracks the parser's builder surface (the renewal/change _responses_ land
-as `@cosyte/ncpdp` grows builders); **vendor-quirk mode** is Phase 7.
+as `@cosyte/ncpdp` grows builders); and **vendor-quirk mode**.
 
 ## Generate a spec-clean ASTM message
 
@@ -231,7 +231,7 @@ where a built-in **public** parser profile claims the deviation, it round-trips 
 (suppressed, or re-badged to `PROFILE_QUIRK_APPLIED`). A quirk never introduces a real-looking value —
 it changes shape, never provenance, so the synthetic-safety gate still passes.
 
-Phase 7 ships quirks for the three richest profile systems — **HL7 v2, C-CDA, and ASTM**:
+Quirks ship for the three richest profile systems — **HL7 v2, C-CDA, and ASTM**:
 
 ```ts
 import { generateHl7Quirk, hl7QuirkRoundTrip } from "@cosyte/synth/hl7";
@@ -251,11 +251,10 @@ astmQuirkRoundTrip(generateAstmQuirk({ seed: 1, quirk: "unknown-escape" })).inte
 
 A quirk a format's profile system does not support fails closed with a stable `SYNTH_UNSUPPORTED_QUIRK`
 diagnostic — never a silently-wrong fixture. Every quirk is grounded in a **publicly-documented**
-deviation or a parser's **public** profile (ADR 0018), never a private vendor corpus.
+deviation or a parser's **public** profile, never a private vendor corpus.
 
-**Deferred:** quirk recipes for **FHIR, X12, and NCPDP** (whose profile/quirk surface lands in a later
-phase), and any quirk that would need a **private, vendor-attributed corpus** to ground (kept
-`REAL-CORPUS`-gated, exactly as the parsers' named per-vendor profiles are).
+**Deferred:** quirk recipes for **FHIR, X12, and NCPDP**, and any quirk that would need a **private,
+vendor-attributed corpus** to ground.
 
 ## Co-validate with `@cosyte/deid` (the pairing loop)
 

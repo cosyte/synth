@@ -1,9 +1,9 @@
 /**
  * The **round-trip-through-the-parser harness** for NCPDP — the headline gate for the synthetic-fixture
- * generator (roadmap §6). A generated SCRIPT XML or Telecom claim is "spec-clean" only if
+ * generator. A generated SCRIPT XML or Telecom claim is "spec-clean" only if
  * `@cosyte/ncpdp` — not `@cosyte/synth`'s own opinion — reads it back cleanly. Each harness parses the
  * generated wire text straight back through the parser and reports what it found, so a false
- * "spec-clean" claim cannot hide (roadmap §4.5, the first head of the two-headed hazard).
+ * "spec-clean" claim cannot hide.
  *
  * SCRIPT and Telecom are two structurally unrelated standards, so each gets its own harness; both
  * report the same {@link RoundTripResult} shape.

@@ -1,12 +1,12 @@
 /**
  * Synthetic C-CDA patient identity — the `recordTarget` demographics for a generated document, every
- * field minted from the synthetic-safety providers in `../safe` (roadmap §4). No value a generated
+ * field minted from the synthetic-safety providers in `../safe`. No value a generated
  * C-CDA carries at a PHI locus can be real or plausibly-real: the name is from the shipped fake-name
  * pool, the MRN lives under the synthetic assigning-authority OID (never a real facility namespace),
  * and the birth date comes from the seeded generator (never wall-clock).
  *
  * The draw order is **fixed** (name → MRN → DOB → gender) so the same seed yields the same identity —
- * the reproducibility contract (roadmap §5).
+ * the reproducibility contract.
  *
  * @module
  */
@@ -28,9 +28,8 @@ export interface CcdaPatientIdentity {
 
 /**
  * Mint a complete synthetic {@link CcdaPatientIdentity}. Every value comes from a synthetic-safety
- * provider — no code path here can return a real identifier (roadmap §4). The MRN is scoped to the
- * synthetic assigning-authority OID (`mrnRoot`), so it is non-colliding by *namespace*, not by value
- * (roadmap §4.1).
+ * provider — no code path here can return a real identifier. The MRN is scoped to the
+ * synthetic assigning-authority OID (`mrnRoot`), so it is non-colliding by *namespace*, not by value.
  *
  * @param rng - The seeded generator.
  * @returns A synthetic {@link CcdaPatientIdentity}.

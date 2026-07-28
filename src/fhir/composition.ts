@@ -1,6 +1,6 @@
 /**
  * Synthetic FHIR R4 **`Composition`** generation — the mandatory first resource of a `document` Bundle
- * (FHIR invariant `bdl-11`), built through `@cosyte/fhir` (roadmap §Phase 3 `document` shape, SYNTH-4).
+ * (FHIR invariant `bdl-11`), built through `@cosyte/fhir`.
  * A Composition is a base-R4 resource (US Core 6.1.0 defines no Composition profile), so it is grounded
  * against base FHIR R4; every reference it carries (`subject`, `author`, `custodian`, section `entry`s)
  * is an in-bundle `urn:uuid:` fullUrl so the document is self-contained and its references resolve.

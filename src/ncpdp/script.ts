@@ -1,7 +1,7 @@
 /**
  * Spec-clean NCPDP **SCRIPT** (XML ePrescribing) generation — `NewRx`, `RxRenewalRequest`, and
  * `RxChangeRequest` — built through `@cosyte/ncpdp`'s own emit surface so the XML is spec-clean by the
- * same mechanism that makes the parser's serializer spec-clean (roadmap §1, §Phase 6):
+ * same mechanism that makes the parser's serializer spec-clean:
  *
  * - **NewRx** is built through the validated `buildNewRx` builder (it refuses a NewRx with no
  *   medication description) and serialized by `serializeScript`.
@@ -11,11 +11,11 @@
  *   `ScriptMessage` model** (the same immutable model `buildNewRx` returns) and serialized by
  *   `serializeScript`. No byte is hand-written; the round-trip harness ({@link ./round-trip.scriptRoundTrip})
  *   re-parses every message through `parseScript` and asserts **zero warnings**, so spec-cleanliness is
- *   the parser's judgment, not `synth`'s (roadmap §4.5, §6).
+ *   the parser's judgment, not `synth`'s.
  *
  * Every patient / prescriber / pharmacy identifier is drawn from the synthetic-safety providers via
  * {@link ./identity}; the prescriber NPI is invalid-Luhn and the **DEA is invalid-checksum**, so
- * neither can denote a real provider (roadmap §4).
+ * neither can denote a real provider.
  *
  * @module
  */
@@ -72,7 +72,7 @@ function pharmacyModel(rng: Rng): Pharmacy {
   };
 }
 
-/** Build the typed `Prescriber` model — NPI invalid-Luhn, DEA invalid-checksum (roadmap §4). */
+/** Build the typed `Prescriber` model — NPI invalid-Luhn, DEA invalid-checksum. */
 function prescriberModel(rng: Rng): Prescriber {
   const dr = ncpdpPrescriber(rng);
   return {
@@ -115,8 +115,7 @@ function headerModel(routing: NcpdpScriptRouting): ScriptHeader {
 
 /**
  * Generate a spec-clean SCRIPT **NewRx** ePrescription, built through `@cosyte/ncpdp`'s validated
- * `buildNewRx` and serialized by `serializeScript`. Every identity value is synthetic-by-construction
- * (roadmap §4); the message round-trips through `parseScript` with zero warnings.
+ * `buildNewRx` and serialized by `serializeScript`. Every identity value is synthetic-by-construction; the message round-trips through `parseScript` with zero warnings.
  *
  * @param options - The seed. See {@link GenerateScriptOptions}.
  * @returns The serialized SCRIPT XML.

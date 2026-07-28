@@ -2,9 +2,9 @@
  * Spec-clean HIPAA 005010 **837** claim generation — Professional (`build837P`, TR3 005010X222A2),
  * Institutional (`build837I`, X223A3), and Dental (`build837D`, X224A2) — built through
  * `@cosyte/x12`'s domain builders so the ISA/GS/ST…SE/GE/IEA envelope, the computed HL spine, and
- * every segment are the parser's own conservative emit (roadmap §Phase 5). Every subscriber, patient,
+ * every segment are the parser's own conservative emit. Every subscriber, patient,
  * provider, and payer identifier is drawn from the synthetic-safety providers via {@link ./identity};
- * every generated 837 round-trips through `@cosyte/x12` with zero warnings (roadmap §6).
+ * every generated 837 round-trips through `@cosyte/x12` with zero warnings.
  *
  * @module
  */
@@ -272,8 +272,7 @@ function specOf(rng: Rng, variant: Claim837Variant): Build837Spec {
 
 /**
  * Generate a spec-clean 005010 837 claim of the given `variant`, built through `@cosyte/x12`'s
- * `build837P` / `build837I` / `build837D`. Every identity value is synthetic-by-construction
- * (roadmap §4); the returned interchange round-trips through `@cosyte/x12` with zero warnings.
+ * `build837P` / `build837I` / `build837D`. Every identity value is synthetic-by-construction; the returned interchange round-trips through `@cosyte/x12` with zero warnings.
  *
  * @param variant - `"P"` professional, `"I"` institutional, or `"D"` dental.
  * @param options - The seed. See {@link Generate837Options}.

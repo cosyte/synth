@@ -1,16 +1,15 @@
 /**
- * Synthetic **C-CDA document generation** (roadmap §Phase 4) — a spec-clean Continuity of Care Document
+ * Synthetic **C-CDA document generation** — a spec-clean Continuity of Care Document
  * (CCD) or Referral Note built **through `@cosyte/ccda`'s `buildCcda`**, so template IDs, LOINC section
  * codes, and structured/narrative agreement are the builder's own (spec-clean *by construction*), and
- * every `recordTarget` / clinical identifier is drawn from the synthetic-safety providers (roadmap §4).
+ * every `recordTarget` / clinical identifier is drawn from the synthetic-safety providers.
  *
  * The document round-trips through `parseCcda` with **zero warnings** — the builder's round-trip-by-
  * construction guarantee, re-verified independently by {@link ./round-trip.roundTrip}. Coverage tracks
- * `buildCcda`'s section/doc-type maturity (roadmap §Phase 4): the CCD SHALL sections (Problems,
+ * `buildCcda`'s section/doc-type maturity: the CCD SHALL sections (Problems,
  * Allergies, Medications, Results, Vital Signs) plus Immunizations, Procedures, and Social History
  * (Smoking Status). Clinical *content* is drawn from the reused, license-clean example-code pools; a
- * `synth` document exercises the parser, it is **not** a clinically-coherent record (roadmap §2 — a
- * format generator, not Synthea).
+ * `synth` document exercises the parser, it is **not** a clinically-coherent record.
  *
  * @module
  */
@@ -37,7 +36,7 @@ import {
 } from "./example-codes.js";
 import { ccdaPatientIdentity } from "./identity.js";
 
-/** The C-CDA document type a generator emits — the two `buildCcda` supports (roadmap §Phase 4). */
+/** The C-CDA document type a generator emits — the two `buildCcda` supports. */
 export type CcdaDocumentType = "ccd" | "referralNote";
 
 /** Options common to every C-CDA generator. */

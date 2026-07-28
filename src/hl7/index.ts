@@ -1,11 +1,11 @@
 /**
  * `@cosyte/synth/hl7` — the HL7 v2 generation surface, exposed as its own subpath so importing the
- * package root does **not** pull `@cosyte/hl7`. This is the **lazy, per-format** boundary the roadmap
- * mandates (roadmap §1 "optional peer-dep, lazily loaded per format"): a consumer who only needs HL7
- * fixtures imports `@cosyte/synth/hl7`; one who needs only the core primitives never loads a parser.
+ * package root does **not** pull `@cosyte/hl7`. This is the **lazy, per-format** boundary: a consumer
+ * who only needs HL7 fixtures imports `@cosyte/synth/hl7`; one who needs only the core primitives
+ * never loads a parser.
  * `@cosyte/hl7` is an **optional peer dependency** — present only for this subpath.
  *
- * Phase 2 completes the HL7 v2 message set: `ADT` (A01/A04/A08), `ORU^R01`, `ORM^O01`, `SIU^S12`, and
+ * The HL7 v2 message set is complete: `ADT` (A01/A04/A08), `ORU^R01`, `ORM^O01`, `SIU^S12`, and
  * `VXU^V04` — each built through `@cosyte/hl7`'s `buildMessage` and round-tripping with zero warnings.
  *
  * @module
@@ -57,7 +57,7 @@ export {
 } from "./quirk.js";
 
 /**
- * Every HL7 v2 message kind Phase 2 generates — the `MSH-9` label used as the corpus `kind`. `ADT`
+ * Every HL7 v2 message kind this subpath generates — the `MSH-9` label used as the corpus `kind`. `ADT`
  * carries its trigger; the other families have a single generated trigger each.
  */
 export type Hl7MessageKind =
@@ -69,7 +69,7 @@ export type Hl7MessageKind =
   | "SIU^S12"
   | "VXU^V04";
 
-/** The default message mix for {@link hl7Corpus} — one of every Phase 2 family. */
+/** The default message mix for {@link hl7Corpus} — one of every family. */
 const DEFAULT_MIX: readonly Hl7MessageKind[] = Object.freeze([
   "ADT^A01",
   "ADT^A04",
@@ -119,19 +119,19 @@ export interface Hl7CorpusOptions {
   /** How many messages to generate. Defaults to `1`. */
   readonly count?: number;
   /**
-   * The message kinds to cycle through. Defaults to one of every Phase 2 family
+   * The message kinds to cycle through. Defaults to one of every family
    * (`ADT^A01/A04/A08`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`).
    */
   readonly mix?: readonly Hl7MessageKind[];
   /**
-   * ADT-only convenience: the triggers to cycle through, kept for back-compat with SYNTH-1. When
+   * ADT-only convenience: the triggers to cycle through, kept for back-compat. When
    * supplied it takes precedence over `mix` and restricts the corpus to `ADT` messages.
    */
   readonly triggers?: readonly AdtTrigger[];
 }
 
 /**
- * Build a reproducible {@link Corpus} of spec-clean HL7 messages across the Phase 2 families. Each
+ * Build a reproducible {@link Corpus} of spec-clean HL7 messages across the families. Each
  * message is generated from a distinct sub-seed derived from the corpus seed (so the set is
  * deterministic) and round-tripped through `@cosyte/hl7`; the per-artifact `warnings` record the
  * parser's verdict (empty ⇒ spec-clean).

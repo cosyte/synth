@@ -1,5 +1,5 @@
 /**
- * The format-agnostic core of the **`@cosyte/deid` pairing loop** (roadmap §Phase 8) — a **closed-loop
+ * The format-agnostic core of the **`@cosyte/deid` pairing loop** — a **closed-loop
  * co-validation harness** for the `synth` ⇄ `deid` pair.
  *
  * The loop's shape is: **generate a spec-clean synthetic artifact → enumerate the distinctive synthetic
@@ -40,7 +40,7 @@ export type DeidLoopFormat = "hl7" | "fhir" | "ccda" | "x12" | "ncpdp-telecom";
 /**
  * A single **planted sentinel**: one distinctive, synthetic-by-construction PHI token that
  * `@cosyte/synth` placed at a patient locus of a generated artifact, tracked so the loop can prove
- * `@cosyte/deid` removed it. The token is always drawn from a synthetic-safety provider (roadmap §4) —
+ * `@cosyte/deid` removed it. The token is always drawn from a synthetic-safety provider —
  * a fake-name-pool name, a `900`-range SSN, a `555-01xx` phone, a synthetic-assigning-authority
  * identifier — so a sentinel can never be, or collide with, a real person's PHI.
  *

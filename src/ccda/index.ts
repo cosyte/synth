@@ -1,15 +1,14 @@
 /**
  * `@cosyte/synth/ccda` — the C-CDA generation surface, exposed as its own subpath so importing the
- * package root does **not** pull `@cosyte/ccda`. This is the **lazy, per-format** boundary the roadmap
- * mandates (roadmap §1 "optional peer-dep, lazily loaded per format"): a consumer who only needs C-CDA
- * fixtures imports `@cosyte/synth/ccda`; one who needs only the core primitives never loads a parser.
+ * package root does **not** pull `@cosyte/ccda`. This is the **lazy, per-format** boundary: a consumer
+ * who only needs C-CDA fixtures imports `@cosyte/synth/ccda`; one who needs only the core primitives
+ * never loads a parser.
  * `@cosyte/ccda` is an **optional peer dependency** — present only for this subpath.
  *
- * SYNTH-5 (roadmap §Phase 4) ships spec-clean C-CDA document generation via `@cosyte/ccda`'s
+ * This subpath ships spec-clean C-CDA document generation via `@cosyte/ccda`'s
  * `buildCcda`: a **CCD** (`generateCcd`) and a **Referral Note** (`generateReferralNote`), each built
  * through the parser's own emitter so it round-trips through `parseCcda` with zero warnings, and each
- * drawing every identity value from the synthetic-safety providers (roadmap §4). Quirk generation is
- * deferred to Phase 7.
+ * drawing every identity value from the synthetic-safety providers.
  *
  * @module
  */

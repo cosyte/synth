@@ -1,9 +1,9 @@
 /**
  * The **round-trip-through-the-parser harness** for X12 — the headline gate for the synthetic-fixture
- * generator (roadmap §6). A generated interchange is "spec-clean" only if `@cosyte/x12` — not
+ * generator. A generated interchange is "spec-clean" only if `@cosyte/x12` — not
  * `@cosyte/synth`'s own opinion — reads it back cleanly. This harness serializes a built interchange,
  * parses it straight back through `parseX12`, and reports what the parser found, so a false
- * "spec-clean" claim cannot hide (roadmap §4.5, the first head of the two-headed hazard).
+ * "spec-clean" claim cannot hide.
  *
  * `@cosyte/x12`'s domain builders (`build837P`, `build835`, `build271`) are round-trip-by-construction
  * (each maps its typed model to segments and computes the ISA/GS/ST…SE/GE/IEA envelope + counts), but

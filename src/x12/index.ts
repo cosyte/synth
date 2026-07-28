@@ -1,19 +1,19 @@
 /**
  * `@cosyte/synth/x12` — the X12 EDI generation surface, exposed as its own subpath so importing the
- * package root does **not** pull `@cosyte/x12`. This is the **lazy, per-format** boundary the roadmap
- * mandates (roadmap §1 "optional peer-dep, lazily loaded per format"): a consumer who only needs X12
- * fixtures imports `@cosyte/synth/x12`; one who needs only the core primitives never loads a parser.
+ * package root does **not** pull `@cosyte/x12`. This is the **lazy, per-format** boundary: a consumer
+ * who only needs X12 fixtures imports `@cosyte/synth/x12`; one who needs only the core primitives
+ * never loads a parser.
  * `@cosyte/x12` is an **optional peer dependency** — present only for this subpath.
  *
- * SYNTH-6 (roadmap §Phase 5) ships spec-clean HIPAA 005010 generation via `@cosyte/x12`'s domain
+ * This subpath ships spec-clean HIPAA 005010 generation via `@cosyte/x12`'s domain
  * builders: **837P/I/D** claims (`generate837P`/`generate837I`/`generate837D`), the **835** remittance
  * (`generate835`), and the **271** eligibility response (`generate271`) — each built through the
  * parser's own builder so the ISA/GS/ST…SE/GE/IEA envelope and every segment are spec-clean by
  * construction, each round-tripping through `@cosyte/x12` with zero warnings, and each drawing every
- * subscriber/patient/provider identifier from the synthetic-safety providers (roadmap §4).
+ * subscriber/patient/provider identifier from the synthetic-safety providers.
  *
- * **Deferred (coverage tracks the builder — roadmap §3):** the **270** request (`@cosyte/x12` ships no
- * `build270`) and **quirk mode** (Phase 7 / SYNTH-7). Both are noted in the README + CHANGELOG.
+ * **Deferred (coverage tracks the builder):** the **270** request (`@cosyte/x12` ships no
+ * `build270`) and **quirk mode**.
  *
  * @module
  */

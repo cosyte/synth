@@ -1,15 +1,15 @@
 /**
- * Shared FHIR model-construction helpers — the small vocabulary every Phase-3 resource generator uses
+ * Shared FHIR model-construction helpers — the small vocabulary every resource generator uses
  * to build **through `@cosyte/fhir`'s own model constructors** (`complex` / `list` / `primitive` /
  * `decimal`). A generated resource is a `FhirComplex` tree assembled here and serialized by
  * `@cosyte/fhir`'s conservative writer, so it is **spec-clean by construction** — the same mechanism
- * that makes the parser's emit side spec-clean (roadmap §1, §Phase 3). Nothing here hand-writes JSON
+ * that makes the parser's emit side spec-clean. Nothing here hand-writes JSON
  * bytes.
  *
  * Identity fields (`name`, `identifier`, `birthDate`, `telecom`, `address`) are minted from the
  * synthetic-safety providers in `../safe`, so no value a resource carries can be real or plausibly-real
- * PHI (roadmap §4). The `fhirPatientIdentity` bundle draws them in a **fixed order** for the
- * reproducibility contract (roadmap §5).
+ * PHI. The `fhirPatientIdentity` bundle draws them in a **fixed order** for the
+ * reproducibility contract.
  *
  * @module
  */
@@ -183,7 +183,7 @@ export function meta(profiles: readonly string[]): FhirComplex {
   return complex([prop("profile", list(profiles.map((p) => str(p))))]);
 }
 
-/** A synthetic FHIR patient identity — every field drawn from `../safe` (roadmap §4). */
+/** A synthetic FHIR patient identity — every field drawn from `../safe`. */
 export interface FhirPatientIdentity {
   /** A synthetic resource `id` (a seeded UUID) — never a real record key. */
   readonly id: string;
@@ -220,9 +220,9 @@ export function toFhirDate(ymd: string): string {
 
 /**
  * Mint a complete synthetic {@link FhirPatientIdentity}. Every value comes from a synthetic-safety
- * provider — no code path here can return a real or plausibly-real identifier (roadmap §4). The draw
+ * provider — no code path here can return a real or plausibly-real identifier. The draw
  * order is fixed (id → name → MRN → DOB → gender → address → phone → email) so the same seed yields the
- * same identity (roadmap §5).
+ * same identity.
  *
  * @param rng - The seeded generator.
  * @returns A synthetic {@link FhirPatientIdentity}.
@@ -247,7 +247,7 @@ export function fhirPatientIdentity(rng: Rng): FhirPatientIdentity {
 /**
  * The US Core Patient `identifier` element for a synthetic MRN — `type` (`MR`), the synthetic
  * assigning-authority OID as `system`, and the synthetic value. Satisfies US Core Patient's required
- * `identifier.system` + `identifier.value` (roadmap §Phase 3).
+ * `identifier.system` + `identifier.value`.
  *
  * @param mrn - The synthetic identifier from `safe.identifier`.
  * @returns An `Identifier` `FhirComplex`.

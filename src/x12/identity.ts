@@ -1,13 +1,13 @@
 /**
  * Synthetic identity for X12 healthcare transactions — every subscriber, patient, provider, and payer
  * identifier `synth` puts into an 837 / 835 / 271 is minted here, and **only** from the
- * synthetic-safety providers (roadmap §4). X12 is uniquely identity-dense: a claim carries subscriber
+ * synthetic-safety providers. X12 is uniquely identity-dense: a claim carries subscriber
  * *and* patient names, member ids, provider NPIs, a provider tax id, dates of birth, and addresses —
  * across two HL loops. The synthetic-by-construction invariant is therefore attacked hardest here, so
  * every locus below has a construction-level guarantee, not a heuristic:
  *
  * - **member id** — minted under the synthetic assigning authority (no reserved range exists; the
- *   *namespace* is the guarantee — roadmap §4.1).
+ *   *namespace* is the guarantee).
  * - **NPI** — a deliberately **invalid Luhn** check digit, so it can never be a NPPES-issued NPI
  *   ({@link ../safe/reserved.isSyntheticNpi}).
  * - **provider tax id** — emitted as an SSN (REF*SY) in the SSA **never-issued** 900-range, so it can
@@ -85,7 +85,7 @@ export interface X12TradingPartners {
 
 /**
  * Mint a synthetic person. Fixed draw order (name → member id → DOB → sex → address) so the same seed
- * yields the same person (roadmap §5).
+ * yields the same person.
  *
  * @param rng - The seeded generator.
  * @returns A synthetic {@link X12Person}.
@@ -201,7 +201,7 @@ export interface X12EnvelopeTiming {
 /**
  * Mint a seeded envelope timing + control-number bundle. The service/transaction date is drawn in a
  * recent plausible window (2024–2026) so a generated transaction reads like a current one; every value
- * is seeded, so the interchange is byte-reproducible (roadmap §5).
+ * is seeded, so the interchange is byte-reproducible.
  *
  * @param rng - The seeded generator.
  * @returns A synthetic {@link X12EnvelopeTiming}.

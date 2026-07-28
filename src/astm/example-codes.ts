@@ -2,10 +2,8 @@
  * A small, **license-clean** pool of example ASTM laboratory tests — the analyte codes, units, and
  * plausible value ranges `synth` draws on when populating `O` (order) and `R` (result) records. The
  * codes are **facts** (a LOINC number is a public identifier, and the local analyzer codes here are
- * invented), never a bundled terminology table (roadmap §2 "no bundled terminology; a small curated
- * license-clean pool of example codes"). Nothing clinical is asserted — a `synth` result pairs a value
- * and a code with no claim of clinical coherence (roadmap §2, the format/conformance boundary vs
- * Synthea): the pool exists only to make a *structurally* realistic result record.
+ * invented), never a bundled terminology table. Nothing clinical is asserted — a `synth` result pairs a value
+ * and a code with no claim of clinical coherence: the pool exists only to make a *structurally* realistic result record.
  *
  * @module
  */
@@ -33,7 +31,7 @@ export interface AstmExampleTest {
 /**
  * The example test pool. A handful of common chemistry/hematology analytes, each with a public LOINC
  * code, invented local code, units, and a value window the seeded generator samples. Frozen — the pool
- * is shared, immutable data (roadmap §6, the immutability discipline).
+ * is shared, immutable data.
  *
  * @example
  * ```ts

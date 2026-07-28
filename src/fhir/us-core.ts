@@ -1,6 +1,6 @@
 /**
  * US Core + base-FHIR **canonical URLs and code-system identifiers** — the facts `@cosyte/synth` needs
- * to emit US-Core-conformant resources, and nothing more (roadmap §Phase 3).
+ * to emit US-Core-conformant resources, and nothing more.
  *
  * **Content-free, exactly like `@cosyte/fhir`.** These are *identifiers* — canonical URLs and code
  * `system` URIs — not the copyrighted terminology tables or the profile `StructureDefinition` content
@@ -11,7 +11,7 @@
  *
  * The URLs target **US Core 6.1.0** (the USCDI v3 / ONC HTI-1 §170.315(g)(10) anchor, FHIR R4 4.0.1),
  * grounded firsthand against the published IG (`hl7.org/fhir/us/core/STU6.1`) — the same version the
- * Phase-3 test corpus validates against.
+ * test corpus validates against.
  *
  * @module
  */
@@ -29,16 +29,16 @@ export const US_CORE_PROFILE = Object.freeze({
   VITAL_SIGNS: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-vital-signs",
   /** US Core MedicationRequest. */
   MEDICATION_REQUEST: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationrequest",
-  /** US Core Encounter (SYNTH-4). */
+  /** US Core Encounter. */
   ENCOUNTER: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter",
-  /** US Core DiagnosticReport Profile for Laboratory Results Reporting (SYNTH-4). */
+  /** US Core DiagnosticReport Profile for Laboratory Results Reporting. */
   DIAGNOSTIC_REPORT_LAB:
     "http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-lab",
-  /** US Core Immunization (SYNTH-4). */
+  /** US Core Immunization. */
   IMMUNIZATION: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-immunization",
-  /** US Core AllergyIntolerance (SYNTH-4). */
+  /** US Core AllergyIntolerance. */
   ALLERGY_INTOLERANCE: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-allergyintolerance",
-  /** US Core Procedure (SYNTH-4). */
+  /** US Core Procedure. */
   PROCEDURE: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-procedure",
 } as const);
 
@@ -53,8 +53,8 @@ export const US_CORE_BIRTHSEX_EXTENSION =
   "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex";
 
 /**
- * The code-system `system` URIs the Phase-3 generators reference. Public identity URIs (HL7-published),
- * never the code-system *content* — no SNOMED/LOINC/RxNorm table is bundled (roadmap §2).
+ * The code-system `system` URIs the generators reference. Public identity URIs (HL7-published),
+ * never the code-system *content* — no SNOMED/LOINC/RxNorm table is bundled.
  */
 export const SYSTEM = Object.freeze({
   /** FHIR `administrative-gender` (`Patient.gender`). */
@@ -79,13 +79,13 @@ export const SYSTEM = Object.freeze({
   RXNORM: "http://www.nlm.nih.gov/research/umls/rxnorm",
   /** UCUM — `Quantity.system` for units of measure. */
   UCUM: "http://unitsofmeasure.org",
-  /** CVX (CDC vaccine administered) — `Immunization.vaccineCode` (SYNTH-4). */
+  /** CVX (CDC vaccine administered) — `Immunization.vaccineCode`. */
   CVX: "http://hl7.org/fhir/sid/cvx",
-  /** HL7 v3 `ActCode` — `Encounter.class` (SYNTH-4). */
+  /** HL7 v3 `ActCode` — `Encounter.class`. */
   V3_ACT_CODE: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
-  /** HL7 v2 `0074` diagnostic-service-section — `DiagnosticReport.category` (`LAB`) (SYNTH-4). */
+  /** HL7 v2 `0074` diagnostic-service-section — `DiagnosticReport.category` (`LAB`). */
   DIAGNOSTIC_SERVICE_SECTION: "http://terminology.hl7.org/CodeSystem/v2-0074",
-  /** HL7 Terminology `allergyintolerance-clinical` — `AllergyIntolerance.clinicalStatus` (SYNTH-4). */
+  /** HL7 Terminology `allergyintolerance-clinical` — `AllergyIntolerance.clinicalStatus`. */
   ALLERGY_CLINICAL: "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
   /** HL7 Terminology `allergyintolerance-verification` — `AllergyIntolerance.verificationStatus`. */
   ALLERGY_VERIFICATION: "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",

@@ -1,6 +1,6 @@
 /**
  * Spec-clean HL7 v2 `SIU^S12` (notification of new appointment booking) generation, built **through
- * `@cosyte/hl7`'s `buildMessage`** (roadmap §Phase 2). The parser's structure net requires the schedule
+ * `@cosyte/hl7`'s `buildMessage`**. The parser's structure net requires the schedule
  * activity segment (`SCH`) for `SIU^S12`; this generator emits `SCH` + `PID` + a resource group
  * (`RGS`/`AIL`), so the message round-trips with **zero warnings**. Identity comes from `../safe`.
  *
