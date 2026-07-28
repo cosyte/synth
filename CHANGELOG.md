@@ -386,15 +386,17 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   stopping at the first: **21 rows over 19 distinct locations on the public markdown and npm metadata**;
   **416 rows over 227 distinct lines in `src/` doc comments** (288 found line by line, 128 more found
   only by the paragraph-reflow pass); **1 in `src/` string literals**, with a second found by hand that
-  no rule here can see; and **562 lines in the built declaration files**, 281 per module condition. All
+  no rule here can see; and **562 rows over 442 distinct lines in the built declaration files**, 281
+  rows per module condition. All
   are now zero. The backlog recorded "11+6"; a count is a function of the rule set, so these were taken
   with the final one and are quoted with the tree they were taken on. Item identifiers (`SYNTH-4`),
   `Phase N` language, ADR numbers, meta-repo paths and `roadmap §N` citations are gone from those
   surfaces; they remain where the convention puts them — the changeset, this file, the commit, the PR
   and the roadmap.
-- **Three stale deferral claims deleted rather than reworded.** `src/ccda/index.ts`,
-  `src/astm/index.ts` and `src/ncpdp/index.ts` each documented quirk generation (or ASTM generation) as
-  still to come, three lines above the export that ships it. Stripping the phase number would have left
+- **Stale deferral claims deleted rather than reworded.** `src/ccda/index.ts` and `src/astm/index.ts`
+  each documented quirk generation as still to come, lines above the export that ships it;
+  `src/ncpdp/index.ts` and `docs-content/guides-ncpdp.md` said ASTM generation was not yet shipped when
+  the ASTM subpath ships. Stripping the phase number would have left
   a false claim standing in cleaner clothes, so the sentences were cut.
 - **`DEID_LOOP_SKIPPED[].reason` text changed for the `ncpdp-script` and `dicom` entries.** The reasons
   are unchanged in substance; the internal citation trailing each was removed. These strings are part of

@@ -11,9 +11,9 @@ sections, decision-record numbers and paths into a repository consumers cannot o
 A gate now checks those surfaces on every change; sentences that merely read as internal, with no
 identifier in them, are still a reviewer's job and are not claimed to be exhaustively gone.
 
-Several deferral notes that had gone stale were removed rather than reworded. The C-CDA, ASTM and NCPDP
+Several deferral notes that had gone stale were removed rather than reworded. The C-CDA and ASTM
 subpath docs each said quirk generation was still to come while the same file exported the quirk API,
-and the NCPDP guide said ASTM generation was not yet shipped when it is.
+and the NCPDP subpath doc and the NCPDP guide said ASTM generation was not yet shipped when it is.
 
 `DEID_LOOP_SKIPPED[].reason` changes for two of its three entries. The reasons still say the same
 thing — `@cosyte/deid` ships no NCPDP SCRIPT locus map, and `@cosyte/synth` does not generate DICOM —

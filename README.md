@@ -185,8 +185,8 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-cle
 
 `@cosyte/ncpdp` is an **optional peer dependency**, needed only for the `@cosyte/synth/ncpdp` subpath.
 
-**Deferred:** SCRIPT coverage tracks the parser's builder surface (the renewal/change _responses_ land
-as `@cosyte/ncpdp` grows builders), and vendor-quirk mode, which is deferred for NCPDP.
+**Deferred:** vendor-quirk mode. SCRIPT coverage tracks the parser's builder surface: the
+renewal/change _responses_ land as `@cosyte/ncpdp` grows builders.
 
 ## Generate a spec-clean ASTM message
 
