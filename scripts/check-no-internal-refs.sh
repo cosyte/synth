@@ -181,8 +181,11 @@
 #                          on this repo's own build: `dist` is `files[0]`, there is no
 #                          `.npmignore`, `dist/index.mjs` and `dist/index.cjs` each carry
 #                          17 `//` comment lines verbatim, `dist` contains no `*.js` at
-#                          all, and `dist/index.mjs.map` carries every tracked source byte
-#                          in `sourcesContent`. SO EVERYTHING IN `src/` IS IN THE TARBALL.
+#                          all, and the sixteen `dist/**/*.map` carry the FULL TEXT of 66 of
+#                          the 67 tracked `src/**/*.ts` in `sourcesContent` (`src/fhir/
+#                          index.ts` is the one absent; it is re-exports only). SO
+#                          EFFECTIVELY EVERYTHING IN `src/` IS IN THE TARBALL, and the
+#                          `//`-comments-in-the-bundles leg carries the argument on its own.
 #                          This gate's line is therefore not "what reaches the consumer's
 #                          disk" -- everything does -- but WHAT THE CONSUMER IS SHOWN:
 #                          JSDoc their editor renders on hover, and message text their log
@@ -517,11 +520,12 @@ RULE_PATTERN[3]='(?i)\b(?:this|that|the|each|another|previous|next|final|current
 # were structurally invisible to a prose-keyed pattern and survived a whole gate run; the
 # lesson recorded with them was that A COUNT IS A FUNCTION OF THE RULE SET. The same shape
 # is live here and much larger: this repo cites its roadmap by SECTION (`roadmap §4`,
-# `roadmap §4.1`, `roadmap §10 Q2`), which the path arm above cannot see, and MEASURED on
-# the base commit of this change there were 169 such citations inside `src/` doc comments
-# alone -- an order of magnitude more than every other rule found put together. Without
-# this arm the gate would have reported the doc-comment surface clean while a consumer's
-# editor kept showing them pointers into a document they cannot open.
+# `roadmap §4.1`, `roadmap §10 Q2`), which the path arm above cannot see. MEASURED on the
+# base commit of this change, with the rule set as shipped: 169 such citations inside `src/`
+# doc comments, and this rule alone accounted for 171 of the 288 line-pass rows in that pass
+# against 117 for the other five rules combined. Without this arm the gate would have missed
+# more than half of what it found, while a consumer's editor kept showing them pointers into
+# a document they cannot open.
 #
 # IT IS DELIMITER-ANCHORED, not shape-keyed, which is the only reason it is safe: it
 # requires the literal word `roadmap` immediately followed by a section sign. No standard
@@ -1140,7 +1144,7 @@ done < "$SCANLIST"
 #   * A doc comment that never reaches an exported declaration is swept anyway. That is
 #     deliberate: which comments survive the dts rollup is a property of the BUILD, not of
 #     the source, and gating on it would make the gate's answer depend on tsup's inlining
-#     decisions. It matters more here than in a single-entry package: this one has four
+#     decisions. It matters more here than in a single-entry package: this one has eight
 #     entry points (`.`, `/hl7`, `/fhir`, `/ccda`, `/x12`, `/ncpdp`, `/astm`, `/deid`), so
 #     "does it reach a declaration file" is eight questions, not one.
 #   * `dist/*.d.cts` is the same text as `dist/*.d.ts`, so one clean source covers both

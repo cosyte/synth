@@ -272,7 +272,8 @@ function specOf(rng: Rng, variant: Claim837Variant): Build837Spec {
 
 /**
  * Generate a spec-clean 005010 837 claim of the given `variant`, built through `@cosyte/x12`'s
- * `build837P` / `build837I` / `build837D`. Every identity value is synthetic-by-construction; the returned interchange round-trips through `@cosyte/x12` with zero warnings.
+ * `build837P` / `build837I` / `build837D`. Every identity value is synthetic-by-construction; the returned
+ * interchange round-trips through `@cosyte/x12` with zero warnings.
  *
  * @param variant - `"P"` professional, `"I"` institutional, or `"D"` dental.
  * @param options - The seed. See {@link Generate837Options}.

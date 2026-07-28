@@ -74,4 +74,4 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // => true
 `ASTM_UNKNOWN_ESCAPE_SEQUENCE`, re-badged by `@cosyte/astm`'s public `referenceCorpus` profile, and a
 site-defined record type round-trips to `ASTM_RECORD_UNKNOWN_TYPE`. See
 [Vendor-quirk generation](./guides-quirks.md). The frame-layer transport quirks (a deliberately-wrong
-checksum, framing dropped over TCP) target non-profile diagnostics and are a later addition.
+checksum, framing dropped over TCP) target non-profile diagnostics and are not generated.

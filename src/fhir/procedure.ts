@@ -1,5 +1,6 @@
 /**
- * Synthetic FHIR R4 **`Procedure`** generation — a US Core Procedure. Built through `@cosyte/fhir`; the `code` comes from the license-clean SNOMED procedure
+ * Synthetic FHIR R4 **`Procedure`** generation — a US Core Procedure. Built through `@cosyte/fhir`; the
+ * `code` comes from the license-clean SNOMED procedure
  * example pool (never CPT), `subject` from a supplied or derived synthetic Patient
  * reference. The required elements (`status`, `code`, `subject`) plus the must-support
  * `performedDateTime` are always present.

@@ -1,5 +1,6 @@
 /**
- * Synthetic FHIR R4 **`Encounter`** generation — a US Core Encounter. Built through `@cosyte/fhir`'s model constructors; `class` and `type` come from the
+ * Synthetic FHIR R4 **`Encounter`** generation — a US Core Encounter. Built through `@cosyte/fhir`'s model
+ * constructors; `class` and `type` come from the
  * license-clean v3-ActCode / SNOMED example pools, `subject` from a supplied or derived synthetic
  * Patient reference. The required elements (`status`, `class`, `type`, `subject`) are always present.
  *

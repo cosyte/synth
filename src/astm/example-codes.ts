@@ -3,7 +3,8 @@
  * plausible value ranges `synth` draws on when populating `O` (order) and `R` (result) records. The
  * codes are **facts** (a LOINC number is a public identifier, and the local analyzer codes here are
  * invented), never a bundled terminology table. Nothing clinical is asserted — a `synth` result pairs a value
- * and a code with no claim of clinical coherence: the pool exists only to make a *structurally* realistic result record.
+ * and a code with no claim of clinical coherence: the pool exists only to make a *structurally* realistic
+ * result record.
  *
  * @module
  */

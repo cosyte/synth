@@ -381,13 +381,17 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 - **PUBLIC-SURFACE-HYGIENE (founder directive, 2026-07-27): no internal project bookkeeping on a public
   surface.** Swept every surface a consumer reads — `README.md`, `docs-content/`, the npm `description`
   and `keywords`, the `src/` JSDoc that compiles into `dist/*.d.ts` and renders on hover, and the `src/`
-  string literals this package emits into what it generates. Measured on the base commit `cdfcdd9`, with
-  the rule set below: **20 hit lines on the public markdown + npm metadata, 187 in `src/` doc comments,
-  0 in `src/` string literals under the un-widened rules and 2 after rule 5 was widened, and 228 hit
-  lines across the built `dist/**/\*.d.ts`+`.d.cts`** (114 per module condition). All now zero.
-Item identifiers (`SYNTH-4`), `Phase N`language, ADR numbers, meta-repo paths and`roadmap §N`
-  citations are gone from those surfaces; they remain where the convention puts them — the changeset,
-  this file, the commit, the PR and the roadmap.
+  string literals this package emits into what it generates. Measured on the base commit `cdfcdd9` by
+  running the gate exactly as it ships, with its refusal suppressed so every pass reports rather than
+  stopping at the first: **21 rows over 19 distinct locations on the public markdown and npm metadata**;
+  **416 rows over 227 distinct lines in `src/` doc comments** (288 found line by line, 128 more found
+  only by the paragraph-reflow pass); **1 in `src/` string literals**, with a second found by hand that
+  no rule here can see; and **562 lines in the built declaration files**, 281 per module condition. All
+  are now zero. The backlog recorded "11+6"; a count is a function of the rule set, so these were taken
+  with the final one and are quoted with the tree they were taken on. Item identifiers (`SYNTH-4`),
+  `Phase N` language, ADR numbers, meta-repo paths and `roadmap §N` citations are gone from those
+  surfaces; they remain where the convention puts them — the changeset, this file, the commit, the PR
+  and the roadmap.
 - **Three stale deferral claims deleted rather than reworded.** `src/ccda/index.ts`,
   `src/astm/index.ts` and `src/ncpdp/index.ts` each documented quirk generation (or ASTM generation) as
   still to come, three lines above the export that ships it. Stripping the phase number would have left

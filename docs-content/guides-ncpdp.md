@@ -90,5 +90,4 @@ a real provider.
 - SCRIPT coverage **tracks the parser's builder surface**: the renewal/change *responses* and other
   lifecycle transactions land as `@cosyte/ncpdp` grows its builders. `synth` never hand-writes bytes
   around a missing builder.
-- **ASTM** generation is gated on `@cosyte/astm`'s serializer (not yet shipped).
-- **Vendor-quirk mode** (deliberately off-spec fixtures) is a later phase.
+- **Vendor-quirk mode** (deliberately off-spec fixtures) is deferred for NCPDP.

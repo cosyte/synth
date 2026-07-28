@@ -209,9 +209,11 @@ Mirrors the three disciplines in the meta-repo's `documentation/conventions.md` 
    because **the convention says source comments are a place identifiers belong**. That is the whole
    reason. **Do not justify this boundary from what reaches `dist/`** — two attempts to, in a sibling
    repo, were both false and both caught by a refuter. Measured here: `dist` is `files[0]`, there is no
-   `.npmignore`, the emitted bundles carry `//` comments verbatim, and `dist/*.map` carries every
-   tracked source byte in `sourcesContent`, so **everything in `src/` is in the tarball**. The line is
-   not what reaches a consumer's disk (all of it does) but what a consumer is **shown**.
+   `.npmignore`, the emitted bundles carry `//` comments verbatim (17 lines each in
+   `dist/index.mjs` and `dist/index.cjs`), and the sixteen `dist/**/*.map` carry the full text of 66 of
+   the 67 tracked `src/**/*.ts` in `sourcesContent`, so **effectively everything in `src/` is in the
+   tarball** and the bundle leg carries the argument on its own. The line is not what reaches a
+   consumer's disk (all of it does) but what a consumer is **shown**.
 
    Two consequences: **removing a doc comment to satisfy the gate is a regression**, not a fix (JSDoc
    with `@example` on every public export is a hard guardrail above, and neither lint nor coverage will

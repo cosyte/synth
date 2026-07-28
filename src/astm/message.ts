@@ -104,7 +104,8 @@ function buildResultInput(options: GenerateAstmOptions): MessageInput {
 
 /**
  * Generate a spec-clean ASTM **result message** — an `H`/`P`/`O`/`R`…/`C`/`L` record stream — built
- * through `@cosyte/astm`'s `buildAstmMessage`. Every identity value is synthetic-by-construction; the message round-trips through `parseAstmRecords` with zero warnings and re-serializes
+ * through `@cosyte/astm`'s `buildAstmMessage`. Every identity value is synthetic-by-construction; the message
+ * round-trips through `parseAstmRecords` with zero warnings and re-serializes
  * byte-identically (see `./round-trip`).
  *
  * @param options - The seed, optional result count, and whether to append a comment.

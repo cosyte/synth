@@ -1,6 +1,7 @@
 /**
  * The synthetic-safety provider layer — every identifier, contact point, name, and date
- * `@cosyte/synth` emits is minted here, and **only** from a guaranteed-non-colliding source. There is no code path that returns a value not drawn from a reserved range or the
+ * `@cosyte/synth` emits is minted here, and **only** from a guaranteed-non-colliding source. There is no code
+ * path that returns a value not drawn from a reserved range or the
  * shipped fake-name pool. This is the inverse of a parser's liberality: the generator is *closed-world*
  * on its data sources, so no output *can* be real or plausibly-real PHI.
  *
@@ -241,7 +242,8 @@ export function dea(rng: Rng, person?: SyntheticName): string {
 
 /**
  * A **synthetic identifier** (MRN / account / member id) scoped to the synthetic assigning authority.
- * There is no reserved MRN range, so non-collision is guaranteed by the *namespace*, not the value: the identifier lives under a `SYNTH` authority no real facility uses.
+ * There is no reserved MRN range, so non-collision is guaranteed by the *namespace*, not the value: the
+ * identifier lives under a `SYNTH` authority no real facility uses.
  *
  * @param rng - The seeded generator.
  * @param typeCode - The HL7 identifier type: `MR` (default), `AN`, or `MB`.

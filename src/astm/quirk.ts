@@ -170,7 +170,8 @@ export function generateAstmQuirk(options: GenerateAstmQuirkOptions): QuirkArtif
 }
 
 /**
- * Round-trip an ASTM quirk artifact through `@cosyte/astm` and report the intended-warning verdict: a bare parse must produce **exactly** the intended code, and — when a built-in public
+ * Round-trip an ASTM quirk artifact through `@cosyte/astm` and report the intended-warning verdict: a bare
+ * parse must produce **exactly** the intended code, and — when a built-in public
  * profile tolerates the quirk — the profiled parse must re-badge it to `PROFILE_QUIRK_APPLIED`.
  *
  * @param artifact - The quirk artifact (from {@link generateAstmQuirk}).

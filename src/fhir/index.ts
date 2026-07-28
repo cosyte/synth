@@ -2,7 +2,8 @@
  * `@cosyte/synth/fhir` — the FHIR R4 / US Core generation surface, exposed as its own subpath so
  * importing the package root does **not** pull `@cosyte/fhir`. This is the **lazy, per-format**
  * boundary: a consumer who only needs FHIR fixtures imports `@cosyte/synth/fhir`; one who needs only
- * the core primitives never loads a parser. `@cosyte/fhir` is an **optional peer dependency** — present only for this subpath.
+ * the core primitives never loads a parser. `@cosyte/fhir` is an **optional peer dependency** — present only
+ * for this subpath.
  *
  * This subpath ships the US Core clinical set — `Patient` (base + US Core), `Condition`, `Observation`
  * (US Core Laboratory Result + US Core Vital Signs), `MedicationRequest`, `Encounter`,

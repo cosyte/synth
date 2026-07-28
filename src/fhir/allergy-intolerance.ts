@@ -1,5 +1,6 @@
 /**
- * Synthetic FHIR R4 **`AllergyIntolerance`** generation — a US Core AllergyIntolerance. Built through `@cosyte/fhir`; the allergen `code` and reaction
+ * Synthetic FHIR R4 **`AllergyIntolerance`** generation — a US Core AllergyIntolerance. Built through
+ * `@cosyte/fhir`; the allergen `code` and reaction
  * `manifestation` come from the license-clean RxNorm/SNOMED example pools, `patient` from a supplied or
  * derived synthetic Patient reference. `clinicalStatus` + `verificationStatus` are emitted together so
  * the base `ait-1`/`ait-2` invariants hold; the required `code` and `patient` are always present.

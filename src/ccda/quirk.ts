@@ -213,7 +213,8 @@ export function generateCcdaQuirk(options: GenerateCcdaQuirkOptions): QuirkArtif
 }
 
 /**
- * Round-trip a C-CDA quirk artifact through `@cosyte/ccda` and report the intended-warning verdict: a bare parse must produce **exactly** the intended code, and the matching public profile
+ * Round-trip a C-CDA quirk artifact through `@cosyte/ccda` and report the intended-warning verdict: a bare
+ * parse must produce **exactly** the intended code, and the matching public profile
  * must re-badge it to `PROFILE_QUIRK_APPLIED`.
  *
  * @param artifact - The quirk artifact (from {@link generateCcdaQuirk}).

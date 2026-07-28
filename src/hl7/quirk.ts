@@ -169,7 +169,8 @@ export function generateHl7Quirk(options: GenerateHl7QuirkOptions): QuirkArtifac
 }
 
 /**
- * Round-trip an HL7 v2 quirk artifact through `@cosyte/hl7` and report the intended-warning verdict: a bare parse must produce **exactly** the intended code(s), and — when a built-in public
+ * Round-trip an HL7 v2 quirk artifact through `@cosyte/hl7` and report the intended-warning verdict: a bare
+ * parse must produce **exactly** the intended code(s), and — when a built-in public
  * profile tolerates the quirk — the profiled parse must suppress it.
  *
  * @param artifact - The quirk artifact (from {@link generateHl7Quirk}).

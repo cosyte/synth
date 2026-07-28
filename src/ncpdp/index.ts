@@ -16,7 +16,8 @@
  *   `generateB3` (rebill) via `buildTelecomRequest` + `serializeTelecom` — each round-tripping through
  *   `parseTelecom` with zero warnings, with patient / cardholder identity from the synthetic providers.
  *
- * **Deferred:** **quirk mode**. SCRIPT is limited to the transactions `@cosyte/ncpdp` can *build* — NewRx plus the
+ * **Deferred:** **quirk mode**. SCRIPT is limited to the transactions `@cosyte/ncpdp` can *build* — NewRx
+ * plus the
  * renewal/change **requests**; the renewal/change *responses* and the reversal cases beyond B2's
  * reference set track the parser's builder surface, never hand-written bytes.
  *

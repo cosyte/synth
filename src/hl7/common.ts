@@ -2,7 +2,8 @@
  * Shared HL7 v2 building blocks for every message family `@cosyte/synth` generates — the MSH scaffold,
  * the seeded timestamp, and the patient-identity bundle + its `PID` segment. Factored out so `ADT`,
  * `ORU`, `ORM`, `SIU`, and `VXU` all mint identity from the **same** synthetic-safety providers in the
- * **same** draw order, and all emit through `@cosyte/hl7`'s conservative serializer. Nothing here draws a value that is not sourced from `../safe` — the synthetic-by-construction
+ * **same** draw order, and all emit through `@cosyte/hl7`'s conservative serializer. Nothing here draws a
+ * value that is not sourced from `../safe` — the synthetic-by-construction
  * invariant holds by construction for every family.
  *
  * @module

@@ -4,7 +4,8 @@
  * Unlike a parser (which recovers from bad *input* into Tier-2 warnings), a **generator** has no input
  * to tolerate — its reflex is *synthetic-by-construction* and *fail-closed on impossibility*. So the
  * codes here are **fatal**: a caller asked for something the library cannot honor spec-clean, and the
- * only safe answer is to throw, never to silently fabricate a value or a byte workaround. Codes are `key === value` and part of the public contract —
+ * only safe answer is to throw, never to silently fabricate a value or a byte workaround. Codes are `key ===
+ * value` and part of the public contract —
  * renaming one is a breaking change.
  *
  * @module

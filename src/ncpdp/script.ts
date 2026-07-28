@@ -115,7 +115,8 @@ function headerModel(routing: NcpdpScriptRouting): ScriptHeader {
 
 /**
  * Generate a spec-clean SCRIPT **NewRx** ePrescription, built through `@cosyte/ncpdp`'s validated
- * `buildNewRx` and serialized by `serializeScript`. Every identity value is synthetic-by-construction; the message round-trips through `parseScript` with zero warnings.
+ * `buildNewRx` and serialized by `serializeScript`. Every identity value is synthetic-by-construction; the
+ * message round-trips through `parseScript` with zero warnings.
  *
  * @param options - The seed. See {@link GenerateScriptOptions}.
  * @returns The serialized SCRIPT XML.

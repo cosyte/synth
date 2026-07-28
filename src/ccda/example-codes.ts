@@ -2,7 +2,8 @@
  * The C-CDA example-code pool — a thin adapter that **reuses** the same license-clean, public
  * code facts the FHIR generators ship (`../fhir/example-codes.ts`), reshaped into `@cosyte/ccda`'s
  * `BuildCode` tuple (an OID `codeSystem` instead of a FHIR `system` URI). Reusing one source of truth
- * keeps the LOINC / RxNorm / SNOMED / CVX pools consistent across the FHIR and C-CDA surfaces; `@cosyte/synth` still bundles
+ * keeps the LOINC / RxNorm / SNOMED / CVX pools consistent across the FHIR and C-CDA surfaces;
+ * `@cosyte/synth` still bundles
  * **no** terminology content — these are public spec-example codes, not copyrighted tables.
  *
  * Nothing here is PHI: codes and their display text are not patient identifiers. The synthetic-safety
