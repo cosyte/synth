@@ -1,0 +1,84 @@
+version: 2
+
+# Nothing was watching this repo's dependencies until this file landed. `@cosyte/synth`
+# showing ZERO open Dependabot PRs meant "nothing is looking", not "nothing is stale".
+# The absence of a config reads exactly like currency and is the opposite of it.
+#
+# Two ecosystems, because the repo has exactly two dependency surfaces. Swept, not assumed:
+#   npm             package.json + pnpm-lock.yaml at the root, the ONLY manifest in the repo
+#   github-actions  .github/workflows/*.yml
+# There is no third. No Dockerfile, no Terraform, no pnpm workspace, no second package.json,
+# no Python/Go/Rust manifest, no submodules of its own.
+
+updates:
+  # npm. The `npm` ecosystem covers pnpm: Dependabot infers the package manager from the
+  # lockfile, which is `pnpm-lock.yaml`.
+  #
+  # WHAT DEPENDABOT CAN ACTUALLY SEE HERE, stated plainly so this entry is not mistaken for
+  # broader cover than it gives:
+  #
+  #   * SEVEN devDependencies are `file:vendor/*.tgz` vendored tarballs, one per sibling this
+  #     package generates through: `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`,
+  #     `@cosyte/x12`, `@cosyte/ncpdp`, `@cosyte/astm` and `@cosyte/deid`. Dependabot does
+  #     NOT resolve `file:` specs, so it will never propose a bump for any of them. They are
+  #     refreshed BY HAND (`pnpm -C ../<sib> build && pnpm -C ../<sib> pack
+  #     --pack-destination ../synth/vendor`, then re-point the devDependency), and they become
+  #     real `@cosyte/*` npm ranges at the publish flip, because a published package cannot
+  #     ship a `file:` dep. Until then keeping them current is a human job and this config
+  #     does not pretend otherwise.
+  #
+  #     That matters more here than in a repo that merely consumes a library: those seven
+  #     tarballs ARE the builders every generator emits through, so a stale vendored parser
+  #     means the fixtures this package produces are conformant to a stale serializer. It is
+  #     a correctness gap Dependabot structurally cannot close, and naming it is the only
+  #     honest thing this file can do about it.
+  #
+  #     UNVERIFIED, and shared with every vendored sibling: whether the pnpm updater
+  #     tolerates seven `file:` specs and simply skips them, or errors the whole `npm` job.
+  #     Nobody has watched a run here yet. If the first weekly run produces no PR and no
+  #     visible error, check the Dependabot job log before assuming "nothing to bump".
+  #
+  #   * There are ZERO runtime `dependencies`. Node stdlib only, and the parsers are OPTIONAL
+  #     peer deps. So unlike a repo with a third-party runtime surface, there is no production
+  #     dependency to carve out of the group below, and no `exclude-patterns` entry is
+  #     warranted. Stated rather than silently omitted: the absence is a measured property of
+  #     this package today, not an oversight to copy forward. Adding a runtime dependency
+  #     means revisiting this group.
+  #
+  #   * What IS visible and bumpable is the rest of `devDependencies`, all real registry
+  #     ranges, grouped into one weekly PR: the `@cosyte/*` toolchain packages
+  #     (`eslint-config`, `prettier-config`, `tsconfig`, `tsup-config`, `vitest-config`) plus
+  #     `@cosyte/test-utils`, and `@arethetypeswrong/cli`, `@changesets/cli`,
+  #     `@types/node`, `@vitest/coverage-v8`, `eslint`, `fast-check`, `prettier`,
+  #     `simple-git-hooks`, `tsup`, `tsx`, `typescript`, `vite` and `vitest`.
+  #
+  # NOTE: package.json carries `pnpm.overrides` pinning esbuild and js-yaml above advisory
+  # ranges. Dependabot does not manage those overrides. If it proposes a bump that makes one
+  # redundant, the override is removed by hand, never silently left to pin a version
+  # backwards.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        dependency-type: development
+
+  # Keep GitHub Actions references current. This entry has real work to do rather than being
+  # a formality: four of the six workflows (`ci`, `codeql`, `release`, `scorecard`) are thin
+  # callers of `cosyte/.github/.github/workflows/*.yml@main`, whose pinned action SHAs live
+  # upstream and are watched by that repo's own dependabot config. But two workflows here are
+  # repo-LOCAL and pin their own actions:
+  #   * `no-internal-refs.yml` pins `actions/checkout` to a full SHA.
+  #   * `fuzz.yml` pins `actions/checkout`, `pnpm/action-setup` and `actions/setup-node` to
+  #     floating MAJOR TAGS (`@v4`), looser than the SHA pinning used everywhere else here and
+  #     upstream. Bringing those onto SHAs is its own piece of work; until then this entry at
+  #     least surfaces the major bumps rather than letting the nightly fuzz job drift onto
+  #     deprecated runner actions. A gate running on stale machinery is the gate itself going
+  #     stale.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
