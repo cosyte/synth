@@ -2,11 +2,11 @@
 "@cosyte/synth": patch
 ---
 
-Phase 4 / SYNTH-5: C-CDA document generation. A new `@cosyte/synth/ccda` subpath generating spec-clean
-Consolidated CDA R2.1 documents **through `@cosyte/ccda`'s `buildCcda`** — so template IDs, LOINC
-section codes, and structured/narrative agreement are the builder's own, and each document round-trips
-through `parseCcda` with **zero warnings** (spec-clean by construction), is seed-deterministic
-(byte-identical for a seed), and is synthetic by construction.
+C-CDA document generation, synthetic and seed-deterministic by construction, built through
+`@cosyte/ccda`'s builder so template IDs and section codes are the builder's own. A new
+`@cosyte/synth/ccda` subpath generates spec-clean Consolidated CDA R2.1 documents through `buildCcda`,
+so structured and narrative agreement is the builder's own, each document round-trips through
+`parseCcda` with **zero warnings**, and a given seed is byte-identical.
 
 - New generators: `generateCcd` (Continuity of Care Document), `generateReferralNote`, and the generic
   `generateCcda({ documentType })` — each populating the CCD SHALL sections (Problems, Allergies,

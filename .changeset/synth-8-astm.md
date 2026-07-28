@@ -2,11 +2,10 @@
 "@cosyte/synth": patch
 ---
 
-Phase 6 (SYNTH-8): spec-clean ASTM generation at the `@cosyte/synth/astm` subpath, built **through
-`@cosyte/astm`'s own emit surface** — spec-clean by construction, round-tripping through the parser
-with zero warnings, byte-stable, seed-deterministic, and synthetic by construction. This completes the
-spec-clean generation core across all six formats (ASTM was gated on `@cosyte/astm`'s serializer,
-`ASTM-7`, now shipped).
+Spec-clean ASTM generation, synthetic and seed-deterministic by construction, built through
+`@cosyte/astm`'s own emit surface, completing generation across all six formats. It lives at the
+`@cosyte/synth/astm` subpath, round-trips through the parser with zero warnings, and is byte-stable.
+It was gated on `@cosyte/astm`'s serializer, now shipped.
 
 - New record generators (E1394): `generateAstmResult` (a full `H`/`P`/`O`/`R`…/`C`/`L` result report)
   and `generateAstmOrder` (`H`/`P`/`O`/`L`) via `buildAstmMessage`. New framing generator (E1381):
