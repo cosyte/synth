@@ -369,6 +369,87 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   instead of silently reopening the hole. `CHANGELOG.md` is excluded on purpose, as in every sibling
   copy: it ships inside the npm tarball, yet the same convention names it as a place identifiers
   belong. That contradiction is ecosystem-wide and is recorded, not decided here.
+- **CI-REQUIRED-CHECKS: a gate on what the required test job SELECTS, not just that it ran.**
+  `scripts/check-test-selection.ts` (`pnpm check:test-selection`, also reached by `pnpm check`) plus
+  `.github/workflows/test-selection.yml` (job id, and therefore future check-run context,
+  `test-selection`). It compares the tracked test files that EXIST against the files
+  `vitest list --filesOnly` says vitest would RUN, and reds on any shortfall in its subject. Ported
+  in shape from `ncpdp` `27f9e89`; the **invocation rule ports verbatim** (this repo's `test` /
+  `test:coverage` bodies are spelled identically, confirmed before reuse, so
+  `ALLOWED_TEST_SCRIPT_BODIES` is the same closed exact-match set rather than a re-derivation), and
+  the **derived subjects are re-derived here**, because `ncpdp`'s ground its fuzz subject in a
+  workflow that hands a path straight to `vitest run` and **no workflow in this repo contains that
+  string at all** (ported verbatim it refuses). Three subjects instead:
+  1. **The published surface**, from `package.json` `exports`. Each of the eight subpaths resolves to
+     a `dist/[<dir>/]index.<ext>` emitted from `src/[<dir>/]index.ts`; every tracked module under
+     scope naming one of those entry points must be selected, and every entry point must have at
+     least one selected module naming it. Keyed on a **resolved module path**, not a filename and not
+     a bare substring, so a rename moves nothing out of the subject; scope is a **deny-list** of
+     `src/`, `scripts/` and the repo root, so a move anywhere else does not either. **This is the
+     rule that reaches the synthetic-safety property layer**, which was named by nothing.
+     **The scope was an allow-list (`test/`) in the first version and the refuter broke it**:
+     relocating all six `synthetic-safety.property.test.ts` files into `internal/` took the whole
+     safety layer out of CI, `vitest list` selected zero of them, and the gate printed OK exit 0.
+     A move into one of the three denied locations still escapes and is stated in three places
+     rather than denied.
+  2. **The fuzz path**, derived in two steps because that is how this repo spells it: the nightly
+     `Fuzz` workflow runs `pnpm test:fuzz`, whose body is a `vitest run <path>`. Redundant today
+     (that module also imports a published entry) and kept for its empty-set refusal, which is a
+     tripwire on the fuzz job disappearing **only if no other literal path is left behind anywhere in
+     a workflow**. The extraction is text and cannot tell a real `run:` from prose quoting one, so a
+     commented `vitest run test/hl7` suppresses the refusal; calling it unconditional would overstate
+     it.
+  3. **The PHI scanner**, ported directly (`phi-scan` script plus `run-phi-scan: true` in `ci.yml`).
+
+  It prints a **denominator** on every run instead of a bare OK: of 39 tracked in-scope code modules,
+  **38 are watched by a name-independent rule, 1 by the `.test.`/`.spec.` filename shape alone
+  (`test/docs-content.test.ts`), and 0 by no rule at all**. The like-for-like figure in `ncpdp` is **4
+  of 27** in-scope modules; its own header quotes "4 of 24", counting only name-shaped files, which
+  flatters the ratio. Cite the comparable number, not the friendlier one.
+  Three self-tests re-prove it on every run, one resolving a genuinely narrowed config through real
+  vitest; **self-test A ignores the filename floor and requires a DERIVED rule to name each dropped
+  file**. Both A's drop targets one at a time, so the colliding direction is exercised in each; the
+  single difference is that `ncpdp`'s verdict counts the filename floor, which is why that one passed
+  with its derived rules neutered. (An earlier draft of this entry said `ncpdp`'s A "does not do" the
+  one-at-a-time part; a refuter corrected it, and A is not the backstop for the derived rules in either
+  repo, because emptying a subject empties A's targets with it. Self-test C is.)
+  **`test-selection` is deliberately NOT added to ruleset `19913330`**: a required context no
+  workflow has emitted on `main` leaves every future PR pending and unmergeable. Wire first, require
+  later.
+
+  **Every quantity above is re-derivable, not asserted.** The script header lists the command that
+  produces each one, because two of the three refuter passes found a false number or a false claim of
+  reach rather than a hole in the mechanism, both times from a sentence ported out of a sibling repo
+  and never re-measured here. All of them were re-measured against this repo, on the tree that ships.
+
+  Demonstrated red by seeding, one route at a time: a narrowed `include`; an `exclude` targeting
+  `**/synthetic-safety.property.test.ts`; an `exclude` dropping `test/property/`; positional filters
+  written both `vitest run <p>` and `vitest --run <p>`; `--shard=`, `--config=`; a body naming no
+  vitest at all (`pnpm run test:unit`, `node node_modules/vitest/vitest.mjs run`) **and a delegation
+  to this repo's own narrowing script, `pnpm run test:fuzz`**; renaming a safety suite to `.ts`,
+  `.spec.ts` and `_safety.ts`; **the colliding renames that were measured GREEN on `ncpdp`'s earlier
+  versions** (`_helpers.ts`, `test/_helpers/load-fixture.ts`, `test/_x/parse.ts`, and the cross-format
+  safety suite moved into `test/_helpers/fuzz-config.ts`); the PHI suite renamed to
+  `phi-scan-suite.ts`; the fuzz subject renamed out of shape; `run-phi-scan: false`; and
+  un-exporting `./astm` together with a narrowed include. Deleting the `Fuzz` workflow, deleting the
+  `test:fuzz` script, or deleting the `exports` map each make it **REFUSE to report** rather than pass
+  vacuously.
+
+  Red after the refuter pass, having been **green before it**: any suite relocated out of `test/`
+  (one safety suite, then all six at once, then the PHI suite, each into `internal/`), and a suite
+  renamed to `_safety.ts` whose import specifiers were rewritten to unicode escapes so the raw text
+  no longer looked like the path while the imports still resolved.
+
+  Green and stated as limits rather than denied: a config branching on `process.argv` (**2 of 39**
+  suites would have run); un-exporting `./astm` alone (**2** `test/astm` suites drop to the filename
+  floor, denominator 38 to 36); a suite moved into `src/`, `scripts/` or the repo root; and renaming
+  `test/docs-content.test.ts` out of shape.
+
+- **The dual ESM/CJS release smoke now runs in a job.** `.github/workflows/smoke.yml` (job id `smoke`,
+  matrix contexts `smoke (22)` / `smoke (24)`), with `build` and `smoke` as steps of **one** job so a
+  future required context covers both. Same wiring `deid` used for the same defect, which is what
+  makes this a class rather than an incident. These contexts are also deliberately **not** added to
+  the ruleset yet.
 
 ### Changed
 
@@ -408,6 +489,31 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 ### Removed
 
 ### Fixed
+
+- **`scripts/smoke.mjs` ran in NO CI job.** It only ever ran on the meta-repo's local
+  `scripts/verify.sh` ladder, which a contributor is not obliged to run and CI never invokes, so no
+  required check covered the eight published subpaths and a green PR said nothing about whether they
+  load. Now wired (`.github/workflows/smoke.yml`).
+
+  **A correction, recorded rather than quietly dropped.** Earlier drafts of this entry and of two
+  other surfaces said the file had been _documented as a CI gate_, so that the docs asserted a
+  protection nothing provided. **That was false here**, and the third refuter pass caught it: every
+  surface describing this file said `run by verify.sh` (this file, `CLAUDE.md`, and the
+  release-hardening changeset), and its header said only "Run after `build`". The docs were accurate.
+  The sentence was **ported from `deid`, where it is true** (its own changelog records the line that
+  claimed CI and never ran), and it was ported without re-measuring it against this repo, which is
+  precisely the failure the test-selection gate's header warns about two entries up. The defect is
+  real and unchanged; only the indictment of the prior docs was wrong.
+
+- **The smoke's subpath set was a hand-written array.** `SUBPATHS` listed the eight subpaths inline,
+  so dropping one would have left the gate printing OK over a subset. It is now derived from
+  `package.json` `exports` at run time, loads the export targets themselves rather than
+  reconstructing `dist/<name>/index.mjs` by hand (so an `exports` entry pointing at a path the build
+  does not emit fails here rather than in a consumer's install), and **REFUSES to report** if its
+  per-subpath probe map and that `exports` map disagree in either direction. There is no exclusion
+  list either: `./package.json` drops out because its target is structurally data, not because a key
+  was named. Demonstrated: deleting `"./astm"` from `exports` makes the smoke refuse. That refusal is
+  the interlock under `check:test-selection`, whose headline subject is derived from the same map.
 
 ### Security
 
