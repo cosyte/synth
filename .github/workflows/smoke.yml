@@ -1,0 +1,93 @@
+name: Release smoke
+
+# Runs `pnpm smoke` (scripts/smoke.mjs) against the freshly built `dist/`: every published subpath
+# loaded in BOTH ESM and CJS, its headline export resolved, a real generation exercised through it,
+# and the same seed asserted to produce byte-identical output under the two module systems.
+#
+# WHY THIS FILE EXISTS AT ALL, STATED PLAINLY. `pnpm smoke` ran in NO CI job, here or upstream. It
+# had only ever run on the meta-repo's local `scripts/verify.sh` ladder, which a contributor is not
+# obliged to run and CI never runs, so no required check covered the eight published subpaths and a
+# green pull request said nothing about whether they load. A gate that only runs when someone
+# remembers to run it is not protecting the branch. The sibling `deid` had the same gap and closed it
+# the same way, which is what makes this a class rather than an incident.
+#
+# WHAT THIS IS NOT. An earlier draft here said the docs had described `pnpm smoke` as a CI gate, so
+# that they "assert a protection nothing provides". A refuter checked and that is FALSE for this
+# repo: every surface describing this file said `run by verify.sh`, which was accurate. The sentence
+# came from `deid`, where it is true, and was ported without re-measuring. The defect being fixed is
+# real; it is "local-only, therefore not a gate", not "the documentation lied".
+#
+# IT IS NOT THE SAME CHECK AS THE SHARED PIPELINE'S "Dual ESM/CJS smoke". That upstream step is ROOT
+# ENTRY ONLY: it stats `dist/index.{mjs,cjs,d.ts}` and imports/requires the root. It cannot see a
+# broken `./hl7` subpath, a missing headline export, or a subpath that loads but generates nothing.
+# Keep both; this one does not replace it, and deleting the upstream step is not this job's call.
+#
+# WHY A SEPARATE WORKFLOW AND NOT A JOB IN ci.yml. `ci.yml` is a thin caller of
+# cosyte/.github/.github/workflows/ci.yml@main, which runs a fixed ladder and no arbitrary repo
+# script, so this cannot go upstream without landing on every other caller at once. Keeping it out
+# of ci.yml also keeps the two context-naming conventions from being mixed in one file: ci.yml's
+# contexts are `ci / <upstream job>` because `ci` is a reusable-workflow caller, and this one's is
+# the bare job id below plus its matrix value.
+#
+# A REQUIRED JOB GATES ALL OF ITS STEPS, so `build` and `smoke` are steps of ONE job on purpose. The
+# smoke reads the BUILT `dist/`, so a build in a different job would need an artifact hand-off and
+# would drop the build out of the required context. Promote either to its own job and it is silently
+# no longer required, with no error anywhere.
+#
+# AND THE JOB BOUNDARY IS NOT THE ONLY WAY TO LOSE THIS GATE. The set of subpaths the smoke loads is
+# NOT a list inside the script: it is read from `package.json`'s `exports` at run time, and the
+# script REFUSES to run if its per-subpath probe map and that `exports` map disagree in either
+# direction. It loads the exports targets themselves rather than rebuilding `dist/<name>/index.mjs`
+# by hand, so an entry pointing at a path the build does not emit fails here rather than in
+# someone's install. There is no exclusion LIST either, deliberately: `./package.json` drops out
+# because its target is structurally data, not because a key was named somewhere. If you replace
+# either derivation with a hand-written array, this job goes back to reporting green over whatever
+# subset someone last remembered.
+#
+# THE JOB ID PLUS THE MATRIX VALUE IS THE CHECK-RUN CONTEXT NAME (`smoke (22)`, `smoke (24)`).
+# Neither is a required context on `main` yet, deliberately: requiring a context no workflow has
+# emitted on `main` leaves every future pull request PENDING and unmergeable rather than failing it.
+# Let this run on `main` first, read the real names off a live check run
+# (`gh api repos/cosyte/synth/commits/<sha>/check-runs --jq '.check_runs[].name'`), and only then
+# add them to the ruleset. After that, the job id, the matrix and the required contexts move
+# together or not at all.
+#
+# The Node matrix mirrors `ci / verify`, because module resolution of `exports`, ESM/CJS interop and
+# `require` of a dual package are exactly the kind of thing that moves between Node majors, and the
+# floor is `engines.node >= 22`.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # One job deliberately: see the banner. No `|| true`, no `continue-on-error`.
+      - run: pnpm build
+      - run: pnpm smoke

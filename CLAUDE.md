@@ -29,7 +29,9 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
   **seed-sweep generation fuzz** (`test/property/seed-sweep.fuzz.property.test.ts`, the inverted fuzz of
   roadmap §6) proving generation is total over seed × count × format, scaled by `SYNTH_FUZZ_RUNS` with a
   `test:fuzz` script + nightly `Fuzz` workflow; a **dual ESM/CJS release-shape smoke**
-  (`scripts/smoke.mjs`, `smoke` script, run by `verify.sh`) across all eight subpaths; a proven publish
+  (`scripts/smoke.mjs`, `smoke` script) across all eight subpaths, whose subpath set is now derived
+  from `package.json` `exports` and which now runs in CI (`smoke.yml`) rather than only in
+  `verify.sh`; a proven publish
   dry-run (`attw` green + a clean `npm publish --dry-run` tarball); per-dir ≥90 coverage still gating;
   and the honesty doc `docs-content/limitations.md` (does/does-not + the full synthetic-safety posture:
   900-range SSN, invalid-Luhn NPI, invalid-checksum DEA, `555-01xx`, `example.*`, TEST-NET, synthetic-AA
@@ -155,6 +157,126 @@ a summary.
 - **CI/CD:** thin callers of the reusable `cosyte/.github` workflows.
 - **Runtime deps:** **Zero.** Node stdlib only.
 - **License:** MIT.
+
+## Required checks on `main`
+
+One repository ruleset protects `main`: **`required-checks`, id `19913330`**. **Read the live set
+back rather than trusting this list** (`gh api "repos/cosyte/synth/rulesets?includes_parents=true"`);
+a hardcoded list here goes stale, and it is prose that no test can check. As of 2026-07-29 it
+requires five contexts, every one pinned to the GitHub Actions app (`integration_id: 15368`):
+`ci / verify (22, ubuntu-latest)`, `ci / verify (24, ubuntu-latest)`, `ci / actionlint`,
+`codeql / analyze (javascript-typescript)`, `no-internal-refs`. It also carries `pull_request`,
+`required_linear_history`, and the deletion / non-fast-forward bans.
+
+**Extend that one ruleset in place. Do not add a second one for the next gate.** An unpinned required
+context can be satisfied by any actor with write access posting a commit status of that name, without
+the workflow ever running, and a repo is not pinned because one of its rulesets is.
+
+**Two workflows now emit contexts that are deliberately NOT required yet**: `test-selection`, and
+`smoke (22)` / `smoke (24)`. **Requiring a context before its workflow has completed on `main` leaves
+every future pull request PENDING and unmergeable, with nothing anywhere saying why.** Let them run
+on `main`, read the real names off a live check run
+(`gh api repos/cosyte/synth/commits/<sha>/check-runs --jq '.check_runs[].name'`, never off the
+workflow's `name:`), and only then extend the ruleset. After that, a job id and its required context
+move together or not at all.
+
+Things that silently detach or hollow out a required check:
+
+- **Renaming a job.** The ruleset keeps requiring a context nothing emits, which leaves PRs pending
+  rather than red.
+- **Splitting a step into its own job.** A required job gates all of its steps, so moving one out
+  quietly un-requires it. This is why `build` and `smoke` are steps of one job in `smoke.yml`.
+- **Narrowing `include` in `vitest.config.ts`.** `pnpm test` takes no path arguments, so that single
+  glob is the sole selector for everything `ci / verify` runs. Coverage does not backstop it:
+  coverage is measured over `src/**/*.ts` only, so dropping every `synthetic-safety.property.test.ts`
+  costs zero coverage percent and reds nothing. **For a synthetic-data generator that is the whole
+  safety story**, since the property layer is the executable proof that nothing emitted can be real
+  or plausibly-real PHI.
+
+  **This one is now gated.** `scripts/check-test-selection.ts` (`pnpm check:test-selection`, also
+  reached by `pnpm check`) compares the test files that **exist** against the files vitest would
+  actually **run**, and reds on any shortfall **in its subject**. Read that scope before trusting it;
+  the script header carries the design rules and the limits, and four things about its shape are
+  deliberate:
+  1. It asks vitest for its **resolved** selection (`vitest list --filesOnly`) rather than reading the
+     globs, so an `exclude`, a `projects` split and a `dir` are caught alongside a narrowed
+     `include`. **A config body that branches on its own invocation is NOT caught**, and that is
+     measured here rather than guessed: a config serving the wide glob under `vitest list` and
+     `["test/hl7/**"]` under `vitest run` left the gate green while CI would have run **2 of 39**
+     suites.
+  2. **The config is not the only selector; the invocation is one too**, and `vitest list` cannot see
+     it. That rule **does not parse the script body**: `test` and `test:coverage` must equal one of
+     two exact strings. This is the half a refuter broke **three times** in `ncpdp`, each time in the
+     remedy for the last, ending with a version that failed closed on arguments but **open on the
+     invocation** so `"test": "pnpm run test:unit"` reported as passing. **Analysing a shell string is
+     unbounded and each round bought one more spelling.** This repo's two bodies are spelled
+     identically to `ncpdp`'s, so the exact-match set is **ported verbatim**. Never replace it with a
+     parser.
+  3. Its subjects are **derived from files that exist for their own reasons**, never hand-listed.
+     `ncpdp`'s fuzz derivation did **not** port: no workflow here contains the string `vitest run`, so
+     ported verbatim it refuses outright. The headline subject here is **`package.json` `exports`**.
+     Every published subpath resolves to a `dist/` entry emitted from a `src/` entry, so every tracked
+     **in-scope** code module naming one of those entry points must be selected, and every entry point
+     must have a selected module naming it. It is keyed on a **resolved module path**, so a rename and an
+     `_` prefix change nothing, and its scope is a **deny-list of three locations** (`src/`,
+     `scripts/`, the repo root), so a move anywhere else changes nothing either. **That scope was an
+     allow-list in the first version and a refuter broke it**: scoped to `test/`, relocating all six
+     `synthetic-safety.property.test.ts` files into an `internal/` directory took the entire safety
+     layer out of CI with `vitest list` selecting zero of them and the gate printing OK exit 0. A
+     move into one of the three denied locations still escapes; that is stated in the script header,
+     in the failure epilogue and on the OK line, and it is **not** denied anywhere. Two more
+     subjects: the fuzz path (two steps, the `Fuzz` workflow runs `pnpm test:fuzz` and that script
+     body names the path) and the PHI scanner. **A hand-editable list of what to check is not a
+     gate**, which `deid` learned when a refuter dropped an entry from its exclusion set with the run
+     still green.
+  4. It **re-proves itself on every run**: three self-tests seed the removals it exists to catch, one
+     resolving a genuinely narrowed config through real vitest. Both A's drop targets **one at a time**,
+     so the colliding direction is exercised; the single difference from `ncpdp`'s is that **this one
+     ignores the filename floor and requires a DERIVED rule to name each dropped file**, where
+     `ncpdp`'s verdict counts the floor and therefore passed with its derived rules neutered. An
+     earlier draft of this line said `ncpdp`'s A "does neither", which a refuter corrected: it does
+     drop one at a time. **A is not the backstop for the derived rules** either way, because emptying
+     a subject empties A's targets with it. Self-test C is; do not delete it thinking A covers them.
+
+  **Know the denominator, which the gate prints on every run rather than a bare OK.** Of 39 tracked
+  in-scope code modules, **38 are watched by a name-independent rule, 1 by the `.test.`/`.spec.`
+  filename shape alone (`test/docs-content.test.ts`), and 0 by no rule at all.** Renaming that one out
+  of shape stops it running with the gate green; the count moves from `1 name-only` to `1 unwatched`,
+  so a reviewer sees it. **These routes are closed; that is not the claim that the selection cannot be
+  collapsed**, and writing it up as the latter is the recurring mistake in this ecosystem. What it
+  does not reach is in its header: which script the shared pipeline elects to invoke, scripts other
+  than those two, anything a workflow runs inline, a config branching on its own invocation, a move
+  into `src/` / `scripts/` / the repo root, a module that reaches `src/` without naming it, and
+  whether a selected test asserts anything useful. The fuzz subject's empty-set refusal is a tripwire
+  on the `Fuzz` job disappearing **only if no other literal path is left behind in a workflow**; a
+  quoted `vitest run <path>` in a comment suppresses it, which the header states rather than glosses.
+
+- **Narrowing the published surface.** `exports` feeds two gates. Deleting a subpath shrinks
+  `check:test-selection`'s headline subject and that gate stays **green** (measured: dropping
+  `"./astm"` moves **2** suites, `test/astm/determinism.property.test.ts` and
+  `test/astm/generators.test.ts`, onto the filename floor, denominator 38 to 36; the other three
+  `test/astm` suites also name `src/index.ts` and stay). It is not a free escape: it is a breaking
+  change to the package, the suites still red if also deselected, and `scripts/smoke.mjs` derives its
+  own subpath set from the same map and **refuses** when that set and its probe map disagree. Two
+  gates on one map, on purpose.
+
+- **Requiring a workflow with no `pull_request` trigger.** `fuzz`, `scorecard` and `release` are
+  schedule, push or dispatch only. Requiring any of them strands every pull request forever.
+
+**RE-MEASURE EVERY PORTED SENTENCE AGAINST THIS REPO.** This is the one failure that repeated. Three
+refuter passes on `check-test-selection.ts` all came back red, and **two of the three found a false
+number or a false claim of reach rather than a hole in the mechanism**, both times because a sentence
+was carried over from `ncpdp` or `deid` and never re-measured here: a figure labelled `MEASURED` that
+was not, an example naming the wrong directories, and a "documented as a CI gate" indictment that was
+true in `deid` and false here (every surface in this repo said `run by verify.sh`, accurately). The
+guard was sound from pass 2 onward; the prose kept failing. So: **where a number is asserted, name what
+produced it** (the script header now carries the command for each), and **where reach is asserted, bound
+it to a route that was actually seeded**. A borrowed sentence is a claim about this repo, and it needs
+the same evidence as a new one.
+
+Finally, the part no test can tell you: **nothing inside this repository can observe its own
+ruleset.** Delete it and every test still passes, every gate still prints OK, and this file still says
+`main` is protected. A ruleset makes a red check block a merge; it does not make the check correct.
 
 ## Engineering Guardrails
 
