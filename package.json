@@ -1,6 +1,6 @@
 {
   "name": "@cosyte/synth",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Deterministic, seedable synthetic healthcare-fixture generator for Node.js and TypeScript — spec-clean by construction, never real PHI.",
   "keywords": [
     "synth",
