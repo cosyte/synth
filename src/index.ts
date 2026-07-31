@@ -101,4 +101,10 @@ export {
 } from "./quirk.js";
 
 // ── Stable fatal codes + the typed error (roadmap §Phase 1) ──
-export { SYNTH_FATAL_CODES, SynthError, type SynthFatalCode } from "./codes.js";
+export {
+  SYNTH_FATAL_CODES,
+  SYNTH_FATAL_MESSAGES,
+  SynthError,
+  type SynthFatalCode,
+} from "./codes.js";
+export { resolveKind, resolveMix } from "./select.js";

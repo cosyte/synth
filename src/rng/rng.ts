@@ -21,6 +21,7 @@
 
 import { splitmix32 } from "./splitmix32.js";
 import { sfc32Next, type Sfc32State } from "./sfc32.js";
+import { SYNTH_FATAL_CODES, SynthError } from "../codes.js";
 
 /**
  * A seeded, deterministic random source. Created via {@link createRng}; passed explicitly to every
@@ -82,7 +83,7 @@ class Sfc32Rng implements Rng {
   }
 
   public int(min: number, max: number): number {
-    if (max < min) throw new RangeError(`Rng.int: max (${String(max)}) < min (${String(min)})`);
+    if (max < min) throw new SynthError(SYNTH_FATAL_CODES.SYNTH_INVALID_RANGE);
     const span = max - min + 1;
     return min + Math.floor(this.float() * span);
   }
@@ -92,7 +93,7 @@ class Sfc32Rng implements Rng {
   }
 
   public pick<T>(items: readonly T[]): T {
-    if (items.length === 0) throw new RangeError("Rng.pick: empty array");
+    if (items.length === 0) throw new SynthError(SYNTH_FATAL_CODES.SYNTH_EMPTY_POOL);
     // `int(0, length-1)` is always in-bounds on a non-empty array, so this access cannot be a hole;
     // the cast discharges `noUncheckedIndexedAccess`'s `T | undefined` without a runtime re-check.
     return items[this.int(0, items.length - 1)] as T;

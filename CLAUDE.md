@@ -290,6 +290,37 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
   emits spec-clean output).
 - Fatal errors only for unrecoverable structural corruption (Tier-3 codes). Everything else is a
   warning with a stable code + positional context.
+- **No diagnostic takes a value parameter.** `SynthError(code)` is the only error `src/` _constructs_,
+  and its message is a fixed entry in the frozen `SYNTH_FATAL_MESSAGES` table, so a caller-supplied
+  string has no position through which to reach `message`, `stack`, or a field on the thrown object.
+  **Adding a fatal means adding a registry entry, never a template string.** If a new refusal seems to
+  need the value it rejected, it does not: name the rule on `err.code` and let the caller read the
+  value off the arguments it passed.
+
+- **Resolve every caller-supplied selector against its closed set** (`resolveKind` / `resolveMix` in
+  `src/select.ts`), at the entry point, before anything is generated. **This is not a style rule.** A
+  selector union is erased at run time, and an unresolved one does three things at once: it travels
+  into a peer builder that is entitled to quote it back in _its_ `TypeError` (which is how a caller
+  string reached an `err.message` and an `err.stack` through this package's own API), it becomes an
+  `Artifact.kind` and a `manifest.counts` key, and it falls out of an exhaustive `switch` as
+  `undefined` so the corpus is silently mislabeled. All three were live; a refuter found the first two
+  after the message fix had been called done.
+
+  **`SynthError` being the only constructor is therefore NOT the whole guarantee, and never claim it
+  is.** `src/` can still surface a `TypeError` the runtime raises, or a fatal an optional peer parser
+  raises on input this package forwarded. The selector chokepoint is what closes the first; the second
+  is out of scope by design and is documented as such rather than papered over. The round-trip
+  harnesses keep `String(w.code)` from a sibling's warnings and never the `message` or a snippet.
+
+  `test/phi/diagnostic-surface.test.ts` carries all of it: the per-slot marker sweep via
+  `assertNoDiagnosticPhiLeak`, the closed-set assertion over identifiers a real generation derives,
+  and a source scan whose title says what a regex can see and its docblock says what it cannot.
+
+  **Read `documentation/repos/phi-audit.md` in the meta-repo before touching this.** The claim that
+  warning messages are PHI-free by construction spread across thirteen repos as prose rather than as
+  shared code, and this package had inherited the sentence and used it as a reason not to bound
+  anything. A new safety sentence here is worth nothing without a slot in that table behind it.
+
 - Coverage: per-directory >= 90% (lines/branches/functions/statements), enforced by
   `pnpm test:coverage`.
 

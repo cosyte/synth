@@ -22,6 +22,7 @@ import { generateOrm } from "./orm.js";
 import { generateSiu } from "./siu.js";
 import { generateVxu } from "./vxu.js";
 import { roundTrip } from "./round-trip.js";
+import { resolveKind, resolveMix } from "../select.js";
 
 export { generateAdt, type AdtTrigger, type GenerateAdtOptions } from "./adt.js";
 export { generateOru, type GenerateOruOptions } from "./oru.js";
@@ -69,8 +70,8 @@ export type Hl7MessageKind =
   | "SIU^S12"
   | "VXU^V04";
 
-/** The default message mix for {@link hl7Corpus} — one of every family. */
-const DEFAULT_MIX: readonly Hl7MessageKind[] = Object.freeze([
+/** Every kind {@link hl7Corpus} accepts, and the default mix — one of every family. */
+const ALL_KINDS: readonly Hl7MessageKind[] = Object.freeze([
   "ADT^A01",
   "ADT^A04",
   "ADT^A08",
@@ -79,6 +80,10 @@ const DEFAULT_MIX: readonly Hl7MessageKind[] = Object.freeze([
   "SIU^S12",
   "VXU^V04",
 ]);
+const DEFAULT_MIX = ALL_KINDS;
+
+/** Every `ADT` trigger the back-compat `triggers` option accepts. */
+const ADT_TRIGGERS: readonly AdtTrigger[] = Object.freeze(["A01", "A04", "A08"]);
 
 /**
  * Generate one message of the given {@link Hl7MessageKind} from a seed, dispatching to the right
@@ -94,7 +99,7 @@ const DEFAULT_MIX: readonly Hl7MessageKind[] = Object.freeze([
  * ```
  */
 export function generateHl7(kind: Hl7MessageKind, seed: number): Hl7Message {
-  switch (kind) {
+  switch (resolveKind(ALL_KINDS, kind)) {
     case "ADT^A01":
       return generateAdt({ seed, trigger: "A01" });
     case "ADT^A04":
@@ -149,8 +154,10 @@ export function hl7Corpus(options: Hl7CorpusOptions): Corpus {
   const { seed, count = 1 } = options;
   const kinds: readonly Hl7MessageKind[] =
     options.triggers !== undefined
-      ? options.triggers.map((t): Hl7MessageKind => `ADT^${t}`)
-      : (options.mix ?? DEFAULT_MIX);
+      ? options.triggers.map(
+          (t): Hl7MessageKind => `ADT^${resolveKind(ADT_TRIGGERS, t)}` as Hl7MessageKind,
+        )
+      : resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
   // A seed stream derives one deterministic per-message seed from the corpus seed.
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {

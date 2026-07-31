@@ -7,6 +7,8 @@
  * @module
  */
 
+import { SYNTH_FATAL_CODES, SynthError } from "./codes.js";
+
 /** The user-authored spec passed to {@link defineSynthProfile}. */
 export interface SynthProfileSpec {
   /** A stable, human-readable profile name (e.g. `"acme-hospital"`). Required, non-empty. */
@@ -40,7 +42,7 @@ export interface SynthProfile {
  *
  * @param spec - The profile spec; `name` is required and non-empty.
  * @returns A deep-frozen {@link SynthProfile}.
- * @throws TypeError when `name` is missing or blank.
+ * @throws SynthError `SYNTH_INVALID_PROFILE` when `name` is missing or blank.
  * @example
  * ```ts
  * import { defineSynthProfile } from "@cosyte/synth";
@@ -49,7 +51,7 @@ export interface SynthProfile {
  */
 export function defineSynthProfile(spec: SynthProfileSpec): SynthProfile {
   if (typeof spec.name !== "string" || spec.name.trim().length === 0) {
-    throw new TypeError("defineSynthProfile: `name` is required and must be a non-empty string.");
+    throw new SynthError(SYNTH_FATAL_CODES.SYNTH_INVALID_PROFILE);
   }
   return Object.freeze({
     name: spec.name,

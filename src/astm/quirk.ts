@@ -28,6 +28,7 @@ import { parseAstmRecords, astmProfiles, type AstmProfile } from "@cosyte/astm";
 import { createRng } from "../rng/rng.js";
 import { makeCorpus, type Corpus } from "../corpus.js";
 import { defineSynthProfile, type SynthProfile } from "../profile.js";
+import { SYNTH_FATAL_CODES, SynthError } from "../codes.js";
 import {
   resolveQuirk,
   sameCodeSet,
@@ -40,6 +41,7 @@ import {
 } from "../quirk.js";
 
 import { generateAstmResult } from "./message.js";
+import { resolveKind } from "../select.js";
 
 /** Every ASTM quirk this package ships. */
 export type AstmQuirkName = "unknown-escape" | "unknown-record-type";
@@ -50,6 +52,9 @@ export type AstmQuirkName = "unknown-escape" | "unknown-record-type";
  * carries. So the quirk base is always a result report (`generateAstmResult`).
  */
 export type AstmQuirkKind = "Result";
+
+/** Every value {@link AstmQuirkKind} admits. Erased at run time, so it is resolved, not trusted. */
+const ALL_QUIRK_KINDS: readonly AstmQuirkKind[] = Object.freeze(["Result"]);
 
 /** The ASTM quirk registry — each recipe bound to the exact `@cosyte/astm` warning code it targets. */
 export const ASTM_QUIRKS: Readonly<Record<AstmQuirkName, QuirkDescriptor>> = Object.freeze({
@@ -144,19 +149,15 @@ export interface GenerateAstmQuirkOptions {
  */
 export function generateAstmQuirk(options: GenerateAstmQuirkOptions): QuirkArtifact {
   const seed = options.seed ?? 0;
-  const kind: AstmQuirkKind = "Result";
+  const kind: AstmQuirkKind = resolveKind(ALL_QUIRK_KINDS, options.kind ?? "Result");
   const descriptor = resolveQuirk(ASTM_QUIRKS, "astm", options.quirk);
   const clean = generateAstmResult({ seed });
   const content = applyQuirk(options.quirk, clean);
   if (content === clean) {
-    throw new Error(
-      `generateAstmQuirk: quirk "${options.quirk}" found no structural anchor in a ${kind} report at ` +
-        `seed ${seed} — refusing to emit a fixture that does not carry the intended deviation.`,
-    );
+    throw new SynthError(SYNTH_FATAL_CODES.SYNTH_QUIRK_ANCHOR_ABSENT);
   }
   // Self-check the intended-warning contract at generation time — never emit a mislabeled fixture.
   assertIntendedWarnings(
-    descriptor.name,
     descriptor.intendedWarnings,
     parseAstmRecords(content).warnings.map((w) => String(w.code)),
   );
@@ -247,6 +248,12 @@ export function astmQuirkCorpus(options: AstmQuirkCorpusOptions): Corpus {
     ? validateProfileQuirks(options.profile, ASTM_QUIRKS, "astm")
     : (options.quirks ?? ALL_ASTM_QUIRKS);
   const names = quirks.length > 0 ? quirks : ALL_ASTM_QUIRKS;
+  // Resolve the WHOLE list here, not lazily per generated artifact. `count` can be below
+  // `names.length`, and the tail then never reaches this module's own `resolveQuirk`
+  // while still landing on `manifest.quirks` verbatim. A manifest that names a quirk the
+  // corpus does not contain is the same mislabeled-fixture defect the intended-warning
+  // contract exists to prevent, and `manifest.quirks` is a derived identifier.
+  for (const name of names) resolveQuirk(ASTM_QUIRKS, "astm", name);
   const count = options.count ?? names.length;
   const seedStream = createRng(options.seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {

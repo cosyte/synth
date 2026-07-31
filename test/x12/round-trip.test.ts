@@ -25,7 +25,7 @@ import {
   SERVICE_TYPE_CODES,
 } from "../../src/x12/example-codes.js";
 import { dec, money } from "../../src/x12/money.js";
-import { createRng } from "../../src/index.js";
+import { createRng, SynthError, SYNTH_FATAL_CODES } from "../../src/index.js";
 
 const FIXTURE_DIR = join(process.cwd(), "test", "fixtures", "x12");
 
@@ -100,6 +100,14 @@ describe("X12 money helpers", () => {
   });
 
   it("dec throws on an unparseable decimal (the defensive guard)", () => {
-    expect(() => dec("not-a-number")).toThrow(/invalid synthetic decimal/);
+    expect(() => dec("not-a-number")).toThrow(SynthError);
+    try {
+      dec("not-a-number");
+      expect.unreachable("should have thrown");
+    } catch (err) {
+      expect((err as SynthError).code).toBe(SYNTH_FATAL_CODES.SYNTH_INVALID_DECIMAL);
+      // The unparseable value is not quoted back: it is caller-supplied.
+      expect((err as SynthError).message).not.toContain("not-a-number");
+    }
   });
 });

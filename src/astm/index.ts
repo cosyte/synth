@@ -25,6 +25,7 @@ import { makeCorpus, type Corpus } from "../corpus.js";
 
 import { generateAstmResult, generateAstmOrder } from "./message.js";
 import { astmRoundTrip } from "./round-trip.js";
+import { resolveMix } from "../select.js";
 
 export {
   generateAstmResult,
@@ -63,8 +64,9 @@ export {
 /** Every ASTM message kind {@link astmCorpus} generates — the label used as the corpus `kind`. */
 export type AstmCorpusKind = "Result" | "Order";
 
-/** The default message mix for {@link astmCorpus} — a result report and an order. */
-const DEFAULT_MIX: readonly AstmCorpusKind[] = Object.freeze(["Result", "Order"]);
+/** Every kind {@link astmCorpus} accepts, and the default mix — a result report and an order. */
+const ALL_KINDS: readonly AstmCorpusKind[] = Object.freeze(["Result", "Order"]);
+const DEFAULT_MIX = ALL_KINDS;
 
 /** Generate one message of the given kind from a sub-seed, returning the round-trip verdict. */
 function generateKind(kind: AstmCorpusKind, seed: number): ReturnType<typeof astmRoundTrip> {
@@ -101,7 +103,8 @@ export interface AstmCorpusOptions {
  * ```
  */
 export function astmCorpus(options: AstmCorpusOptions): Corpus {
-  const { seed, mix = DEFAULT_MIX } = options;
+  const { seed } = options;
+  const mix = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
   const count = options.count ?? mix.length;
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {

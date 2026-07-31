@@ -82,6 +82,35 @@ representative generated corpus in CI and must report **zero** real-data hits, a
 asserts, for arbitrary seeds and every format, that no emitted value escapes these sources. A quirk
 fixture deviates _structure_, never _provenance_ — the safety floor holds over quirk output too.
 
+**The diagnostics have their own floor, and it is a different one.** The table above is about the
+values `synth` emits. A separate guarantee covers what `synth` says about your call:
+
+- A fatal message is a **fixed string from a frozen registry**. `SynthError` takes a code and no value
+  parameter, so there is no position through which a value could reach `message`, `stack`, or a field
+  on the thrown object.
+- Caller-supplied **selectors** — a message kind, a document type, a corpus mix entry, a claim
+  variant, a Bundle type, a resource profile, a quirk name — are resolved against their own closed set
+  before anything is generated. An unrecognised one is a fatal `SYNTH_UNSUPPORTED_KIND` (or
+  `SYNTH_UNSUPPORTED_QUIRK`), so it does not reach a peer builder that might quote it back and does
+  not become an artifact `kind` or a manifest key.
+- A round-trip result keeps only the sibling parser's warning **codes**, never the parser's message
+  and never a snippet of the document.
+
+Each of those is asserted per position, against a marker planted in each one, rather than argued from
+the fact that a fixture generator's values are synthetic anyway. **The list of positions is an
+enumeration, not a proof of exhaustiveness** — two independent reviews of this work each found a
+position an earlier version had described as covered, and a third claim of completeness would be worth
+no more than the first two. What holds generally is the mechanism: the error type has no value
+parameter, and selectors are read in exactly one place.
+
+**Three things it does not cover, stated rather than implied.** The **artifact** is not a diagnostic:
+`content` is what you asked to be built and carries what you asked for, and the same goes for a name
+pool or a profile name you supply and get handed back. A **document or model you pass to a round-trip
+harness** is parsed by the sibling parser, and a fatal it raises on input it could not read is that
+parser's diagnostic, not this one's. And a **caller-authored label** — a `SynthProfile` name, an
+`Artifact` you construct yourself and hand to `makeCorpus` — is stored and returned verbatim, because
+that is what you asked for; no `synth` code path derives anything from it.
+
 ```ts runnable
 import { createRng, safe, isSyntheticSsn, isSyntheticNpi, isSyntheticDea } from "@cosyte/synth";
 

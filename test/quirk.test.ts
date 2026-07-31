@@ -16,6 +16,7 @@ import {
   defineSynthProfile,
   SynthError,
   SYNTH_FATAL_CODES,
+  SYNTH_FATAL_MESSAGES,
   type QuirkDescriptor,
 } from "../src/index.js";
 
@@ -53,15 +54,23 @@ describe("resolveQuirk — fail-closed on an unsupported quirk", () => {
   it("returns the descriptor for a known quirk", () => {
     expect(resolveQuirk(REGISTRY, "hl7v2", "demo-quirk").name).toBe("demo-quirk");
   });
-  it("throws SYNTH_UNSUPPORTED_QUIRK for an unknown quirk, listing the supported ones", () => {
+  it("throws SYNTH_UNSUPPORTED_QUIRK for an unknown quirk, naming nothing it was passed", () => {
     try {
       resolveQuirk(REGISTRY, "hl7v2", "no-such");
       expect.unreachable("should have thrown");
     } catch (err) {
       expect(err).toBeInstanceOf(SynthError);
       expect((err as SynthError).code).toBe(SYNTH_FATAL_CODES.SYNTH_UNSUPPORTED_QUIRK);
-      expect((err as SynthError).message).toContain("demo-quirk");
+      // The message is the registry entry, character for character. It quotes neither the requested
+      // name nor the registry's own keys, both of which are caller-supplied.
+      expect((err as SynthError).message).toBe(SYNTH_FATAL_MESSAGES.SYNTH_UNSUPPORTED_QUIRK);
+      expect((err as SynthError).message).not.toContain("demo-quirk");
+      expect((err as SynthError).message).not.toContain("no-such");
     }
+  });
+
+  it("refuses a descriptor found under a different format's registry", () => {
+    expect(() => resolveQuirk(REGISTRY, "ccda", "demo-quirk")).toThrow(SynthError);
   });
 });
 
@@ -83,14 +92,17 @@ describe("profileTolerated — suppressed vs rebadged vs bare", () => {
 
 describe("assertIntendedWarnings — the generation-time contract self-check", () => {
   it("passes when the bare parse produced exactly the intended code(s)", () => {
-    expect(() => assertIntendedWarnings("q", ["A"], ["A"])).not.toThrow();
+    expect(() => assertIntendedWarnings(["A"], ["A"])).not.toThrow();
   });
   it("throws when the bare parse produced no warning (a mislabeled fixture)", () => {
-    expect(() => assertIntendedWarnings("q", ["A"], [])).toThrow(/intended-warning contract/);
+    expect(() => assertIntendedWarnings(["A"], [])).toThrow(SynthError);
+    expect(() => assertIntendedWarnings(["A"], [])).toThrow(
+      SYNTH_FATAL_MESSAGES.SYNTH_INTENDED_WARNING_MISMATCH,
+    );
   });
   it("throws when the bare parse produced a different or additional code", () => {
-    expect(() => assertIntendedWarnings("q", ["A"], ["B"])).toThrow();
-    expect(() => assertIntendedWarnings("q", ["A"], ["A", "B"])).toThrow();
+    expect(() => assertIntendedWarnings(["A"], ["B"])).toThrow();
+    expect(() => assertIntendedWarnings(["A"], ["A", "B"])).toThrow();
   });
 });
 

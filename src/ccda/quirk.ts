@@ -28,6 +28,7 @@ import { parseCcda, serializeCcda, ccdaProfiles, type CcdaProfile } from "@cosyt
 import { createRng } from "../rng/rng.js";
 import { makeCorpus, type Corpus } from "../corpus.js";
 import { defineSynthProfile, type SynthProfile } from "../profile.js";
+import { SYNTH_FATAL_CODES, SynthError } from "../codes.js";
 import {
   resolveQuirk,
   sameCodeSet,
@@ -145,7 +146,8 @@ function applyQuirk(quirk: CcdaQuirkName, xml: string): string {
  * @param quirk - The quirk to inject.
  * @param cleanXml - The spec-clean C-CDA XML.
  * @returns The quirked XML.
- * @throws Error when the quirk found no structural anchor to mutate.
+ * @throws SynthError `SYNTH_UNSUPPORTED_QUIRK` when `quirk` is not a supported C-CDA quirk.
+ * @throws SynthError `SYNTH_QUIRK_ANCHOR_ABSENT` when the quirk found no structural anchor to mutate.
  * @example
  * ```ts
  * import { injectCcdaQuirk } from "@cosyte/synth/ccda";
@@ -153,12 +155,12 @@ function applyQuirk(quirk: CcdaQuirkName, xml: string): string {
  * ```
  */
 export function injectCcdaQuirk(quirk: CcdaQuirkName, cleanXml: string): string {
-  const content = applyQuirk(quirk, cleanXml);
+  // The union is erased at runtime, so an unrecognised name used to fall out of `applyQuirk`'s switch
+  // as `undefined` and be returned as if it were a document. Resolve it against the registry first.
+  const descriptor = resolveQuirk(CCDA_QUIRKS, "ccda", quirk);
+  const content = applyQuirk(descriptor.name as CcdaQuirkName, cleanXml);
   if (content === cleanXml) {
-    throw new Error(
-      `injectCcdaQuirk: quirk "${quirk}" found no structural anchor to mutate — refusing to emit a ` +
-        `fixture that does not carry the intended deviation.`,
-    );
+    throw new SynthError(SYNTH_FATAL_CODES.SYNTH_QUIRK_ANCHOR_ABSENT);
   }
   return content;
 }
@@ -199,7 +201,6 @@ export function generateCcdaQuirk(options: GenerateCcdaQuirkOptions): QuirkArtif
   // transform can change bytes on the wrong template and still produce no warning — e.g. a document
   // type whose document-type root is not in DOC_TEMPLATE_ROOTS).
   assertIntendedWarnings(
-    descriptor.name,
     descriptor.intendedWarnings,
     parseCcda(content).warnings.map((w) => String(w.code)),
   );
@@ -286,6 +287,12 @@ export function ccdaQuirkCorpus(options: CcdaQuirkCorpusOptions): Corpus {
     ? validateProfileQuirks(options.profile, CCDA_QUIRKS, "ccda")
     : (options.quirks ?? ALL_CCDA_QUIRKS);
   const names = quirks.length > 0 ? quirks : ALL_CCDA_QUIRKS;
+  // Resolve the WHOLE list here, not lazily per generated artifact. `count` can be below
+  // `names.length`, and the tail then never reaches this module's own `resolveQuirk`
+  // while still landing on `manifest.quirks` verbatim. A manifest that names a quirk the
+  // corpus does not contain is the same mislabeled-fixture defect the intended-warning
+  // contract exists to prevent, and `manifest.quirks` is a derived identifier.
+  for (const name of names) resolveQuirk(CCDA_QUIRKS, "ccda", name);
   const documentType = options.documentType ?? "ccd";
   const count = options.count ?? names.length;
   const seedStream = createRng(options.seed);

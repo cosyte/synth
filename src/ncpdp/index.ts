@@ -30,6 +30,7 @@ import { makeCorpus, type Corpus } from "../corpus.js";
 import { generateNewRx, generateRxRenewalRequest, generateRxChangeRequest } from "./script.js";
 import { generateTelecom } from "./telecom.js";
 import { scriptRoundTrip, telecomRoundTrip } from "./round-trip.js";
+import { resolveMix } from "../select.js";
 
 export {
   generateNewRx,
@@ -68,8 +69,8 @@ export {
 /** Every NCPDP transaction kind {@link ncpdpCorpus} generates — the label used as the corpus `kind`. */
 export type NcpdpCorpusKind = "NewRx" | "RxRenewalRequest" | "RxChangeRequest" | "B1" | "B2" | "B3";
 
-/** The default transaction mix for {@link ncpdpCorpus} — one of each shipped transaction. */
-const DEFAULT_MIX: readonly NcpdpCorpusKind[] = Object.freeze([
+/** Every kind {@link ncpdpCorpus} accepts, and the default mix — one of each shipped transaction. */
+const ALL_KINDS: readonly NcpdpCorpusKind[] = Object.freeze([
   "NewRx",
   "RxRenewalRequest",
   "RxChangeRequest",
@@ -77,6 +78,7 @@ const DEFAULT_MIX: readonly NcpdpCorpusKind[] = Object.freeze([
   "B2",
   "B3",
 ]);
+const DEFAULT_MIX = ALL_KINDS;
 
 /** Generate one transaction of the given kind from a sub-seed, returning the round-trip verdict. */
 function generateKind(kind: NcpdpCorpusKind, seed: number): ReturnType<typeof scriptRoundTrip> {
@@ -119,7 +121,8 @@ export interface NcpdpCorpusOptions {
  * ```
  */
 export function ncpdpCorpus(options: NcpdpCorpusOptions): Corpus {
-  const { seed, mix = DEFAULT_MIX } = options;
+  const { seed } = options;
+  const mix = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
   const count = options.count ?? mix.length;
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {

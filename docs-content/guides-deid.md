@@ -16,7 +16,7 @@ subpath closes the loop between them — a deterministic, seeded **co-validation
 4. **Verify** every sentinel is gone from the de-identified output — a surviving sentinel is a hard
    failure — **and** that the clinical payload survives (the over-scrub guard).
 
-> **Honest scope.** This proves *the pair works on `synth`'s own output* — it is **not** an independent
+> **Honest scope.** This proves _the pair works on `synth`'s own output_ — it is **not** an independent
 > audit of `@cosyte/deid` against real-world documents. A sentinel `deid` **blocks** rather than redacts
 > still passes the removal check (blocked = gone). The loop covers the five formats both packages
 > support; NCPDP **SCRIPT**, **ASTM**, and **DICOM** are skipped and named.

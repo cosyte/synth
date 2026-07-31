@@ -30,6 +30,10 @@ import {
   US_CORE_PROFILE,
   US_CORE_RACE_EXTENSION,
 } from "./us-core.js";
+import { resolveKind } from "../select.js";
+
+/** Every value {@link GeneratePatientOptions.profile} admits. Erased at run time, so it is resolved. */
+const PATIENT_PROFILES: readonly ("base" | "us-core")[] = Object.freeze(["base", "us-core"]);
 
 /** Options for {@link generatePatient}. */
 export interface GeneratePatientOptions {
@@ -74,7 +78,8 @@ function ombExtension(
  * ```
  */
 export function generatePatient(options: GeneratePatientOptions = {}): FhirComplex {
-  const { seed = 0, profile = "base" } = options;
+  const { seed = 0 } = options;
+  const profile = resolveKind(PATIENT_PROFILES, options.profile ?? "base");
   const rng = createRng(seed);
   const id = fhirPatientIdentity(rng);
   const usCore = profile === "us-core";

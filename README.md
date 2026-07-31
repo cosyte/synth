@@ -255,8 +255,12 @@ astmQuirkRoundTrip(generateAstmQuirk({ seed: 1, quirk: "unknown-escape" })).inte
 ```
 
 A quirk a format's profile system does not support fails closed with a stable `SYNTH_UNSUPPORTED_QUIRK`
-diagnostic — never a silently-wrong fixture. Every quirk is grounded in a **publicly-documented**
-deviation or a parser's **public** profile, never a private vendor corpus.
+diagnostic — never a silently-wrong fixture — and so do the other selectors: a message kind, a
+document type, a corpus mix entry, an `837` variant, a Bundle type. Each is checked against its own set
+before anything is generated, so an unrecognised one is a fatal `SYNTH_UNSUPPORTED_KIND` rather than a
+mislabelled corpus. Every refusal carries a code and a fixed message from a frozen table, and quotes
+nothing you passed. Every quirk is grounded in a **publicly-documented** deviation or a parser's
+**public** profile, never a private vendor corpus.
 
 **Deferred:** quirk recipes for **FHIR, X12, and NCPDP**, and any quirk that would need a **private,
 vendor-attributed corpus** to ground.

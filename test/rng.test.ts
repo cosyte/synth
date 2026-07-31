@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { createRng, splitmix32, sfc32Next, type Sfc32State } from "../src/index.js";
+import {
+  createRng,
+  splitmix32,
+  sfc32Next,
+  SynthError,
+  SYNTH_FATAL_CODES,
+  SYNTH_FATAL_MESSAGES,
+  type Sfc32State,
+} from "../src/index.js";
 
 describe("createRng — the reproducibility contract", () => {
   it("same seed yields an identical sequence", () => {
@@ -44,15 +52,29 @@ describe("createRng — the reproducibility contract", () => {
     expect(seen).toEqual(new Set([1, 2, 3, 4, 5, 6]));
   });
 
-  it("int() throws when max < min", () => {
-    expect(() => createRng(1).int(5, 1)).toThrow(RangeError);
+  it("int() throws a coded SynthError when max < min", () => {
+    expect(() => createRng(1).int(5, 1)).toThrow(SynthError);
+    try {
+      createRng(1).int(5, 1);
+      expect.unreachable("should have thrown");
+    } catch (err) {
+      expect((err as SynthError).code).toBe(SYNTH_FATAL_CODES.SYNTH_INVALID_RANGE);
+      // Value-free: the bounds are not quoted back, so the message cannot grow with its input.
+      expect((err as SynthError).message).toBe(SYNTH_FATAL_MESSAGES.SYNTH_INVALID_RANGE);
+    }
   });
 
   it("pick() returns an in-range element and throws on empty", () => {
     const rng = createRng(4);
     const items = ["a", "b", "c"] as const;
     for (let i = 0; i < 100; i += 1) expect(items).toContain(rng.pick(items));
-    expect(() => rng.pick([])).toThrow(RangeError);
+    expect(() => rng.pick([])).toThrow(SynthError);
+    try {
+      rng.pick([]);
+      expect.unreachable("should have thrown");
+    } catch (err) {
+      expect((err as SynthError).code).toBe(SYNTH_FATAL_CODES.SYNTH_EMPTY_POOL);
+    }
   });
 
   it("bool() honors the probability extremes", () => {

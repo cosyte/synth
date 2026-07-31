@@ -46,9 +46,13 @@ import {
   TOOTH_CODES,
   TOOTH_SURFACES,
 } from "./example-codes.js";
+import { resolveKind } from "../select.js";
 
 /** The 837 variant to generate. */
 export type Claim837Variant = "P" | "I" | "D";
+
+/** Every value {@link Claim837Variant} admits. Erased at run time, so it is resolved, not trusted. */
+const CLAIM_837_VARIANTS: readonly Claim837Variant[] = Object.freeze(["P", "I", "D"]);
 
 /** Options for {@link generate837}. */
 export interface Generate837Options {
@@ -286,11 +290,17 @@ function specOf(rng: Rng, variant: Claim837Variant): Build837Spec {
  * ```
  */
 export function generate837(variant: Claim837Variant, options: Generate837Options): X12Interchange {
+  const resolved = resolveKind(CLAIM_837_VARIANTS, variant);
   const rng = createRng(options.seed);
-  const spec = specOf(rng, variant);
-  if (variant === "P") return build837P(spec);
-  if (variant === "I") return build837I(spec);
-  return build837D(spec);
+  const spec = specOf(rng, resolved);
+  switch (resolved) {
+    case "P":
+      return build837P(spec);
+    case "I":
+      return build837I(spec);
+    case "D":
+      return build837D(spec);
+  }
 }
 
 /**

@@ -9,13 +9,16 @@
 
 import { X12Decimal } from "@cosyte/x12";
 
+import { SYNTH_FATAL_CODES, SynthError } from "../codes.js";
+
 /**
  * A non-null `X12Decimal` from a decimal string. Throws on an unparseable string — the generators only
  * ever pass literals or `${n}.00` strings, so the throw is a defensive guard, never a runtime path.
  *
  * @param value - A decimal string, e.g. `"150.00"`.
  * @returns The parsed {@link "@cosyte/x12".X12Decimal}.
- * @throws If `value` is not a valid X12 decimal.
+ * @throws SynthError `SYNTH_INVALID_DECIMAL` if `value` is not a valid X12 decimal. The refusal does
+ *   not quote `value`: it is caller-supplied and a diagnostic is not a place to put caller input.
  * @example
  * ```ts
  * import { dec } from "@cosyte/synth/x12";
@@ -24,7 +27,7 @@ import { X12Decimal } from "@cosyte/x12";
  */
 export function dec(value: string): X12Decimal {
   const d = X12Decimal.fromString(value);
-  if (d === undefined) throw new Error(`invalid synthetic decimal: ${value}`);
+  if (d === undefined) throw new SynthError(SYNTH_FATAL_CODES.SYNTH_INVALID_DECIMAL);
   return d;
 }
 
