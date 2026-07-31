@@ -14,6 +14,13 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 ### Added
 
+- **A brand image at the top of `README.md`.** The page opens with the Cosyte lockup, served as a
+  `<picture>` with a light and a dark source so it follows the reader's theme, and carrying alt text
+  that describes the mark for anyone reading with images off or a screen reader on. The block is
+  copied byte for byte out of the `hl7` README, which is the reference the suite mirrors, so the
+  repos that carry it stay one string rather than drifting into as many hand-typed variants. The
+  first 353 bytes of this README are now byte-identical to that file's, with the first divergence
+  inside the H1.
 - Project scaffold from the shared `@cosyte/*` parser template: the canonical toolchain (TypeScript
   ES2023 + strict rigor via `@cosyte/tsconfig`, ESLint 10 + type-checked `typescript-eslint` via
   `@cosyte/eslint-config`, Prettier via `@cosyte/prettier-config`, Vitest 4 + v8 coverage via
@@ -490,6 +497,23 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 ### Fixed
 
+- **`README.md` said the package was not published to npm. It is.** The summary blockquote opened
+  with "pre-alpha (`0.0.x`), not yet published to npm", so the npm package page asserted that the
+  package did not exist on npm, directly under the version npm renders in its own header. A reader
+  could not tell which half was current. The line now says the package is published and points at
+  the npm package page for the version that is live. **No version number is written into the
+  correction, deliberately**: the registry is the source of truth, and a number copied onto a page
+  is a number that goes stale there (`npm view @cosyte/synth version` is the check).
+  - The closing line of the same blockquote, "the two remaining founder gates are the actual
+    `npm publish` and the repo public-flip", was **cut rather than reworded**. Both halves are now
+    false: the publish happened, and `cosyte/synth` is already a public repository (read back from
+    `gh repo view`). Rewording it would have left a measured falsehood standing in cleaner clothes.
+  - **Still standing, and deliberately not touched here.** `CLAUDE.md` carries the same "not yet
+    published" claim, and the `[Unreleased]` preamble in this file still says the first pre-alpha
+    release "will ship" the initial API surface, in the future tense, about a version that shipped.
+    Both belong to a cross-repo item spanning eight repos; fixing one repo's copy inside this change
+    would fragment it. `docs-content/intro.md` and `docs-content/installation.md` carry the "not yet
+    published to npm" claim too, and are left for the same sweep.
 - **`scripts/smoke.mjs` ran in NO CI job.** It only ever ran on the meta-repo's local
   `scripts/verify.sh` ladder, which a contributor is not obliged to run and CI never invokes, so no
   required check covered the eight published subpaths and a green PR said nothing about whether they

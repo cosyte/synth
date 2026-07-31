@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://cosyte.com/tile/cosyte-lockup-tile-on-dark-1200x300.png">
+  <img alt="Cosyte: a plus mark set in two overlapping rounded squares, one solid and one outlined, beside the Cosyte wordmark" src="https://cosyte.com/tile/cosyte-lockup-tile-on-light-1200x300.png">
+</picture>
+
 # @cosyte/synth
 
 > Deterministic, seedable **synthetic healthcare-fixture generator** for Node.js and TypeScript —
@@ -11,7 +16,8 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 **format/conformance generator, not a clinical simulator** — it does not model disease progression
 (that is Synthea).
 
-> **Status:** pre-alpha (`0.0.x`), not yet published to npm. The generator is **feature-complete**: the
+> **Status:** pre-alpha (`0.0.x`), published to npm. The version shown on the npm package page is the
+> one that is live; this page never repeats it. The generator is **feature-complete**: the
 > seeded-PRNG core, the synthetic-safety providers, and the round-trip harness; **spec-clean generation
 > across all six formats** — HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`), FHIR R4 / US Core (the full clinical
 > set + `collection`/`transaction`/`document` Bundles), C-CDA R2.1 (CCD + Referral Note), X12 005010
@@ -26,7 +32,6 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 > needing a private vendor corpus); the X12 **270** eligibility _request_ and NCPDP SCRIPT lifecycle
 > **responses** (both track the parsers' builder surfaces); **NCPDP SCRIPT / ASTM / DICOM** de-identify
 > pairing (no `@cosyte/deid` adapter, or not generated); and optional **Synthea** clinical-content ingestion.
-> The two remaining founder gates are the actual `npm publish` and the repo public-flip.
 
 ## Install
 
