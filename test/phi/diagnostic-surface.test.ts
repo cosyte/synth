@@ -216,9 +216,12 @@ const UNSUPPORTED_KIND = SYNTH_FATAL_CODES.SYNTH_UNSUPPORTED_KIND;
  * the tail of a quirk list a `count` never reaches, after the selectors had been called "generalised,
  * not patched". The lesson is not that the third claim of completeness would be true. What the suite
  * proves is that **these** positions hold; what protects the ones nobody has thought of is the
- * mechanism, not the table — `SynthError` has no value parameter, and `resolveKind`/`resolveMix` are
- * the only way a selector is read. Add a slot when you add a position; do not read the table as a
- * proof that no other position exists.
+ * mechanism, not the table — `SynthError` has no value parameter, and, everywhere except the
+ * `src/deid/**` loops in note 4 of this file's header, `resolveKind`/`resolveMix` are the only way a
+ * selector is read.
+ * That exception is real and is why this sentence is bounded rather than absolute: those three
+ * selectors are still unresolved and still reach an uncoded `TypeError`. Add a slot when you add a
+ * position; do not read the table as a proof that no other position exists.
  */
 export const SLOTS: readonly DiagnosticSlot<Probe>[] = [
   // ---- resolveQuirk: the one factory every quirk path funnels through -------------------

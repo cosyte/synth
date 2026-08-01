@@ -98,10 +98,12 @@ values `synth` emits. A separate guarantee covers what `synth` says about your c
 
 Each of those is asserted per position, against a marker planted in each one, rather than argued from
 the fact that a fixture generator's values are synthetic anyway. **The list of positions is an
-enumeration, not a proof of exhaustiveness** — two independent reviews of this work each found a
-position an earlier version had described as covered, and a third claim of completeness would be worth
-no more than the first two. What holds generally is the mechanism: the error type has no value
-parameter, and selectors are read in exactly one place.
+enumeration, not a proof of exhaustiveness.** What holds generally is the mechanism: the error type
+has no value parameter, and a selector is resolved against its closed set in one place — everywhere
+except the `@cosyte/synth/deid` pairing loops. Those are the stated exception: `x12DeidLoop({ variant })`
+and `ncpdpTelecomDeidLoop({ transaction })` still surface an uncoded `TypeError` for an unrecognised
+value, and `ccdaDeidLoop({ documentType })` still generates a Referral Note for anything but `"ccd"`.
+None echoes your value into a message, and all three are tracked separately.
 
 **Three things it does not cover, stated rather than implied.** The **artifact** is not a diagnostic:
 `content` is what you asked to be built and carries what you asked for, and the same goes for a name

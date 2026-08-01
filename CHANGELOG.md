@@ -635,7 +635,7 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
   **Measured against the unfixed source first, because a suite never seen red is indistinguishable
   from one that cannot go red.** Of the 44 slots, **3 were clean and 41 failed**. The failure
-  categories **overlap** — a slot can both echo the marker and throw an uncoded error, and 8 do — so
+  categories **overlap** — a slot can both echo the marker and throw an uncoded error, and 6 do — so
   they are counted per slot per category and do not sum to 41: **20** echoed the planted value
   verbatim into an error message or stack, **4** put it on a model identifier, **16** threw an error
   carrying no code to branch on, and **7** accepted it with neither an error nor a usable value. The
