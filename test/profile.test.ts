@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { defineSynthProfile } from "../src/index.js";
+import { defineSynthProfile, SynthError, SYNTH_FATAL_CODES } from "../src/index.js";
 
 describe("defineSynthProfile — the growth-loop skeleton", () => {
   it("returns a frozen profile with defaulted quirks", () => {
@@ -24,8 +24,22 @@ describe("defineSynthProfile — the growth-loop skeleton", () => {
     expect(Object.isFrozen(p.givenNames)).toBe(true);
   });
 
-  it("rejects a missing or blank name", () => {
-    expect(() => defineSynthProfile({ name: "" })).toThrow(TypeError);
-    expect(() => defineSynthProfile({ name: "   " })).toThrow(TypeError);
+  it("rejects a missing or blank name with a coded SynthError", () => {
+    for (const name of ["", "   "]) {
+      expect(() => defineSynthProfile({ name })).toThrow(SynthError);
+      try {
+        defineSynthProfile({ name });
+        expect.unreachable("should have thrown");
+      } catch (err) {
+        expect((err as SynthError).code).toBe(SYNTH_FATAL_CODES.SYNTH_INVALID_PROFILE);
+      }
+    }
+  });
+
+  it("hands a caller-authored name straight back, unvalidated beyond being non-blank", () => {
+    // A profile name is the caller's own label, not a value this package derives, so it is carried
+    // rather than bounded. What matters is that no code path interpolates it into a diagnostic,
+    // which test/phi/diagnostic-surface.test.ts asserts per position.
+    expect(defineSynthProfile({ name: "acme-hospital/site 3" }).name).toBe("acme-hospital/site 3");
   });
 });

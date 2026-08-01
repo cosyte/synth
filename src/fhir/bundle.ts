@@ -28,9 +28,17 @@ import { generateProcedure } from "./procedure.js";
 import { generateDiagnosticReport } from "./diagnostic-report.js";
 import { roundTrip } from "./round-trip.js";
 import { safe } from "../safe/index.js";
+import { resolveKind, resolveMix } from "../select.js";
 
 /** The Bundle shapes `@cosyte/synth` supports. */
 export type FhirBundleType = "collection" | "transaction" | "document";
+
+/** Every value {@link FhirBundleType} admits. Erased at run time, so it is resolved, not trusted. */
+const BUNDLE_TYPES: readonly FhirBundleType[] = Object.freeze([
+  "collection",
+  "transaction",
+  "document",
+]);
 
 /** Options for {@link generateBundle}. */
 export interface GenerateBundleOptions {
@@ -182,7 +190,8 @@ function documentSections(urls: Readonly<Record<string, string>>): CompositionSe
  * ```
  */
 export function generateBundle(options: GenerateBundleOptions = {}): FhirComplex {
-  const { seed = 0, type = "collection" } = options;
+  const { seed = 0 } = options;
+  const type = resolveKind(BUNDLE_TYPES, options.type ?? "collection");
   const rng = createRng(seed);
   const spine = buildSpine(rng);
 
@@ -259,6 +268,23 @@ export type FhirResourceKind =
   | "Bundle"
   | "DocumentBundle";
 
+/** Every value {@link FhirResourceKind} admits. Erased at run time, so a mix entry is resolved. */
+const ALL_KINDS: readonly FhirResourceKind[] = Object.freeze([
+  "Patient",
+  "USCorePatient",
+  "Condition",
+  "ObservationLab",
+  "VitalSign",
+  "MedicationRequest",
+  "Encounter",
+  "Immunization",
+  "AllergyIntolerance",
+  "Procedure",
+  "DiagnosticReport",
+  "Bundle",
+  "DocumentBundle",
+]);
+
 /** The default corpus mix — the full US Core clinical spine plus a collection Bundle. */
 const DEFAULT_MIX: readonly FhirResourceKind[] = Object.freeze([
   "USCorePatient",
@@ -334,7 +360,7 @@ export interface FhirCorpusOptions {
  */
 export function fhirCorpus(options: FhirCorpusOptions): Corpus {
   const { seed, count = 1 } = options;
-  const kinds = options.mix ?? DEFAULT_MIX;
+  const kinds = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {
     const kind = kinds[i % kinds.length] ?? "USCorePatient";

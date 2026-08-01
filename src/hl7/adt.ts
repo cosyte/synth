@@ -16,6 +16,10 @@ import { createRng } from "../rng/rng.js";
 
 import { componentsField } from "./field.js";
 import { mshScaffold, patientIdentity, pidSegment } from "./common.js";
+import { resolveKind } from "../select.js";
+
+/** Every value {@link GenerateAdtOptions.trigger} accepts. Erased at run time, so it is resolved. */
+const ADT_TRIGGERS: readonly AdtTrigger[] = Object.freeze(["A01", "A04", "A08"]);
 
 /** The ADT trigger events this generator produces (all require the PID + PV1 groups). */
 export type AdtTrigger = "A01" | "A04" | "A08";
@@ -46,7 +50,7 @@ export interface GenerateAdtOptions {
  */
 export function generateAdt(options: GenerateAdtOptions = {}): Hl7Message {
   const seed = options.seed ?? 0;
-  const trigger = options.trigger ?? "A01";
+  const trigger = resolveKind(ADT_TRIGGERS, options.trigger ?? "A01");
   const rng = createRng(seed);
 
   const { message, timestamp } = mshScaffold(rng, `ADT^${trigger}`);

@@ -41,6 +41,7 @@ import { generateOru } from "./oru.js";
 import { generateOrm } from "./orm.js";
 import { generateSiu } from "./siu.js";
 import { generateVxu } from "./vxu.js";
+import { resolveKind } from "../select.js";
 
 /** Every HL7 v2 quirk this package ships. */
 export type Hl7QuirkName = "unknown-zsegment" | "unknown-escape";
@@ -115,6 +116,17 @@ export interface GenerateHl7QuirkOptions {
 }
 
 /** Generate the spec-clean base message for a quirk kind. */
+/** Every value {@link Hl7QuirkKind} admits. Erased at run time, so it is resolved, not trusted. */
+const ALL_QUIRK_KINDS: readonly Hl7QuirkKind[] = Object.freeze([
+  "ADT^A01",
+  "ADT^A04",
+  "ADT^A08",
+  "ORU^R01",
+  "ORM^O01",
+  "SIU^S12",
+  "VXU^V04",
+]);
+
 function baseMessage(kind: Hl7QuirkKind, seed: number): Hl7Message {
   switch (kind) {
     case "ADT^A01":
@@ -150,12 +162,11 @@ function baseMessage(kind: Hl7QuirkKind, seed: number): Hl7Message {
  */
 export function generateHl7Quirk(options: GenerateHl7QuirkOptions): QuirkArtifact {
   const seed = options.seed ?? 0;
-  const kind = options.kind ?? "ORU^R01";
+  const kind = resolveKind(ALL_QUIRK_KINDS, options.kind ?? "ORU^R01");
   const descriptor = resolveQuirk(HL7_QUIRKS, "hl7v2", options.quirk);
   const content = applyQuirk(options.quirk, baseMessage(kind, seed).toString());
   // Self-check the intended-warning contract at generation time — never emit a mislabeled fixture.
   assertIntendedWarnings(
-    descriptor.name,
     descriptor.intendedWarnings,
     parseHL7(content).warnings.map((w) => String(w.code)),
   );
@@ -253,6 +264,12 @@ export function hl7QuirkCorpus(options: Hl7QuirkCorpusOptions): Corpus {
     ? validateProfileQuirks(options.profile, HL7_QUIRKS, "hl7v2")
     : (options.quirks ?? ALL_HL7_QUIRKS);
   const names = quirks.length > 0 ? quirks : ALL_HL7_QUIRKS;
+  // Resolve the WHOLE list here, not lazily per generated artifact. `count` can be below
+  // `names.length`, and the tail then never reaches `generateHl7Quirk`'s own `resolveQuirk`
+  // while still landing on `manifest.quirks` verbatim. A manifest that names a quirk the
+  // corpus does not contain is the same mislabeled-fixture defect the intended-warning
+  // contract exists to prevent, and `manifest.quirks` is a derived identifier.
+  for (const name of names) resolveQuirk(HL7_QUIRKS, "hl7v2", name);
   const kind = options.kind ?? "ORU^R01";
   const count = options.count ?? names.length;
   const seedStream = createRng(options.seed);

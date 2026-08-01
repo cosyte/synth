@@ -6,14 +6,14 @@ sidebar_position: 1
 
 # Core Concepts
 
-`@cosyte/synth` borrows the cosyte parser archetype's *disciplines* (immutability, stable typed codes,
+`@cosyte/synth` borrows the cosyte parser archetype's _disciplines_ (immutability, stable typed codes,
 the profile system) but its central reflex is neither the parser's liberal parse nor a fail-closed
 de-identifier — it is **synthetic-by-construction**.
 
 ## Synthetic-by-construction
 
 There is **no code path** that emits a value not drawn from a guaranteed-non-colliding synthetic
-source. This inverts a parser's liberality: a parser is liberal on *input*; `synth` is **closed-world on
+source. This inverts a parser's liberality: a parser is liberal on _input_; `synth` is **closed-world on
 its data sources**. The hazard is asymmetric and specific — a generated value that looks real enough to
 be mistaken for, or collide with, a real person's PHI. So every identifier comes from a reserved range
 (SSA never-issued SSNs, NANP `555-01xx` phones, `example.*` domains, RFC 5737 TEST-NET IPs) or a shipped
@@ -58,3 +58,9 @@ A generator has no input to tolerate, so its diagnostics are **fatal**: a reques
 spec-clean (an unsupported format or quirk) throws a typed `SynthError` carrying a stable
 `SYNTH_FATAL_CODES` value — never a silent fabrication. Codes are `key === value`, so the full set
 survives an `Object.values(...)` snapshot into a stability tripwire.
+
+`SynthError` takes a **code and nothing else**. Its message is looked up in the frozen
+`SYNTH_FATAL_MESSAGES` table, so a caller-supplied value has no parameter to enter through and cannot
+reach `message`, `stack`, or any field on the thrown object. The trade is deliberate: a fatal names the
+rule that refused rather than the value that tripped it, and the caller reads the value back off the
+arguments it passed.

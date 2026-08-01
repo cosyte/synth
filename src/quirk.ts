@@ -139,8 +139,14 @@ export function sameCodeSet(a: readonly string[], b: readonly string[]): boolean
  * profile system does not support is a fatal `SYNTH_UNSUPPORTED_QUIRK` — never a silent no-op and never
  * a fabricated quirk with a made-up warning.
  *
+ * The refusal names neither the request nor the registry. `registry`, `format` and `name` are all
+ * caller-supplied, and a diagnostic that quotes its input is a diagnostic that can be made to carry
+ * anything the caller was holding — which for a fixture generator wired into someone else's pipeline
+ * is not a hypothetical. Branch on `err.code`; the supported set is the registry you passed
+ * (`HL7_QUIRKS`, `CCDA_QUIRKS`, `ASTM_QUIRKS`), which you can enumerate directly.
+ *
  * @param registry - The format's quirk descriptors, keyed by name.
- * @param format - The format being generated (for the error message).
+ * @param format - The format being generated.
  * @param name - The requested quirk name.
  * @returns The matching {@link QuirkDescriptor}.
  * @throws SynthError with code `SYNTH_UNSUPPORTED_QUIRK` when `name` is not a supported quirk.
@@ -157,12 +163,10 @@ export function resolveQuirk(
   name: string,
 ): QuirkDescriptor {
   const descriptor = registry[name];
-  if (descriptor === undefined) {
-    const supported = Object.keys(registry).sort().join(", ");
-    throw new SynthError(
-      SYNTH_FATAL_CODES.SYNTH_UNSUPPORTED_QUIRK,
-      `${format}: unsupported quirk "${name}". The ${format} profile system supports: ${supported}.`,
-    );
+  // `format` is compared, never rendered. A descriptor found under the wrong format's registry is a
+  // mislabeled fixture waiting to happen, so the mismatch fails closed on the same code.
+  if (descriptor === undefined || descriptor.format !== format) {
+    throw new SynthError(SYNTH_FATAL_CODES.SYNTH_UNSUPPORTED_QUIRK);
   }
   return descriptor;
 }
@@ -207,27 +211,27 @@ export function profileTolerated(
  * warning. Every format's `generate*Quirk` calls this after transforming, so the contract is enforced at
  * generation time, not merely at round-trip time.
  *
- * @param quirk - The quirk name (for the error message).
+ * It no longer takes the quirk name. That parameter existed for one reason — to be interpolated into
+ * the refusal — and a parameter whose only job is to reach a message is the exact shape this package
+ * is removing, so it is gone rather than merely unused. The refusal names neither code list either;
+ * both are caller-supplied, and the caller reads the comparison back off the arguments it holds.
+ *
  * @param intendedWarnings - The declared intended code(s).
  * @param bareWarnings - The code(s) a bare parse of the generated artifact actually produced.
- * @throws Error when the bare parse did not produce exactly the intended code(s).
+ * @throws SynthError `SYNTH_INTENDED_WARNING_MISMATCH` when the bare parse did not produce exactly
+ *   the intended code(s).
  * @example
  * ```ts
  * import { assertIntendedWarnings } from "@cosyte/synth";
- * assertIntendedWarnings("unknown-zsegment", ["UNKNOWN_SEGMENT"], ["UNKNOWN_SEGMENT"]); // ok
+ * assertIntendedWarnings(["UNKNOWN_SEGMENT"], ["UNKNOWN_SEGMENT"]); // ok
  * ```
  */
 export function assertIntendedWarnings(
-  quirk: string,
   intendedWarnings: readonly string[],
   bareWarnings: readonly string[],
 ): void {
   if (!sameCodeSet(bareWarnings, intendedWarnings)) {
-    throw new Error(
-      `quirk "${quirk}": the intended-warning contract does not hold — expected exactly ` +
-        `[${intendedWarnings.join(", ")}] but a bare parse produced [${bareWarnings.join(", ")}]. ` +
-        `Refusing to emit a mislabeled fixture.`,
-    );
+    throw new SynthError(SYNTH_FATAL_CODES.SYNTH_INTENDED_WARNING_MISMATCH);
   }
 }
 

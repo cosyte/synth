@@ -39,15 +39,32 @@ hand-written byte workaround:
 import { defineSynthProfile } from "@cosyte/synth";
 
 // A blank profile name is a programming error, and is rejected up front — this block is expected
-// to throw (a TypeError), and the docs gate asserts that it does.
+// to throw (a `SynthError` with code `SYNTH_INVALID_PROFILE`), and the docs gate asserts that it does.
 defineSynthProfile({ name: "" });
 ```
+
+Every fatal message comes from `SYNTH_FATAL_MESSAGES`, a frozen table keyed by code. It says which rule
+refused; it does **not** quote the request that tripped it, and there is no parameter through which it
+could — `SynthError` takes a code and nothing else. So a fatal tells you less about the specific call
+than it used to, on purpose. Branch on `err.code` and read the offending value off the arguments you
+passed; the stack frame names the call site.
 
 ## Is the generated output safe to commit and log?
 
 Yes — that is the whole point. **Every** value is drawn from a reserved/synthetic source, proven by the
 synthetic-safety gate (the inverse of a de-identifier's leak test: `synth` proves plausibly-real PHI was
 _never generated_). You can commit a generated corpus as a fixture without a PHI review of its contents.
+
+The **diagnostics** are safe for a different reason, and the distinction is worth keeping straight.
+Output is safe because of where its values come from. A `@cosyte/synth` diagnostic is safe because it
+has no value in it at all: a fatal message is a fixed registry string, a selector you pass is resolved
+against its closed set before it can travel anywhere, and a round-trip result keeps only the parser's
+warning **codes**. Neither guarantee rests on the other.
+
+What that does not cover: a value you pass to a generator is your value, and it goes into the artifact
+you asked for. `content` is the fixture, not a diagnostic. And if you hand a **document or a model** to
+a round-trip harness and the sibling parser cannot read it, what you catch is that parser's fatal,
+raised and worded by that package — `@cosyte/synth` re-throws it unchanged and adds nothing.
 
 ## Known limitations
 

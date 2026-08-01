@@ -56,7 +56,7 @@ corpus.artifacts.map((a) => a.kind); // => ["NewRx", "RxRenewalRequest", "RxChan
 corpus.artifacts.every((a) => a.warnings.length === 0); // => true
 ```
 
-## Synthetic-by-construction — patient *and* prescriber
+## Synthetic-by-construction — patient _and_ prescriber
 
 NCPDP carries patient identity (name, DOB) **and** prescriber identity — including the **DEA** number,
 an identity locus the other formats do not have. Every value has a construction-level guarantee:
@@ -67,7 +67,7 @@ an identity locus the other formats do not have. Every value has a construction-
   number's 7th digit satisfies the published `(d1+d3+d5) + 2·(d2+d4+d6)` checksum, so a `synth` DEA can
   **never** be a validly-issued registration (`safe.dea`, `isSyntheticDea`).
 - **Patient / cardholder / member ids** — scoped to a synthetic assigning authority (`MBR`-prefixed;
-  there is no reserved id range, so the *namespace* is the guarantee).
+  there is no reserved id range, so the _namespace_ is the guarantee).
 - **Names** — the shipped clearly-fake pool; **phone** — the reserved `555-01xx` block; **DOBs / dates**
   (including SCRIPT `SentTime`) — the seeded generator (never wall-clock); **drug content** — a small
   license-clean example pool with invented `00000`-labeler NDCs (no NCPDP-copyrighted text is bundled).
@@ -87,7 +87,7 @@ a real provider.
 
 ## Deferred
 
-- SCRIPT coverage **tracks the parser's builder surface**: the renewal/change *responses* and other
+- SCRIPT coverage **tracks the parser's builder surface**: the renewal/change _responses_ and other
   lifecycle transactions land as `@cosyte/ncpdp` grows its builders. `synth` never hand-writes bytes
   around a missing builder.
 - **Vendor-quirk mode** (deliberately off-spec fixtures) is deferred for NCPDP.

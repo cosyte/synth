@@ -460,6 +460,56 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 ### Changed
 
+- **Fatal messages come from a frozen registry, and `SynthError` takes no value parameter.** Every
+  message is a fixed entry in the newly exported `SYNTH_FATAL_MESSAGES` table, keyed by code, and the
+  constructor is `SynthError(code)`: there is no longer a position through which a caller-supplied
+  string can reach `message`, `stack`, or any field on the thrown object.
+
+  **The severity, stated honestly.** This is not a leak of patient data and describing it as one
+  would be its own dishonesty. `@cosyte/synth` generates synthetic fixtures, so the values a refusal
+  used to quote were quirk names, format labels, code-system URIs and money strings. What was wrong
+  was the _shape_: every fatal took a value parameter, and the only thing keeping PHI out of a
+  diagnostic was that callers happened to be passing harmless values. The audit of the thirteen
+  cosyte repos found that the single property separating the packages that leak from the ones that
+  are genuinely prevented is exactly this: whether the message factory takes a value parameter at
+  all. It now does not.
+
+  The prose mattered as much as the code here. The claim that warning messages are PHI-free by
+  construction spread through this ecosystem as a _sentence_, not as shared runtime code, and this
+  package had inherited the sentence and used it as a reason not to bound anything. Every surface
+  carrying it has been corrected in the same change rather than restated in fresher words:
+  `src/codes.ts` (whose `@param message` read "never contains PHI, there is none"),
+  `docs-content/troubleshooting.md`, `docs-content/concepts-archetype.md`,
+  `docs-content/limitations.md`, `docs-content/guides-quirks.md` and `README.md`.
+
+- **Every caller-supplied selector is resolved against its closed set, not trusted.** `resolveKind`
+  and `resolveMix` (new, exported, `src/select.ts`) sit at the entry point of every option that names
+  a member of a union: a message kind, an `ADT` trigger, a document type, a corpus mix entry, an `837`
+  variant, a Bundle type, a `Patient` profile, a quirk kind. An unrecognised one is a fatal
+  `SYNTH_UNSUPPORTED_KIND`.
+
+  **This is the same defect as the message one, not a separate tidy-up**, and it was found by the
+  refuter after the message fix had been called done. A selector union does not exist at run time, and
+  an unresolved selector did three things at once. It travelled into an optional peer builder, which is
+  entitled to quote it back in its own `TypeError` and does, so a caller-supplied string reached an
+  `err.message` and an `err.stack` through a `@cosyte/synth` entry point (`generateCcda`,
+  `generateCcdaQuirk`, `ccdaCorpus`, `ccdaQuirkCorpus`). It became an `Artifact.kind` and a
+  `manifest.counts` key, which is the structural-identifier position the whole model half of this work
+  is about (`x12Corpus({ mix })`). And it fell out of an exhaustive `switch` as `undefined`, which
+  neither reads as an error nor is one.
+
+- **`assertIntendedWarnings` loses its leading `quirk` parameter**, and is now
+  `assertIntendedWarnings(intendedWarnings, bareWarnings)`. It existed only to be interpolated into
+  the refusal. A parameter whose sole job is to reach a message is the shape being removed, so it was
+  deleted rather than left in place and ignored.
+
+- **`resolveQuirk` refuses a descriptor found under a different format's registry**, on the same
+  `SYNTH_UNSUPPORTED_QUIRK` code. The `format` argument used to be read only to build the message
+  text; it is now compared, never rendered.
+
+- **`defineSynthProfile` raises `SynthError` with `SYNTH_INVALID_PROFILE`** for a missing or blank
+  `name`, where it previously raised a `TypeError`.
+
 - Replaced the parser-archetype scaffold stubs (`parseSynth`, `WARNING_CODES`, `FATAL_CODES`) with the
   generator surface — `@cosyte/synth` is a synthetic-fixture **generator**, not a parser.
 - **Docs:** refreshed the `README.md` status block to describe the **feature-complete** generator surface
@@ -496,6 +546,35 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 ### Removed
 
 ### Fixed
+
+- **A corpus could report a transaction it did not contain.** `x12Corpus({ seed: 9, mix: ["270"] })`
+  returned a corpus whose manifest said `{"270": 1}` and whose bytes were an `837` professional claim,
+  byte-identical to `mix: ["837P"]` at the same seed, because the kind dispatcher ended in an
+  unguarded fallback. Every corpus dispatcher is now an exhaustive `switch` behind a resolved
+  selector, so an unrecognised kind is a fatal `SYNTH_UNSUPPORTED_KIND` and can no longer be silently
+  relabelled. A golden file that lies about what it holds is the failure the intended-warning contract
+  exists to prevent, in the one format that had no equivalent check.
+
+- **Five exhaustive `switch`es over run-time-erased unions returned `undefined` typed as a value.**
+  `generateHl7`, `generateHl7Quirk`'s base-message dispatcher, `fhirCorpus`, `ncpdpCorpus` and
+  `astmCorpus` each took no branch for a kind outside its union and handed the result on, surfacing
+  later as a `TypeError` from the runtime with no code to branch on. All five are now guarded by a
+  resolved selector.
+
+  **Three more of the same shape are known and deliberately left**, in `src/deid/`:
+  `x12DeidLoop({ variant })` and `ncpdpTelecomDeidLoop({ transaction })` fall through to an uncoded
+  `TypeError`, and `ccdaDeidLoop({ documentType })` silently generates a Referral Note for anything but
+  `"ccd"`. None echoes a caller value into a message, so none is a diagnostic leak. They are named here
+  rather than swept in, because two review passes had each found one more position after this change
+  described its own coverage as general, and widening the change a third time is the wrong response to
+  that.
+
+- **`injectCcdaQuirk` returned `undefined` for an unrecognised quirk name, as though it were a
+  document.** `CcdaQuirkName` is a union that does not exist at run time, so a JavaScript caller (or
+  a cast) reaching the function with any other string fell out of the transform's switch with no
+  branch taken and no error. The name is now resolved against `CCDA_QUIRKS` first and an unknown one
+  is a fatal `SYNTH_UNSUPPORTED_QUIRK`. Found by the diagnostic-surface slot table below, which
+  recorded it as the one slot that produced neither a value nor a diagnostic.
 
 - **`README.md` said the package was not published to npm. It is.** The summary blockquote opened
   with "pre-alpha (`0.0.x`), not yet published to npm", so the npm package page asserted that the
@@ -540,5 +619,62 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   the interlock under `check:test-selection`, whose headline subject is derived from the same map.
 
 ### Security
+
+- **A per-slot diagnostic-surface gate, run red before it was run green.**
+  `test/phi/diagnostic-surface.test.ts` drives `assertNoDiagnosticPhiLeak` from `@cosyte/test-utils`
+  over a table of **44** consumer-controlled positions: the quirk name, format label and registry key
+  on `resolveQuirk`; the quirk selector on all three `generate*Quirk`, all three `*QuirkRoundTrip` and
+  all three `*QuirkCorpus` entry points, by explicit list and through a `defineSynthProfile` profile;
+  both code lists on `assertIntendedWarnings`; both parameters of `injectCcdaQuirk`; the code-system
+  URI on `toBuildCode`; the money string on `dec`; **eighteen selector positions** across the six
+  formats (message kind, `ADT` trigger, document type, corpus mix, `837` variant, Bundle type,
+  `Patient` profile, quirk kind); and the artifact `content` each quirk round-trip harness hands to a
+  sibling parser. Each slot plants an eight-byte marker and a 32 KiB one, names the code it must
+  reach, and fails if any four-byte run of the marker turns up in a thrown value, a `message`, a
+  `stack`, or a structural identifier on a returned model.
+
+  **Measured against the unfixed source first, because a suite never seen red is indistinguishable
+  from one that cannot go red.** Of the 44 slots, **3 were clean and 41 failed**. The failure
+  categories **overlap** — a slot can both echo the marker and throw an uncoded error, and 6 do — so
+  they are counted per slot per category and do not sum to 41: **20** echoed the planted value
+  verbatim into an error message or stack, **4** put it on a model identifier, **16** threw an error
+  carrying no code to branch on, and **7** accepted it with neither an error nor a usable value. The
+  method: check out the base tree's `src/`, add the new codes and the frozen table as a purely
+  additive patch with an _optional_ message parameter so no base call site changes, then invoke each
+  slot's plant directly with both probe sizes.
+
+  **The model half of that sweep is vacuous, and the file says so rather than letting a reader infer
+  coverage.** Every slot throws, because every position fails closed before a model exists, so
+  `getModelIdentifiers` is never reached during the sweep. That is the result of the fix, not a gap in
+  the table, and it is carried instead by a separate assertion that runs the three identifier helpers
+  over real corpora and real quirk round-trips and checks that every identifier they yield comes from
+  a set this package controls. Between them: the slots prove no caller value survives to a model, and
+  the closed-set test proves the identifiers that exist were derived rather than passed through.
+
+  It also asserts the structural half: no `throw new` under `src/` names anything but `SynthError`,
+  and no construction of one carries an interpolation. The scanner is positive-controlled against a
+  constructed string containing the thing it hunts, not against a file that happens to be nearby, and
+  **its title says what a regex can see while its docblock says what it cannot** — it cannot see a
+  `TypeError` the runtime raises on its own, which is exactly the route the selector chokepoint
+  closes.
+
+  What the gate does not prove is in the runner's own documentation and is not restated more
+  favourably here: it does not catch a re-encoded echo, an echo under four bytes, a leak carried only
+  as a number, or a leak through a position nobody declared. The slot table is the deliverable. It was
+  derived by enumerating the exported types with the TypeScript checker rather than by sweeping the
+  source from memory. **Even so it was refuted twice, on the same class both times.** The first
+  version covered only `throw` sites and missed eighteen selector positions. The second called the
+  selectors "generalised, not patched" and missed the tail of a quirk list a `count` never reaches,
+  which lands on `manifest.quirks` unresolved. Enumerating the types was necessary and not sufficient:
+  both misses were judgements about which positions "reach a diagnostic", made before it was
+  established that an unresolved selector reaches a peer builder's diagnostic and a derived manifest
+  key.
+
+  **So the table is no longer described as exhaustive, on any surface.** A third claim of completeness
+  would be worth exactly what the first two were. What holds generally is the mechanism — the error
+  type has no value parameter, and a selector is read in one place — and the table is an enumeration
+  of the positions that have been checked. That wording is now in the test file's own header, in
+  `docs-content/limitations.md` and in `CLAUDE.md`, so the next person to add a position adds a slot
+  rather than trusting a count.
 
 [Unreleased]: https://github.com/cosyte/synth/commits/main

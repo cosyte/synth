@@ -21,10 +21,11 @@
 import { createRng } from "../rng/rng.js";
 import { makeCorpus, type Corpus } from "../corpus.js";
 
-import { generate837, type Claim837Variant } from "./claim-837.js";
+import { generate837 } from "./claim-837.js";
 import { generate835 } from "./remit-835.js";
 import { generate271 } from "./eligibility-271.js";
 import { roundTrip } from "./round-trip.js";
+import { resolveMix } from "../select.js";
 
 export {
   generate837,
@@ -69,8 +70,9 @@ export {
 /** Every X12 transaction kind {@link x12Corpus} generates — the label used as the corpus `kind`. */
 export type X12CorpusKind = "837P" | "837I" | "837D" | "835" | "271";
 
-/** The default transaction mix for {@link x12Corpus} — one of each shipped transaction. */
-const DEFAULT_MIX: readonly X12CorpusKind[] = Object.freeze(["837P", "837I", "837D", "835", "271"]);
+/** Every kind {@link x12Corpus} accepts, and the default mix — one of each shipped transaction. */
+const ALL_KINDS: readonly X12CorpusKind[] = Object.freeze(["837P", "837I", "837D", "835", "271"]);
+const DEFAULT_MIX = ALL_KINDS;
 
 /** Options for {@link x12Corpus}. */
 export interface X12CorpusOptions {
@@ -84,10 +86,18 @@ export interface X12CorpusOptions {
 
 /** Generate one interchange of the given kind from a sub-seed, returning the round-trip verdict. */
 function generateKind(kind: X12CorpusKind, seed: number): ReturnType<typeof roundTrip> {
-  if (kind === "835") return roundTrip(generate835({ seed }));
-  if (kind === "271") return roundTrip(generate271({ seed }));
-  const variant: Claim837Variant = kind === "837I" ? "I" : kind === "837D" ? "D" : "P";
-  return roundTrip(generate837(variant, { seed }));
+  switch (kind) {
+    case "835":
+      return roundTrip(generate835({ seed }));
+    case "271":
+      return roundTrip(generate271({ seed }));
+    case "837P":
+      return roundTrip(generate837("P", { seed }));
+    case "837I":
+      return roundTrip(generate837("I", { seed }));
+    case "837D":
+      return roundTrip(generate837("D", { seed }));
+  }
 }
 
 /**
@@ -105,7 +115,8 @@ function generateKind(kind: X12CorpusKind, seed: number): ReturnType<typeof roun
  * ```
  */
 export function x12Corpus(options: X12CorpusOptions): Corpus {
-  const { seed, mix = DEFAULT_MIX } = options;
+  const { seed } = options;
+  const mix = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
   const count = options.count ?? mix.length;
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {

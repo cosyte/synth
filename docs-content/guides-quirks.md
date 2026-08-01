@@ -6,19 +6,19 @@ sidebar_position: 8
 
 # Generate vendor-quirk fixtures
 
-Spec-clean fixtures prove a parser reads a *correct* message. The harder, more valuable test is whether
+Spec-clean fixtures prove a parser reads a _correct_ message. The harder, more valuable test is whether
 a parser tolerates the **realistic vendor deviations** real-world traffic carries — and surfaces exactly
 the right diagnostic when it does. That is what quirk mode generates.
 
 The load-bearing idea: **the quirk vocabulary _is_ the parsers' own profile systems.** A `synth` quirk
-deviates the *structure* of an otherwise spec-clean message so it round-trips through the parser to
+deviates the _structure_ of an otherwise spec-clean message so it round-trips through the parser to
 **exactly one intended, stable warning code** — the tolerance the corresponding parser profile
 (`hl7.defineProfile`, `ccda.defineCcdaProfile`, `astm.defineAstmProfile`) encodes. This is the
 **intended-warning contract**: a quirk fixture is never a fiction — it exercises a documented, coded
 leniency, and where a built-in **public** parser profile claims the deviation, the quirk round-trips
 cleanly under it (suppressed, or re-badged to `PROFILE_QUIRK_APPLIED`).
 
-Every quirk changes the message *shape*, never the *provenance* of the data — so a quirk fixture is still
+Every quirk changes the message _shape_, never the _provenance_ of the data — so a quirk fixture is still
 **synthetic-by-construction** and passes the same synthetic-safety gate.
 
 Three formats ship quirks: **HL7 v2**, **C-CDA**, and **ASTM** — the parsers with the
@@ -85,6 +85,12 @@ try {
 }
 code; // => "SYNTH_UNSUPPORTED_QUIRK"
 ```
+
+Branch on `err.code`, never on `err.message`. The message is a fixed entry in the frozen
+`SYNTH_FATAL_MESSAGES` table and does **not** name the quirk you asked for — `SynthError` takes a code
+and no value parameter, so nothing you pass can reach the thrown object. To see what a format accepts,
+read its registry directly: `Object.keys(HL7_QUIRKS)`, `Object.keys(CCDA_QUIRKS)`,
+`Object.keys(ASTM_QUIRKS)`.
 
 ## A reproducible quirk corpus
 

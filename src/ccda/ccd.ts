@@ -35,9 +35,13 @@ import {
   toBuildCode,
 } from "./example-codes.js";
 import { ccdaPatientIdentity } from "./identity.js";
+import { resolveKind } from "../select.js";
 
 /** The C-CDA document type a generator emits — the two `buildCcda` supports. */
 export type CcdaDocumentType = "ccd" | "referralNote";
+
+/** Every value {@link CcdaDocumentType} admits. Erased at run time, so it is resolved, not trusted. */
+const CCDA_DOCUMENT_TYPES: readonly CcdaDocumentType[] = Object.freeze(["ccd", "referralNote"]);
 
 /** Options common to every C-CDA generator. */
 export interface GenerateCcdaOptions {
@@ -167,7 +171,8 @@ function buildInit(rng: Rng, documentType: CcdaDocumentType): BuildCcdaInit {
  * ```
  */
 export function generateCcda(options: GenerateCcdaOptions = {}): CcdaDocument {
-  const { seed = 0, documentType = "ccd" } = options;
+  const { seed = 0 } = options;
+  const documentType = resolveKind(CCDA_DOCUMENT_TYPES, options.documentType ?? "ccd");
   const rng = createRng(seed);
   return buildCcda(buildInit(rng, documentType));
 }

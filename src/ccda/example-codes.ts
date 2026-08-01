@@ -16,6 +16,7 @@ import { CVX, LOINC, NCI_ROUTE, RXNORM, SNOMED_CT } from "@cosyte/ccda";
 import type { BuildCode, BuildQuantity } from "@cosyte/ccda";
 
 import type { Rng } from "../rng/rng.js";
+import { SYNTH_FATAL_CODES, SynthError } from "../codes.js";
 import {
   EXAMPLE_ALLERGENS,
   EXAMPLE_ALLERGY_MANIFESTATIONS,
@@ -45,7 +46,8 @@ const URI_TO_OID: Readonly<Record<string, string>> = Object.freeze({
  *
  * @param concept - The FHIR-shaped `{ system, code, display }` concept.
  * @returns The `@cosyte/ccda` `BuildCode`.
- * @throws {Error} When the concept's `system` URI has no known OID mapping.
+ * @throws SynthError `SYNTH_UNMAPPED_CODE_SYSTEM` when the concept's `system` URI has no known OID
+ *   mapping. The refusal does not quote the URI: `concept` is caller-supplied.
  * @example
  * ```ts
  * import { toBuildCode } from "@cosyte/synth/ccda";
@@ -55,7 +57,7 @@ const URI_TO_OID: Readonly<Record<string, string>> = Object.freeze({
 export function toBuildCode(concept: CodeConcept): BuildCode {
   const codeSystem = URI_TO_OID[concept.system];
   if (codeSystem === undefined) {
-    throw new Error(`ccda example-codes: no OID mapping for code system "${concept.system}"`);
+    throw new SynthError(SYNTH_FATAL_CODES.SYNTH_UNMAPPED_CODE_SYSTEM);
   }
   return { code: concept.code, codeSystem, displayName: concept.display };
 }

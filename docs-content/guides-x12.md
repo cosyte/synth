@@ -60,7 +60,7 @@ construction-level guarantee, not a heuristic:
 - **Provider tax id** (`REF*SY`) — an SSA **never-issued** (900-range) SSN, so it can never be a real
   SSN or a sole-proprietor's real tax id.
 - **Member id** (`NM1*MI`) — scoped to a synthetic assigning authority (there is no reserved member-id
-  range, so the *namespace* is the guarantee).
+  range, so the _namespace_ is the guarantee).
 - **Names** — the shipped clearly-fake pool; **DOBs / dates** — the seeded generator (no real event
   implied); **addresses** — a synthetic street + reserved ZIP.
 
@@ -70,7 +70,7 @@ failure.
 
 ## Deferred
 
-- The **270** eligibility *request*: `@cosyte/x12` ships a `build271` but no `build270` (the 270 is only
+- The **270** eligibility _request_: `@cosyte/x12` ships a `build271` but no `build270` (the 270 is only
   read, as the echoed trace on a 271). `synth` never hand-writes bytes around a missing builder, so 270
   generation lands when `@cosyte/x12` grows `build270`.
 - **Vendor-quirk mode** (deliberately off-spec fixtures) is deferred for X12.

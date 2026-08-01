@@ -18,6 +18,7 @@ import { makeCorpus, type Corpus } from "../corpus.js";
 
 import { generateCcda, type CcdaDocumentType } from "./ccd.js";
 import { roundTrip } from "./round-trip.js";
+import { resolveMix } from "../select.js";
 
 export {
   generateCcda,
@@ -58,8 +59,9 @@ export {
 /** Every C-CDA document kind {@link ccdaCorpus} generates — the `documentType` used as the corpus `kind`. */
 export type CcdaCorpusKind = CcdaDocumentType;
 
-/** The default document mix for {@link ccdaCorpus} — one CCD and one Referral Note. */
-const DEFAULT_MIX: readonly CcdaCorpusKind[] = Object.freeze(["ccd", "referralNote"]);
+/** Every kind {@link ccdaCorpus} accepts, and the default mix — one CCD and one Referral Note. */
+const ALL_KINDS: readonly CcdaCorpusKind[] = Object.freeze(["ccd", "referralNote"]);
+const DEFAULT_MIX = ALL_KINDS;
 
 /** Options for {@link ccdaCorpus}. */
 export interface CcdaCorpusOptions {
@@ -86,7 +88,8 @@ export interface CcdaCorpusOptions {
  * ```
  */
 export function ccdaCorpus(options: CcdaCorpusOptions): Corpus {
-  const { seed, count = 1, mix = DEFAULT_MIX } = options;
+  const { seed, count = 1 } = options;
+  const mix = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {
     const documentType = mix[i % mix.length] ?? "ccd";
