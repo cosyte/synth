@@ -18,9 +18,11 @@
  *     up as a FULL scan (exit 0 over a large denominator), while the two
  *     `enforceObservation` refusals — an override that subtracts nothing, and a
  *     target set emptied by overrides — exit 2;
- *   - the scan roots, seeded in-repo (below), and the two exclusions that are real
- *     limits of the enumerator rather than oversights: markdown, and anything
- *     outside `src/` / `test/` / `scripts/` (repo-root files included);
+ *   - the scan roots, seeded in-repo (below), and two of the exclusions that are
+ *     real limits of the enumerator rather than oversights: markdown, and anything
+ *     outside `src/` / `test/` / `scripts/` (repo-root files included). Those two
+ *     are the ones exercised here, not the whole set — the scanner's header lists
+ *     the limits known at the time of writing, and does not claim to be complete;
  *   - the EXTENSION GATE, characterized rather than endorsed: the same bytes are
  *     caught as `.xml` and missed as `.ts`, because three structured arms gate on
  *     the file extension. The seeded-violator tests above are all `.xml`, so they
@@ -118,9 +120,9 @@ const addr = (user: string, ...domain: string[]): string => `${user}@${domain.jo
 /**
  * The same trick for a real-looking person NAME. This one is not currently load-
  * bearing and is applied anyway, deliberately: the structured C-CDA and FHIR arms
- * return early unless the path ends `.xml` / `.json`, so a bare `Anderson` in this
- * `.ts` file scans green today for a reason that has nothing to do with it being
- * safe. Assembling it means this file does not quietly depend on that extension
+ * return early unless the path ends `.xml` / `.json`, so a bare real surname in
+ * this `.ts` file scans green today for a reason that has nothing to do with it
+ * being safe. Assembling it means this file does not quietly depend on that extension
  * gate, and does not turn red the day the gate is narrowed. `digits` and `addr`
  * above guard values the floor DOES catch here; this guards one it would catch if
  * the arm ever became content-gated.
@@ -186,6 +188,11 @@ const SEED_MARKDOWN = "test/scripts/zz-phi-scan-seed-doc.md";
  * has to stay high enough that it really reports `R` — the status the old
  * `--diff-filter=AM` allow-list dropped.
  */
+// MEASURED MARGIN: git scores this pair `R065` against its 50% rename-detection
+// default, so the `R` case below is real but the headroom is 15 points, not the
+// comfortable gap it looks like. Widen the edit between VIOLATOR and CLEAN_DOC and
+// git stops calling it a rename, which turns the staged `R` test red — the safe
+// direction, but red for a reason that has nothing to do with the scanner.
 const CLEAN_DOC = VIOLATOR.replace(GIVEN, "Exampla").replace(FAMILY, "Mockridge");
 
 /** Write violators at repo-relative paths, run `fn`, then always remove them. */
