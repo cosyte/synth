@@ -23,14 +23,17 @@
  *     outside `src/` / `test/` / `scripts/` (repo-root files included). Those two
  *     are the ones exercised here, not the whole set — the scanner's header lists
  *     the limits known at the time of writing, and does not claim to be complete;
- *   - the EXTENSION GATE, characterized rather than endorsed: the same bytes are
- *     caught as `.xml` and missed as `.ts`, because three structured arms gate on
- *     the file extension. The seeded-violator tests above are all `.xml`, so they
- *     prove the ENUMERATOR reaches the new roots — they do not prove structured
- *     detection reaches an inline literal in a TypeScript test, and it does not;
+ *   - CONTENT-GATED ADMISSION: the same bytes get the same verdict as `.ts` and as
+ *     `.xml`, for all three arms that used to gate on the extension. This block
+ *     REPLACES a characterization test that asserted the opposite; see the comment
+ *     above it for why the old assertion is gone rather than quietly relaxed. It
+ *     also pins the limits the widening did NOT close — file-scoped admission,
+ *     placeholders, namespace prefixes — so they stay known;
  *   - `--staged` enumeration, against a throwaway git repo — including the `R` and
  *     `T` statuses the superseded `--diff-filter=AM` allow-list dropped, with the
- *     old flags run alongside so the gap is measured rather than asserted.
+ *     old flags run alongside so the gap is measured rather than asserted;
+ *   - the GIT-IGNORE DISAGREEMENT between all-mode and `--staged`, both directions,
+ *     which the scanner header disclosed and nothing exercised.
  *
  * Three different sandboxes, because the questions differ:
  *
@@ -118,14 +121,15 @@ const digits = (...parts: string[]): string => parts.join("");
 const addr = (user: string, ...domain: string[]): string => `${user}@${domain.join(".")}`;
 
 /**
- * The same trick for a real-looking person NAME. This one is not currently load-
- * bearing and is applied anyway, deliberately: the structured C-CDA and FHIR arms
- * return early unless the path ends `.xml` / `.json`, so a bare real surname in
- * this `.ts` file scans green today for a reason that has nothing to do with it
- * being safe. Assembling it means this file does not quietly depend on that extension
- * gate, and does not turn red the day the gate is narrowed. `digits` and `addr`
- * above guard values the floor DOES catch here; this guards one it would catch if
- * the arm ever became content-gated.
+ * The same trick for a real-looking person NAME, and it is now LOAD-BEARING — which
+ * is the clearest single measure of what this change did.
+ *
+ * It was written as insurance while the C-CDA and FHIR arms still gated on `.xml` /
+ * `.json`: a bare real surname in this `.ts` file scanned green for a reason that had
+ * nothing to do with it being safe, and assembling it meant the file did not quietly
+ * depend on that gate. The arms are content-gated now, this file is a `.ts` inside the
+ * corpus `pnpm phi-scan` sweeps, and it builds C-CDA documents and FHIR literals out of
+ * these tokens. Spell either one out and the gate correctly reds on this very file.
  */
 const token = (...parts: string[]): string => parts.join("");
 const GIVEN = token("Ali", "ce");
@@ -482,7 +486,12 @@ describe("phi-scan: NCPDP structured detection (SYNTH-7)", () => {
   it("flags a real prescriber name in a SCRIPT message (exit 1)", () => {
     const content = generateNewRx({ seed: 7001 }).replace(
       /<LastName>[^<]+<\/LastName>/,
-      "<LastName>Smith</LastName>",
+      // Assembled, like the floor values above. Once the SCRIPT arm stopped needing
+      // an `.xml` path, this `.ts` file became a target for it — and this file
+      // carries a `<Message>` marker, so a spelled-out `<LastName>` here is a
+      // correct hit on every `pnpm phi-scan`. The value the scanner sees at run time
+      // is unchanged; only the literal leaves the source.
+      `<LastName>${token("Smi", "th")}</LastName>`,
     );
     const r = scan("real-name.xml", content);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
@@ -492,7 +501,7 @@ describe("phi-scan: NCPDP structured detection (SYNTH-7)", () => {
   it("flags a Luhn-VALID <NPI> in a SCRIPT message — it could be a real provider", () => {
     const content = generateNewRx({ seed: 7001 }).replace(
       /<NPI>\d{10}<\/NPI>/,
-      "<NPI>1234567893</NPI>",
+      `<NPI>${digits("123456", "7893")}</NPI>`,
     );
     const r = scan("valid-npi.xml", content);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
@@ -502,7 +511,7 @@ describe("phi-scan: NCPDP structured detection (SYNTH-7)", () => {
   it("flags a checksum-VALID <DEANumber> in a SCRIPT message — it could be a real DEA", () => {
     const content = generateNewRx({ seed: 7001 }).replace(
       /<DEANumber>[^<]+<\/DEANumber>/,
-      "<DEANumber>AB3512349</DEANumber>",
+      `<DEANumber>${token("AB", "3512349")}</DEANumber>`,
     );
     const r = scan("valid-dea.xml", content);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
@@ -660,26 +669,152 @@ describe("phi-scan: the scan roots cover src/, test/ and scripts/", () => {
 });
 
 // ---------------------------------------------------------------------------
-// The extension gate — a KNOWN GAP, pinned so it cannot be mistaken for coverage
+// The extension gate — CLOSED. Every structured arm now keys off the bytes.
+//
+// THIS BLOCK REPLACES A CHARACTERIZATION TEST, DELIBERATELY AND IN THE OPEN. The
+// version it replaces asserted the OPPOSITE of the first test below: that the same
+// bytes exited 0 as `.ts` and 1 as `.xml`, because `scanCcda` and `scanNcpdpScript`
+// returned early unless the path ended `.xml` and `scanFhir` unless it ended
+// `.json`. That test was right to exist — it made a known gap executable instead of
+// a sentence in a header, and it was written so that narrowing the gate would red
+// it and force a reviewer into the loop.
+//
+// This is that reviewer moment, arriving as designed. The gate was WIDENED rather
+// than narrowed, the old assertion is now false, and it is rewritten rather than
+// deleted: the same probe bytes, the same two paths, the opposite expectation, plus
+// the residual limits the widening did NOT close. If you are here because one of
+// these reds, the same rule applies — update it visibly or fix the gate, never
+// quietly drop it to get green.
 // ---------------------------------------------------------------------------
 
-describe("phi-scan: three structured arms are gated on a file extension", () => {
-  it("misses a C-CDA recordTarget name as `.ts` and catches it as `.xml` — same bytes", () => {
-    // This is characterization, NOT endorsement. `scanCcda` and `scanNcpdpScript`
-    // return early unless the path ends `.xml`, and `scanFhir` unless it ends
-    // `.json`. So widening the roots to all of `test/` did NOT bring structured
-    // C-CDA / FHIR / NCPDP-SCRIPT detection to the inline string literals that live
-    // in TypeScript tests — only the format-agnostic floor and the content-gated
-    // arms (HL7 v2, X12, ASTM, NCPDP Telecom) reach those.
-    //
-    // Pinned here so the gap is executable rather than a sentence in a header, and
-    // so narrowing the gate later REDS this test — making it a deliberate act with a
-    // reviewer, rather than a silent change in what the commit gate refuses.
+describe("phi-scan: every structured arm keys off content, not the file extension", () => {
+  it("catches a C-CDA name as `.ts` AND as `.xml` — same bytes, same verdict", () => {
     const asTs = scan("gate-probe.ts", VIOLATOR);
     const asXml = scan("gate-probe.xml", VIOLATOR);
-    expect(asTs.code, `stderr: ${asTs.stderr}`).toBe(0);
+    expect(asTs.code, `stdout: ${asTs.stdout}`).toBe(1);
     expect(asXml.code, `stdout: ${asXml.stdout}`).toBe(1);
-    expect(asXml.stderr).toMatch(/recordTarget/);
+    // The point of the whole change: the verdict is a function of the bytes alone.
+    expect(asTs.stderr.replace(/gate-probe\.ts/g, "P")).toBe(
+      asXml.stderr.replace(/gate-probe\.xml/g, "P"),
+    );
+    expect(asTs.stderr).toMatch(/name\/given/);
+  });
+
+  it("catches an NCPDP SCRIPT name as `.ts` — the arm was already content-gated underneath", () => {
+    // `scanNcpdpScript`'s `.xml` check sat ABOVE a `<Message>` + transaction-element
+    // check that was strictly narrower, so removing it could only ever admit SCRIPT
+    // messages in files not named `.xml`. Asserted rather than argued.
+    const script =
+      `<Message><Body><NewRx><Patient>` +
+      `<LastName>${FAMILY}</LastName><FirstName>${GIVEN}</FirstName>` +
+      `</Patient></NewRx></Body></Message>`;
+    const r = scan("script-probe.ts", script);
+    expect(r.code, `stdout: ${r.stdout}`).toBe(1);
+    expect(r.stderr).toMatch(/<LastName>/);
+  });
+
+  it("catches a FHIR HumanName in a TYPESCRIPT object literal, which is not JSON", () => {
+    // The hard half. A `.json` gate plus `JSON.parse` could never reach this shape:
+    // unquoted keys make it invalid JSON, so widening the extension check alone
+    // would have bought nothing. The textual pass is what reaches it.
+    const literal =
+      `export const p = { resourceType: "Patient",\n` +
+      `  name: [{ family: "${FAMILY}", given: ["${GIVEN}"] }],\n` +
+      `  telecom: [{ system: "phone", value: "${digits("212-", "555-", "1234")}" }] };\n`;
+    const r = scan("fhir-literal.ts", literal);
+    expect(r.code, `stdout: ${r.stdout}`).toBe(1);
+    expect(r.stderr).toMatch(/Patient\.name/);
+    expect(r.stderr).toMatch(/Patient\.telecom/);
+  });
+
+  it("reads a FHIR resource whose file is JSON under any extension", () => {
+    const json = JSON.stringify({
+      resourceType: "Patient",
+      name: [{ family: FAMILY, given: [GIVEN] }],
+    });
+    // `.json` was the old gate; `.txt` proves the gate is now `JSON.parse` succeeding.
+    expect(scan("res.json", json).code).toBe(1);
+    expect(scan("res.txt", json).code).toBe(1);
+  });
+
+  it("matches an extension case-insensitively, so `.XML` is an XML file too", () => {
+    expect(scan("shouty.XML", VIOLATOR).code).toBe(1);
+  });
+
+  // -- the limits the widening did NOT close, pinned for the same reason --------
+
+  it("does NOT read a FHIR name in a file that never declares a resourceType", () => {
+    // Admission is the entire false-positive defence: a file must CLAIM to be FHIR
+    // before its `family:` keys are read. Ordinary source must stay green, and this
+    // is the test that reds if that admission marker is ever dropped "to catch more".
+    const r = scan("ordinary.ts", `const x = { family: "${FAMILY}", given: ["${GIVEN}"] };\n`);
+    expect(r.code, `stdout: ${r.stdout}`).toBe(0);
+  });
+
+  it("does NOT read a name that is WHOLLY a template placeholder", () => {
+    // The cost of reading source files: a text gate cannot evaluate an expression.
+    // An evasion route, stated in the header and pinned here rather than glossed.
+    // BOTH loci must be replaced — leaving `<family>` spelled out makes this exit 1
+    // for an unrelated reason and proves nothing about the placeholder.
+    const masked = VIOLATOR.replace(GIVEN, "${given}").replace(FAMILY, "{{family}}");
+    const r = scan("interp.ts", masked);
+    expect(r.code, `stdout: ${r.stdout}`).toBe(0);
+  });
+
+  it("DOES read a name that merely CONTAINS a placeholder or an elision", () => {
+    // THE TEST THAT WAS MISSING, and its absence is why 63 green tests certified a
+    // detection regression. `isPlaceholder` was written as a CONTAINMENT test, so
+    // `Anderson ...` — a real surname next to an ellipsis — silenced the name check
+    // on `.xml` and `.json` paths this gate ALREADY covered before any widening,
+    // flipping whole files from refused to accepted. A refuter found it in one probe.
+    //
+    // A predicate that switches a detector off must match the WHOLE token. Anything
+    // less is an evasion primitive: append " ..." to a real name and walk past.
+    for (const forgery of [`${FAMILY} ...`, `${FAMILY} \${suffix}`, `${FAMILY}…`]) {
+      const doc = VIOLATOR.replace(FAMILY, forgery);
+      expect(scan("mixed.xml", doc).code, `xml missed: ${forgery}`).toBe(1);
+      expect(scan("mixed.ts", doc).code, `ts missed: ${forgery}`).toBe(1);
+    }
+    // AN EXPLICIT CEILING ON THIS ONE TEST, not a change to the global `testTimeout`.
+    // Six forgeries x one scanner subprocess each is genuinely the slowest case in this
+    // file, and the 10s global is a wall-clock assertion about the MACHINE: it reds this
+    // correct test on a loaded box. Raising the global instead would trade a false red
+    // for a false green everywhere else, so the ceiling stays local to the slow test.
+  }, 60_000);
+
+  it("treats a token of ONLY placeholders as a placeholder, however many", () => {
+    // The other side of the residue rule: `${first} ${last}` carries no literal, so
+    // reporting it would be the cry-wolf failure the predicate exists to prevent.
+    const doc = VIOLATOR.replace(GIVEN, "${first} ${last}").replace(FAMILY, "{{surname}}");
+    expect(scan("multi-interp.xml", doc).code).toBe(0);
+  });
+
+  it("does NOT reach a phone whose system and value are separated by another key", () => {
+    // The textual FHIR route is a regex, not an object graph. `{ system, use, value }`
+    // is valid, common FHIR and is missed; the structural route catches it. Pinned so
+    // the docblock's narrower claim stays honest.
+    const sep =
+      `export const p = { resourceType: "Patient",\n` +
+      `  telecom: [{ system: "phone", use: "home", value: "${digits("212-", "555-", "1234")}" }] };\n`;
+    expect(scan("split-telecom.ts", sep).code, "adjacency limit closed?").toBe(0);
+    // Same bytes as JSON: the structural route DOES read it.
+    const asJson = JSON.stringify({
+      resourceType: "Patient",
+      telecom: [{ system: "phone", use: "home", value: digits("212-", "555-", "1234") }],
+    });
+    expect(scan("split-telecom.json", asJson).code).toBe(1);
+  });
+
+  it("does NOT read a namespace-prefixed C-CDA name element", () => {
+    // `hasCdaMarker` tolerates a prefix when deciding whether to LOOK; the name loci
+    // do not. Pre-existing, deliberately not widened here, and executable so it stays
+    // a known gap rather than a forgotten one.
+    const prefixed = VIOLATOR.replace(/<given>/g, "<hl7:given>").replace(
+      /<\/given>/g,
+      "</hl7:given>",
+    );
+    const r = scan("prefixed.xml", prefixed);
+    expect(r.stderr).not.toMatch(new RegExp(GIVEN));
   });
 });
 
@@ -742,27 +877,27 @@ describe("phi-scan: a scan that observes nothing must not report OK", () => {
 // --staged enumeration
 // ---------------------------------------------------------------------------
 
+/** A throwaway git repo with the scanner's two support files committed. */
+function gitRoot(): string {
+  const root = makeRoot();
+  git(root, ["init", "-q", "-b", "main"]);
+  git(root, ["config", "user.email", "fixture@example.com"]);
+  git(root, ["config", "user.name", "fixture"]);
+  git(root, ["add", "--", "scripts/phi-allow-list.txt", "phi-scan-overrides.md"]);
+  git(root, ["commit", "-q", "-m", "base"]);
+  return root;
+}
+
+function withGitRoot<T>(fn: (root: string) => T): T {
+  const root = gitRoot();
+  try {
+    return fn(root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
 describe("phi-scan --staged: the enumerator excludes status letters rather than listing them", () => {
-  /** A throwaway git repo with the scanner's two support files committed. */
-  function gitRoot(): string {
-    const root = makeRoot();
-    git(root, ["init", "-q", "-b", "main"]);
-    git(root, ["config", "user.email", "fixture@example.com"]);
-    git(root, ["config", "user.name", "fixture"]);
-    git(root, ["add", "--", "scripts/phi-allow-list.txt", "phi-scan-overrides.md"]);
-    git(root, ["commit", "-q", "-m", "base"]);
-    return root;
-  }
-
-  function withGitRoot<T>(fn: (root: string) => T): T {
-    const root = gitRoot();
-    try {
-      return fn(root);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  }
-
   it("catches PHI in a plainly ADDED file", () => {
     const r = withGitRoot((root) => {
       put(root, "src/added.xml", VIOLATOR);
@@ -840,6 +975,52 @@ describe("phi-scan --staged: the enumerator excludes status letters rather than 
     });
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
     expect(scannedCount(r)).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The two modes DISAGREE about a git-ignored file, and neither direction was
+// exercised. The scanner header has disclosed the disagreement since the roots
+// widening; a disclosed behaviour with no test is one refactor away from becoming
+// an undisclosed one, so both directions are pinned here.
+//
+// NEITHER DIRECTION IS CHANGED BY THESE TESTS, because on inspection both are the
+// right answer for their mode and the disagreement is not a defect:
+//   - all-mode SKIPS ignored files. It walks the working tree, where an ignored
+//     path is build output or a local scratch file — never something a commit will
+//     carry. Scanning them would red the gate on artifacts nobody is committing.
+//   - --staged does NOT skip them, because it enumerates the INDEX. A file reaches
+//     the index only by `git add -f`, which is an explicit override of the ignore
+//     rule, and it WILL be in the commit. Refusing to read it is the shipping
+//     direction, and the shipping direction is the one that must never be lenient.
+// ---------------------------------------------------------------------------
+
+describe("phi-scan: the two modes disagree about a git-ignored file, on purpose", () => {
+  it("all-mode SKIPS a git-ignored violator in the working tree", () => {
+    const r = withGitRoot((root) => {
+      put(root, ".gitignore", "src/ignored.xml\n");
+      put(root, "src/ignored.xml", VIOLATOR);
+      put(root, "src/tracked.xml", CLEAN_DOC);
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stderr).not.toContain("src/ignored.xml");
+    // The denominator proves the run was not empty: it observed the clean file and
+    // the allow-list, and simply did not observe the ignored one.
+    expect(scannedCount(r)).toBeGreaterThan(0);
+  });
+
+  it("--staged CATCHES the same file once it is force-added to the index", () => {
+    const r = withGitRoot((root) => {
+      put(root, ".gitignore", "src/ignored.xml\n");
+      put(root, "src/ignored.xml", VIOLATOR);
+      // `-f` is the whole point: the developer has overridden the ignore rule and
+      // this content is going into the commit.
+      git(root, ["add", "-f", "--", "src/ignored.xml"]);
+      return runScannerIn(root, ["--staged"]);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(1);
+    expect(r.stderr).toContain("src/ignored.xml");
   });
 });
 

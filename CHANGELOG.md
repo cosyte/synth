@@ -547,6 +547,63 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 ### Fixed
 
+- **Three of the PHI gate's seven structured detectors decided what to inspect from the file's NAME,
+  so byte-identical content was refused as `probe.xml` and passed as `probe.ts`.** `scanCcda` and
+  `scanNcpdpScript` returned early unless the path ended `.xml`; `scanFhir` unless it ended `.json`.
+  That mattered in this repo specifically, because it builds documents as inline string literals in
+  TypeScript tests — the scan enumerated those files and then structurally read nothing in them.
+
+  **Every arm now keys off the bytes.** Each of the three admits a target by its extension **or** what
+  the bytes say — a CDA root/namespace, a SCRIPT `<Message>` envelope, FHIR's `resourceType` for its
+  textual route. **Admission is additive**: no target admitted before is refused admission now.
+  Extensions are matched case-insensitively, so `.XML` is an XML file too. `scanFhir` gained a second
+  route for the hard half: a resource in a TypeScript object literal is not valid JSON, so a `.json`
+  gate plus `JSON.parse` could never have reached it however the extension check was widened. Its
+  **structural** route is the one arm not marker-gated — it runs whenever `JSON.parse` succeeds, with
+  no `resourceType` check, exactly as it did for `.json` before.
+
+  **The marker is the false-positive defence, and it is the point.** A file must _claim_ to be the
+  format before its identity loci are read; a gate that flagged every `family:` in every source file
+  would be turned off, which is worse than the gap it closes.
+
+  **One thing here SUBTRACTS, and it is the part that needed a second look.** Tokens that are wholly
+  template interpolation (`${GIVEN}`) are no longer reported, on every path — including `.xml` and
+  `.json`, which were always covered. That silencing is scoped to the **whole token**: a name that
+  merely _contains_ an expression or an ellipsis is still read. The first version of the predicate was
+  a **containment** test, and a refuter broke it in one probe — `Anderson ...` went unread on a `.xml`
+  C-CDA and a `.json` FHIR fixture, flipping whole files from refused to accepted. A predicate that
+  switches a detector off has to match the whole token or it is an evasion primitive. Both directions
+  are now pinned by tests.
+
+  **The measurement that justified it is corrected here too**, because the wrong version had been
+  written down as the evidence: the first run over 170 files returned four hits across two files —
+  **two real names** the widening had just made visible (now declared in the allow-list) and two wholly
+  interpolated tokens. Not "four placeholders, none a name". An elision clause in the same predicate
+  was dropped outright: zero elision hits existed on that run, and it fired only on prose this change
+  had itself written into the scanner, which is now phrased so it does not forge a name element.
+
+  Two things the change surfaced, both fixed here. The C-CDA name/telecom sweep was always
+  **document-wide** but labelled every hit `recordTarget/…`; a name in `<author>` came back labelled
+  with a location it was not in. The sweep is kept (an informant's name in a committed fixture is as
+  real as a patient's) and only the false claim about _where_ is withdrawn. And two hand-written
+  tokens in a de-identifier test became visible for the first time; they are **declared in the
+  allow-list**, with what that costs written next to them, rather than edited out of a test whose
+  point requires exactly those shapes.
+
+  The characterization test that pinned the old behaviour asserted the **opposite** of what is true
+  now. It was rewritten in place, not deleted — the same probe bytes, the same two paths, the opposite
+  expectation — alongside new pins for the limits this did **not** close: admission is file-scoped
+  rather than object-scoped, a wholly-interpolated name is unread, the C-CDA name loci remain
+  namespace-prefix-naive, and the textual FHIR route misses a phone whose `system` and `value` are
+  separated by another key (the structural route catches it — the two are not at parity, and the
+  routes are mutually exclusive).
+
+- **The two scan modes disagreed about a git-ignored file and neither direction was tested.** All-mode
+  drops git-ignored files; `--staged` does not. Both directions are now exercised. **Neither is
+  changed**: all-mode walks the working tree, where an ignored path is build output; `--staged`
+  enumerates the index, which a file reaches only via `git add -f` and which a commit will therefore
+  carry. Refusing to read that one is the shipping direction.
+
 - **The PHI commit gate could be argued into scanning nothing and still print `OK`.**
   `scripts/phi-scan.ts` treated an `--allow-fixture <path>` as both a subtraction _and_ a scan
   target, so `pnpm phi-scan --allow-fixture X` with no other argument built the target set `[X]`,
@@ -593,6 +650,11 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   of arbitrary TypeScript is a much larger job with its own false-positive surface, and doing it as a
   side effect of a root change would grow the gate's teeth without review. It is recorded as a known
   gap in the scanner's header rather than implied away, and the roots list no longer claims otherwise.
+
+  **SUPERSEDED — see "Three of the PHI gate's seven structured detectors…" under Fixed below.** The
+  paragraph above described the state of the gate when the roots were widened, and is kept as that
+  record. The three extension gates were subsequently removed as the separate job this paragraph said
+  they needed, so its present tense no longer holds.
 
 - **The widened scan surfaced one real finding, and it is declared rather than suppressed.** The ten
   vendored US Core 6.1.0 StructureDefinitions under `test/us-core-profiles/` each carry their
