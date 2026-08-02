@@ -547,6 +547,69 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 ### Fixed
 
+- **Three of the PHI gate's seven structured detectors decided what to inspect from the file's NAME,
+  so byte-identical content was refused as `probe.xml` and passed as `probe.ts`.** `scanCcda` and
+  `scanNcpdpScript` returned early unless the path ended `.xml`; `scanFhir` unless it ended `.json`.
+  That mattered in this repo specifically, because it builds documents as inline string literals in
+  TypeScript tests — the scan enumerated those files and then structurally read nothing in them.
+
+  **Every arm now keys off the bytes.** Each of the three admits a target by its extension **or** what
+  the bytes say — a CDA root/namespace, a SCRIPT `<Message>` envelope, FHIR's `resourceType` for its
+  textual route. **Admission is additive**: no target admitted before is refused admission now.
+  Extensions are matched case-insensitively, so `.XML` is an XML file too. `scanFhir` gained a second
+  route for the hard half: a resource in a TypeScript object literal is not valid JSON, so a `.json`
+  gate plus `JSON.parse` could never have reached it however the extension check was widened. Its
+  **structural** route is not marker-gated — it runs whenever `JSON.parse` succeeds, with no
+  `resourceType` check, exactly as it did for `.json` before.
+
+  **The marker is the false-positive defence for the CONTENT routes**, which is narrower than "nothing
+  is examined without a marker" — an `.xml` path still reaches the C-CDA arm with no marker at all, and
+  FHIR's structural route still reads any parseable JSON. A gate that flagged every `family:` in every
+  source file would be turned off, which is worse than the gap it closes.
+
+  **NOTHING SUBTRACTS. No detector was taught to skip anything**, and getting to that took three
+  review passes. Widening the arms made this scanner's own test suite one of its targets, and that
+  suite necessarily writes name elements. The first three attempts answered it by teaching the
+  **scanner** to skip template placeholders — and on a PHI detector a skip rule has to be exactly
+  right, which it twice was not. It silenced `Anderson ...` (a containment test), then `${"Anderson"}`
+  (any interpolation body elided, left open on a claim that closing it would break an existing idiom
+  when `git show main` shows the same branch had just introduced that idiom), then `{{Anderson ${s}}`
+  (one regex pass matching straight across two constructs the source never nested). Each remedy bought
+  one more evasion shape, which is the signature of a rule that does not belong in a PHI gate.
+
+  The rule is **gone**. The suite assembles its fixture elements at run time instead, so the detector
+  stays maximally literal and there is no subtraction to audit. Measured across sixteen shapes —
+  including every one a refuter used to break the earlier drafts — `main` and this branch return the
+  **identical** verdict; the only differences anywhere are files the widened arms now reach that
+  `main` never read.
+
+  **The measurement that justified the deleted predicate is corrected here too**, because the wrong
+  version had been written down as the evidence: the first run over 170 files returned four hits across
+  two files — **two real names** the widening had just made visible (now declared in the allow-list) and
+  two name elements in this scanner's own fixtures. Not "four placeholders, none a name".
+
+  Two things the change surfaced, both fixed here. The C-CDA name/telecom sweep was always
+  **document-wide** but labelled every hit `recordTarget/…`; a name in `<author>` came back labelled
+  with a location it was not in. The sweep is kept (an informant's name in a committed fixture is as
+  real as a patient's) and only the false claim about _where_ is withdrawn. And two hand-written
+  tokens in a de-identifier test became visible for the first time; they are **declared in the
+  allow-list**, with what that costs written next to them, rather than edited out of a test whose
+  point requires exactly those shapes.
+
+  The characterization test that pinned the old behaviour asserted the **opposite** of what is true
+  now. It was rewritten in place, not deleted — the same probe bytes, the same two paths, the opposite
+  expectation — alongside new pins for the limits this did **not** close: admission is file-scoped
+  rather than object-scoped, the C-CDA name loci remain
+  namespace-prefix-naive, and the textual FHIR route misses a phone whose `system` and `value` are
+  separated by another key (the structural route catches it — the two are not at parity, and the
+  routes are mutually exclusive).
+
+- **The two scan modes disagreed about a git-ignored file and neither direction was tested.** All-mode
+  drops git-ignored files; `--staged` does not. Both directions are now exercised. **Neither is
+  changed**: all-mode walks the working tree, where an ignored path is build output; `--staged`
+  enumerates the index, which a file reaches only via `git add -f` and which a commit will therefore
+  carry. Refusing to read that one is the shipping direction.
+
 - **The PHI commit gate could be argued into scanning nothing and still print `OK`.**
   `scripts/phi-scan.ts` treated an `--allow-fixture <path>` as both a subtraction _and_ a scan
   target, so `pnpm phi-scan --allow-fixture X` with no other argument built the target set `[X]`,
@@ -593,6 +656,11 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   of arbitrary TypeScript is a much larger job with its own false-positive surface, and doing it as a
   side effect of a root change would grow the gate's teeth without review. It is recorded as a known
   gap in the scanner's header rather than implied away, and the roots list no longer claims otherwise.
+
+  **SUPERSEDED — see "Three of the PHI gate's seven structured detectors…" under Fixed below.** The
+  paragraph above described the state of the gate when the roots were widened, and is kept as that
+  record. The three extension gates were subsequently removed as the separate job this paragraph said
+  they needed, so its present tense no longer holds.
 
 - **The widened scan surfaced one real finding, and it is declared rather than suppressed.** The ten
   vendored US Core 6.1.0 StructureDefinitions under `test/us-core-profiles/` each carry their

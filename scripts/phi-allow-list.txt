@@ -102,6 +102,32 @@ NAME QUILLFEATHER
 NAME NOTREAL
 NAME GENFIELD
 
+# --- Hand-written test tokens, NOT part of the generator's fake-name pool ---
+#
+# The two below are NOT in `src/safe/names-pool.ts` and must never be added to it.
+# They are hand-written literals inside `test/deid/loop.test.ts`, which asserts what
+# `recordTargetSentinels` DROPS, and they became visible the day the C-CDA arm stopped
+# gating on the `.xml` file extension and started reading documents written inline in
+# TypeScript. They were always in the repo; nothing could see them.
+#
+# Each is here rather than edited out of the fixture because the fixture needs exactly
+# these shapes to prove its point, and rewriting a de-identifier test to quiet a PHI
+# scanner would couple two gates and change what the test proves:
+#   AL        a 2-character given name, present to prove the sentinel extractor drops
+#             non-distinctive tokens. Any replacement must also be 2 characters, so no
+#             pool name can stand in.
+#   PROVIDER  a role word in an <author> name, present to prove author names are out of
+#             the recordTarget sentinel scope.
+#
+# WHAT THIS COSTS, stated so a reviewer prices it rather than skims it: a NAME entry is
+# global, so a `<given>Al</given>` or a PID-5 `Provider` now passes ANYWHERE in the repo.
+# `Provider` is a role word no person is named, so that is close to free. `Al` is a real
+# nickname, and declaring it is a genuine if small weakening — accepted because a
+# 2-character token carries almost no identifying information, which is the same judgment
+# the de-identifier under test already encodes by dropping it.
+NAME AL
+NAME PROVIDER
+
 # --- Synthetic dates of birth (example — normalize to your detector's format) ---
 # DOB 19800115
 

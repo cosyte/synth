@@ -21,7 +21,7 @@
  * What it does detect. A format-agnostic floor (a dashed SSN outside the SSA
  * never-issued space; an email at a non-allow-listed domain) plus structured,
  * field-level detection for every format this package generates: HL7 v2 (PID-5 /
- * -13 / -19), FHIR (`HumanName`, phone `ContactPoint`), C-CDA (`recordTarget`
+ * -13 / -19), FHIR (`HumanName`, phone `ContactPoint`), C-CDA (`<given>`/`<family>`
  * name + `telecom`), X12 (NM1 / PER / REF*SY), NCPDP SCRIPT (name tags, `<NPI>`,
  * `<DEANumber>`) and Telecom (CA/CB/CC/CD/CQ/CY/C2/DB), and ASTM (`P`-record
  * name + practice/lab ids, framed or bare). Each arm is documented at its own
@@ -64,21 +64,57 @@
  * read without the number it is an `OK` over. (The per-hit `HIT:` and `segment=`
  * lines do not repeat it; they are detail under a summary that does.)
  *
- * What those three invariants do NOT cover, because the honest limits matter more
+ * THE EXTENSION GATES ARE GONE. Every structured arm now keys off the BYTES. It
+ * used to be that three of the seven returned early unless the path ended `.xml`
+ * (`scanCcda`, `scanNcpdpScript`) or `.json` (`scanFhir`), so a byte-identical
+ * payload was refused as `probe.xml` and passed as `probe.ts` — a gap that was
+ * measured, pinned by a characterization test, and left open, because
+ * content-sniffing XML/JSON out of arbitrary TypeScript is its own job. Each arm
+ * now admits a target by its extension OR by what the bytes say. C-CDA and SCRIPT
+ * key off the formats' own required discriminators (a CDA root/namespace, a SCRIPT
+ * `<Message>` envelope) and FHIR's TEXTUAL route off `resourceType` — never a guess
+ * at "looks XML-ish", so a file has to CLAIM to be the format before the NEW CONTENT
+ * ROUTES read its identity loci. That is not a precondition on the gate as a whole,
+ * and saying so was wrong twice: an `.xml` path still reaches the C-CDA arm on its
+ * EXTENSION with no marker at all, and FHIR's STRUCTURAL route still runs whenever
+ * `JSON.parse` succeeds with no `resourceType` check — both exactly as before. See
+ * each arm.
+ *
+ * THE CHANGE IS PURELY ADDITIVE, AND IT COST THREE REVIEW PASSES TO GET THERE. No
+ * target admitted before is refused admission now, and NO detector was taught to
+ * skip anything. Every name token this scanner reaches is still compared against
+ * the allow-list exactly as it always was.
+ *
+ * That is a deliberate retreat. Widening the arms made this scanner's own test
+ * suite one of its targets, and that suite necessarily writes name elements. The
+ * first three attempts answered it by teaching the SCANNER to skip template
+ * placeholders — and on a PHI detector a skip rule has to be exactly right, which
+ * it twice was not: it silenced `Anderson ...`, then `${"Anderson"}`, then spliced
+ * `{{Anderson ${s}}` across two constructs the source never nested. Each remedy
+ * bought one more evasion shape, which is the signature of a rule that does not
+ * belong here. The suite assembles its elements at run time instead, so the
+ * detector stays maximally literal and this file has NO subtraction to audit.
+ *
+ * What the three invariants do NOT cover, because the honest limits matter more
  * than the slogan: they constrain the target set, not what enumeration finds in
  * the first place. A file the enumerator never lists is invisible to all three,
  * and the denominator counts the files that WERE listed, so it still reads
- * plausible. And enumeration is not the only thing that narrows a scan: three
- * DETECTOR arms narrow it again, by file extension, after enumeration has done its
- * job. The gaps we KNOW of:
+ * plausible. The gaps we KNOW of:
  *
- *   - THE EXTENSION GATES, which are the ones most likely to mislead. `scanCcda`
- *     and `scanNcpdpScript` return early unless the path ends `.xml`; `scanFhir`
- *     unless it ends `.json`. A byte-identical payload is therefore caught as
- *     `probe.xml` and MISSED as `probe.ts`. Widening the roots did not change this,
- *     so structured C-CDA / FHIR / NCPDP-SCRIPT detection still does not reach an
- *     inline literal in a TypeScript test. The floor and the content-gated arms
- *     (HL7 v2, X12, ASTM, NCPDP Telecom) do reach it.
+ *   - MARKER ADMISSION IS FILE-SCOPED, NOT OBJECT-SCOPED — the cost of the change
+ *     above, and the one most likely to mislead now. Once a file states
+ *     `resourceType` (or carries a CDA root), EVERY `family:` / `<given>` in it is
+ *     read, whether or not it belongs to that resource. Scoping to the enclosing
+ *     object needs a real JavaScript parser, which this scanner deliberately does
+ *     not have. The remedy for a false positive is the allow-list — the same
+ *     positive declaration the rest of the gate asks for.
+ *   - The C-CDA name/telecom sweep is DOCUMENT-WIDE, not `recordTarget`-scoped. It
+ *     always was; until 2026-08-02 it mislabelled every hit as `recordTarget/…`
+ *     anyway. The sweep is deliberate (an author's or informant's name in a
+ *     committed fixture is as real as a patient's); only the label was wrong.
+ *   - The C-CDA name loci are NOT namespace-prefix-tolerant: `<hl7:given>` is not
+ *     read, though `hasCdaMarker` does tolerate a prefix when deciding to look.
+ *     Pre-existing, and not widened here.
  *   - `walk` tests `e.isFile()`, which is FALSE for a symlink, so a symlinked
  *     fixture under a scan root is skipped. (`--staged` does see the symlink-to-
  *     regular-file typechange, which is a different question.)
@@ -86,8 +122,11 @@
  *   - Anything outside `src/`, `test/` and `scripts/` is out of scope, INCLUDING
  *     every file at the repo root (`vitest.config.ts`, `tsup.config.ts`, …).
  *   - All-mode drops git-ignored files; `--staged` does NOT apply that filter, so
- *     the two modes disagree about a force-added ignored file. Neither direction is
- *     exercised by the suite.
+ *     the two modes disagree about a force-added ignored file. BOTH directions are
+ *     now exercised by the suite, and neither is changed: all-mode walks the working
+ *     tree, where an ignored path is build output; `--staged` reads the INDEX, which
+ *     a file reaches only via `git add -f` and which a commit will therefore carry.
+ *     Reading that one is the shipping direction.
  *   - A scan of one named in-scope file truthfully reports `1 file(s) scanned`;
  *     the denominator is honest but small, and small is not the same as wrong.
  *
@@ -123,18 +162,30 @@ const OVERRIDE_LOG_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
 // fixture can. `src/` keeps the same conservative pass it always had — JSDoc
 // `@example` snippets are compiled into `dist/*.d.ts` and must not carry real PHI.
 //
-// BE PRECISE ABOUT WHAT THE WIDENING BUYS, because the obvious claim is wrong.
-// Over a `.ts` file the widening delivers the format-agnostic floor (dashed SSN,
-// non-declared email) plus the CONTENT-gated arms — HL7 v2, X12, ASTM and NCPDP
-// Telecom, which sniff their own framing and so fire on any extension. It delivers
-// NOTHING from the three EXTENSION-gated arms: `scanCcda` and `scanNcpdpScript`
-// return early unless the path ends `.xml`, and `scanFhir` unless it ends `.json`.
-// So a C-CDA `recordTarget` or a FHIR `HumanName` written as an inline literal in a
-// `.ts` test is still not structurally detected. That gating predates this change
-// and is deliberately NOT widened here — content-sniffing XML/JSON out of arbitrary
-// TypeScript is a different and much larger job, with its own false-positive
-// surface, and doing it as a side effect of a root change is how a gate grows teeth
-// nobody reviewed. It is a KNOWN GAP, listed in the header, not a solved problem.
+// WHAT THE WIDENED ROOTS BUY IS NOW THE WHOLE GATE, which it was not when they
+// were widened. Over a `.ts` file the roots originally delivered the format-agnostic
+// floor (dashed SSN, non-declared email) plus the four CONTENT-gated arms — HL7 v2,
+// X12, ASTM and NCPDP Telecom — and NOTHING from the three arms that gated on the
+// file extension, so a C-CDA `recordTarget` or a FHIR `HumanName` written as an
+// inline literal in a TypeScript test was enumerated and then not structurally read.
+// That was recorded as a known gap rather than fixed in passing, on the grounds that
+// content-sniffing XML/JSON out of arbitrary TypeScript is a separate job with its
+// own false-positive surface and that a gate should not grow teeth as a side effect
+// of a roots change. It was then done AS that separate job: no arm decides from the
+// path alone any more. What each arm keys off differs and is stated at the arm rather
+// than counted here, because a count was written here once and was wrong in both
+// directions — C-CDA still admits any `.xml` with no marker at all, and FHIR's textual
+// route IS marker-gated while its structural route is not. The false-positive surface
+// was measured over this repo rather than argued about.
+//
+// WHAT THAT FIRST RUN ACTUALLY RETURNED, because an earlier draft of this comment got
+// it wrong and the wrong version was the stated evidence for a predicate: over 170
+// files it returned FOUR hits across TWO files. Two were real names the widening had
+// just made visible for the first time (`test/deid/loop.test.ts`) and are now declared
+// in the allow-list. Two were name elements in this scanner's own test fixtures, which
+// the suite now assembles at run time so they are not written in its source at all. So
+// it was NOT "four placeholders, none a name" — half of it was names, and finding them
+// was the point of the change.
 const SCAN_ROOTS: readonly string[] = ["src", "test", "scripts"];
 
 /**
@@ -515,11 +566,13 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): void {
 
   // FHIR R4 / US Core (Phase 3). A generated resource (or Bundle) is swept at its real PHI loci —
   // HumanName (`family`/`given`) and ContactPoint (`telecom` phone) — against the synthetic sources.
+  // Whole-file JSON is walked structurally; anything else that declares a `resourceType` is read
+  // textually. A target doing neither falls straight through.
   scanFhir(target.path, text, allow, hits);
 
-  // C-CDA R2.1 (Phase 4 / SYNTH-5). A generated document is swept at its real PHI loci — the
-  // recordTarget patient `name` (`given` / `family`) and any `telecom` phone — against the synthetic
-  // sources (roadmap §4.4). Non-XML targets fall straight through.
+  // C-CDA R2.1 (Phase 4 / SYNTH-5). A generated document is swept at its real PHI loci — every
+  // `name` (`given` / `family`) and any `telecom` phone, document-wide — against the synthetic sources
+  // (roadmap §4.4). Admitted by an `.xml` path or a CDA marker; anything else falls straight through.
   scanCcda(target.path, text, allow, hits);
 
   // X12 EDI (Phase 5 / SYNTH-6). A generated 837 / 835 / 271 is swept at its real PHI loci — NM1 person
@@ -653,9 +706,20 @@ function isSyntheticNcpdpId(id: string): boolean {
  * `<NPI>` must fail the NPI Luhn check, and every `<DEANumber>` must fail the DEA checksum. A non-SCRIPT
  * target (no `<Message`/SCRIPT markers) falls straight through; C-CDA `<given>`/`<family>` is handled by
  * {@link scanCcda}, so the two XML arms never collide.
+ *
+ * THE EXTENSION GATE HERE ADDED NOTHING THE MARKERS DID NOT ALREADY DO. The `<Message>` +
+ * transaction/party check immediately below was ALREADY a content gate; the `.xml` test was an
+ * ORTHOGONAL condition stacked on top of it, not a narrower one. Removing it widens the arm by exactly
+ * `{files matching the markers that are not named .xml}`.
+ *
+ * BE PRECISE ABOUT WHAT LANDS IN THAT SET, because an earlier draft called it "by construction, a
+ * SCRIPT message" and THIS REPO REFUTES THAT: `test/scripts/phi-scan.test.ts` is admitted here. It is
+ * a TypeScript test that happens to contain a `<Message>` envelope and a `<Patient>` element inside a
+ * fixture string. Reading it is correct — a `<LastName>` spelled out there would be a real hit — but
+ * it is a source file, not a SCRIPT message, and the marker set cannot tell the difference. That is
+ * the same file-scoped admission cost the header lists, reached by a different arm.
  */
 function scanNcpdpScript(path: string, text: string, allow: AllowList, hits: Hit[]): void {
-  if (!path.endsWith(".xml")) return;
   // SCRIPT markers — a <Message> root and a SCRIPT transaction/party element. Avoids running on C-CDA.
   if (
     !/<Message\b/.test(text) ||
@@ -933,24 +997,88 @@ function scanX12(path: string, text: string, allow: AllowList, hits: Hit[]): voi
   }
 }
 
+// ---------------------------------------------------------------------------
+// Format markers — what admits a target to a STRUCTURED arm
+//
+// Four arms (HL7 v2, X12, ASTM, NCPDP Telecom) always keyed off the bytes: an
+// `MSH`, an `ISA`, an `H|\^&`, an FS/GS/RS control char. Three keyed off the FILE
+// EXTENSION instead, so byte-identical content was refused as `probe.xml` and
+// passed as `probe.ts` — measured, and pinned as a known gap rather than fixed,
+// because content-sniffing XML/JSON out of arbitrary TypeScript is its own job
+// with its own false-positive surface.
+//
+// This is that job. Each of the three now admits a target by EITHER its extension
+// (unchanged, so nothing previously admitted is refused admission now) OR a format
+// marker in the bytes. The markers below are the formats' own required
+// discriminators — a CDA root/namespace, a SCRIPT `<Message>` envelope, FHIR's
+// `resourceType` — not a guess at "looks XML-ish". That is what keeps the CONTENT
+// route from crying wolf over ordinary source.
+//
+// DO NOT READ THAT AS "NOTHING IS EXAMINED WITHOUT A MARKER" — an earlier draft said
+// so here and it is false on two routes that predate this change and are unaltered by
+// it. An `.xml` path is admitted to the C-CDA arm on its EXTENSION, with no marker at
+// all, so a bare name fragment in a `.xml` file is read exactly as it always was. And
+// FHIR's STRUCTURAL route runs whenever `JSON.parse` succeeds, with no `resourceType`
+// check, so a marker-less JSON object with a `family` key is read exactly as it always
+// was. The marker is what the NEW content routes require; it is not a precondition on
+// the gate as a whole.
+// ---------------------------------------------------------------------------
+
+/** Whether `path` carries `ext`, case-insensitively (`.XML` is an XML file too). */
+function hasExtension(path: string, ext: string): boolean {
+  return path.toLowerCase().endsWith(ext);
+}
+
 /**
- * C-CDA structured PHI detection. Over a C-CDA XML fixture, checks the recordTarget patient identity
- * loci: every `<given>` / `<family>` name token must be a declared-synthetic name, and every
- * `<telecom value="tel:…">` phone must carry the reserved `555-01xx` tail. A non-XML target (no such
- * elements) falls straight through. Dashed SSNs and non-test emails are already covered by
- * {@link scanCommonShapes}.
+ * Whether the bytes declare themselves a CDA document: the `ClinicalDocument` root, the HL7 v3
+ * namespace, or a `recordTarget` (the element the patient identity actually hangs off). Namespace
+ * prefixes are tolerated HERE, deliberately — the marker only decides whether to LOOK, so being
+ * liberal costs nothing. The name loci below are NOT prefix-tolerant, which is a separate
+ * pre-existing limit and is listed in the header rather than quietly widened here.
+ */
+function hasCdaMarker(text: string): boolean {
+  return (
+    /<(?:[A-Za-z_][\w.-]*:)?ClinicalDocument\b/.test(text) ||
+    /<(?:[A-Za-z_][\w.-]*:)?recordTarget\b/.test(text) ||
+    text.includes("urn:hl7-org:v3")
+  );
+}
+
+/**
+ * C-CDA structured PHI detection. Over a C-CDA document, checks the name and telecom identity loci
+ * DOCUMENT-WIDE: every `<given>` / `<family>` name token must be a declared-synthetic name, and every
+ * `<telecom value="tel:…">` phone must carry the reserved `555-01xx` tail. Dashed SSNs and non-test
+ * emails are already covered by {@link scanCommonShapes}.
+ *
+ * ADMITTED BY EITHER ROUTE — a `.xml` path, OR {@link hasCdaMarker} over the bytes. The second route
+ * is what reaches a document written as an inline literal in a `.ts` test; the first is kept so the
+ * widening is provably ADDITIVE (an `.xml` fixture carrying loci but no `<ClinicalDocument>` root — a
+ * fragment — is examined exactly as it always was). A target admitted by neither falls through.
  */
 function scanCcda(path: string, text: string, allow: AllowList, hits: Hit[]): void {
-  if (!path.endsWith(".xml")) return;
+  if (!hasExtension(path, ".xml") && !hasCdaMarker(text)) return;
 
-  // Patient name tokens — <given>…</given> and <family>…</family>. Each must be declared synthetic.
+  // Name tokens: the text content of each `given` and `family` element. Each must be declared
+  // synthetic. (Written as prose rather than as a sample element on purpose — this file is inside the
+  // corpus it sweeps, and a comment that forges a name element is a hit against the scanner itself.)
+  //
+  // THE LABEL NAMES THE ELEMENT, NOT `recordTarget`, and that is a correction. This regex has always
+  // been DOCUMENT-WIDE — it never scoped to `<recordTarget>` — while every hit it raised was reported
+  // as `recordTarget/given`. A name in `<author>`, `<informant>` or a participant therefore came back
+  // labelled with a location it was not in. Nothing had noticed because the only targets the arm could
+  // reach were `.xml` fixtures that are recordTarget-heavy; the first `.ts` document it reached under
+  // the widened gate produced exactly that mislabel, on an `<author>` name.
+  //
+  // The document-wide sweep is KEPT — a clinician's or informant's name in a committed fixture is as
+  // real as a patient's, and narrowing a PHI gate as a side effect of relabelling it would be the same
+  // quiet trade this change exists to undo. Only the claim about WHERE the hit sits is withdrawn.
   for (const m of text.matchAll(/<(given|family)(?:\s[^>]*)?>([^<]+)<\/\1>/g)) {
     const token = (m[2] ?? "").trim();
     if (token.length === 0) continue;
     if (!allow.names.has(token.toUpperCase())) {
       hits.push({
         path,
-        segment: `recordTarget/${m[1] ?? "name"}`,
+        segment: `name/${m[1] ?? "name"}`,
         value: token,
         reason: "name not declared synthetic",
       });
@@ -958,12 +1086,13 @@ function scanCcda(path: string, text: string, allow: AllowList, hits: Hit[]): vo
   }
 
   // Telecom phone — <telecom value="tel:+1..."/>. A phone-shaped value must be reserved 555-01xx.
+  // Document-wide for the same reason, and labelled for the same reason.
   for (const m of text.matchAll(/<telecom\b[^>]*\bvalue="tel:([^"]+)"/g)) {
     const value = m[1] ?? "";
     if (/\d{7,}/.test(value.replace(/\D/g, "")) && !isSyntheticPhone(value)) {
       hits.push({
         path,
-        segment: "recordTarget/telecom",
+        segment: "telecom",
         value,
         reason: "phone not in 555-01xx block",
       });
@@ -975,16 +1104,26 @@ function scanCcda(path: string, text: string, allow: AllowList, hits: Hit[]): vo
  * FHIR structured PHI detection. Parses a JSON fixture and recursively visits every object, checking the
  * two identity-bearing shapes wherever they sit (a standalone resource or a Bundle entry): a `HumanName`
  * (`family` / `given` tokens must be declared-synthetic names) and a phone `ContactPoint`
- * (`{ system: "phone", value }` must carry the reserved `555-01xx` tail). A non-JSON target (or one with
- * no such shapes) falls straight through. Emails and SSNs are already covered by {@link scanCommonShapes}.
+ * (`{ system: "phone", value }` must carry the reserved `555-01xx` tail). Emails and SSNs are already
+ * covered by {@link scanCommonShapes}.
+ *
+ * TWO ROUTES, and the split is on the BYTES rather than the path. If the whole target parses as JSON
+ * it is walked structurally — that is the pass that always existed, minus its `.json` extension gate,
+ * because `JSON.parse` succeeding IS the discriminator and a stricter one than the file's name. If it
+ * does not parse, {@link scanFhirEmbedded} takes it: a resource inline in a TypeScript test is not
+ * JSON (unquoted keys, trailing commas, interpolation) and no amount of extension-checking would have
+ * reached it.
  */
 function scanFhir(path: string, text: string, allow: AllowList, hits: Hit[]): void {
-  if (!path.endsWith(".json")) return;
   let root: unknown;
   try {
     root = JSON.parse(text);
   } catch {
-    return; // not JSON — nothing to do.
+    // NOT whole-file JSON. This used to be the end of the arm, and combined with the `.json`
+    // extension gate it meant a FHIR resource written as an inline literal in a `.ts` test was never
+    // read. Hand it to the textual pass, which is marker-gated.
+    scanFhirEmbedded(path, text, allow, hits);
+    return;
   }
 
   const checkName = (obj: Record<string, unknown>): void => {
@@ -1034,6 +1173,87 @@ function scanFhir(path: string, text: string, allow: AllowList, hits: Hit[]): vo
   };
 
   visit(root);
+}
+
+/**
+ * FHIR's own required discriminator: every resource carries `resourceType: "<Name>"`. Used as the
+ * admission marker for the textual pass, so that pass NEVER runs over a file which does not claim to
+ * carry a resource. Both spellings are accepted because both occur: `"resourceType"` in a JSON blob
+ * pasted into a template literal, `resourceType` in a TypeScript object literal.
+ */
+const FHIR_RESOURCE_MARKER = /(?:^|[{,\s])"?resourceType"?\s*:\s*["'][A-Za-z]/;
+
+/** The two FHIR identity loci, spelled for JSON (`"family":`) or TypeScript (`family:`) keys. */
+const FHIR_NAME_LOCUS = /(?:^|[{,\s])"?(family|given)"?\s*:\s*(\[[^\]]*\]|"[^"]*"|'[^']*')/g;
+const FHIR_PHONE_SYSTEM_FIRST =
+  /"?system"?\s*:\s*["']phone["']\s*,\s*"?value"?\s*:\s*["']([^"']*)["']/g;
+const FHIR_PHONE_VALUE_FIRST =
+  /"?value"?\s*:\s*["']([^"']*)["']\s*,\s*"?system"?\s*:\s*["']phone["']/g;
+
+/**
+ * FHIR detection for a resource written INLINE in a file that is not itself JSON — the shape a
+ * TypeScript test uses, and the shape the `.json` extension gate could never reach. Aims at the same
+ * two identity loci as the structural pass — `HumanName` (`family` / `given`) and a phone
+ * `ContactPoint` — but does NOT reach them equally, and the two routes are mutually exclusive, so
+ * whichever one a target takes is the only one it gets. This route reads a regex over text, not an
+ * object graph: it misses a `system`/`value` pair with a key between them, and a value written as a
+ * backtick template literal rather than a quoted string. Each is pinned by a test.
+ *
+ * ADMISSION IS THE WHOLE SAFETY ARGUMENT. The pass runs only when {@link FHIR_RESOURCE_MARKER}
+ * matches, so a file must state `resourceType: "…"` before any of its `family:` keys are read. A
+ * scanner that read every `family:` in every source file would flag ordinary code and get itself
+ * turned off, which is strictly worse than the gap it closes.
+ *
+ * THE RESIDUAL FALSE-POSITIVE SHAPE, STATED RATHER THAN HIDDEN: admission is FILE-scoped, not
+ * object-scoped. A file that declares a `resourceType` anywhere and, elsewhere, writes an undeclared
+ * `family: "…"` that is not part of any resource is a hit. Scoping to the enclosing object needs a
+ * real JavaScript parser — a dependency this scanner deliberately does not have (it must not share a
+ * bug with the code it guards). The trade is accepted because in THIS repo every person-name is
+ * supposed to be drawn from the shipped fake-name pool, so the remedy for a false positive is the
+ * allow-list: the same positive declaration the rest of the gate already asks for.
+ */
+function scanFhirEmbedded(path: string, text: string, allow: AllowList, hits: Hit[]): void {
+  if (!FHIR_RESOURCE_MARKER.test(text)) return;
+
+  for (const m of text.matchAll(FHIR_NAME_LOCUS)) {
+    // `given` is an array in FHIR and `family` a scalar, but read both the same way: pull every
+    // quoted token out of whatever the key was assigned. A scalar is a one-token list.
+    for (const q of (m[2] ?? "").matchAll(/"([^"]*)"|'([^']*)'/g)) {
+      const token = (q[1] ?? q[2] ?? "").trim();
+      if (token.length === 0) continue;
+      if (!allow.names.has(token.toUpperCase())) {
+        hits.push({
+          path,
+          segment: "Patient.name",
+          value: token,
+          reason: "name not declared synthetic",
+        });
+      }
+    }
+  }
+
+  // A phone ContactPoint, in either ADJACENT key order — `system` then `value`, or `value` then
+  // `system`. Object key order is not significant in JSON, so a hand-written literal picks whichever
+  // reads better, and both are read.
+  //
+  // ADJACENCY IS A REAL LIMIT, NOT A ROUNDING ERROR: `{ system: "phone", use: "home", value: … }` is
+  // valid, common FHIR and is MISSED here, because a key between the two breaks both regexes. The
+  // structural route catches it; this textual one does not. Closing it properly means parsing the
+  // object, which is the JavaScript parser this scanner deliberately does not have — so it is stated
+  // here and pinned by a test rather than described as parity with the structural pass.
+  for (const re of [FHIR_PHONE_SYSTEM_FIRST, FHIR_PHONE_VALUE_FIRST]) {
+    for (const m of text.matchAll(re)) {
+      const value = m[1] ?? "";
+      if (/\d{7,}/.test(value.replace(/\D/g, "")) && !isSyntheticPhone(value)) {
+        hits.push({
+          path,
+          segment: "Patient.telecom",
+          value,
+          reason: "phone not in 555-01xx block",
+        });
+      }
+    }
+  }
 }
 
 /** Whether a phone-shaped value carries the NANP reserved `555-01xx` fictional tail. */
