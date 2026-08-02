@@ -16,11 +16,13 @@ permissions:
 jobs:
   # Universal gates from the shared pipeline (typecheck, lint, format, test, coverage, build, attw,
   # dual ESM/CJS smoke, actionlint) on the standard Node matrix. Repo-specific extra jobs (e.g. an
-  # examples smoke, a starter-kit build) are added on top of this caller, never instead of it.
-  # The template ships a PHI scanner (scripts/phi-scan.ts), so the shared pipeline's optional
-  # PHI-scan step is switched on. NOTE: the scaffolded scanner is a STARTER — it detects only
-  # cross-cutting SSN/email shapes until you add structured, field-level detection for this
-  # standard's PHI (see the STARTER banner in scripts/phi-scan.ts).
+  # examples smoke, an examples build) are added on top of this caller, never instead of it.
+  # This repo ships a PHI scanner (scripts/phi-scan.ts), so the shared pipeline's optional PHI-scan
+  # step is switched on. That step runs `pnpm phi-scan` with NO arguments, which is all-mode: it
+  # walks src/, test/ and scripts/ rather than the staged set, so it does not depend on what a
+  # given push happened to touch. The pre-commit hook is the --staged half; this is the backstop.
+  # The scanner is a floor, not the whole gate — the property suites are the real proof (see the
+  # header of scripts/phi-scan.ts).
   ci:
     uses: cosyte/.github/.github/workflows/ci.yml@main
     with:

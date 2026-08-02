@@ -547,6 +547,79 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 ### Fixed
 
+- **The PHI commit gate could be argued into scanning nothing and still print `OK`.**
+  `scripts/phi-scan.ts` treated an `--allow-fixture <path>` as both a subtraction _and_ a scan
+  target, so `pnpm phi-scan --allow-fixture X` with no other argument built the target set `[X]`,
+  subtracted `X`, scanned zero files and exited 0 with the same `OK — no hits` line a real pass
+  prints. `--allow-fixture` is now purely subtractive and never seeds the target set; the mode is
+  decided by `--staged` and positional paths alone. Three invariants (`enforceObservation`) are
+  checked before any hit counting: an override that subtracts no enumerated target is an error
+  rather than an inert entry that reads as a live bypass, a target set emptied by overrides is
+  refused, and an enumeration that finds nothing is refused in every mode but `--staged` (where
+  "nothing staged" is legitimate). Both **summary** lines now carry the **denominator** — the count
+  of files scanned — so an `OK` is never read without the number it is an `OK` over. Ported from the
+  same defect closed in `ncpdp`.
+
+- **The staged enumerator dropped whole classes of staged file, because its filter was the wrong
+  polarity.** `git diff --cached --diff-filter=AM` is an **allow-list of git status letters**: every
+  letter it does not name is skipped by default and silently. That is how it missed `R` — a fixture
+  `git mv`'d and edited to add PHI in one commit stages as a single rename entry — and `T`, a
+  tracked symlink replaced by a regular file carrying PHI. Each was found by a separate refuter pass
+  in `ncpdp`, which is the argument for the general fix rather than the two patches: the enumerator
+  now asks for `--diff-filter=d` (everything **except** deletions, which have no blob to read), so an
+  unknown or future status letter costs a wasted scan instead of a missed file. It also passes
+  `--no-renames`, which decomposes a rename into `D` + `A` so the **destination** path — the one
+  carrying the new content — is the path that gets read. Both directions are measured in the suite:
+  the tests assert the new flags catch the `R` and `T` cases **and** that the superseded `AM`
+  allow-list did not list the violator's path for either. That second assertion is also what keeps
+  the first honest — had git degraded the fixture to a plain `A`/`M`, `AM` would have listed it and
+  the test would red rather than pass for the wrong reason.
+
+- **The scan stopped at `test/fixtures/`, leaving most of the repository unswept.** `SCAN_ROOTS` is
+  now `src/`, `test/` and `scripts/`, walked whole and shared by both all-mode and `--staged` through
+  a single `isScannable` predicate, so the **roots** narrow in one place. The gap mattered here
+  specifically: this repo builds messages as inline string literals in tests **outside** `fixtures/`,
+  and `scripts/` is hand-written tracked text that can carry a real address as easily as a fixture
+  can. Measured on the widening: **114 in-scope files became 170**. Markdown stays out of scope in
+  every mode, because documentation — including this scanner's own override log and allow-list —
+  legitimately quotes violator values.
+
+  **What the widening does NOT buy, stated because the obvious reading is wrong.** Over a `.ts` file
+  it delivers the format-agnostic floor and the content-gated arms (HL7 v2, X12, ASTM, NCPDP
+  Telecom), which sniff their own framing. It delivers nothing from the three **extension-gated**
+  arms: `scanCcda` and `scanNcpdpScript` return early unless the path ends `.xml`, and `scanFhir`
+  unless it ends `.json`. A byte-identical payload is caught as `probe.xml` and missed as `probe.ts`.
+  That gating predates this change and is deliberately left alone — content-sniffing XML and JSON out
+  of arbitrary TypeScript is a much larger job with its own false-positive surface, and doing it as a
+  side effect of a root change would grow the gate's teeth without review. It is recorded as a known
+  gap in the scanner's header rather than implied away, and the roots list no longer claims otherwise.
+
+- **The widened scan surfaced one real finding, and it is declared rather than suppressed.** The ten
+  vendored US Core 6.1.0 StructureDefinitions under `test/us-core-profiles/` each carry their
+  publisher's work-group contact address in `contact.telecom`. It is a real address, so it is a real
+  hit; it is not PHI, because it denotes a standards-body mailing list rather than a person receiving
+  care. It is cleared with a new, narrower allow-list tag — `EMAIL <address>`, one exact address —
+  rather than an `EMAILDOMAIN` entry that would clear every address at a live organizational domain,
+  and rather than an `--allow-fixture` bypass that would silence every other check on those ten files.
+
+- **A missing allow-list exited 1, which reads as "hits found".** `loadAllowList` now runs inside the
+  invocation-error boundary, so an absent `scripts/phi-allow-list.txt` exits **2** like every other
+  invocation error.
+
+- **The override log was parsed file-wide, so its own format template was a bypass.**
+  `phi-scan-overrides.md` documents itself with a literal `### <path>` heading above the entries
+  section; only `### <path>` subsections **under `## Entries`** are read as approvals now.
+
+- **A false assertion in the scanner's test suite, deleted rather than reworded.** Its docblock said
+  the suite "deliberately does NOT test structured, field-level PHI detection". That was untrue when
+  written and stayed untrue for six formats — the HL7, FHIR, X12, NCPDP, ASTM and quirk suites had
+  been exercising exactly that. The dangerous half of a wrong assertion is not the code around it but
+  the next reader trusting it, so the sentence is gone. Two more went with it: the `STARTER` banner —
+  carried in `scripts/phi-scan.ts`, `phi-scan-overrides.md` and `.github/workflows/ci.yml`, all three
+  still describing a scanner that detects "SSN and email only" after every structured arm had landed —
+  and a claim in `docs-content/limitations.md` that this project's own fixtures carry a
+  `# synthetic: true` header. **No fixture does**; two shipped value-pool sources do.
+
 - **A corpus could report a transaction it did not contain.** `x12Corpus({ seed: 9, mix: ["270"] })`
   returned a corpus whose manifest said `{"270": 1}` and whose bytes were an `837` professional claim,
   byte-identical to `mix: ["837P"]` at the same seed, because the kind dispatcher ended in an
