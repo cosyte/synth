@@ -111,6 +111,39 @@ const OVERRIDES_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
 const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
 
 /**
+ * WHY THE SWEEP SPAWNS `node` AND NOT `tsx`, THOUGH `pnpm phi-scan` USES `tsx`.
+ *
+ * Every test below runs the scanner in a real subprocess, on purpose — that is what
+ * exercises the full CLI path (argv parse, exit code, stderr). The cost is a fixed
+ * per-spawn startup, paid ~65 times, and it dominated this file: measured on this
+ * box, warmed medians were **2.1 s** for a `tsx` cold start against **0.6 s** for
+ * `node` running the same TypeScript through its native type stripping. That fixed cost, not any
+ * assertion, is what put a dozen tests here within 3x of the 10 s global timeout —
+ * i.e. the suite was measuring interpreter startup on a loaded machine rather than
+ * the scanner. Cutting the cost is a better answer than a bigger ceiling: a ceiling
+ * would hide the startup time, this removes it, and every test in the file gains the
+ * headroom without any timeout being relaxed.
+ *
+ * THE NODE FLOOR THIS ASSUMES IS 22.18, WHICH IS HIGHER THAN THE ONE THE PACKAGE
+ * DECLARES. Type stripping landed flagged in 22.6 and unflagged only in **22.18**,
+ * while `engines.node` here is `>=22.0.0` — so on 22.0-22.17 the package itself is
+ * fine and only THIS FILE breaks. `engines` is deliberately not raised for a
+ * dev-only harness detail: nothing a consumer installs is affected. The failure is
+ * loud rather than silent (the scanner fails to load, so every test in the file
+ * reds, the clean-file legs included) and the CI matrix runs 22 and 24, so a box
+ * below 22.18 is a red build and not a quiet gap in the gate.
+ *
+ * Nothing under test changes: `node` and `tsx` both hand the scanner the same argv,
+ * the same cwd and the same stdio, and node's stripping emits no warning to pollute
+ * the stderr these tests assert on. Two things this trades away, both handled:
+ *   - the `tsx` entry point itself is no longer exercised by the sweep, so ONE test
+ *     below still spawns `tsx` explicitly to pin the real `pnpm phi-scan` path;
+ *   - type stripping cannot erase `enum`, `namespace`, or parameter properties. The
+ *     scanner uses none, and the tsx-pinned test reds if that ever stops being true.
+ */
+const NODE_BIN = process.execPath;
+
+/**
  * A PHI-shaped digit string built from parts, and a non-declared email built the
  * same way. The scanner now walks all of `test/`, so this suite sits inside the
  * corpus it guards: a literal violator here would be a correct hit on every run.
@@ -145,7 +178,17 @@ interface RunResult {
 
 /** Run the scanner with its cwd set to `cwd` (the scanner treats cwd as the repo root). */
 function runScannerIn(cwd: string, args: string[]): RunResult {
-  const r = spawnSync(TSX_BIN, [SCANNER_PATH, ...args], { cwd, encoding: "utf8", shell: false });
+  const r = spawnSync(NODE_BIN, [SCANNER_PATH, ...args], { cwd, encoding: "utf8", shell: false });
+  return { code: r.status ?? -1, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
+}
+
+/** The `tsx` invocation `pnpm phi-scan` actually uses — kept for the one test that pins it. */
+function runScannerViaTsx(args: string[]): RunResult {
+  const r = spawnSync(TSX_BIN, [SCANNER_PATH, ...args], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    shell: false,
+  });
   return { code: r.status ?? -1, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
 }
 
@@ -322,6 +365,46 @@ beforeAll(() => {
 
 afterAll(() => {
   rmSync(dir, { recursive: true, force: true });
+});
+
+describe("phi-scan: the `tsx` entry point `pnpm phi-scan` uses is the same scanner", () => {
+  // THE ONE TEST THAT STILL PAYS THE tsx COLD START, and it is the backstop for every
+  // other test in this file. The sweep spawns `node` (see NODE_BIN above) because a tsx
+  // start costs ~3x a node one and that fixed cost, multiplied by ~65 spawns, was what
+  // pushed this file's tests toward the 10 s global. That substitution is only sound
+  // while the two runners agree, so this asserts they do — on a hit AND on a pass, since
+  // a runner that failed to start would exit non-zero and read as a "hit" on both.
+  //
+  // It also covers what `node` alone cannot: that `scripts/phi-scan.ts` still LOADS under
+  // tsx, which is the invocation the pre-commit gate and `pnpm phi-scan` actually run.
+  // If a future edit introduces a construct node's type stripping cannot erase (`enum`,
+  // `namespace`, a parameter property), the sweep breaks loudly and this test stays green,
+  // which is the pair of signals that names the cause.
+  it("agrees with the `node` invocation on a hit and on a pass", () => {
+    // The cross-cutting floor, assembled not spelled (this file is inside the corpus
+    // `pnpm phi-scan` sweeps). Deliberately the FLOOR rather than a name: a name in a
+    // `.ts` is subject to the file-scoped-admission limit the docblock lists, so it
+    // scans clean and would have made the "hit" leg assert the wrong thing.
+    const ssn = digits("123", "-45-", "6789");
+
+    for (const [label, content, expected] of [
+      ["hit", `patient ssn ${ssn} on file\n`, 1],
+      ["pass", "just some ordinary text, no identifiers here\n", 0],
+    ] as const) {
+      const path = join(dir, `tsx-parity-${label}.txt`);
+      writeFileSync(path, content);
+      const viaNode = runScanner([path]);
+      const viaTsx = runScannerViaTsx([path]);
+      expect(viaNode.code, `${label}: node, stderr: ${viaNode.stderr}`).toBe(expected);
+      expect(viaTsx.code, `${label}: tsx disagrees with node`).toBe(viaNode.code);
+      expect(viaTsx.stderr, `${label}: tsx stderr differs`).toBe(viaNode.stderr);
+      // stdout too, and it is not redundant: the scanner writes HITS to stderr but the
+      // summary line to stdout, and that line carries the file-count denominator its own
+      // header insists an `OK` is never read without. Compare only `code` and `stderr`
+      // and the clean leg asserts little more than `0 === 0`.
+      expect(viaTsx.stdout, `${label}: tsx stdout differs`).toBe(viaNode.stdout);
+    }
+  }, 60_000);
 });
 
 describe("phi-scan: the cross-cutting floor catches SSN + email", () => {

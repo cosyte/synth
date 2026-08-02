@@ -45,6 +45,30 @@ describe("C-CDA quirk registry", () => {
   });
 });
 
+// EXPLICIT 60 s CEILINGS ON THE THREE fast-check SWEEPS IN THIS FILE, not a change to the global
+// `testTimeout`. The three are the two in the block directly below (`numRuns: 90`) and the
+// seed-determinism one further down (`numRuns: 50`); every other test here is a single generate or a
+// small loop, and stays on the 10 s global.
+//
+// `buildCcda` parses XML through @xmldom/xmldom on every build, and a quirk case builds a document,
+// re-parses it bare, and parses it AGAIN under a profile, so these are the heaviest cases in the
+// package. Measured with a core to itself under v8 coverage, the two at 90 runs took 5.07 s and 4.93 s
+// against the 10 s global, i.e. barely 2x headroom; sharing a core they took 10.58 s and 8.20 s, so the
+// first is already over. The 10 s global is a wall-clock assertion about the MACHINE, and these suites
+// are CPU-bound, so it reds correct code on a busy box.
+//
+// The third sweep is bounded for consistency rather than because it is near the wall: it measured
+// 1.61 s, about 6x headroom. It is the same shape as the other two and its siblings at lower case
+// counts (`determinism.property.test.ts` at 60 and 30 runs) already carry this exact ceiling, so
+// leaving one of three unbounded would be the odd case a later reader has to re-derive.
+//
+// The sibling C-CDA suites (`determinism.property.test.ts`, `synthetic-safety.property.test.ts`) already
+// carry exactly this 60 s ceiling for exactly this reason. These sweeps are heavier than either and were
+// simply missed. Raising the global instead would trade a false red for a false green: it would let a
+// genuine hang anywhere else in the package sleep for a minute, so the ceiling stays local.
+//
+// A ceiling and not a smaller `numRuns`: this is the mandatory intended-warning conformance contract,
+// and cutting cases to fit a clock weakens a correctness gate to fix a scheduling problem.
 describe("C-CDA intended-warning contract (mandatory)", () => {
   it("every quirk, every seed → exactly the intended warning (bare) and PROFILE_QUIRK_APPLIED (profiled)", () => {
     fc.assert(
@@ -58,7 +82,7 @@ describe("C-CDA intended-warning contract (mandatory)", () => {
       }),
       { numRuns: 90 },
     );
-  });
+  }, 60_000);
   it("holds for EVERY document type — ccd AND referralNote (regression: a doc-type-specific anchor)", () => {
     fc.assert(
       fc.property(
@@ -76,7 +100,7 @@ describe("C-CDA intended-warning contract (mandatory)", () => {
       ),
       { numRuns: 90 },
     );
-  });
+  }, 60_000);
   it("the re-badge names the right built-in profile", () => {
     expect(
       ccdaQuirkRoundTrip(generateCcdaQuirk({ seed: 1, quirk: "template-extension-absent" }))
@@ -99,7 +123,7 @@ describe("C-CDA quirk seed-determinism (mandatory)", () => {
       }),
       { numRuns: 50 },
     );
-  });
+  }, 60_000);
 });
 
 describe("C-CDA quirk synthetic-safety — the deviation is a template/code, never a value", () => {

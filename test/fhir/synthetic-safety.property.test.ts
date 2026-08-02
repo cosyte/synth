@@ -95,6 +95,19 @@ function structuredHits(json: unknown): string[] {
   return hits;
 }
 
+// EXPLICIT 60 s CEILINGS ON ALL FOUR SWEEPS, not a change to the global `testTimeout`.
+//
+// This is a MANDATORY synthetic-safety gate, and it runs the highest case counts in the package
+// (250/250/200/200). Measured sharing a core, the first sweep took 2.31 s against the 10 s global,
+// and the same run scaled the package's other unbounded tests by ~1.22x, so under v8 coverage it
+// lands near 2.8 s: roughly 3.5x headroom, the smallest of anything still on the global here.
+//
+// That is not near the wall today, and the ceiling is pre-emptive rather than a fix for an observed
+// red. It is applied because of WHAT this suite is: the executable proof that nothing emitted can be
+// real or plausibly-real PHI. A gate in that class should not be the one that reds for want of CPU,
+// because a safety check that cries wolf is the one people learn to re-run rather than read.
+//
+// A ceiling and not a smaller `numRuns`: the case count IS the strength of a synthetic-safety sweep.
 describe("synthetic-safety gate — generated FHIR output (must be ZERO)", () => {
   it("no resource leaks a real-data SSN or non-reserved email shape", () => {
     fc.assert(
@@ -119,7 +132,7 @@ describe("synthetic-safety gate — generated FHIR output (must be ZERO)", () =>
       }),
       { numRuns: 250 },
     );
-  });
+  }, 60_000);
 
   it("every Patient identity locus is provably synthetic", () => {
     fc.assert(
@@ -135,7 +148,7 @@ describe("synthetic-safety gate — generated FHIR output (must be ZERO)", () =>
       }),
       { numRuns: 250 },
     );
-  });
+  }, 60_000);
 
   it("a Bundle's every contained resource is synthetic at every identity locus", () => {
     fc.assert(
@@ -147,7 +160,7 @@ describe("synthetic-safety gate — generated FHIR output (must be ZERO)", () =>
       }),
       { numRuns: 200 },
     );
-  });
+  }, 60_000);
 
   it("a document Bundle (Composition + full spine) is synthetic at every identity locus", () => {
     fc.assert(
@@ -158,5 +171,5 @@ describe("synthetic-safety gate — generated FHIR output (must be ZERO)", () =>
       }),
       { numRuns: 200 },
     );
-  });
+  }, 60_000);
 });

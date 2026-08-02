@@ -547,6 +547,26 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 ### Fixed
 
+- **The test suite could fail on a busy machine while the code under test was correct.** The
+  per-test timeout is a wall-clock budget, so it measures the machine as much as the code. These
+  suites are CPU-bound, in that their running time is set by how much processor they actually get
+  rather than by the work the code does, so the two heaviest C-CDA sweeps ran within about 2x of the 10 s limit
+  with a core to themselves, and crossed it when sharing one, reporting a failure that reproduced
+  nowhere else. A failure that means "the machine was busy" costs more than it saves, because the
+  next real one is read as noise too.
+
+  Two fixes, chosen so that a genuine hang still fails fast. The C-CDA quirk sweeps, the heaviest
+  cases in the package and the ones that build a document and parse it twice, now carry their own explicit
+  generous ceilings, matching the sibling C-CDA suites that already had them. And the PHI-gate suite,
+  which runs the scanner in a real subprocess ~65 times, now starts those subprocesses with `node`
+  rather than the on-the-fly TypeScript runner: measured on one box, 0.6 s against 2.1 s per start,
+  taking the file from ~145 s to ~75 s. Nothing about the scanner changed, and one test still runs it
+  the original way so the two invocations are held to the same verdict.
+
+  **The global timeout is deliberately unchanged.** Raising it would have been the shorter fix and
+  would have traded a false failure for a false pass, letting a genuinely stuck test sit for a minute
+  before anyone heard about it.
+
 - **Three of the PHI gate's seven structured detectors decided what to inspect from the file's NAME,
   so byte-identical content was refused as `probe.xml` and passed as `probe.ts`.** `scanCcda` and
   `scanNcpdpScript` returned early unless the path ended `.xml`; `scanFhir` unless it ended `.json`.
