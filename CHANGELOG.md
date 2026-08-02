@@ -547,6 +547,44 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 ### Fixed
 
+- **A file that appeared and disappeared while the PHI gate was running made it refuse the whole
+  sweep.** A full scan lists every file under `src/`, `test/` and `scripts/` and then reads them one
+  by one. Anything created and deleted between those two steps was read after it was gone, and the
+  scanner stopped with an error rather than a verdict. That is reachable in this repository rather
+  than theoretical: the gate's own test suite writes short-lived files into two of the three
+  directories it scans, and sweeping the working tree while that suite ran stopped 8 of 165 sweeps.
+  A sibling package hit the same shape from its build tool and it blocked a release.
+
+  **The refusal was right; the file list was wrong, so the list is what changed.** Exactly one case
+  is now tolerated: a file the scan listed itself, that is not committed, and that is missing when
+  the scan reaches it. It is reported on stderr as skipped, never dropped in silence, and the
+  "files scanned" figure counts what was actually read, so a skip lowers it instead of padding it.
+
+  **Everything else still stops the scan.** A committed file that cannot be read, a read that fails
+  for any other reason (unreadable is not the same as absent), a skipped file that is back on disk
+  when the scan finishes, and a repository that cannot report what it tracks. A full scan that ends
+  up having read nothing at all is refused outright, so tolerating a missing file can never turn
+  into a clean report of a tree nothing was read from. Pre-commit scans read committed content
+  directly and never depended on any of this.
+
+  Each of those bounds is pinned by a test that reds when the bound is widened, verified by widening
+  each one in turn. **One is not pinned and is named here rather than implied:** the check that a
+  skipped file has not come back. Reaching it needs a timing-dependent test, which is the failure
+  this defect teaches, so it is left uncovered deliberately; losing it would cost that re-check, not
+  the tolerance's limits. **One residual is disclosed rather than closed:** the re-check matches on
+  the file's path, not its contents, so an uncommitted file _renamed_ mid-scan goes unread under a
+  clean report. Committing it makes it tracked and no longer tolerable, and pre-commit reads
+  committed content either way. Closing it in general needs a content-addressed scan; re-listing the
+  scanned directories afterwards would close the in-directory half more cheaply, at the cost of a
+  second walk and a new way to refuse. Both are a design trade for a later change rather than
+  something impossible.
+
+  **Two smaller limits are recorded rather than closed, and both fail in the refusing direction.**
+  When the repository cannot report what it tracks the scan still stops, but the message names the
+  file it could not read rather than that reason. And the tracked-file list is read through a 1 MiB
+  buffer, so a repository large enough to exceed it would quietly stop applying the tolerance —
+  measured here at 6,556 bytes, three orders of magnitude of headroom.
+
 - **The test suite could fail on a busy machine while the code under test was correct.** The
   per-test timeout is a wall-clock budget, so it measures the machine as much as the code. These
   suites are CPU-bound, in that their running time is set by how much processor they actually get
