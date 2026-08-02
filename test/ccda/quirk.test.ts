@@ -45,6 +45,21 @@ describe("C-CDA quirk registry", () => {
   });
 });
 
+// EXPLICIT CEILINGS ON THE SWEEPS BELOW, not a change to the global `testTimeout`.
+//
+// `buildCcda` parses XML through @xmldom/xmldom on every build, and a quirk case builds a document,
+// re-parses it bare, and parses it AGAIN under a profile — so these are the heaviest cases in the
+// package, at the highest case count (90). Measured on an idle box under v8 coverage they run ~4.9 s
+// and ~5.1 s against the 10 s global, i.e. barely 2x headroom; the same sweeps red on a loaded machine
+// while the code is correct. The 10 s global is a wall-clock assertion about the MACHINE.
+//
+// The sibling C-CDA suites (`determinism.property.test.ts`, `synthetic-safety.property.test.ts`) already
+// carry exactly this 60 s ceiling for exactly this reason. These sweeps are heavier than either and were
+// simply missed. Raising the global instead would trade a false red for a false green — it would let a
+// genuine hang anywhere else in the package sleep for a minute — so the ceiling stays local.
+//
+// A ceiling and not a smaller `numRuns`: this is the mandatory intended-warning conformance contract,
+// and cutting cases to fit a clock weakens a correctness gate to fix a scheduling problem.
 describe("C-CDA intended-warning contract (mandatory)", () => {
   it("every quirk, every seed → exactly the intended warning (bare) and PROFILE_QUIRK_APPLIED (profiled)", () => {
     fc.assert(
@@ -58,7 +73,7 @@ describe("C-CDA intended-warning contract (mandatory)", () => {
       }),
       { numRuns: 90 },
     );
-  });
+  }, 60_000);
   it("holds for EVERY document type — ccd AND referralNote (regression: a doc-type-specific anchor)", () => {
     fc.assert(
       fc.property(
@@ -76,7 +91,7 @@ describe("C-CDA intended-warning contract (mandatory)", () => {
       ),
       { numRuns: 90 },
     );
-  });
+  }, 60_000);
   it("the re-badge names the right built-in profile", () => {
     expect(
       ccdaQuirkRoundTrip(generateCcdaQuirk({ seed: 1, quirk: "template-extension-absent" }))
@@ -99,7 +114,7 @@ describe("C-CDA quirk seed-determinism (mandatory)", () => {
       }),
       { numRuns: 50 },
     );
-  });
+  }, 60_000);
 });
 
 describe("C-CDA quirk synthetic-safety — the deviation is a template/code, never a value", () => {
