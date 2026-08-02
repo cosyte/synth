@@ -169,11 +169,30 @@ function scannedCount(r: RunResult): number {
 // REPO. Re-derive them, do not port them, if the suite's `readdirSync` sites move.
 // ---------------------------------------------------------------------------
 
+/**
+ * Build `<tag>value</tag>` at run time so this FILE never contains a name element with content.
+ *
+ * THIS IS WHY THE SCANNER NEEDS NO PLACEHOLDER RULE. Once the C-CDA / SCRIPT / FHIR arms stopped
+ * gating on the file extension, this suite became one of their targets, and every fixture below that
+ * spelled out a `given` element with content was a hit against the gate itself. (Note this sentence
+ * does not write one either — with no skip rule in the scanner, prose that forges a name element reds
+ * the gate, and that discipline is the trade for a detector with nothing to audit.) The first three
+ * attempts at fixing
+ * that taught the SCANNER to skip template placeholders — a subtraction that has to be exactly right
+ * on a PHI detector, and twice was not: it silenced `Anderson ...`, then `${"Anderson"}`, then spliced
+ * `{{Anderson ${s}}` across two constructs. Each fix bought one more evasion shape.
+ *
+ * The gate does not have that problem. THIS FILE does. Assembling the element at run time keeps the
+ * bytes the scanner sees identical while leaving no `<given>` with content in the source, so the
+ * detector can stay maximally literal and the widening stays purely additive.
+ */
+const el = (tag: string, value: string): string => `<${tag}>${value}</${tag}>`;
+
 /** A genuine violator: a real-looking C-CDA `recordTarget` name (`.xml` → the C-CDA arm). */
 const VIOLATOR = `<?xml version="1.0" encoding="UTF-8"?>
 <ClinicalDocument xmlns="urn:hl7-org:v3">
   <recordTarget><patientRole><patient>
-    <name><given>${GIVEN}</given><family>${FAMILY}</family></name>
+    <name>${el("given", GIVEN)}${el("family", FAMILY)}</name>
   </patient></patientRole></recordTarget>
 </ClinicalDocument>`;
 
@@ -490,15 +509,9 @@ describe("phi-scan: NCPDP structured detection (SYNTH-7)", () => {
     // `pnpm phi-scan`. The value the scanner sees at run time is unchanged; only the
     // literal leaves the source.
     //
-    // HOISTED OUT OF THE INTERPOLATION, and that is not cosmetic. `isPlaceholder` will
-    // not elide an interpolation containing a quote, because `${"Anderson"}` carries the
-    // name verbatim in the bytes. `${token("Smi", "th")}` carries quotes too, so inlining
-    // the call here would make this line a hit. Binding it first keeps the element content
-    // a bare `${…}` — a real placeholder — and keeps the gate's teeth where they belong.
-    const lastName = token("Smi", "th");
     const content = generateNewRx({ seed: 7001 }).replace(
       /<LastName>[^<]+<\/LastName>/,
-      `<LastName>${lastName}</LastName>`,
+      el("LastName", token("Smi", "th")),
     );
     const r = scan("real-name.xml", content);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
@@ -713,7 +726,8 @@ describe("phi-scan: every structured arm keys off content, not the file extensio
     // messages in files not named `.xml`. Asserted rather than argued.
     const script =
       `<Message><Body><NewRx><Patient>` +
-      `<LastName>${FAMILY}</LastName><FirstName>${GIVEN}</FirstName>` +
+      el("LastName", FAMILY) +
+      el("FirstName", GIVEN) +
       `</Patient></NewRx></Body></Message>`;
     const r = scan("script-probe.ts", script);
     expect(r.code, `stdout: ${r.stdout}`).toBe(1);
@@ -726,8 +740,8 @@ describe("phi-scan: every structured arm keys off content, not the file extensio
     // would have bought nothing. The textual pass is what reaches it.
     const literal =
       `export const p = { resourceType: "Patient",\n` +
-      `  name: [{ family: "${FAMILY}", given: ["${GIVEN}"] }],\n` +
-      `  telecom: [{ system: "phone", value: "${digits("212-", "555-", "1234")}" }] };\n`;
+      `  name: [${JSON.stringify({ family: FAMILY, given: [GIVEN] })}],\n` +
+      `  telecom: [{ system: "phone", value: ${JSON.stringify(digits("212-", "555-", "1234"))} }] };\n`;
     const r = scan("fhir-literal.ts", literal);
     expect(r.code, `stdout: ${r.stdout}`).toBe(1);
     expect(r.stderr).toMatch(/Patient\.name/);
@@ -754,80 +768,44 @@ describe("phi-scan: every structured arm keys off content, not the file extensio
     // Admission is the entire false-positive defence: a file must CLAIM to be FHIR
     // before its `family:` keys are read. Ordinary source must stay green, and this
     // is the test that reds if that admission marker is ever dropped "to catch more".
-    const r = scan("ordinary.ts", `const x = { family: "${FAMILY}", given: ["${GIVEN}"] };\n`);
+    const shape = JSON.stringify({ family: FAMILY, given: [GIVEN] });
+    const r = scan("ordinary.ts", `const x = ${shape};\n`);
     expect(r.code, `stdout: ${r.stdout}`).toBe(0);
   });
 
-  it("does NOT read a name that is WHOLLY a template placeholder", () => {
-    // The cost of reading source files: a text gate cannot evaluate an expression.
-    // An evasion route, stated in the header and pinned here rather than glossed.
-    // BOTH loci must be replaced — leaving `<family>` spelled out makes this exit 1
-    // for an unrelated reason and proves nothing about the placeholder.
-    const masked = VIOLATOR.replace(GIVEN, "${given}").replace(FAMILY, "{{family}}");
-    const r = scan("interp.ts", masked);
-    expect(r.code, `stdout: ${r.stdout}`).toBe(0);
-  });
-
-  it("DOES read a name that merely CONTAINS a placeholder or an elision", () => {
-    // THE TEST THAT WAS MISSING, and its absence is why 63 green tests certified a
-    // detection regression. `isPlaceholder` was written as a CONTAINMENT test, so
-    // `Anderson ...` — a real surname next to an ellipsis — silenced the name check
-    // on `.xml` and `.json` paths this gate ALREADY covered before any widening,
-    // flipping whole files from refused to accepted. A refuter found it in one probe.
+  it("reads EVERY name shape it reaches — the scanner skips no token at all", () => {
+    // THE STRONGEST FORM OF THIS SLICE'S CLAIM, and the reason the scanner carries no
+    // placeholder rule. Three earlier drafts taught the detector to skip tokens that
+    // looked like template syntax, and a refuter broke each one on a shape that put a
+    // real surname in the bytes: `Anderson ...` (a containment test), then
+    // `${"Anderson"}` (any interpolation body elided), then `{{Anderson ${s}}` (one
+    // regex pass matching straight across two constructs the source never nested).
     //
-    // A predicate that switches a detector off must match the WHOLE token. Anything
-    // less is an evasion primitive: append " ..." to a real name and walk past.
-    for (const forgery of [`${FAMILY} ...`, `${FAMILY} \${suffix}`, `${FAMILY}…`]) {
-      const doc = VIOLATOR.replace(FAMILY, forgery);
-      expect(scan("mixed.xml", doc).code, `xml missed: ${forgery}`).toBe(1);
-      expect(scan("mixed.ts", doc).code, `ts missed: ${forgery}`).toBe(1);
+    // Every entry below was silenced by at least one of those drafts. All are read now,
+    // because nothing is skipped: the only question the gate asks of a name token is
+    // whether the allow-list declares it. A skip rule on a PHI detector has to be
+    // exactly right, and the way to be exactly right here was not to have one — the
+    // suite assembles its own fixtures instead (see `el`).
+    //
+    // If a later change reintroduces a skip rule, this test is what reds.
+    const shapes = [
+      `${FAMILY} ...`,
+      `${FAMILY} \${suffix}`,
+      `\${"${FAMILY}"}`,
+      `{\${x}{${FAMILY}}}`,
+      `\${${FAMILY}}`,
+      `{{${FAMILY}}}`,
+    ];
+    for (const shape of shapes) {
+      const doc = VIOLATOR.replace(FAMILY, shape);
+      expect(scan("shape.xml", doc).code, `silenced: ${shape}`).toBe(1);
     }
     // AN EXPLICIT CEILING ON THIS ONE TEST, not a change to the global `testTimeout`.
-    // Six forgeries x one scanner subprocess each is genuinely the slowest case in this
-    // file, and the 10s global is a wall-clock assertion about the MACHINE: it reds this
-    // correct test on a loaded box. Raising the global instead would trade a false red
-    // for a false green everywhere else, so the ceiling stays local to the slow test.
+    // Six shapes x one scanner subprocess each is the slowest case in this file, and the
+    // 10s global is a wall-clock assertion about the MACHINE: it reds this correct test
+    // on a loaded box. Raising the global would trade a false red for a false green
+    // everywhere else, so the ceiling stays local to the slow test.
   }, 60_000);
-
-  it("treats a token of ONLY placeholders as a placeholder, however many", () => {
-    // The other side of the residue rule: `${first} ${last}` carries no literal, so
-    // reporting it would be the cry-wolf failure the predicate exists to prevent.
-    const doc = VIOLATOR.replace(GIVEN, "${first} ${last}").replace(FAMILY, "{{surname}}");
-    expect(scan("multi-interp.xml", doc).code).toBe(0);
-  });
-
-  it("DOES read a quoted string literal inside an interpolation", () => {
-    // `${"Anderson"}` puts the name verbatim in the bytes, so the token is not
-    // value-less and the elision must not apply. This was open in an earlier draft on
-    // a justification that turned out to be circular — the "existing idiom" it claimed
-    // to protect had been introduced by the same commit. Pinned so it stays closed.
-    for (const q of ['"', "'"]) {
-      const doc = VIOLATOR.replace(FAMILY, `\${${q}${FAMILY}${q}}`);
-      expect(scan("quoted-interp.xml", doc).code, `quote ${q} elided`).toBe(1);
-    }
-  });
-
-  it("DOES read a name that two placeholder strips could splice into one", () => {
-    // `{${x}{Anderson}}` is not wrapped by any single construct. Stripping `${x}` first
-    // SYNTHESIZED `{{Anderson}}`, which a second mustache strip then ate — so three
-    // sequential replaces elided a surname the source never placeheld. One pass over an
-    // alternation never re-examines what it has already emitted.
-    const doc = VIOLATOR.replace(FAMILY, `{\${x}{${FAMILY}}}`);
-    expect(scan("spliced.xml", doc).code, "sequential-strip splice reopened").toBe(1);
-  });
-
-  it("does NOT read a name written as a bare identifier in one interpolation", () => {
-    // THE RESIDUAL NARROWING, characterized rather than claimed closed. `${Anderson}` is
-    // the same shape as `${FAMILY}` — the legitimate form this suite's own fixtures need
-    // — and no regex here can tell which identifier happens to spell a name. It is a
-    // narrowing versus the `.xml`/`.json` behaviour that predates the widening, so it is
-    // executable rather than a sentence: if a later change closes it, this reds and a
-    // reviewer decides deliberately.
-    for (const shape of [`\${${FAMILY}}`, `{{${FAMILY}}}`]) {
-      const doc = VIOLATOR.replace(GIVEN, "${g}").replace(FAMILY, shape);
-      expect(scan("bare-ident.xml", doc).code, `now read: ${shape}`).toBe(0);
-    }
-  });
 
   it("does NOT reach a phone whose system and value are separated by another key", () => {
     // The textual FHIR route is a regex, not an object graph. `{ system, use, value }`

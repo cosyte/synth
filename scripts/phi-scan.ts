@@ -73,17 +73,27 @@
  * now admits a target by its extension OR by what the bytes say. C-CDA and SCRIPT
  * key off the formats' own required discriminators (a CDA root/namespace, a SCRIPT
  * `<Message>` envelope) and FHIR's TEXTUAL route off `resourceType` — never a guess
- * at "looks XML-ish", so a file has to CLAIM to be the format before its identity
- * loci are read. FHIR's STRUCTURAL route is the one exception and should not be
- * described as marker-gated: it runs whenever `JSON.parse` succeeds, with no
- * `resourceType` check, exactly as it did for `.json` before. See each arm.
+ * at "looks XML-ish", so a file has to CLAIM to be the format before the NEW CONTENT
+ * ROUTES read its identity loci. That is not a precondition on the gate as a whole,
+ * and saying so was wrong twice: an `.xml` path still reaches the C-CDA arm on its
+ * EXTENSION with no marker at all, and FHIR's STRUCTURAL route still runs whenever
+ * `JSON.parse` succeeds with no `resourceType` check — both exactly as before. See
+ * each arm.
  *
- * THE WIDENING IS ADDITIVE; THE COMMIT AS A WHOLE IS NOT, AND THE DIFFERENCE IS
- * WORTH THE SENTENCE. No target admitted before is refused admission now. But
- * `isPlaceholder` (below) SILENCES a name token on every path including the ones
- * that were always covered, so it subtracts. It is scoped to whole-token
- * interpolation precisely so that subtraction cannot reach a literal name, and a
- * refuter caught the earlier substring-scoped version doing exactly that.
+ * THE CHANGE IS PURELY ADDITIVE, AND IT COST THREE REVIEW PASSES TO GET THERE. No
+ * target admitted before is refused admission now, and NO detector was taught to
+ * skip anything. Every name token this scanner reaches is still compared against
+ * the allow-list exactly as it always was.
+ *
+ * That is a deliberate retreat. Widening the arms made this scanner's own test
+ * suite one of its targets, and that suite necessarily writes name elements. The
+ * first three attempts answered it by teaching the SCANNER to skip template
+ * placeholders — and on a PHI detector a skip rule has to be exactly right, which
+ * it twice was not: it silenced `Anderson ...`, then `${"Anderson"}`, then spliced
+ * `{{Anderson ${s}}` across two constructs the source never nested. Each remedy
+ * bought one more evasion shape, which is the signature of a rule that does not
+ * belong here. The suite assembles its elements at run time instead, so the
+ * detector stays maximally literal and this file has NO subtraction to audit.
  *
  * What the three invariants do NOT cover, because the honest limits matter more
  * than the slogan: they constrain the target set, not what enumeration finds in
@@ -98,15 +108,6 @@
  *     object needs a real JavaScript parser, which this scanner deliberately does
  *     not have. The remedy for a false positive is the allow-list — the same
  *     positive declaration the rest of the gate asks for.
- *   - A NAME WRITTEN AS A BARE IDENTIFIER INSIDE ONE INTERPOLATION IS NOT READ —
- *     `${Anderson}`, `{{Anderson}}`. To a text gate that is the same shape as
- *     `${FAMILY}`, which the suite's fixtures need, and no regex here can tell
- *     which identifier happens to spell a name. THIS IS A NARROWING VERSUS THE
- *     `.xml` / `.json` behaviour that predates the widening, not merely a limit of
- *     the new reach, and it is the reason the predicate tests the RESIDUE rather
- *     than containment: `Anderson ...` and `Anderson ${suffix}` ARE read, and a
- *     quoted literal (`${"Anderson"}`) IS read, because in each the name sits
- *     verbatim in the bytes. Every one of those is pinned by a test.
  *   - The C-CDA name/telecom sweep is DOCUMENT-WIDE, not `recordTarget`-scoped. It
  *     always was; until 2026-08-02 it mislabelled every hit as `recordTarget/…`
  *     anyway. The sweep is deliberate (an author's or informant's name in a
@@ -181,9 +182,10 @@ const OVERRIDE_LOG_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
 // it wrong and the wrong version was the stated evidence for a predicate: over 170
 // files it returned FOUR hits across TWO files. Two were real names the widening had
 // just made visible for the first time (`test/deid/loop.test.ts`) and are now declared
-// in the allow-list. Two were wholly-interpolated tokens in this scanner's own test
-// fixtures, and those are what `isPlaceholder` exists for. So it was NOT "four
-// placeholders, none a name" — half of it was names, and the finding was the point.
+// in the allow-list. Two were name elements in this scanner's own test fixtures, which
+// the suite now assembles at run time so they are not written in its source at all. So
+// it was NOT "four placeholders, none a name" — half of it was names, and finding them
+// was the point of the change.
 const SCAN_ROOTS: readonly string[] = ["src", "test", "scripts"];
 
 /**
@@ -728,7 +730,6 @@ function scanNcpdpScript(path: string, text: string, allow: AllowList, hits: Hit
   for (const m of text.matchAll(/<(LastName|FirstName|MiddleName)(?:\s[^>]*)?>([^<]+)<\/\1>/g)) {
     const token = (m[2] ?? "").trim();
     if (token.length === 0) continue;
-    if (isPlaceholder(token)) continue;
     if (!allow.names.has(token.toUpperCase())) {
       hits.push({
         path,
@@ -1044,63 +1045,6 @@ function hasCdaMarker(text: string): boolean {
 }
 
 /**
- * Whether a captured token is ENTIRELY template interpolation — `${GIVEN}`, `{{name}}`, `<%= x %>` —
- * and therefore carries no literal value to judge. Reaching inline documents in source files means
- * reaching files that BUILD those documents from variables, and flagging `${GIVEN}` as "a name not
- * declared synthetic" is the cry-wolf failure that gets a safety gate switched off.
- *
- * IT TESTS THE RESIDUE, NOT CONTAINMENT, AND THAT DISTINCTION IS THE WHOLE POINT. An earlier version
- * of this function asked whether the token CONTAINED an interpolation. A refuter broke it in one
- * probe: `Anderson ...` contains an elision, so a real surname went unread on a `.xml` C-CDA and a
- * `.json` FHIR fixture — paths this gate already covered before any of this widening — flipping a
- * whole file from refused to accepted. A predicate that silences a detector must match the WHOLE token,
- * never by a substring of it, or it is an evasion primitive rather than a noise filter.
- *
- * So: strip the interpolations and ask what survives. Nothing but whitespace means there was no value.
- * `${first} ${last}` is a placeholder; `Anderson ${suffix}` is a NAME and is read.
- *
- * NO ELISION CLAUSE, DELIBERATELY. A previous draft also skipped `…` and `...`, justified as
- * "measured". It was not: on the run cited, zero elision hits existed. The clause fired only on prose
- * that same commit had written INTO THIS FILE (`<given>` + an ellipsis, inside a comment). The remedy
- * was to write the comments so they do not forge a document — not to grow the gate a tooth that would
- * also unread `Anderson ...` in a real fixture. Three dots occur in truncated real text far more often
- * than `${` does.
- *
- * BE HONEST ABOUT THE COST: this is still an evasion route. A document assembled entirely from
- * variables is not read, because a text gate cannot evaluate an expression. That is not new — such a
- * file was not read at all before this change — but it is why this scanner stays a FLOOR under the
- * property layer and never the proof.
- *
- * EXACTLY WHAT IS STILL SILENCED, stated as a class rather than as one example, because an earlier
- * draft named one instance and a refuter found three more. A name is unread when it appears as a BARE
- * IDENTIFIER inside a single interpolation and nowhere else in the token: `${Anderson}`,
- * `{{Anderson}}`. That is indistinguishable, to a text gate, from `${FAMILY}` — the legitimate case
- * the suite's own fixtures depend on — because the only difference is whether the identifier happens
- * to spell a name, which is a judgement no regex here can make. Both are pinned by tests.
- *
- * WHAT IS NO LONGER SILENCED, and the correction is worth recording because the argument for leaving
- * it open was circular. A quoted literal inside an interpolation (`${"Anderson"}`, `${'Anderson'}`)
- * IS read: the name sits verbatim in the bytes, so the token is not value-less. An earlier draft
- * refused this fix "on measurement", claiming it false-positived on `${token("Smi", "th")}` as an
- * established idiom of this repo — but `git show main:test/scripts/phi-scan.test.ts` contains no such
- * line. THE COMMIT HAD WRITTEN IT ITSELF, then cited it as a pre-existing constraint. The one call
- * site is now bound to a local first, which costs nothing and keeps the element content a bare `${…}`.
- * Measure the tree, not your own diff.
- */
-function isPlaceholder(token: string): boolean {
-  // ONE pass over the alternation, never three sequential replaces. Three passes let the output of an
-  // earlier one be eaten by a later one: `{${x}{Anderson}}` became `{{Anderson}}` after the `${…}`
-  // strip and was then swallowed whole by the `{{…}}` strip, eliding a surname that no single
-  // construct in the source ever wrapped. A single pass never re-examines what it has already emitted.
-  //
-  // NO QUOTE OR BACKTICK inside an elided body. An interpolation carrying a string literal has the
-  // value right there in the bytes (`${"Anderson"}`), so it is NOT a value-less placeholder and must
-  // be read. `${GIVEN}` — a bare identifier — still elides, which is what the suite's fixtures need.
-  const residue = token.replace(/\$\{[^}"'`]*\}|\{\{[^}"'`]*\}\}|<%[^"'`]*?%>/g, "").trim();
-  return residue.length === 0 && token.trim().length > 0;
-}
-
-/**
  * C-CDA structured PHI detection. Over a C-CDA document, checks the name and telecom identity loci
  * DOCUMENT-WIDE: every `<given>` / `<family>` name token must be a declared-synthetic name, and every
  * `<telecom value="tel:…">` phone must carry the reserved `555-01xx` tail. Dashed SSNs and non-test
@@ -1131,7 +1075,6 @@ function scanCcda(path: string, text: string, allow: AllowList, hits: Hit[]): vo
   for (const m of text.matchAll(/<(given|family)(?:\s[^>]*)?>([^<]+)<\/\1>/g)) {
     const token = (m[2] ?? "").trim();
     if (token.length === 0) continue;
-    if (isPlaceholder(token)) continue;
     if (!allow.names.has(token.toUpperCase())) {
       hits.push({
         path,
@@ -1191,7 +1134,6 @@ function scanFhir(path: string, text: string, allow: AllowList, hits: Hit[]): vo
     }
     for (const t of tokens) {
       const token = t.trim();
-      if (isPlaceholder(token)) continue;
       if (token.length > 0 && !allow.names.has(token.toUpperCase())) {
         hits.push({
           path,
@@ -1279,7 +1221,6 @@ function scanFhirEmbedded(path: string, text: string, allow: AllowList, hits: Hi
     for (const q of (m[2] ?? "").matchAll(/"([^"]*)"|'([^']*)'/g)) {
       const token = (q[1] ?? q[2] ?? "").trim();
       if (token.length === 0) continue;
-      if (isPlaceholder(token)) continue;
       if (!allow.names.has(token.toUpperCase())) {
         hits.push({
           path,
@@ -1303,7 +1244,6 @@ function scanFhirEmbedded(path: string, text: string, allow: AllowList, hits: Hi
   for (const re of [FHIR_PHONE_SYSTEM_FIRST, FHIR_PHONE_VALUE_FIRST]) {
     for (const m of text.matchAll(re)) {
       const value = m[1] ?? "";
-      if (isPlaceholder(value)) continue;
       if (/\d{7,}/.test(value.replace(/\D/g, "")) && !isSyntheticPhone(value)) {
         hits.push({
           path,

@@ -559,35 +559,34 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   Extensions are matched case-insensitively, so `.XML` is an XML file too. `scanFhir` gained a second
   route for the hard half: a resource in a TypeScript object literal is not valid JSON, so a `.json`
   gate plus `JSON.parse` could never have reached it however the extension check was widened. Its
-  **structural** route is the one arm not marker-gated — it runs whenever `JSON.parse` succeeds, with
-  no `resourceType` check, exactly as it did for `.json` before.
+  **structural** route is not marker-gated — it runs whenever `JSON.parse` succeeds, with no
+  `resourceType` check, exactly as it did for `.json` before.
 
   **The marker is the false-positive defence for the CONTENT routes**, which is narrower than "nothing
   is examined without a marker" — an `.xml` path still reaches the C-CDA arm with no marker at all, and
   FHIR's structural route still reads any parseable JSON. A gate that flagged every `family:` in every
   source file would be turned off, which is worse than the gap it closes.
 
-  **One thing here SUBTRACTS, and it took two refuter passes to state correctly.** A name written as a
-  **bare identifier inside a single interpolation** — `${Anderson}`, `{{Anderson}}` — is no longer
-  reported, on every path including `.xml` and `.json`, which were always covered. To a text gate that
-  is the same shape as `${FAMILY}`, the legitimate form this repo's own fixtures need, and no regex
-  can tell which identifier happens to spell a name.
+  **NOTHING SUBTRACTS. No detector was taught to skip anything**, and getting to that took three
+  review passes. Widening the arms made this scanner's own test suite one of its targets, and that
+  suite necessarily writes name elements. The first three attempts answered it by teaching the
+  **scanner** to skip template placeholders — and on a PHI detector a skip rule has to be exactly
+  right, which it twice was not. It silenced `Anderson ...` (a containment test), then `${"Anderson"}`
+  (any interpolation body elided, left open on a claim that closing it would break an existing idiom
+  when `git show main` shows the same branch had just introduced that idiom), then `{{Anderson ${s}}`
+  (one regex pass matching straight across two constructs the source never nested). Each remedy bought
+  one more evasion shape, which is the signature of a rule that does not belong in a PHI gate.
 
-  Everything else that carries the name **verbatim in the bytes is read**: `Anderson ...`,
-  `Anderson ${suffix}`, `${"Anderson"}`, `${'Anderson'}`, and `{${x}{Anderson}}`. Getting there took
-  two corrections. The predicate began as a **containment** test, which silenced `Anderson ...`
-  outright. Then it elided any interpolation body, which silenced `${"Anderson"}` — left open on the
-  claim that closing it would false-positive on an existing idiom, when `git show main` shows **the
-  same commit had introduced that idiom**. It is closed; the one call site binds a local first. The
-  strips also run as **one pass** now, because three sequential ones spliced `{${x}{Anderson}}` into
-  `{{Anderson}}` and then ate it. Every shape above is pinned by a test, including the residual.
+  The rule is **gone**. The suite assembles its fixture elements at run time instead, so the detector
+  stays maximally literal and there is no subtraction to audit. Measured across sixteen shapes —
+  including every one a refuter used to break the earlier drafts — `main` and this branch return the
+  **identical** verdict; the only differences anywhere are files the widened arms now reach that
+  `main` never read.
 
-  **The measurement that justified it is corrected here too**, because the wrong version had been
-  written down as the evidence: the first run over 170 files returned four hits across two files —
-  **two real names** the widening had just made visible (now declared in the allow-list) and two wholly
-  interpolated tokens. Not "four placeholders, none a name". An elision clause in the same predicate
-  was dropped outright: zero elision hits existed on that run, and it fired only on prose this change
-  had itself written into the scanner, which is now phrased so it does not forge a name element.
+  **The measurement that justified the deleted predicate is corrected here too**, because the wrong
+  version had been written down as the evidence: the first run over 170 files returned four hits across
+  two files — **two real names** the widening had just made visible (now declared in the allow-list) and
+  two name elements in this scanner's own fixtures. Not "four placeholders, none a name".
 
   Two things the change surfaced, both fixed here. The C-CDA name/telecom sweep was always
   **document-wide** but labelled every hit `recordTarget/…`; a name in `<author>` came back labelled
@@ -600,7 +599,7 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   The characterization test that pinned the old behaviour asserted the **opposite** of what is true
   now. It was rewritten in place, not deleted — the same probe bytes, the same two paths, the opposite
   expectation — alongside new pins for the limits this did **not** close: admission is file-scoped
-  rather than object-scoped, a bare identifier in one interpolation is unread, the C-CDA name loci remain
+  rather than object-scoped, the C-CDA name loci remain
   namespace-prefix-naive, and the textual FHIR route misses a phone whose `system` and `value` are
   separated by another key (the structural route catches it — the two are not at parity, and the
   routes are mutually exclusive).
