@@ -484,14 +484,21 @@ describe("phi-scan: NCPDP structured detection (SYNTH-7)", () => {
   });
 
   it("flags a real prescriber name in a SCRIPT message (exit 1)", () => {
+    // Assembled, like the floor values above. Once the SCRIPT arm stopped needing an
+    // `.xml` path, this `.ts` file became a target for it — and this file carries a
+    // `<Message>` marker, so a spelled-out `<LastName>` here is a correct hit on every
+    // `pnpm phi-scan`. The value the scanner sees at run time is unchanged; only the
+    // literal leaves the source.
+    //
+    // HOISTED OUT OF THE INTERPOLATION, and that is not cosmetic. `isPlaceholder` will
+    // not elide an interpolation containing a quote, because `${"Anderson"}` carries the
+    // name verbatim in the bytes. `${token("Smi", "th")}` carries quotes too, so inlining
+    // the call here would make this line a hit. Binding it first keeps the element content
+    // a bare `${…}` — a real placeholder — and keeps the gate's teeth where they belong.
+    const lastName = token("Smi", "th");
     const content = generateNewRx({ seed: 7001 }).replace(
       /<LastName>[^<]+<\/LastName>/,
-      // Assembled, like the floor values above. Once the SCRIPT arm stopped needing
-      // an `.xml` path, this `.ts` file became a target for it — and this file
-      // carries a `<Message>` marker, so a spelled-out `<LastName>` here is a
-      // correct hit on every `pnpm phi-scan`. The value the scanner sees at run time
-      // is unchanged; only the literal leaves the source.
-      `<LastName>${token("Smi", "th")}</LastName>`,
+      `<LastName>${lastName}</LastName>`,
     );
     const r = scan("real-name.xml", content);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
@@ -787,6 +794,39 @@ describe("phi-scan: every structured arm keys off content, not the file extensio
     // reporting it would be the cry-wolf failure the predicate exists to prevent.
     const doc = VIOLATOR.replace(GIVEN, "${first} ${last}").replace(FAMILY, "{{surname}}");
     expect(scan("multi-interp.xml", doc).code).toBe(0);
+  });
+
+  it("DOES read a quoted string literal inside an interpolation", () => {
+    // `${"Anderson"}` puts the name verbatim in the bytes, so the token is not
+    // value-less and the elision must not apply. This was open in an earlier draft on
+    // a justification that turned out to be circular — the "existing idiom" it claimed
+    // to protect had been introduced by the same commit. Pinned so it stays closed.
+    for (const q of ['"', "'"]) {
+      const doc = VIOLATOR.replace(FAMILY, `\${${q}${FAMILY}${q}}`);
+      expect(scan("quoted-interp.xml", doc).code, `quote ${q} elided`).toBe(1);
+    }
+  });
+
+  it("DOES read a name that two placeholder strips could splice into one", () => {
+    // `{${x}{Anderson}}` is not wrapped by any single construct. Stripping `${x}` first
+    // SYNTHESIZED `{{Anderson}}`, which a second mustache strip then ate — so three
+    // sequential replaces elided a surname the source never placeheld. One pass over an
+    // alternation never re-examines what it has already emitted.
+    const doc = VIOLATOR.replace(FAMILY, `{\${x}{${FAMILY}}}`);
+    expect(scan("spliced.xml", doc).code, "sequential-strip splice reopened").toBe(1);
+  });
+
+  it("does NOT read a name written as a bare identifier in one interpolation", () => {
+    // THE RESIDUAL NARROWING, characterized rather than claimed closed. `${Anderson}` is
+    // the same shape as `${FAMILY}` — the legitimate form this suite's own fixtures need
+    // — and no regex here can tell which identifier happens to spell a name. It is a
+    // narrowing versus the `.xml`/`.json` behaviour that predates the widening, so it is
+    // executable rather than a sentence: if a later change closes it, this reds and a
+    // reviewer decides deliberately.
+    for (const shape of [`\${${FAMILY}}`, `{{${FAMILY}}}`]) {
+      const doc = VIOLATOR.replace(GIVEN, "${g}").replace(FAMILY, shape);
+      expect(scan("bare-ident.xml", doc).code, `now read: ${shape}`).toBe(0);
+    }
   });
 
   it("does NOT reach a phone whose system and value are separated by another key", () => {

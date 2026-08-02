@@ -98,13 +98,15 @@
  *     object needs a real JavaScript parser, which this scanner deliberately does
  *     not have. The remedy for a false positive is the allow-list — the same
  *     positive declaration the rest of the gate asks for.
- *   - A WHOLLY-INTERPOLATED NAME IS NOT READ. A name element whose entire content
- *     is a template expression is skipped: a text gate cannot evaluate one. The
- *     test is on the RESIDUE — a token mixing a literal and an expression is still
- *     read, because a containment test there is an evasion primitive, not a noise
- *     filter (see `isPlaceholder`). It is an evasion route, and the price of
- *     reading source files
- *     at all.
+ *   - A NAME WRITTEN AS A BARE IDENTIFIER INSIDE ONE INTERPOLATION IS NOT READ —
+ *     `${Anderson}`, `{{Anderson}}`. To a text gate that is the same shape as
+ *     `${FAMILY}`, which the suite's fixtures need, and no regex here can tell
+ *     which identifier happens to spell a name. THIS IS A NARROWING VERSUS THE
+ *     `.xml` / `.json` behaviour that predates the widening, not merely a limit of
+ *     the new reach, and it is the reason the predicate tests the RESIDUE rather
+ *     than containment: `Anderson ...` and `Anderson ${suffix}` ARE read, and a
+ *     quoted literal (`${"Anderson"}`) IS read, because in each the name sits
+ *     verbatim in the bytes. Every one of those is pinned by a test.
  *   - The C-CDA name/telecom sweep is DOCUMENT-WIDE, not `recordTarget`-scoped. It
  *     always was; until 2026-08-02 it mislabelled every hit as `recordTarget/…`
  *     anyway. The sweep is deliberate (an author's or informant's name in a
@@ -168,9 +170,12 @@ const OVERRIDE_LOG_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
 // That was recorded as a known gap rather than fixed in passing, on the grounds that
 // content-sniffing XML/JSON out of arbitrary TypeScript is a separate job with its
 // own false-positive surface and that a gate should not grow teeth as a side effect
-// of a roots change. It was then done AS that separate job: six of the seven arms key
-// off a format marker in the bytes and the seventh off `JSON.parse` succeeding, and
-// the false-positive surface was measured over this repo rather than argued about.
+// of a roots change. It was then done AS that separate job: no arm decides from the
+// path alone any more. What each arm keys off differs and is stated at the arm rather
+// than counted here, because a count was written here once and was wrong in both
+// directions — C-CDA still admits any `.xml` with no marker at all, and FHIR's textual
+// route IS marker-gated while its structural route is not. The false-positive surface
+// was measured over this repo rather than argued about.
 //
 // WHAT THAT FIRST RUN ACTUALLY RETURNED, because an earlier draft of this comment got
 // it wrong and the wrong version was the stated evidence for a predicate: over 170
@@ -700,10 +705,17 @@ function isSyntheticNcpdpId(id: string): boolean {
  * target (no `<Message`/SCRIPT markers) falls straight through; C-CDA `<given>`/`<family>` is handled by
  * {@link scanCcda}, so the two XML arms never collide.
  *
- * THE EXTENSION GATE HERE WAS DEAD WEIGHT, which is why removing it widens nothing it should not: the
- * `<Message>` + transaction/party marker check immediately below was ALREADY a content gate, and a
- * strictly narrower one than `.xml`. Every target the extension check rejected and the markers would
- * have accepted was, by construction, a SCRIPT message in a file that merely was not named `.xml`.
+ * THE EXTENSION GATE HERE ADDED NOTHING THE MARKERS DID NOT ALREADY DO. The `<Message>` +
+ * transaction/party check immediately below was ALREADY a content gate; the `.xml` test was an
+ * ORTHOGONAL condition stacked on top of it, not a narrower one. Removing it widens the arm by exactly
+ * `{files matching the markers that are not named .xml}`.
+ *
+ * BE PRECISE ABOUT WHAT LANDS IN THAT SET, because an earlier draft called it "by construction, a
+ * SCRIPT message" and THIS REPO REFUTES THAT: `test/scripts/phi-scan.test.ts` is admitted here. It is
+ * a TypeScript test that happens to contain a `<Message>` envelope and a `<Patient>` element inside a
+ * fixture string. Reading it is correct — a `<LastName>` spelled out there would be a real hit — but
+ * it is a source file, not a SCRIPT message, and the marker set cannot tell the difference. That is
+ * the same file-scoped admission cost the header lists, reached by a different arm.
  */
 function scanNcpdpScript(path: string, text: string, allow: AllowList, hits: Hit[]): void {
   // SCRIPT markers — a <Message> root and a SCRIPT transaction/party element. Avoids running on C-CDA.
@@ -995,11 +1007,20 @@ function scanX12(path: string, text: string, allow: AllowList, hits: Hit[]): voi
 // with its own false-positive surface.
 //
 // This is that job. Each of the three now admits a target by EITHER its extension
-// (unchanged, so nothing previously caught can become uncaught) OR a format marker
-// in the bytes. The markers below are the formats' own required discriminators —
-// a CDA root/namespace, a SCRIPT `<Message>` envelope, FHIR's `resourceType` — not
-// a guess at "looks XML-ish". That is the whole reason this does not cry wolf: a
-// file has to CLAIM to be the format before its identity loci are read at all.
+// (unchanged, so nothing previously admitted is refused admission now) OR a format
+// marker in the bytes. The markers below are the formats' own required
+// discriminators — a CDA root/namespace, a SCRIPT `<Message>` envelope, FHIR's
+// `resourceType` — not a guess at "looks XML-ish". That is what keeps the CONTENT
+// route from crying wolf over ordinary source.
+//
+// DO NOT READ THAT AS "NOTHING IS EXAMINED WITHOUT A MARKER" — an earlier draft said
+// so here and it is false on two routes that predate this change and are unaltered by
+// it. An `.xml` path is admitted to the C-CDA arm on its EXTENSION, with no marker at
+// all, so a bare name fragment in a `.xml` file is read exactly as it always was. And
+// FHIR's STRUCTURAL route runs whenever `JSON.parse` succeeds, with no `resourceType`
+// check, so a marker-less JSON object with a `family` key is read exactly as it always
+// was. The marker is what the NEW content routes require; it is not a precondition on
+// the gate as a whole.
 // ---------------------------------------------------------------------------
 
 /** Whether `path` carries `ext`, case-insensitively (`.XML` is an XML file too). */
@@ -1050,22 +1071,32 @@ function hasCdaMarker(text: string): boolean {
  * file was not read at all before this change — but it is why this scanner stays a FLOOR under the
  * property layer and never the proof.
  *
- * ONE EVASION IS SHARPER THAN THAT AND IS NAMED RATHER THAN LEFT TO BE FOUND: a STRING LITERAL inside
- * an interpolation. `${"Anderson"}` elides to nothing, so the token reads as a placeholder even though
- * the name is right there in the bytes. It is closable — keep any interpolation that contains a quote
- * — and that fix is REFUSED on measurement, not on principle: this repo's sanctioned way to keep a
- * real-looking value out of a scanned file is to assemble it, and the suite writes exactly that inside
- * a name element — `<LastName>` carries `${token("Smi", "th")}`
- * (`grep -n '\${token(' test/scripts/phi-scan.test.ts`). Keeping quoted interpolations makes that a
- * hit, so the fix trades a bizarre evasion nobody writes for a false positive on an idiom this repo
- * uses deliberately. A gate that cries wolf on its own conventions gets switched off.
+ * EXACTLY WHAT IS STILL SILENCED, stated as a class rather than as one example, because an earlier
+ * draft named one instance and a refuter found three more. A name is unread when it appears as a BARE
+ * IDENTIFIER inside a single interpolation and nowhere else in the token: `${Anderson}`,
+ * `{{Anderson}}`. That is indistinguishable, to a text gate, from `${FAMILY}` — the legitimate case
+ * the suite's own fixtures depend on — because the only difference is whether the identifier happens
+ * to spell a name, which is a judgement no regex here can make. Both are pinned by tests.
+ *
+ * WHAT IS NO LONGER SILENCED, and the correction is worth recording because the argument for leaving
+ * it open was circular. A quoted literal inside an interpolation (`${"Anderson"}`, `${'Anderson'}`)
+ * IS read: the name sits verbatim in the bytes, so the token is not value-less. An earlier draft
+ * refused this fix "on measurement", claiming it false-positived on `${token("Smi", "th")}` as an
+ * established idiom of this repo — but `git show main:test/scripts/phi-scan.test.ts` contains no such
+ * line. THE COMMIT HAD WRITTEN IT ITSELF, then cited it as a pre-existing constraint. The one call
+ * site is now bound to a local first, which costs nothing and keeps the element content a bare `${…}`.
+ * Measure the tree, not your own diff.
  */
 function isPlaceholder(token: string): boolean {
-  const residue = token
-    .replace(/\$\{[^}]*\}/g, "")
-    .replace(/\{\{[^}]*\}\}/g, "")
-    .replace(/<%[\s\S]*?%>/g, "")
-    .trim();
+  // ONE pass over the alternation, never three sequential replaces. Three passes let the output of an
+  // earlier one be eaten by a later one: `{${x}{Anderson}}` became `{{Anderson}}` after the `${…}`
+  // strip and was then swallowed whole by the `{{…}}` strip, eliding a surname that no single
+  // construct in the source ever wrapped. A single pass never re-examines what it has already emitted.
+  //
+  // NO QUOTE OR BACKTICK inside an elided body. An interpolation carrying a string literal has the
+  // value right there in the bytes (`${"Anderson"}`), so it is NOT a value-less placeholder and must
+  // be read. `${GIVEN}` — a bare identifier — still elides, which is what the suite's fixtures need.
+  const residue = token.replace(/\$\{[^}"'`]*\}|\{\{[^}"'`]*\}\}|<%[^"'`]*?%>/g, "").trim();
   return residue.length === 0 && token.trim().length > 0;
 }
 
