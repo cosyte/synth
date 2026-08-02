@@ -549,14 +549,14 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 - **The test suite could fail on a busy machine while the code under test was correct.** The
   per-test timeout is a wall-clock budget, so it measures the machine as much as the code. These
-  suites are CPU-bound — their running time is set by how much processor they actually get, not by
-  the work the code does — so the two heaviest C-CDA sweeps ran within about 2x of the 10 s limit
+  suites are CPU-bound, in that their running time is set by how much processor they actually get
+  rather than by the work the code does, so the two heaviest C-CDA sweeps ran within about 2x of the 10 s limit
   with a core to themselves, and crossed it when sharing one, reporting a failure that reproduced
   nowhere else. A failure that means "the machine was busy" costs more than it saves, because the
   next real one is read as noise too.
 
-  Two fixes, chosen so that a genuine hang still fails fast. The C-CDA quirk sweeps — the heaviest
-  cases in the package, each building a document and parsing it twice — now carry their own explicit
+  Two fixes, chosen so that a genuine hang still fails fast. The C-CDA quirk sweeps, the heaviest
+  cases in the package and the ones that build a document and parse it twice, now carry their own explicit
   generous ceilings, matching the sibling C-CDA suites that already had them. And the PHI-gate suite,
   which runs the scanner in a real subprocess ~65 times, now starts those subprocesses with `node`
   rather than the on-the-fly TypeScript runner: measured on one box, 0.6 s against 2.1 s per start,

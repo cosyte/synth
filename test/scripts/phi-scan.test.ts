@@ -116,14 +116,22 @@ const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
  * Every test below runs the scanner in a real subprocess, on purpose — that is what
  * exercises the full CLI path (argv parse, exit code, stderr). The cost is a fixed
  * per-spawn startup, paid ~65 times, and it dominated this file: measured on this
- * box, a `tsx` cold start is **1.6-1.9 s** against **0.4-0.7 s** for `node` running
- * the same TypeScript through its native type stripping (unflagged and silent from
- * Node 22.18; this package's floor is Node >= 22). That fixed cost, not any
+ * box, warmed medians were **2.1 s** for a `tsx` cold start against **0.6 s** for
+ * `node` running the same TypeScript through its native type stripping. That fixed cost, not any
  * assertion, is what put a dozen tests here within 3x of the 10 s global timeout —
  * i.e. the suite was measuring interpreter startup on a loaded machine rather than
  * the scanner. Cutting the cost is a better answer than a bigger ceiling: a ceiling
  * would hide the startup time, this removes it, and every test in the file gains the
  * headroom without any timeout being relaxed.
+ *
+ * THE NODE FLOOR THIS ASSUMES IS 22.18, WHICH IS HIGHER THAN THE ONE THE PACKAGE
+ * DECLARES. Type stripping landed flagged in 22.6 and unflagged only in **22.18**,
+ * while `engines.node` here is `>=22.0.0` — so on 22.0-22.17 the package itself is
+ * fine and only THIS FILE breaks. `engines` is deliberately not raised for a
+ * dev-only harness detail: nothing a consumer installs is affected. The failure is
+ * loud rather than silent (the scanner fails to load, so every test in the file
+ * reds, the clean-file legs included) and the CI matrix runs 22 and 24, so a box
+ * below 22.18 is a red build and not a quiet gap in the gate.
  *
  * Nothing under test changes: `node` and `tsx` both hand the scanner the same argv,
  * the same cwd and the same stdio, and node's stripping emits no warning to pollute
@@ -387,9 +395,14 @@ describe("phi-scan: the `tsx` entry point `pnpm phi-scan` uses is the same scann
       writeFileSync(path, content);
       const viaNode = runScanner([path]);
       const viaTsx = runScannerViaTsx([path]);
-      expect(viaNode.code, `${label}: node — stderr: ${viaNode.stderr}`).toBe(expected);
+      expect(viaNode.code, `${label}: node, stderr: ${viaNode.stderr}`).toBe(expected);
       expect(viaTsx.code, `${label}: tsx disagrees with node`).toBe(viaNode.code);
       expect(viaTsx.stderr, `${label}: tsx stderr differs`).toBe(viaNode.stderr);
+      // stdout too, and it is not redundant: the scanner writes HITS to stderr but the
+      // summary line to stdout, and that line carries the file-count denominator its own
+      // header insists an `OK` is never read without. Compare only `code` and `stderr`
+      // and the clean leg asserts little more than `0 === 0`.
+      expect(viaTsx.stdout, `${label}: tsx stdout differs`).toBe(viaNode.stdout);
     }
   }, 60_000);
 });
