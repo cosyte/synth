@@ -154,7 +154,7 @@ The spec-clean generation core is **feature-complete across all six formats**. Q
 - **The library is MIT.** Third-party **runtime** dependencies are **zero**; the parser and `deid`
   peers are first-party, optional, and lazily loaded per format.
 - **HIPAA-capable, not HIPAA-compliant** — and here that framing is nearly vacuous, because there is no
-  real PHI: `synth`'s entire output _looks like_ PHI and contains none, by construction. Its own
-  fixtures and shipped value pools carry `# synthetic: true` and are drawn from the reserved sources
-  above; a `phi-scan` gate proves it on every change. You can commit and log a generated corpus without
-  a PHI review of its contents — that is the whole point.
+  real PHI: `synth`'s entire output _looks like_ PHI and contains none, by construction. Every value
+  it emits is drawn from the reserved sources above, and a `phi-scan` gate sweeps this project's own
+  sources, fixtures and tooling on every change. You can commit and log a generated corpus without a
+  PHI review of its contents — that is the whole point.

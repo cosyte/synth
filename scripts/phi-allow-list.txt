@@ -12,11 +12,17 @@
 #   DOB <value>           synthetic date of birth (normalize as your detector does)
 #   ID <value>            synthetic id matching an SSN / MRN / member-id shape
 #   EMAILDOMAIN <domain>  reserved / test email domain that is allowed to appear
+#   EMAIL <address>       one exact address, allowed wherever it appears
 #
-# NOTE: the STARTER scanner only actively consumes EMAILDOMAIN (its floor is
-# SSN + email shapes). NAME / DOB / ID entries are loaded and ready for the
-# structured, field-level detectors you MUST add to scripts/phi-scan.ts before
-# relying on this as a real PHI gate — see the STARTER banner in that file.
+# WHICH TAGS THE SCANNER ACTUALLY CONSUMES. NAME feeds every structured name
+# detector (HL7 PID-5, FHIR HumanName, C-CDA recordTarget, X12 NM1/PER, NCPDP
+# SCRIPT + Telecom, ASTM P-6). EMAILDOMAIN and EMAIL feed the email floor. DOB and
+# ID are loaded but consumed by nothing: no arm value-gates a DOB (a seeded
+# synthetic DOB is indistinguishable from a real one, and there is no reserved DOB
+# range), and the id arms check a SHAPE — SSA never-issued range, synthetic
+# assigning authority, a failing NPI Luhn or DEA checksum — rather than a declared
+# literal, because a generator mints ids per seed and a literal list would never
+# keep up. Both tags are kept so a future rule has a declared source to read.
 #
 # To add a new synthetic fixture: reuse the tokens below, or append new ones here
 # and commit. Adding a token is a reviewed, intentional act — never silent.
@@ -26,6 +32,26 @@ EMAILDOMAIN example.com
 EMAILDOMAIN example.org
 EMAILDOMAIN example.net
 EMAILDOMAIN example.test
+
+# --- Exact addresses cleared one at a time ---
+#
+# The scan covers all of `test/`, which includes `test/us-core-profiles/` — the
+# real, HL7-published US Core 6.1.0 StructureDefinitions this repo vendors so US
+# Core conformance is validated against the normative artifact rather than a
+# paraphrase. Each one carries its publisher's work-group contact in
+# `contact.telecom`. It is a real address, so it is a real hit, and it is not PHI:
+# it denotes a standards-body mailing list, not a person receiving care.
+#
+# It is the only address anywhere under `test/us-core-profiles/`, and it appears in
+# 10 of the 10 files there
+#   (grep -rhoE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' test/us-core-profiles/ | sort -u)
+# measured 2026-08-02. Declared as an exact EMAIL rather than
+# `EMAILDOMAIN lists.hl7.org`, which would clear every address at a live
+# organizational domain, and rather than an `--allow-fixture` bypass, which would
+# silence every other check on those 10 files AND would need a matching override-log
+# entry that the bare `pnpm phi-scan` in CI and the pre-commit hook never pass.
+# Narrowest declaration that covers the finding.
+EMAIL cgp@lists.HL7.org
 
 # --- Synthetic person-name tokens (example — extend for your fixtures) ---
 # NAME DOE
