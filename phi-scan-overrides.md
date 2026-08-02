@@ -21,6 +21,26 @@ _every_ check for that file.
 > writing are listed in the header of `scripts/phi-scan.ts`, and that list is not
 > claimed to be complete.
 >
+> **One read failure is tolerated, and it is bounded on purpose.** All-mode lists
+> `src/`, `test/` and `scripts/` and then reads each file, so a file created and
+> deleted inside that window used to refuse the whole sweep. It is now reported on
+> stderr as skipped instead — but only when the walk enumerated it itself, git does
+> not track it, and the failure is `ENOENT`. A tracked file, any other failure, a
+> file that is back on disk when the sweep ends, and a `git` that cannot say what is
+> tracked all still refuse, and all-mode refuses outright if it observed no files at
+> all. The denominator counts files actually read, so a skip shrinks it — though it
+> shrinks against a total nobody saw, so **the stderr line is the signal, not the
+> number**.
+>
+> **The residual, recorded rather than closed:** the post-sweep re-check is keyed on
+> the path the walk enumerated, not on content, so an untracked file _renamed_ inside
+> the window goes unread under a clean report. It is bounded — committing it means
+> `git add`, after which it is tracked and untolerable, and the pre-commit gate reads
+> the index either way. Closing it in general needs a content-addressed sweep;
+> re-enumerating the scan roots afterwards would close the in-roots half more cheaply
+> at the cost of a second walk and a new way to refuse. Both are a design trade for a
+> later slice — neither is a wider bound, and neither is impossible.
+>
 > `pnpm phi-scan` is a **floor, not the whole gate**. The executable proof that
 > nothing this package emits can be real or plausibly-real PHI is the property
 > layer (`synthetic-safety.property.test.ts` and `test/phi/`). Read a green scan as

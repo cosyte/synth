@@ -33,7 +33,12 @@
  *     `T` statuses the superseded `--diff-filter=AM` allow-list dropped, with the
  *     old flags run alongside so the gap is measured rather than asserted;
  *   - the GIT-IGNORE DISAGREEMENT between all-mode and `--staged`, both directions,
- *     which the scanner header disclosed and nothing exercised.
+ *     which the scanner header disclosed and nothing exercised;
+ *   - the ENUMERATION TOCTOU WINDOW: what a file that vanishes between the walk and
+ *     its read is allowed to do to a sweep, and five of the six ways it still
+ *     refuses. The sixth — a tolerated file written BACK before the post-sweep
+ *     re-check — is not reachable from a deterministic harness; that block's own
+ *     note says why it is left unpinned rather than guarded by a sleep.
  *
  * Three different sandboxes, because the questions differ:
  *
@@ -90,6 +95,7 @@ import {
   appendFileSync,
   copyFileSync,
   symlinkSync,
+  existsSync,
 } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
@@ -1141,3 +1147,227 @@ describe("phi-scan: EMAIL clears one exact address, not a whole domain", () => {
     expect(r.stderr).toMatch(/non-test domain/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// The enumeration TOCTOU window (PHI-SCAN-ENUMERATE-THEN-READ-CLASS)
+// ---------------------------------------------------------------------------
+
+/**
+ * All-mode lists `src/`, `test/` and `scripts/` first and reads each file
+ * afterwards. A file created and deleted inside that window makes the read throw
+ * `ENOENT`, and the scanner used to refuse the whole sweep with exit 2.
+ *
+ * THAT IS REACHABLE IN THIS REPO, AND IT WAS MEASURED BEFORE IT WAS FIXED. The
+ * sibling that got caught (`ccda`) was caught by a repo-root `tsup` transient; this
+ * package's roots stop short of the repo root, so that particular file is never
+ * enumerated here. THIS suite is the reachable writer: `withSeeded` puts untracked
+ * violators at `scripts/zz-phi-scan-seed-scripts.xml`,
+ * `test/scripts/zz-phi-scan-seed-outside.xml` and
+ * `test/fixtures/zz-phi-scan-seed-fixtures.xml` — all three inside `SCAN_ROOTS` —
+ * and removes them in a `finally`. Sweeping this checkout in all-mode while the
+ * seeded tests ran refused 8 of 165 sweeps with exit 2 naming those paths.
+ *
+ * The tests below hit the window WITHOUT a sleep and WITHOUT a real build. The
+ * scanner runs `git` (`check-ignore`, then `ls-files`) after the walk and before
+ * the first read, so a `git` shim placed first on `PATH` is a deterministic hook
+ * into exactly that gap: it removes the decoy, then execs the real git. The shim is
+ * a file the SCANNER execs through `PATH`, not a shell-form spawn from this suite,
+ * so the module docblock's no-shell rule still holds here.
+ *
+ * Everything runs against a throwaway repo used as the scanner's `REPO_ROOT`, so no
+ * decoy is ever written into this checkout and a parallel worker cannot see one.
+ *
+ * THE ONE BRANCH NOT PINNED, named rather than implied: a tolerated file written
+ * BACK before the post-sweep re-check. Nothing in the scanner calls `git` after the
+ * reads, so there is no second deterministic hook, and reaching it needs a timed
+ * re-create against a deliberately slowed sweep. A load-sensitive sleep in the
+ * suite guarding a load-dependent race is the exact failure this defect teaches, so
+ * it is left unpinned deliberately. The branch can only turn a tolerated skip back
+ * into the refusal these tests already pin, so an unnoticed regression in it costs
+ * the re-check, never the tolerance's bounds.
+ */
+
+/** Absolute path of the real `git`, resolved from `PATH` without a subprocess. */
+function realGit(): string {
+  for (const entry of (process.env["PATH"] ?? "").split(":")) {
+    if (entry.length === 0) continue;
+    const candidate = join(entry, "git");
+    if (existsSync(candidate)) return candidate;
+  }
+  throw new Error("git not found on PATH");
+}
+
+/**
+ * A directory holding a `git` that runs `pre` (one line of `sh`) before delegating
+ * to the real git. Put first on the scanner's `PATH`, this fires between the walk
+ * and the first read — the window under test.
+ */
+function shimDirRunning(pre: string): string {
+  const d = mkdtempSync(join(tmpdir(), "phi-scan-shim-"));
+  writeFileSync(join(d, "git"), `#!/bin/sh\n${pre}\nexec '${realGit()}' "$@"\n`, { mode: 0o755 });
+  return d;
+}
+
+/** Run the scanner in `cwd` with `shim` first on `PATH` (or none when `null`). */
+function runScannerShimmed(
+  cwd: string,
+  shim: string | null,
+  extraEnv: NodeJS.ProcessEnv = {},
+): RunResult {
+  const env: NodeJS.ProcessEnv = { ...process.env, ...extraEnv };
+  if (shim !== null) env["PATH"] = `${shim}:${process.env["PATH"] ?? ""}`;
+  const r = spawnSync(NODE_BIN, [SCANNER_PATH], { cwd, encoding: "utf8", shell: false, env });
+  return { code: r.status ?? -1, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
+}
+
+/**
+ * Run `fn(root, shim)` against a throwaway root and a shim dir, removing both after.
+ * `git` decides whether the root is a git repo at all; `track` whether its
+ * allow-list is committed (the tracked file every sweep here observes).
+ */
+function withToctouRoot<T>(
+  opts: { git: boolean; track?: boolean },
+  pre: (root: string) => string,
+  fn: (root: string, shim: string) => T,
+): T {
+  const root = makeRoot();
+  const shims: string[] = [];
+  try {
+    if (opts.git) {
+      git(root, ["init", "-q", "-b", "main"]);
+      git(root, ["config", "user.email", "fixture@example.com"]);
+      git(root, ["config", "user.name", "fixture"]);
+      if (opts.track !== false) git(root, ["add", "--", "scripts/phi-allow-list.txt"]);
+    }
+    const shim = shimDirRunning(pre(root));
+    shims.push(shim);
+    return fn(root, shim);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    for (const s of shims) rmSync(s, { recursive: true, force: true });
+  }
+}
+
+/** A build-tool transient, seeded INSIDE a scan root (`scripts/`), never at the root. */
+const DECOY = "scripts/zz-toctou-transient.mjs";
+
+describe("phi-scan: the enumeration TOCTOU window", () => {
+  it("tolerates an UNTRACKED file gone between enumeration and read, and says so", () => {
+    const r = withToctouRoot(
+      { git: true },
+      (root) => `rm -f '${join(root, DECOY)}'`,
+      (root, shim) => {
+        put(root, DECOY, 'export default { entry: ["src/index.ts"] };\n');
+        return runScannerShimmed(root, shim);
+      },
+    );
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK — no hits/);
+    // Never silent: the skip is named, with the path that went away.
+    expect(r.stderr).toMatch(/skipped 1 untracked file\(s\) gone between enumeration and read/);
+    expect(r.stderr).toContain(DECOY);
+    // And the denominator does not count it. The allow-list is the one file this
+    // root observes, so a tolerated skip must leave the count at 1, not 2.
+    expect(scannedCount(r)).toBe(1);
+  });
+
+  it("still REFUSES when a TRACKED file vanishes in the same window", () => {
+    // The committed corpus is what the gate promises to have observed, so a tracked
+    // file that cannot be read is an incomplete scan, not a transient.
+    const r = withToctouRoot(
+      { git: true },
+      (root) => `rm -f '${join(root, "src/committed.xml")}'`,
+      (root, shim) => {
+        put(root, "src/committed.xml", CLEAN_DOC);
+        git(root, ["add", "--", "src/committed.xml"]);
+        return runScannerShimmed(root, shim);
+      },
+    );
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toMatch(/could not read src\/committed\.xml/);
+    expect(r.stderr).toMatch(/ENOENT/);
+  });
+
+  it("still REFUSES a non-ENOENT read failure on an untracked file", () => {
+    // Replaced by a directory rather than deleted: EISDIR is a scan that failed, not
+    // a file that went away, so the tolerance must not swallow it.
+    const r = withToctouRoot(
+      { git: true },
+      (root) => `rm -f '${join(root, DECOY)}'\nmkdir -p '${join(root, DECOY)}'`,
+      (root, shim) => {
+        put(root, DECOY, "export default {};\n");
+        return runScannerShimmed(root, shim);
+      },
+    );
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toMatch(/could not read/);
+    expect(r.stderr).toMatch(/EISDIR/);
+  });
+
+  it("REFUSES the tolerance outright when git cannot say what is tracked", () => {
+    // Fail closed: with no tracked set there is no way to tell a transient from
+    // committed content, so nothing is tolerated.
+    const r = withToctouRoot(
+      { git: false },
+      (root) => `rm -f '${join(root, DECOY)}'`,
+      (root, shim) => {
+        put(root, DECOY, "export default {};\n");
+        // The ceiling stops git walking out of the temp dir into some enclosing repo.
+        return runScannerShimmed(root, shim, { GIT_CEILING_DIRECTORIES: tmpdir() });
+      },
+    );
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toMatch(/could not read/);
+  });
+
+  it("REFUSES the tolerance when git answers with an EMPTY tracked set", () => {
+    // A REMOVED index exits 0 with no output (a corrupt one exits 128 and was
+    // already caught). An empty set would make every file untracked, which is the
+    // one state in which the tracked-file bound silently stops existing.
+    const r = withToctouRoot(
+      { git: true, track: false },
+      (root) => `rm -f '${join(root, DECOY)}'`,
+      (root, shim) => {
+        put(root, DECOY, "export default {};\n");
+        return runScannerShimmed(root, shim);
+      },
+    );
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toMatch(/could not read/);
+  });
+
+  it("REFUSES an all-mode sweep that ENUMERATED files but OBSERVED none", () => {
+    // The refuse-a-scan-that-observes-nothing rule, one step later than
+    // `enforceObservation`: tolerating a vanished file must never be able to decay
+    // into a clean report of a tree nothing was read from. The only in-scope file
+    // here is the UNTRACKED allow-list, which the shim removes after the walk has
+    // listed it; a tracked out-of-scope file keeps `git ls-files` non-empty so the
+    // tolerance stays switched on and this branch is the one that fires.
+    const r = withToctouRoot(
+      { git: true, track: false },
+      (root) => `rm -f '${join(root, "scripts/phi-allow-list.txt")}'`,
+      (root, shim) => {
+        put(root, "README.md", "# throwaway\n");
+        git(root, ["add", "--", "README.md"]);
+        return runScannerShimmed(root, shim);
+      },
+    );
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toMatch(/observed no files/);
+  });
+
+  it("still CATCHES a violator in an untracked file that does NOT vanish", () => {
+    // The tolerance is about a file that is gone. It is not about untracked files,
+    // and an untracked violator is exactly what this gate exists to refuse.
+    const r = withToctouRoot(
+      { git: true },
+      () => ":",
+      (root, shim) => {
+        put(root, "src/leak.xml", VIOLATOR);
+        return runScannerShimmed(root, shim);
+      },
+    );
+    expect(r.code, `stdout: ${r.stdout}`).toBe(1);
+    expect(r.stderr).toContain("src/leak.xml");
+  });
+}, 60_000);

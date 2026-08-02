@@ -60,6 +60,17 @@
  *      pre-subtraction set was, and the pre-subtraction set must be non-empty in
  *      every mode but `--staged` (where "nothing staged" is legitimate).
  *
+ * A scan that could not READ what it enumerated refuses (exit 2) for the same
+ * reason, rather than reporting a clean tree it never observed. The one bounded
+ * exception is the enumeration's own TOCTOU window, documented on
+ * `Target.tolerateVanish`: an UNTRACKED file the walk listed itself and that is
+ * gone by the time we read it is reported as skipped instead of refusing. A
+ * tracked file, a non-`ENOENT` failure, a file that reappears, and a `git` that
+ * cannot say what is tracked all still refuse, and all-mode refuses outright if it
+ * ended up observing nothing. The denominator counts files actually READ, so a
+ * tolerated skip shrinks it rather than being counted as an `OK` over a file
+ * nothing was read from.
+ *
  * Every SUMMARY line carries the DENOMINATOR (files scanned), so an `OK` is never
  * read without the number it is an `OK` over. (The per-hit `HIT:` and `segment=`
  * lines do not repeat it; they are detail under a summary that does.)
@@ -313,6 +324,18 @@ function parseArgs(argv: string[]): Args {
   return { mode, paths, allowFixtures };
 }
 
+/**
+ * The `errno` string of a Node system error (`ENOENT`, `EACCES`, …), or
+ * `undefined` for anything else. Narrowed with `in` rather than cast, so a thrown
+ * non-error cannot masquerade as a system error and buy itself the tolerance
+ * below.
+ */
+function errorCode(err: unknown): string | undefined {
+  if (typeof err !== "object" || err === null || !("code" in err)) return undefined;
+  const { code } = err;
+  return typeof code === "string" ? code : undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Allow-list + override log
 // ---------------------------------------------------------------------------
@@ -405,6 +428,57 @@ function validateAllowFixtures(allowFixtures: string[]): void {
 interface Target {
   path: string; // forward-slash repo-relative path for reporting
   read: () => Buffer;
+  /**
+   * Absolute path, set only for a target the walk enumerated itself, so a vanished
+   * file can be re-checked once the sweep has finished.
+   */
+  absPath?: string;
+  /**
+   * TOCTOU: true only for a file the scanner ENUMERATED ITSELF in `all` mode AND
+   * that git does not track. All-mode lists `src/`, `test/` and `scripts/` first
+   * and reads each file afterwards, so a transient created and deleted inside that
+   * window makes the read throw `ENOENT` and refuses the whole sweep.
+   *
+   * IT IS REACHABLE IN THIS REPO, MEASURED RATHER THAN ASSUMED. `ccda` was the
+   * sibling that got caught, by a repo-root `tsup.config.bundled_<hash>.mjs`; this
+   * package's roots stop short of the repo root, so that particular transient is
+   * never enumerated here. Its own suite is: `test/scripts/phi-scan.test.ts` seeds
+   * untracked violators at `scripts/zz-phi-scan-seed-scripts.xml`,
+   * `test/scripts/zz-phi-scan-seed-outside.xml` and
+   * `test/fixtures/zz-phi-scan-seed-fixtures.xml` — all three inside `SCAN_ROOTS` —
+   * and removes them in a `finally`. Sweeping this checkout in all-mode while that
+   * suite runs refused 8 of 165 sweeps with exit 2 on those paths.
+   *
+   * Only the ENUMERATION was unsound, never the refusal, so the fix is scoped hard
+   * rather than by relaxing what a failed read means:
+   *   - a TRACKED file is never tolerated. The committed corpus is what the gate
+   *     promises to have observed, so if a tracked file cannot be read the scan is
+   *     incomplete and still refuses (exit 2);
+   *   - only `ENOENT` is tolerated. `EACCES`, `EISDIR` and friends are not a file
+   *     that went away, they are a scan that failed;
+   *   - a tolerated file is re-checked after the sweep. If it is back on disk the
+   *     sweep did not observe a file that exists now, so the run refuses;
+   *   - `staged` mode reads blobs out of the git index (`git show :path`), so the
+   *     pre-commit gate never depends on any of this.
+   *
+   * RESIDUAL, stated rather than hidden: the re-check is keyed on the PATH the walk
+   * enumerated, not on content. An untracked file RENAMED inside the window is
+   * `ENOENT` at the old path and was never enumerated under the new one, so its
+   * bytes go unscanned under a clean report. It is bounded: the file has to be
+   * untracked, so committing it means `git add`, after which it is tracked and
+   * untolerable, and pre-commit reads the index either way.
+   *
+   * TWO WAYS TO CLOSE IT, AND NEITHER IS A WIDER BOUND — stated as the trade it is
+   * rather than as an impossibility, because saying "this needs a content-addressed
+   * sweep" alone reads as the latter and a refuter called that out. A
+   * content-addressed sweep closes it in general. A cheaper one closes the in-roots
+   * half: RE-ENUMERATE `SCAN_ROOTS` after the sweep and refuse if an in-scope file
+   * exists that was never read. That is not free — it walks the tree twice and it
+   * refuses on any unrelated file that arrives mid-sweep, which is the flake this
+   * defect is about — so it is a trade a later slice should weigh, not an oversight
+   * here.
+   */
+  tolerateVanish?: boolean;
 }
 
 function walk(dir: string, out: string[]): void {
@@ -440,13 +514,59 @@ function gitIgnored(paths: string[]): Set<string> {
   return ignored;
 }
 
+/**
+ * Every path git tracks, or `null` when git could not answer. `null` switches the
+ * `tolerateVanish` tolerance off entirely (fail closed): without the tracked set
+ * there is no way to tell a build transient from committed content.
+ *
+ * An EMPTY answer counts as no answer for the same reason. `git ls-files` exits 0
+ * with no output for a repo whose index is empty or has been removed (a CORRUPT
+ * index exits 128 and is already caught by the `catch`), and an empty set would
+ * make EVERY file untracked — the one state in which the tracked-file bound
+ * silently stops existing. This repo always tracks files, so there is no
+ * legitimate empty case here.
+ *
+ * TWO LIMITS OF THIS FUNCTION, DISCLOSED RATHER THAN CLOSED. Failing closed is safe
+ * but SILENT: when this returns `null` the sweep still refuses, and the only line an
+ * operator sees is `could not read <path>: ENOENT …`, which names the file rather
+ * than the reason the tolerance was switched off. And `execFileSync`'s default 1 MiB
+ * `maxBuffer` bounds the answer: a repo whose `git ls-files -z` output exceeds it
+ * throws, lands in the `catch`, and the tolerance stops applying with no diagnostic.
+ * Measured on this repo: `git ls-files -z | wc -c` is 6,556 bytes, so there is three
+ * orders of magnitude of headroom and neither limit is reachable here today. Both
+ * fail in the refusing direction, which is why they are recorded and not fixed in
+ * this slice.
+ */
+function gitTracked(): Set<string> | null {
+  try {
+    // SECURITY: array-form execFileSync, no shell. `-z` is NUL-separated and
+    // unquoted, so it matches the walk's forward-slash relative paths exactly.
+    const out = execFileSync("git", ["ls-files", "-z"], {
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const tracked = new Set<string>();
+    for (const p of out.toString("utf8").split("\0")) {
+      if (p.length > 0) tracked.add(p);
+    }
+    return tracked.size > 0 ? tracked : null;
+  } catch {
+    return null;
+  }
+}
+
 function buildTargetsForAll(): Target[] {
   const files: string[] = [];
   for (const root of SCAN_ROOTS) walk(join(REPO_ROOT, root), files);
   const ignored = gitIgnored(files);
+  const tracked = gitTracked();
   return files
     .filter((abs) => !ignored.has(normalizePath(abs)))
-    .map((abs) => ({ path: normalizePath(abs), read: () => readFileSync(abs) }));
+    .map((abs) => ({
+      path: normalizePath(abs),
+      read: () => readFileSync(abs),
+      absPath: abs,
+      tolerateVanish: tracked !== null && !tracked.has(normalizePath(abs)),
+    }));
 }
 
 function buildTargetsForPaths(paths: string[]): Target[] {
@@ -545,11 +665,22 @@ function scanCommonShapes(path: string, content: string, allow: AllowList, hits:
 // Dispatch
 // ---------------------------------------------------------------------------
 
-function scanTarget(target: Target, allow: AllowList, hits: Hit[]): void {
+/**
+ * Scan one target. Returns whether the target was OBSERVED — i.e. whether its
+ * bytes were actually read. `false` is returned for exactly one case, the
+ * tolerated TOCTOU vanish documented on `Target.tolerateVanish`; every other read
+ * failure still refuses the whole scan.
+ */
+function scanTarget(target: Target, allow: AllowList, hits: Hit[]): boolean {
   let buf: Buffer;
   try {
     buf = target.read();
   } catch (err) {
+    // TOCTOU, see `Target.tolerateVanish`: an untracked file the walk enumerated
+    // itself may be a transient that was deleted before we reached it. Report it as
+    // unobserved instead of refusing; every other failure, and any tracked file,
+    // still refuses the whole scan.
+    if (target.tolerateVanish === true && errorCode(err) === "ENOENT") return false;
     throw new InvocationError(
       `could not read ${target.path}: ${err instanceof Error ? err.message : String(err)}`,
     );
@@ -604,6 +735,10 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): void {
   // — a synthetic DOB is seeded and indistinguishable from a real one, and there is no reserved DOB
   // range (roadmap §4.3), matching every other synth arm. Non-ASTM targets fall straight through.
   scanAstm(target.path, text, allow, hits);
+
+  // The bytes were read, so the target was observed — whatever any individual arm
+  // decided to do with them.
+  return true;
 }
 
 /**
@@ -1435,9 +1570,12 @@ function main(): number {
   }
 
   const hits: Hit[] = [];
+  const vanished: Target[] = [];
+  let observed = 0;
   for (const t of targets) {
     try {
-      scanTarget(t, allow, hits);
+      if (scanTarget(t, allow, hits)) observed += 1;
+      else vanished.push(t);
     } catch (err) {
       if (err instanceof InvocationError) {
         process.stderr.write(`[phi-scan] ${err.message}\n`);
@@ -1447,7 +1585,44 @@ function main(): number {
     }
   }
 
-  report(hits, targets.length);
+  // A tolerated file is never silent, and the tolerance is only good while the file
+  // is still gone: if it is back on disk the sweep skipped something that exists,
+  // which is an incomplete scan and refuses like any other.
+  if (vanished.length > 0) {
+    const back = vanished.filter((t) => t.absPath !== undefined && existsSync(t.absPath));
+    if (back.length > 0) {
+      process.stderr.write(
+        `[phi-scan] could not read ${back.map((t) => t.path).join(", ")}: vanished mid-scan and is ` +
+          `present again, so the sweep did not observe it. Re-run with the tree at rest.\n`,
+      );
+      return 2;
+    }
+    process.stderr.write(
+      // "gone" rather than "deleted": a rename leaves the enumerated path just as
+      // absent, and the residual on `Target.tolerateVanish` is about exactly that
+      // case, so the line must not assert the file was removed.
+      `[phi-scan] skipped ${String(vanished.length)} untracked file(s) gone between ` +
+        `enumeration and read: ${vanished.map((t) => t.path).join(", ")}\n`,
+    );
+  }
+
+  // Refuse a sweep that observed nothing. `enforceObservation` already refused an
+  // empty TARGET SET; this is the same rule one step later, over what was actually
+  // READ, so the tolerance above can never decay into a clean report of a tree
+  // nothing was read from. All-mode always reaches at least the allow-list itself,
+  // so zero reads means the enumeration or the tree is wrong, never a clean repo.
+  // (`staged` legitimately has nothing to scan when a commit touches no in-scope
+  // file, and `paths` is bounded by the caller's argv.)
+  if (args.mode === "all" && observed === 0) {
+    process.stderr.write(
+      "[phi-scan] refusing: the all-mode sweep observed no files, so it proves nothing.\n",
+    );
+    return 2;
+  }
+
+  // The denominator counts files READ, not files listed — a tolerated skip must
+  // shrink the number the `OK` is an `OK` over, never pad it.
+  report(hits, observed);
   return hits.length === 0 ? 0 : 1;
 }
 
