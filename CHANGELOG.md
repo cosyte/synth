@@ -547,6 +547,33 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 ### Fixed
 
+- **The exported `VERSION` constant reported `0.0.0` on every published release, and the fix is the
+  binding rather than the literal.** `src/index.ts` carried a hand-written constant while Changesets
+  bumped `package.json`, so the two were never connected and the export went stale at the first
+  publish. Measured 2026-08-03 against the registry rather than the source tree, by unpacking each
+  released tarball (`for v in 0.0.1 0.0.2 0.0.3 0.0.4 0.0.5; do npm pack @cosyte/synth@$v; done`):
+  **all five** carry `var VERSION = "0.0.0"` in `dist/index.cjs`, `0.0.5` included, which is what
+  `latest` serves today. `docs-content/installation.md` makes that constant the documented install
+  smoke test, so the documented way to confirm an install read the lying value; the assertion there
+  is on the value's _type_, which is why it never went red. `scripts/sync-version.mjs` now rewrites
+  the declaration from the manifest and runs from the `version` script between `changeset version`
+  and the formatter, so the bump and the constant land in one release commit. It is idempotent, and
+  refuses rather than no-opping on a renamed, reformatted or duplicated declaration, because a
+  silent no-op is precisely the failure being closed. The drift guard is a new equality assertion in
+  `test/sanity.test.ts` against `package.json` (never against a literal): the two assertions already
+  there require a non-empty string and a semver shape, and `"0.0.0"` satisfies both, so they were
+  green throughout. `test/scripts/sync-version.test.ts` covers the script itself, since it executes
+  only during a release and would otherwise first run at the moment it matters. `VERSION` is now
+  annotated `: string` instead of inferring its literal type, matching the sibling packages: a small
+  declaration-surface change, since consumers previously saw the literal type `"0.0.0"` and it would
+  have re-narrowed on every bump. Third instance of this class in the suite after `astm@0.0.1` and
+  `terminology@0.0.1`; the mechanism is theirs, ported with its claims re-measured here.
+- **Two shipped documentation pages said this package was "not yet published to npm."**
+  `docs-content/intro.md` and `docs-content/installation.md` both carried it, and `docs-content/` is
+  tarred verbatim into the release asset the docs site ingests, so the claim reached readers. Both
+  now match what `README.md` already said: published, on the pre-alpha `0.0.x` ladder, without
+  repeating the number, because a version pinned into prose is stale by construction at the next
+  release and a released asset cannot be corrected in place.
 - **The PHI scanner read a symbolic link as clean, on both of the routes that enumerate files.** A
   link under a scan root pointing at a document carrying real-looking PHI passed the gate, and so
   did the same link staged for commit. The two routes were blind for different reasons. The
