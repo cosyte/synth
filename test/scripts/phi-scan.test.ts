@@ -1234,8 +1234,13 @@ describe("phi-scan: a non-regular in-scope entry refuses the scan, on both route
     expect(r.stderr).toContain("(a git mode-000000 entry)");
     expect(r.stderr).toContain("src/conflict.xml");
     expect(r.stderr).toMatch(/no regular blob at stage 0/);
-    // It must NOT claim a target path was handed back — there is none.
-    expect(r.stderr).not.toMatch(/hands back the target path[^—]*$/);
+    // The target-path claim must be SCOPED to a link rather than asserted of the entry
+    // in hand. Written as a POSITIVE match on the qualifier, not as a negative match on
+    // the claim: the superseded text read "hands back ITS target path rather than any
+    // content", which a negative regex aimed at the current wording does not match
+    // either — so it would have passed over the very message it named and pinned
+    // nothing. A negative assertion is only as good as the string it was checked against.
+    expect(r.stderr).toMatch(/for a symbolic link it hands back the target path/);
   });
 
   it("refuses a FIFO with its own kind token — the rule is not keyed on symlinks", () => {

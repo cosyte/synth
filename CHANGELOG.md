@@ -571,11 +571,12 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   about what is on the other side of it. The earlier tolerance for a file that vanishes between
   enumeration and read is untouched, and is deliberately not extended to this.
 
-  The rule's full statement — the readings behind it, why nothing is followed, the two residuals it
-  discloses, and the bound the listing flag moved — is in `scripts/phi-scan.ts` under "NON-REGULAR
-  ENTRIES". Read it there; this entry summarises the change rather than carrying a second copy of
-  the argument, because the previous version of this guard ended up described in four files per
-  repository and every review found a drifted claim in one of them.
+  The rule's full statement is in `scripts/phi-scan.ts` under "NON-REGULAR ENTRIES". This entry
+  keeps the readings, because a reader deserves the evidence that the defect was real; the design
+  argument stays in that one place — why nothing is followed, the two residuals it discloses, and
+  the bound the listing flag moved. The split is deliberate: the previous version of this guard
+  ended up described in four files per repository, and every review found a drifted claim in one of
+  them.
 
 - **The `attw` publish gate passed on a build that shipped no type declarations.** `attw` prints
   "This package does not contain types." and **exits 0** — not a bug in `attw`, since an untyped

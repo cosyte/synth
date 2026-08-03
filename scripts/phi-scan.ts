@@ -797,11 +797,16 @@ function buildTargetsForStaged(): Target[] {
     // the info half of a record costs a fixed 32 bytes plus its NUL. Measured over 200
     // staged paths in a throwaway repo: 70.5 bytes/record under `--raw` against 37.5
     // under `--name-only`, so the ceiling falls from roughly 27,900 staged paths to
-    // roughly 14,800. It fails CLOSED — an over-long answer throws, lands in the
-    // `catch` below, and refuses (exit 2). This repo tracks 6,657 bytes of paths in
-    // total, so the ceiling is three orders of magnitude away and neither figure is
-    // reachable here; the halving is recorded because the next repo to take this
-    // change may not have that headroom.
+    // roughly 14,800. It fails CLOSED — an over-long answer throws `ENOBUFS`, lands in
+    // the `catch` below, and refuses (exit 2).
+    //
+    // THE HEADROOM IS RE-DERIVED HERE RATHER THAN COPIED OFF `gitTracked()`, whose
+    // "three orders of magnitude" is its own measurement and does not describe this
+    // one. Every path this repo tracks is 6,657 bytes, and the widest plausible staged
+    // set is all of them, so the worst case is that total plus 33 bytes per record:
+    // about 13,900 bytes against 1,048,576, i.e. roughly 75x of headroom — ample, and
+    // under two orders of magnitude. The halving is recorded because the next repo to
+    // take this change may not have even that.
     listBuf = execFileSync(
       "git",
       ["diff", "--cached", "--no-renames", "--raw", "--diff-filter=d", "-z"],
