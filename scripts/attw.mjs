@@ -222,31 +222,55 @@ for (const rel of declared) {
   if (size === 0) broken.push({ rel, why: "empty" });
 }
 if (broken.length > 0) {
-  // ▶ WHAT attw WOULD HAVE DONE IS THREE DIFFERENT ANSWERS, AND SAYING SO IS THE
-  //   POINT OF THE LINE. A first version of this file keyed the exit-0 claim on
-  //   `broken.some(isDeclaration)` — ANY declaration among the casualties — and a
-  //   refuter measured it false on a tree with eight entry points, which is this
-  //   package. The exit-0 counterfactual holds only when NO declared declaration
-  //   survives, because that is the only state in which `analysis.types` is falsy
-  //   and `getExitCode()` takes its early return. Keep the three arms distinct: a
-  //   gate that reds correctly and then explains itself with a falsehood teaches
-  //   the next reader the wider, wrong story about this defect.
+  // ▶ WHAT attw WOULD HAVE DONE IS SEVERAL DIFFERENT ANSWERS, AND SAYING SO IS THE
+  //   POINT OF THE LINE. TWO VERSIONS OF THIS CONDITION HAVE NOW BEEN MEASURED
+  //   FALSE, BOTH IN THE SAME DIRECTION — OVERCLAIMING EXIT 0. Do not re-derive it
+  //   from the shape of the code.
+  //
+  //   (a) The first keyed it on `broken.some(isDeclaration)` — ANY declaration
+  //       among the casualties — which is false whenever some declarations survive:
+  //       attw then finds types, runs past the early return, reports
+  //       UntypedResolution and exits 1.
+  //   (b) The second keyed it on "every declared declaration is in `broken`". Also
+  //       false, because `broken` counts EMPTY as broken and A ZERO-BYTE `.d.ts`
+  //       STILL RESOLVES. It types the package even though it declares nothing, so
+  //       `analysis.types` is truthy and the early return is not taken. Measured:
+  //       root declarations zero-byte + a subpath's missing gave attw exit 1 with
+  //       UntypedResolution; ALL declarations zero-byte gave "No problems found"
+  //       and exit 0 — neither of which is the untyped sentence.
+  //
+  //   So an EMPTY declaration among the casualties means this script cannot say
+  //   what attw would have done, and it says that instead of guessing. Below that
+  //   guard, every remaining declaration casualty is MISSING, which is the only
+  //   state `getExitCode()`'s early return actually keys on. A gate that reds
+  //   correctly and then explains itself with a falsehood teaches the next reader
+  //   the wider, wrong story — and this file gets copied to sixteen more manifests.
   const declaredDeclarations = declared.filter((rel) => DECLARATION.test(rel));
   const brokenDeclarations = broken.filter(({ rel }) => DECLARATION.test(rel));
+  const emptyDeclaration = brokenDeclarations.some(({ why }) => why === "empty");
   const everyDeclarationGone =
     declaredDeclarations.length > 0 && brokenDeclarations.length === declaredDeclarations.length;
-  const counterfactual = everyDeclarationGone
-    ? // No declared declaration survives, so attw finds no types at all.
-      `  attw would have reported "${UNTYPED}" and EXITED 0 on this tree.\n`
-    : brokenDeclarations.length > 0
-      ? // Some declarations survive, so attw DOES find types, runs past the early
-        // return, and enumerates the untyped resolutions itself. It reds — it just
-        // does not tell you which artifact to rebuild, which is what this does.
-        `  attw would have reported an untyped resolution and EXITED 1 here: some\n` +
-        `  declarations survive, so it finds types and never takes the early return.\n` +
-        `  What this adds is the name of the artifact to rebuild, which attw omits.\n`
-      : // Only JS missing. attw analyses types; it reports nothing and exits 0.
-        `  attw does not gate these: it analyses types, and exits 0 here.\n`;
+  const counterfactual = emptyDeclaration
+    ? // A zero-byte declaration resolves, so it types the package. Which way attw
+      // lands then depends on the other entry points; no exit code is claimed.
+      `  What attw would have done here is deliberately not stated: a zero-byte\n` +
+      `  declaration file still RESOLVES, so it types the package while declaring\n` +
+      `  nothing, and the early return in getExitCode() is not taken.\n`
+    : everyDeclarationGone
+      ? // Every declared declaration is missing, so attw finds no types at all.
+        `  attw would have reported "${UNTYPED}" and EXITED 0 on this tree.\n`
+      : brokenDeclarations.length > 0
+        ? // Some declarations survive, so attw DOES find types, runs past the early
+          // return, and enumerates the untyped resolutions itself. It reds — it just
+          // does not tell you which artifact to rebuild, which is what this does.
+          `  attw would have reported an untyped resolution and EXITED 1 here: some\n` +
+          `  declarations survive, so it finds types and never takes the early return.\n` +
+          `  What this adds is the name of the artifact to rebuild, which attw omits.\n`
+        : // Only JS missing. attw analyses types, not JavaScript, so it exits 0 here
+          // whether or not this package declares any — which is why the casualties
+          // above are worth printing even though attw would not have complained.
+          `  attw does not gate these: it analyses types, not JavaScript, and exits 0\n` +
+          `  here.\n`;
   die(
     `package.json promises files the build has not produced:\n` +
       broken.map(({ rel, why }) => `    ${rel} (${why})\n`).join("") +

@@ -109,6 +109,8 @@ let attwFails: string;
 let jsMissing: string;
 /** Root entry complete; a SUBPATH export's declaration is the only thing missing. */
 let subpathMissing: string;
+/** Root declarations present but ZERO-BYTE, a subpath's missing. Both are "broken". */
+let emptyDeclaration: string;
 
 function writePkg(dir: string, pkg: Record<string, unknown>, files: Record<string, string>): void {
   mkdirSync(dir, { recursive: true });
@@ -229,6 +231,41 @@ beforeAll(() => {
   mkdirSync(join(subpathMissing, "hl7"));
   writeFileSync(join(subpathMissing, "hl7", "index.js"), "export const b = 1;\n");
   writeFileSync(join(subpathMissing, "hl7", "index.cjs"), "module.exports.b = 1;\n");
+
+  // Same manifest, but the ROOT declarations are present and zero-byte rather than
+  // absent. Every declared declaration is then in the preflight's `broken` set,
+  // while attw still finds types — the shape that broke the second version of the
+  // counterfactual condition.
+  emptyDeclaration = join(root, "empty-declaration");
+  writePkg(
+    emptyDeclaration,
+    {
+      name: "attw-gate-fixture-emptydecl",
+      version: "1.0.0",
+      type: "module",
+      exports: {
+        ".": {
+          import: { types: "./index.d.ts", default: "./index.js" },
+          require: { types: "./index.d.cts", default: "./index.cjs" },
+        },
+        "./hl7": {
+          import: { types: "./hl7/index.d.ts", default: "./hl7/index.js" },
+          require: { types: "./hl7/index.d.cts", default: "./hl7/index.cjs" },
+        },
+        "./package.json": "./package.json",
+      },
+      files: ["index.js", "index.d.ts", "index.cjs", "index.d.cts", "hl7"],
+    },
+    {
+      "index.js": "export const a = 1;\n",
+      "index.d.ts": "",
+      "index.cjs": "module.exports.a = 1;\n",
+      "index.d.cts": "",
+    },
+  );
+  mkdirSync(join(emptyDeclaration, "hl7"));
+  writeFileSync(join(emptyDeclaration, "hl7", "index.js"), "export const b = 1;\n");
+  writeFileSync(join(emptyDeclaration, "hl7", "index.cjs"), "module.exports.b = 1;\n");
 });
 
 afterAll(() => {
@@ -313,7 +350,7 @@ describe("scripts/attw.mjs", () => {
   );
 
   it(
-    "claims the exit-0 counterfactual only when NO declaration survives",
+    "claims the exit-0 counterfactual only when every declaration is MISSING",
     () => {
       // The other arm of the same condition. `noBuild` declares one declaration and
       // it is absent, so nothing types the package and attw really would exit 0.
@@ -321,6 +358,34 @@ describe("scripts/attw.mjs", () => {
       expect(r.code).not.toBe(0);
       expect(r.out).toContain("EXITED 0");
       expect(r.out).toContain(UNTYPED);
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it(
+    "claims NO exit code when a declaration is present but zero-byte",
+    () => {
+      // THE SECOND WAY THIS CONDITION WAS GOT WRONG, AND IT IS NOT GUESSABLE FROM
+      // THE CODE. The preflight counts `empty` as broken, but a zero-byte .d.ts
+      // still RESOLVES — it types the package while declaring nothing, so
+      // `analysis.types` is truthy and getExitCode() does not take its early
+      // return. Keying the exit-0 claim on "every declared declaration is broken"
+      // therefore lied on exactly this shape, and a refuter measured it.
+      //
+      // Measured on this fixture: bare attw exits 1 with UntypedResolution, which
+      // is neither the untyped sentence nor exit 0.
+      const bare = runAttw(emptyDeclaration);
+      expect(bare.out).not.toContain(UNTYPED);
+      expect(bare.code).not.toBe(0);
+
+      const r = runWrapper(emptyDeclaration);
+      expect(r.code).not.toBe(0);
+      expect(r.out).toContain("./index.d.ts (empty)");
+      expect(r.out).toContain("./hl7/index.d.ts (missing)");
+      // No exit-code counterfactual of any kind is asserted here.
+      expect(r.out).not.toContain("EXITED 0");
+      expect(r.out).not.toContain("EXITED 1");
+      expect(r.out).toContain("still RESOLVES");
     },
     SPAWN_TIMEOUT,
   );

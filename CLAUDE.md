@@ -348,9 +348,18 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
   The preflight's counterfactual was keyed on `broken.some(isDeclaration)`, i.e. ANY missing
   declaration, so a partial loss red-flagged correctly and then printed "attw would have … EXITED 0",
   which is false — and false inside the very build window this gate exists for, because `tsup` writes
-  eight entry points' declarations in sequence. A refuter measured it. It has **three arms** now and
-  claims exit-0 only when **no declared declaration survives**. A gate that reds correctly and then
-  explains itself with a falsehood teaches the next reader the wrong story about the defect.
+  eight entry points' declarations in sequence. A refuter measured it.
+  **THE FIRST CORRECTION WAS ALSO WRONG, IN THE SAME DIRECTION, AND THE SECOND REFUTER PASS CAUGHT
+  IT. DO NOT RE-DERIVE THIS CONDITION FROM THE SHAPE OF THE CODE.** It was re-keyed on "every declared
+  declaration is in `broken`" — still false, because the preflight counts **empty** as broken and **a
+  zero-byte `.d.ts` STILL RESOLVES**. It types the package while declaring nothing, so
+  `analysis.types` is truthy and the early return is not taken. Measured: root declarations zero-byte
+  plus a subpath's missing → attw exit **1** with `UntypedResolution`; **all** declarations zero-byte
+  → **"No problems found"** and exit 0. Neither is the untyped sentence. So an **empty** declaration
+  casualty now makes **no exit-code claim at all**, and the exit-0 arm is reached only when every
+  declared declaration is **missing** — the one state `getExitCode()`'s early return keys on. A gate
+  that reds correctly and then explains itself with a falsehood teaches the next reader the wrong
+  story, and this script gets copied to sixteen more manifests.
   `scripts/attw.mjs` carries **two nets, and they catch different things** — a preflight that every
   relative path `package.json` promises (`main`, `module`, `types`, `typings`, every string leaf of
   `exports`, across all eight subpaths) exists and is non-empty, which catches the window and _names
