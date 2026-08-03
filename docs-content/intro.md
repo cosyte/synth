@@ -17,7 +17,8 @@ never-issued SSNs, NANP `555-01xx` phones, `example.*` domains, TEST-NET IPs, a 
 authority for MRNs, and a shipped clearly-fake name pool). It is a **format/conformance generator, not a
 clinical simulator** — it does not model disease progression (that is Synthea).
 
-> **Status:** pre-alpha (`0.0.x`), not yet published to npm.
+> **Status:** pre-alpha (`0.0.x`), published to npm. The version shown on the npm package page is the
+> one that is live; this page never repeats it.
 
 ## Install
 

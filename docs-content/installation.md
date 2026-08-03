@@ -10,8 +10,8 @@ sidebar_position: 1
 its core. It ships dual **ESM + CJS** builds with per-condition type declarations, so it works from
 either module system without configuration.
 
-> **Status:** pre-alpha (`0.0.x`), not yet published to npm. The command below is the shape it will take
-> at first publish; until then, consume it from source or a workspace link.
+> **Status:** pre-alpha (`0.0.x`), published to npm. The version shown on the npm package page is the
+> one that is live; this page never repeats it.
 
 ## Prerequisites
 
@@ -39,4 +39,9 @@ import { VERSION } from "@cosyte/synth";
 typeof VERSION; // => "string"
 ```
 
-If that resolves, the install is good — head to the [Quickstart](./quickstart).
+`VERSION` is the version of the package you installed. It is written from the manifest at release
+time, so it always names the release npm actually served you rather than a number left behind by an
+earlier one. This check asserts the value's **type** rather than the value itself, deliberately, so
+that this page never has to name a version and go stale on the next publish.
+
+If that resolves, the install is good. Head to the [Quickstart](./quickstart).
