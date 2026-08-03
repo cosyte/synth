@@ -203,13 +203,28 @@ const OVERRIDE_LOG_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
 const SCAN_ROOTS: readonly string[] = ["src", "test", "scripts"];
 
 /**
- * Whether a repo-relative path is in scope for the scan. Markdown is excluded:
- * documentation legitimately quotes violator values (this scanner's own override
- * log and allow-list both do).
+ * Whether a repo-relative path sits under a scan root. THE ROOT HALF OF SCOPE, SPLIT
+ * OUT FROM THE `.md` EXEMPTION ON PURPOSE — the two halves are not interchangeable,
+ * and treating them as one predicate is what made the staged route disagree with the
+ * walk about a link named `.md`. See "NON-REGULAR ENTRIES" below.
+ */
+function inScanRoot(rel: string): boolean {
+  return SCAN_ROOTS.some((root) => rel === root || rel.startsWith(`${root}/`));
+}
+
+/**
+ * Whether a repo-relative path is in scope AS A FILE TO READ. Markdown is excluded:
+ * documentation legitimately quotes violator values (this scanner's own override log
+ * and allow-list both do).
+ *
+ * That judgement is about a file whose BYTES the scan could have read. It is NOT the
+ * predicate for deciding whether an entry is scannable at all — a link's name is no
+ * evidence about what is on the other side of it — so the non-regular check on each
+ * route keys on {@link inScanRoot} alone.
  */
 function isScannable(rel: string): boolean {
   if (rel.toLowerCase().endsWith(".md")) return false;
-  return SCAN_ROOTS.some((root) => rel === root || rel.startsWith(`${root}/`));
+  return inScanRoot(rel);
 }
 
 // ---------------------------------------------------------------------------
@@ -526,10 +541,20 @@ interface Target {
 // "IN SCOPE" IS EACH ROUTE'S OWN EXISTING BOUNDARY, NOT A NEW ONE. The walk still
 // drops a gitignored entry — the same rule that already drops a gitignored file, so a
 // link does not get a second, stricter boundary of its own — and `--staged` still
-// filters by `isScannable`. This narrows what those scopes ADMIT; it does not widen
-// the scopes. The one deliberate exception is `.md`: a markdown FILE is out of scope
-// because documentation quotes violator values, but a link's NAME is no evidence at
-// all about what is on the other side, so the exemption does not extend to it.
+// reads only the index. This narrows what those scopes ADMIT; it does not widen the
+// scopes.
+//
+// THE ONE DELIBERATE ASYMMETRY IS `.md`, AND IT COST A REVIEW PASS TO GET RIGHT ON
+// BOTH ROUTES RATHER THAN ONE. A markdown FILE is out of scope because documentation
+// quotes violator values; a link merely NAMED `.md` is not, because its name is no
+// evidence at all about what is on the other side. So the two halves of the old
+// single scope predicate are now separate: `inScanRoot` decides whether an entry is
+// the scan's business, and `isScannable` — which is `inScanRoot` plus the `.md`
+// exemption — decides whether a REGULAR FILE's bytes get read. Every non-regular
+// check keys on the first. The first version of this slice keyed the staged route on
+// the second and asserted the rule anyway: a `.md`-named link refused in all-mode and
+// returned `OK — no hits (0 file(s) scanned)` exit 0 when staged, with `.md` the sole
+// discriminator. That is why the split is here and not inlined at one call site.
 //
 // A REFUSAL NAMES THE ENTRY'S OWN REPO-RELATIVE PATH AND AN ENGINE-OWNED TOKEN FOR
 // ITS KIND. IT NEVER REPORTS THE LINK TARGET, which is text off the working tree and
@@ -766,6 +791,17 @@ function buildTargetsForStaged(): Target[] {
     // that distinguishes a staged regular file from a staged symlink or gitlink, and
     // `git show :<path>` answers all three without complaint. See "NON-REGULAR ENTRIES"
     // above for what that cost before this flag.
+    //
+    // IT MOVES A BOUND, AND `gitTracked()` SETS THE PRECEDENT FOR DISCLOSING ONE RATHER
+    // THAN HIDING IT. `execFileSync`'s default 1 MiB `maxBuffer` caps this answer, and
+    // the info half of a record costs a fixed 32 bytes plus its NUL. Measured over 200
+    // staged paths in a throwaway repo: 70.5 bytes/record under `--raw` against 37.5
+    // under `--name-only`, so the ceiling falls from roughly 27,900 staged paths to
+    // roughly 14,800. It fails CLOSED — an over-long answer throws, lands in the
+    // `catch` below, and refuses (exit 2). This repo tracks 6,657 bytes of paths in
+    // total, so the ceiling is three orders of magnitude away and neither figure is
+    // reachable here; the halving is recorded because the next repo to take this
+    // change may not have that headroom.
     listBuf = execFileSync(
       "git",
       ["diff", "--cached", "--no-renames", "--raw", "--diff-filter=d", "-z"],
@@ -805,26 +841,37 @@ function buildTargetsForStaged(): Target[] {
     i += 2;
   }
 
-  const inScope = staged.filter((s) => isScannable(s.path));
+  // TWO FILTERS, IN THIS ORDER, AND THE ORDER IS THE WHOLE POINT. The non-regular
+  // check runs over everything under a scan root; only then does the `.md` exemption
+  // narrow what is READ. Running `isScannable` first put a `.md`-named staged link
+  // through the exemption and back out as `OK`. See "NON-REGULAR ENTRIES" above.
+  const inRoot = staged.filter((s) => inScanRoot(s.path));
 
   refuseUnscannable(
-    inScope
+    inRoot
       .filter((s) => !REGULAR_BLOB_MODES.has(s.mode))
       .map((s) => ({ path: s.path, kind: gitModeKind(s.mode) })),
-    "For such an entry `git show :<path>` hands back its target path rather than any content, " +
-      "so scanning it would prove nothing about what it points at.",
+    // Accurate for every mode this can name, not just `120000`: a symbolic link's blob
+    // IS its target path, while a gitlink and an unmerged path have no regular blob at
+    // stage 0 at all. Saying "hands back its target path" for all of them was wrong on
+    // a real merge conflict, where the mode reads `000000`.
+    "`git show :<path>` does not answer with file content for such an entry — for a symbolic link " +
+      "it hands back the target path, and otherwise there is no regular blob at stage 0 to read — " +
+      "so scanning it would prove nothing about what it stands for.",
     "Unstage it, or replace it with a regular file.",
   );
 
-  return inScope.map(({ path: relPath }) => ({
-    path: relPath,
-    // SECURITY: array-form execFileSync, no shell. `:<path>` is a git pathspec.
-    read: (): Buffer =>
-      execFileSync("git", ["show", `:${relPath}`], {
-        encoding: "buffer",
-        stdio: ["ignore", "pipe", "pipe"],
-      }),
-  }));
+  return inRoot
+    .filter((s) => isScannable(s.path))
+    .map(({ path: relPath }) => ({
+      path: relPath,
+      // SECURITY: array-form execFileSync, no shell. `:<path>` is a git pathspec.
+      read: (): Buffer =>
+        execFileSync("git", ["show", `:${relPath}`], {
+          encoding: "buffer",
+          stdio: ["ignore", "pipe", "pipe"],
+        }),
+    }));
 }
 
 // ---------------------------------------------------------------------------

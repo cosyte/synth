@@ -563,26 +563,19 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
   **An in-scope entry that is not a regular file now refuses the scan (exit 2) on both routes**,
   rather than being skipped or followed. Neither route is taught to follow a link: following would
-  read bytes the enumeration does not control — outside the repository, a loop, a device, a FIFO
-  that would block the gate forever — and a commit does not carry those bytes anyway, so a finding
-  about them would be a claim about something no commit contains. A refusal names every offender's
-  own repository-relative path and an engine-owned word for its kind, and **never the link target**,
-  which is working-tree text that can itself carry PHI. Scope is unchanged: a git-ignored entry is
-  still out of scope, so a link gets the boundary a file already had rather than a second, stricter
-  one, and the escape hatch for something genuinely outside the corpus is the same one. The rule,
-  its evidence and its two disclosed residuals are stated once, in `scripts/phi-scan.ts`, and are
-  deliberately not restated anywhere else.
+  read bytes the enumeration does not control, and a commit does not carry those bytes anyway. A
+  refusal names every offender's own repository-relative path and an engine-owned word for its kind,
+  and **never the link target**, which is working-tree text that can itself carry PHI. A git-ignored
+  entry is still out of scope, so the escape hatch for something genuinely outside the corpus is
+  unchanged; the markdown exemption deliberately does not extend to a link, whose name says nothing
+  about what is on the other side of it. The earlier tolerance for a file that vanishes between
+  enumeration and read is untouched, and is deliberately not extended to this.
 
-  **Two things this did not need, re-measured here rather than inherited.** The staged status filter
-  is already an exclusion — everything except deletions — so a type change was already enumerated;
-  what was missing was the file **mode**, which is why the listing flag moved from `--name-only` to
-  `--raw` and nothing about the filter changed. And rename detection is already switched off, so a
-  staged rename is already enumerated at its destination path rather than dropped. Separately, the
-  earlier tolerance for a file that vanishes between enumeration and read is untouched and is not
-  extended to this: a non-regular entry is a durable fact of the tree, not a race, so an untracked
-  one refuses exactly like a tracked one. That is affordable because it costs nothing here — a sweep
-  for every non-regular type over the scan roots, looped through one build and one full test run,
-  ran 824 times and saw such an entry in none of them.
+  The rule's full statement — the readings behind it, why nothing is followed, the two residuals it
+  discloses, and the bound the listing flag moved — is in `scripts/phi-scan.ts` under "NON-REGULAR
+  ENTRIES". Read it there; this entry summarises the change rather than carrying a second copy of
+  the argument, because the previous version of this guard ended up described in four files per
+  repository and every review found a drifted claim in one of them.
 
 - **The `attw` publish gate passed on a build that shipped no type declarations.** `attw` prints
   "This package does not contain types." and **exits 0** — not a bug in `attw`, since an untyped

@@ -1179,16 +1179,63 @@ describe("phi-scan: a non-regular in-scope entry refuses the scan, on both route
     expect(scannedCount(r)).toBeGreaterThan(0);
   });
 
-  it("does NOT extend the `.md` exemption to a link — a name is no evidence", () => {
+  it("does NOT extend the `.md` exemption to a link — on BOTH routes, not one", () => {
     // A markdown FILE is out of scope because documentation quotes violator values.
     // A link merely NAMED `.md` says nothing about what is on the other side.
-    const r = withGitRoot((root) => {
+    //
+    // BOTH ROUTES, DELIBERATELY. The first version of this slice ran the staged route's
+    // non-regular check AFTER the `.md` filter, so this exact link refused in all-mode
+    // and returned `OK — no hits (0 file(s) scanned)` exit 0 when staged, with `.md`
+    // the sole discriminator — while the scanner's own authoritative note claimed the
+    // exemption did not extend to a link. An all-mode-only test let that survive green.
+    const { all, staged, mdFile } = withGitRoot((root) => {
       const secret = seedSecret(root);
       linkAt(root, "src/notes.md", secret);
-      return runScannerIn(root, []);
+      const all = runScannerIn(root, []);
+      git(root, ["add", "--", "src/notes.md"]);
+      const staged = runScannerIn(root, ["--staged"]);
+      // The CONTROL that keeps the pair honest: a markdown FILE at the same path is
+      // still out of scope in both modes, so `.md` really is the only thing that moved.
+      git(root, ["rm", "-q", "--cached", "--", "src/notes.md"]);
+      rmSync(join(root, "src", "notes.md"));
+      put(root, "src/notes.md", VIOLATOR);
+      git(root, ["add", "--", "src/notes.md"]);
+      return { all, staged, mdFile: runScannerIn(root, ["--staged"]) };
+    });
+    expect(all.code, `stdout: ${all.stdout}`).toBe(2);
+    expect(all.stderr).toContain("src/notes.md (a symbolic link)");
+    expect(staged.code, `stdout: ${staged.stdout}`).toBe(2);
+    expect(staged.stderr).toContain("src/notes.md (a symbolic link)");
+    expect(mdFile.code, `stderr: ${mdFile.stderr}`).toBe(0);
+    expect(scannedCount(mdFile)).toBe(0);
+  });
+
+  it("--staged describes an unmerged path accurately, not as a link", () => {
+    // The refusal text is shared across every non-regular mode, so it must be true of
+    // all of them: an unmerged path has no regular blob at stage 0 and no target path,
+    // and a first draft told the reader `git show` had handed back a target path.
+    const r = withGitRoot((root) => {
+      put(root, "src/conflict.xml", CLEAN_DOC);
+      git(root, ["add", "--", "src/conflict.xml"]);
+      git(root, ["commit", "-q", "-m", "base fixture"]);
+      git(root, ["checkout", "-q", "-b", "other"]);
+      put(root, "src/conflict.xml", VIOLATOR);
+      git(root, ["commit", "-q", "-a", "-m", "theirs"]);
+      git(root, ["checkout", "-q", "main"]);
+      put(root, "src/conflict.xml", CLEAN_DOC.replace("Exampla", "Testibald"));
+      git(root, ["commit", "-q", "-a", "-m", "ours"]);
+      const merged = spawnSync("git", ["merge", "other"], { cwd: root, encoding: "utf8" });
+      // A clean merge would leave nothing unmerged and this case would assert nothing,
+      // so it fails rather than passing over an empty index.
+      if (merged.status === 0) throw new Error("the fixture merged cleanly: no unmerged path");
+      return runScannerIn(root, ["--staged"]);
     });
     expect(r.code, `stdout: ${r.stdout}`).toBe(2);
-    expect(r.stderr).toContain("src/notes.md (a symbolic link)");
+    expect(r.stderr).toContain("(a git mode-000000 entry)");
+    expect(r.stderr).toContain("src/conflict.xml");
+    expect(r.stderr).toMatch(/no regular blob at stage 0/);
+    // It must NOT claim a target path was handed back — there is none.
+    expect(r.stderr).not.toMatch(/hands back the target path[^—]*$/);
   });
 
   it("refuses a FIFO with its own kind token — the rule is not keyed on symlinks", () => {
@@ -1196,10 +1243,11 @@ describe("phi-scan: a non-regular in-scope entry refuses the scan, on both route
     const r = withGitRoot((root) => {
       mkdirSync(join(root, "src"), { recursive: true });
       const made = spawnSync("mkfifo", [join(root, "src", "pipe.xml")], { shell: false });
-      if (made.status !== 0) return null;
+      // NO SILENT SKIP. A case that quietly no-ops when its setup fails is a green
+      // test over nothing, which is the shape this whole slice exists to refuse.
+      if (made.status !== 0) throw new Error(`mkfifo failed: ${String(made.stderr)}`);
       return runScannerIn(root, []);
     });
-    if (r === null) return; // no mkfifo on this box; the symlink cases carry the rule.
     expect(r.code, `stdout: ${r.stdout}`).toBe(2);
     expect(r.stderr).toContain("src/pipe.xml (a FIFO)");
   });
@@ -1255,10 +1303,9 @@ describe("phi-scan: a non-regular in-scope entry refuses the scan, on both route
         ["update-index", "--add", "--cacheinfo", `160000,${head},src/nested`],
         { cwd: root, encoding: "utf8", shell: false },
       );
-      if (added.status !== 0) return null;
+      if (added.status !== 0) throw new Error(`update-index failed: ${String(added.stderr)}`);
       return runScannerIn(root, ["--staged"]);
     });
-    if (r === null) return;
     expect(r.code, `stdout: ${r.stdout}`).toBe(2);
     expect(r.stderr).toContain("src/nested (a gitlink (a nested repository))");
   });
