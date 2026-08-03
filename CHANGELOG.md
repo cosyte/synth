@@ -547,6 +547,37 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 ### Fixed
 
+- **The PHI scanner read a symbolic link as clean, on both of the routes that enumerate files.** A
+  link under a scan root pointing at a document carrying real-looking PHI passed the gate, and so
+  did the same link staged for commit. The two routes were blind for different reasons. The
+  working-tree walk collected only regular files, and a link is neither a file nor a directory to
+  the call it used, so it fell out of the loop silently — a linked _directory_ taking a whole
+  subtree with it. The staged route listed paths without their file mode and then read content with
+  `git show`, and git stores a link as its target path under mode `120000`, so that route was handed
+  the path text rather than the target's bytes, then counted the result in its own denominator as a
+  file scanned. Measured here before the fix, with a name-bearing synthetic document held outside
+  the scan roots: a working-tree sweep reported `OK — no hits (1 file(s) scanned)` and exit 0 where
+  the same bytes as a regular file reported two hits and exit 1; staging the link, and separately
+  replacing a tracked regular file with it, each reported that same clean line over a mode-`120000`
+  blob.
+
+  **An in-scope entry that is not a regular file now refuses the scan (exit 2) on both routes**,
+  rather than being skipped or followed. Neither route is taught to follow a link: following would
+  read bytes the enumeration does not control, and a commit does not carry those bytes anyway. A
+  refusal names every offender's own repository-relative path and an engine-owned word for its kind,
+  and **never the link target**, which is working-tree text that can itself carry PHI. A git-ignored
+  entry is still out of scope, so the escape hatch for something genuinely outside the corpus is
+  unchanged; the markdown exemption deliberately does not extend to a link, whose name says nothing
+  about what is on the other side of it. The earlier tolerance for a file that vanishes between
+  enumeration and read is untouched, and is deliberately not extended to this.
+
+  The rule's full statement is in `scripts/phi-scan.ts` under "NON-REGULAR ENTRIES". This entry
+  keeps the readings, because a reader deserves the evidence that the defect was real; the design
+  argument stays in that one place — why nothing is followed, the two residuals it discloses, and
+  the bound the listing flag moved. The split is deliberate: the previous version of this guard
+  ended up described in four files per repository, and every review found a drifted claim in one of
+  them.
+
 - **The `attw` publish gate passed on a build that shipped no type declarations.** `attw` prints
   "This package does not contain types." and **exits 0** — not a bug in `attw`, since an untyped
   package is a legitimate npm package, so `getExitCode()` returns before the problem list is read and
