@@ -19,9 +19,11 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
 
 ## Status
 
-- **Phases 1–9 shipped (SYNTH-1 … SYNTH-11) — the roadmap is complete.** Pre-alpha `0.0.x`, not yet
-  published to npm; the actual `npm publish` and the repo public-flip are the two standing founder gates
-  (the only remaining tail). **SYNTH-11 (Phase 9, release hardening)** added no runtime API — it is the
+- **Phases 1–9 shipped (SYNTH-1 … SYNTH-11) — the roadmap is complete.** Pre-alpha `0.0.x`, and
+  **published to npm** (verify with `npm view @cosyte/synth version`; this line deliberately does not
+  name the number, which is stale by construction on the next release). The repo public-flip remains a
+  standing founder gate; `npm publish` is covered by the standing waiver. **Publish state and
+  visibility are independent, so never infer one from the other.** **SYNTH-11 (Phase 9, release hardening)** added no runtime API — it is the
   release-readiness layer: a **consolidated conformance property suite**
   (`test/property/all-formats.property.test.ts`) driving every spec-clean format generator through the
   same three mandatory properties (round-trip · seed-determinism · synthetic-safety) with an
@@ -240,11 +242,17 @@ Things that silently detach or hollow out a required check:
      drop one at a time. **A is not the backstop for the derived rules** either way, because emptying
      a subject empties A's targets with it. Self-test C is; do not delete it thinking A covers them.
 
-  **Know the denominator, which the gate prints on every run rather than a bare OK.** Of 39 tracked
-  in-scope code modules, **38 are watched by a name-independent rule, 1 by the `.test.`/`.spec.`
-  filename shape alone (`test/docs-content.test.ts`), and 0 by no rule at all.** Renaming that one out
-  of shape stops it running with the gate green; the count moves from `1 name-only` to `1 unwatched`,
-  so a reviewer sees it. **These routes are closed; that is not the claim that the selection cannot be
+  **Know the denominator, which the gate prints on every run rather than a bare OK.** Of 42 tracked
+  in-scope code modules, **39 are watched by a name-independent rule, 3 by the `.test.`/`.spec.`
+  filename shape alone (`test/docs-content.test.ts`, `test/scripts/attw-gate.test.ts`,
+  `test/scripts/sync-version.test.ts`), and 0 by no rule at all.** Renaming one of those three out
+  of shape stops it running with the gate green; the count moves from `3 name-only` to `1 unwatched`
+  alongside `2 name-only`, so a reviewer sees it. **READ THE NUMBERS OFF THE GATE, NOT OFF THIS
+  PARAGRAPH, AND MOVE THEM WHEN YOU ADD A TEST FILE.** They have gone stale twice now without anyone
+  noticing, in the repo whose own guidance says at length that a carried-over number is the recurring
+  failure here: `test/scripts/attw-gate.test.ts` landed without moving them, and
+  `test/scripts/sync-version.test.ts` was caught only by a refuter re-running the gate. The command
+  is `pnpm check:test-selection`, and it prints all three counts on every run. **These routes are closed; that is not the claim that the selection cannot be
   collapsed**, and writing it up as the latter is the recurring mistake in this ecosystem. What it
   does not reach is in its header: which script the shared pipeline elects to invoke, scripts other
   than those two, anything a workflow runs inline, a config branching on its own invocation, a move

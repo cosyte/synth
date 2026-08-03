@@ -32,9 +32,9 @@ file covers the sync script itself, because it runs only during a release and wo
 exercised for the first time at the moment it matters.
 
 `VERSION` is now declared as `string` rather than left to infer its literal type. That is a small
-change to the emitted declarations: consumers previously saw the type `"0.0.0"`, which narrowed to
-whatever the current release happened to be and would change shape on every bump. Reading and
-printing the value is unaffected. This matches the sibling packages.
+change to the emitted declarations: consumers previously saw the literal type `"0.0.0"` in every
+release, and once the value started tracking the manifest that type would have re-narrowed on each
+bump. Reading and printing the value is unaffected. This matches the sibling packages.
 
 Two documentation pages claimed this package was "not yet published to npm", which stopped being
 true at the first publish and reaches readers through the shipped docs bundle. Both now say what
