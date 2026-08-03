@@ -37,15 +37,25 @@
  *     script was reverted to the bare CLI — a gate that is present, tested, and not
  *     in the loop. `verify.sh` and the CI ladder check that an `attw` script
  *     EXISTS, not what it runs.
- *  9. The refusals that keep net 2 readable. Each of these argument and config
- *     routes was measured against this repo's pinned binary, WITH `--profile
- *     node16` present, to make the untyped sentence unreadable and hand back exit
- *     0 — the exact false green this file exists to close.
+ *  9. THE ALLOW-LIST that keeps net 2 readable, in BOTH directions — that the
+ *     blinding routes are refused, and that the allow-listed ones still get
+ *     through, in both spellings of `--profile`. An allow-list is a real way to
+ *     build a gate that refuses everything, so the second half is not optional.
+ *     Each blinding route was measured against this repo's pinned binary, WITH
+ *     `--profile node16` present, to make the untyped sentence unreadable and hand
+ *     back exit 0 — the exact false green this file exists to close. `-fjson` is
+ *     in that table because the DENY-list this was ported with let it through:
+ *     `arg.split("=")[0]` is token equality, not option-name matching.
+ *
+ * TWO OF THESE CASES EXIST BECAUSE A REFUTER BROKE THE FIRST VERSION OF THIS FILE,
+ * and both were assertions it did not make rather than assertions it got wrong:
+ * the exit-0 counterfactual was keyed on ANY missing declaration (item 4), and the
+ * argument guard was a deny-list (item 9). Neither is a case to trim.
  *
  * The fixtures are minimal throwaway packages in a temp dir — nothing about this
  * repo's own build, so the test does not need one and cannot race one. `attw` is
  * invoked with `--no-definitely-typed` so the runs stay offline; the wrapper
- * forwards arguments, which is what makes that possible.
+ * allow-lists and forwards that argument, which is what makes that possible.
  *
  * SECURITY: every subprocess call uses spawnSync with array args. No exec, no
  * shell-form.
@@ -290,6 +300,27 @@ describe("scripts/attw.mjs", () => {
       // intact root entry is not reported as broken, and attw was never reached.
       expect(r.out).not.toContain("./index.d.ts (missing)");
       expect(r.out).not.toContain("UntypedResolution");
+
+      // AND THE PREFLIGHT MUST NOT EXPLAIN A CORRECT RED WITH A FALSEHOOD. This is
+      // the assertion whose absence let the first version of this file ship a
+      // counterfactual keyed on ANY missing declaration: here some declarations
+      // survive, so attw would have exited 1, not 0. Claiming otherwise teaches
+      // the wider, wrong story the case above exists to refute.
+      expect(r.out).not.toContain("EXITED 0");
+      expect(r.out).toContain("EXITED 1");
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it(
+    "claims the exit-0 counterfactual only when NO declaration survives",
+    () => {
+      // The other arm of the same condition. `noBuild` declares one declaration and
+      // it is absent, so nothing types the package and attw really would exit 0.
+      const r = runWrapper(noBuild);
+      expect(r.code).not.toBe(0);
+      expect(r.out).toContain("EXITED 0");
+      expect(r.out).toContain(UNTYPED);
     },
     SPAWN_TIMEOUT,
   );
@@ -367,9 +398,16 @@ describe("the gate is actually wired to the wrapper", () => {
   });
 });
 
-describe("the refusals that keep the post-check readable", () => {
-  // Each of these was measured to make bare attw exit 0 with the untyped sentence
-  // unreadable, on the very fixture whose tarball carries no types.
+describe("the allow-list that keeps the post-check readable", () => {
+  // Each of the first five was measured to make bare attw exit 0 with the untyped
+  // sentence unreadable, on the very fixture whose tarball carries no types.
+  //
+  // `-fjson` AND `-Pq` ARE THE REASON THIS IS AN ALLOW-LIST. The ported deny-list
+  // compared `arg.split("=")[0]`, which is token equality rather than option-name
+  // matching, and commander accepts a value fused to a short flag — so `-fjson` was
+  // neither `-f` nor `--format`, passed straight through, and restored the exact
+  // false green. A refuter measured it. Enumerating spellings buys one more per
+  // round, so the guard forwards a closed set instead of refusing an open one.
   it.each([
     ["--quiet", ["--quiet"]],
     ["-q", ["-q"]],
@@ -377,12 +415,30 @@ describe("the refusals that keep the post-check readable", () => {
     ["-f json", ["-f", "json"]],
     ["--format=json", ["--format=json"]],
     ["--config-path", ["--config-path", "other.json"]],
+    ["-fjson (value fused to a short flag)", ["-fjson"]],
+    ["-Pq (a short-flag cluster)", ["-Pq"]],
+    ["an option the gate has never heard of", ["--ignore-rules", "cjs-resolves-to-esm"]],
   ])("refuses %s", (_name, extra) => {
     const r = runWrapper(typesNotPacked, [...ARGS, ...extra]);
     expect(r.code).not.toBe(0);
     expect(r.out).toContain("attw gate");
     expect(r.out).not.toContain("🌟");
   });
+
+  it(
+    "still forwards the allow-listed arguments, in both spellings of --profile",
+    () => {
+      // The allow-list must not be a wall. `--profile` takes a value, so the guard
+      // has to consume the separated form's next argument rather than reading it as
+      // an option — a real way to turn this into a gate that refuses everything.
+      for (const profile of [["--profile", "node16"], ["--profile=node16"]]) {
+        const r = runWrapper(wellFormed, [...profile, "--no-definitely-typed"]);
+        expect(r.code).toBe(0);
+        expect(r.out).toContain("ignoring resolutions");
+      }
+    },
+    SPAWN_TIMEOUT,
+  );
 
   it(
     "refuses a .attw.json that sets quiet or format",

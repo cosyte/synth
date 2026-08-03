@@ -80,27 +80,39 @@
  *   code, the suite reds and tells you to revisit this file rather than letting the
  *   net go quietly slack.
  *
- * ▶ BLINDING. Each of these was measured HERE, against this repo's pinned binary
- *   and with `--profile node16` present, on a package whose tarball carries no
- *   types: each one restores the exact false green by making the untyped sentence
- *   absent from what this script can read, while `attw` still exits 0.
+ * ▶ BLINDING, AND WHY THE ARGUMENT GUARD IS AN ALLOW-LIST RATHER THAN A DENY-LIST.
+ *   Each of these was measured HERE, against this repo's pinned binary and with
+ *   `--profile node16` present, on a package whose tarball carries no types: each
+ *   one restores the exact false green by making the untyped sentence absent from
+ *   what this script can read, while `attw` still exits 0.
  *
  *       --quiet / -q            sentence absent, exit 0
  *       --format json / -f json sentence absent, exit 0   (also `--format=json`)
  *       .attw.json {"quiet":true} or {"format":"json"}
  *                               sentence absent, exit 0   (readConfig() applies it after argv)
  *
- *   All are refused below, along with `--config-path`, which would move the config
- *   file out of view — that one by inference, not because it was measured. Bare
- *   `attw` exits 0 in the measured cases too, so refusing is not a regression
- *   against the old script — it is the difference between a gate and a gate-shaped
- *   thing.
+ *   THE DENY-LIST THIS WAS PORTED WITH DID NOT HOLD, AND A REFUTER MEASURED THE
+ *   HOLE. It refused a set of spellings by `arg.split("=")[0]`, which is token
+ *   equality, not option-name matching — and commander accepts a value fused to a
+ *   short flag, so `-fjson` is neither `-f` nor `--format`, walked straight
+ *   through, and handed back exit 0 with the sentence gone. `-q` in a cluster was
+ *   caught only by the empty-transcript net below, which cannot backstop `-f` at
+ *   all because JSON output is not empty. Enumerating spellings buys exactly one
+ *   more per round, which is the failure mode `scripts/check-test-selection.ts`
+ *   records at length for a different guard in this repo.
  *
- *   The refusal is BY OPTION NAME, WHOLESALE, not by value. `--format table-flipped`
- *   still prints the sentence and blinds nothing, and is refused anyway. That is
- *   the deliberate trade: value-parsing these would be a third moving part in the
- *   guard, and being over-strict about an argument nobody passes to a repo's own
- *   publish gate costs less than a route back to a false green.
+ *   So the guard is total instead: an ALLOW-LIST of the arguments this gate needs.
+ *   `--profile` is the resolution profile this package is graded on;
+ *   `--no-definitely-typed` is what keeps the test suite's runs offline. Everything
+ *   else is refused, including a `--format table-flipped` that would blind nothing
+ *   — "harmless" is a judgement this script cannot make from an option name, and
+ *   being over-strict about an argument nobody passes to a repo's own publish gate
+ *   costs less than a route back to a false green. `--config-path` falls out of
+ *   this for free rather than needing its own line. Widening the set is a
+ *   deliberate one-line edit.
+ *
+ *   The `.attw.json` refusal stays, because it is not an argument: `readConfig()`
+ *   applies it after argv, so no argument guard of any shape can reach it.
  *
  * ▶ WHAT THE PREFLIGHT DOES *NOT* DEPEND ON, because this package looks like it
  *   might. `@cosyte/synth` carries seven `file:vendor/*.tgz` devDependencies (every
@@ -109,10 +121,10 @@
  *   tarball with no `vendor/` and no `node_modules/` in it, and `attw` does not
  *   resolve bare external specifiers at all — measured on a fixture whose only
  *   declaration imports a package that does not exist anywhere, which `attw`
- *   reports as "No problems found". So a missing or stale vendored tarball cannot
- *   make this gate red, and cannot make it green either.
- *
- * Other arguments are forwarded, so `--profile node16` and friends still work.
+ *   reports as "No problems found". So a STALE vendored tarball cannot make this
+ *   gate red, and cannot make it green either. A MISSING one is a different thing
+ *   and is not covered by that sentence: `pnpm install` and `pnpm build` fail
+ *   first, and this gate then reds at the preflight, or at `could not run …/attw`.
  */
 
 import { spawnSync } from "node:child_process";
@@ -129,15 +141,32 @@ const die = (msg) => {
   process.exit(1);
 };
 
-// ---- Refuse what would blind the post-check --------------------------------
-const BLINDING = new Set(["-q", "--quiet", "-f", "--format", "--config-path"]);
-const blinding = args.filter((a) => BLINDING.has(a.split("=")[0]));
-if (blinding.length > 0) {
-  die(
-    `${blinding.join(", ")} is refused wholesale, by option name and not by value.\n` +
-      `  This gate reads attw's printed output, attw exits 0 on an untyped package,\n` +
-      `  and some values of these options hide that output. Run it without them.`,
-  );
+// ---- Only arguments this gate can vouch for are forwarded -------------------
+// ALLOW-LIST, NOT A DENY-LIST, AND THAT IS THE WHOLE POINT — see BLINDING above.
+const ALLOWED = new Set(["--profile", "--no-definitely-typed"]);
+const forwarded = [];
+for (let i = 0; i < args.length; i++) {
+  const arg = args[i];
+  const name = arg.split("=")[0];
+  if (!ALLOWED.has(name)) {
+    die(
+      `${arg} is not an argument this gate accepts.\n` +
+        `  It forwards an ALLOW-LIST — ${[...ALLOWED].join(", ")} — rather than refusing a\n` +
+        `  list of spellings. This gate reads attw's printed output and attw exits 0 on an\n` +
+        `  untyped package, so anything that changes what attw prints can hide the one\n` +
+        `  sentence net 2 reads. Widening this set is a deliberate one-line edit; check\n` +
+        `  first that the option cannot suppress or reformat attw's output.`,
+    );
+  }
+  forwarded.push(arg);
+  // `--profile` takes a value. A fused `--profile=node16` carries its own; a
+  // separated one must claim the next argument, or that value would be read as an
+  // option on the next turn of this loop and refused.
+  if (name === "--profile" && !arg.includes("=")) {
+    const value = args[++i];
+    if (value === undefined) die(`--profile was given with no value.`);
+    forwarded.push(value);
+  }
 }
 try {
   const config = JSON.parse(readFileSync(".attw.json", "utf8"));
@@ -180,8 +209,9 @@ try {
 }
 
 // ---- Net 1: preflight -------------------------------------------------------
+const declared = declaredArtifacts(pkg);
 const broken = [];
-for (const rel of declaredArtifacts(pkg)) {
+for (const rel of declared) {
   let size;
   try {
     size = statSync(rel).size;
@@ -192,10 +222,31 @@ for (const rel of declaredArtifacts(pkg)) {
   if (size === 0) broken.push({ rel, why: "empty" });
 }
 if (broken.length > 0) {
-  // Only claim the exit-0 counterfactual when a DECLARATION file is among the
-  // casualties. With the declarations intact and only JS missing, attw reports
-  // no problems at all and still exits 0 — a different silence, not this one.
-  const declarationsHit = broken.some(({ rel }) => DECLARATION.test(rel));
+  // ▶ WHAT attw WOULD HAVE DONE IS THREE DIFFERENT ANSWERS, AND SAYING SO IS THE
+  //   POINT OF THE LINE. A first version of this file keyed the exit-0 claim on
+  //   `broken.some(isDeclaration)` — ANY declaration among the casualties — and a
+  //   refuter measured it false on a tree with eight entry points, which is this
+  //   package. The exit-0 counterfactual holds only when NO declared declaration
+  //   survives, because that is the only state in which `analysis.types` is falsy
+  //   and `getExitCode()` takes its early return. Keep the three arms distinct: a
+  //   gate that reds correctly and then explains itself with a falsehood teaches
+  //   the next reader the wider, wrong story about this defect.
+  const declaredDeclarations = declared.filter((rel) => DECLARATION.test(rel));
+  const brokenDeclarations = broken.filter(({ rel }) => DECLARATION.test(rel));
+  const everyDeclarationGone =
+    declaredDeclarations.length > 0 && brokenDeclarations.length === declaredDeclarations.length;
+  const counterfactual = everyDeclarationGone
+    ? // No declared declaration survives, so attw finds no types at all.
+      `  attw would have reported "${UNTYPED}" and EXITED 0 on this tree.\n`
+    : brokenDeclarations.length > 0
+      ? // Some declarations survive, so attw DOES find types, runs past the early
+        // return, and enumerates the untyped resolutions itself. It reds — it just
+        // does not tell you which artifact to rebuild, which is what this does.
+        `  attw would have reported an untyped resolution and EXITED 1 here: some\n` +
+        `  declarations survive, so it finds types and never takes the early return.\n` +
+        `  What this adds is the name of the artifact to rebuild, which attw omits.\n`
+      : // Only JS missing. attw analyses types; it reports nothing and exits 0.
+        `  attw does not gate these: it analyses types, and exits 0 here.\n`;
   die(
     `package.json promises files the build has not produced:\n` +
       broken.map(({ rel, why }) => `    ${rel} (${why})\n`).join("") +
@@ -204,14 +255,12 @@ if (broken.length > 0) {
       `  working tree will do it, and \`tsup\` writes JS before declarations, so there\n` +
       `  is a multi-second window in every build here where the .d.ts files do not\n` +
       `  exist yet.\n` +
-      (declarationsHit
-        ? `  attw would have reported "${UNTYPED}" and EXITED 0 on this tree.\n`
-        : `  attw does not gate these: it analyses types, and exits 0 here.\n`),
+      counterfactual,
   );
 }
 
 // ---- Run attw ---------------------------------------------------------------
-const res = spawnSync(ATTW_BIN, ["--pack", ".", ...args], {
+const res = spawnSync(ATTW_BIN, ["--pack", ".", ...forwarded], {
   encoding: "utf8",
   stdio: ["inherit", "pipe", "pipe"],
 });

@@ -343,7 +343,14 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
   PLAUSIBLE, WRONG STORY, AND IT WAS ASSERTED AND REFUTED INSIDE THIS SLICE.** With the root entry
   intact and one subpath's declarations missing, bare `attw` reports `UntypedResolution` and
   **exits 1**, because `analysis.types` is truthy and `getExitCode()` runs past the early return. A
-  **partial** loss is attw's own catch. Do not restore the wider claim.
+  **partial** loss is attw's own catch. Do not restore the wider claim — **and note that the first
+  version of this slice forbade it in this paragraph while restoring it IN CODE twenty lines away.**
+  The preflight's counterfactual was keyed on `broken.some(isDeclaration)`, i.e. ANY missing
+  declaration, so a partial loss red-flagged correctly and then printed "attw would have … EXITED 0",
+  which is false — and false inside the very build window this gate exists for, because `tsup` writes
+  eight entry points' declarations in sequence. A refuter measured it. It has **three arms** now and
+  claims exit-0 only when **no declared declaration survives**. A gate that reds correctly and then
+  explains itself with a falsehood teaches the next reader the wrong story about the defect.
   `scripts/attw.mjs` carries **two nets, and they catch different things** — a preflight that every
   relative path `package.json` promises (`main`, `module`, `types`, `typings`, every string leaf of
   `exports`, across all eight subpaths) exists and is non-empty, which catches the window and _names
@@ -355,18 +362,28 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
   instead of letting the net go quietly slack. It also pins a **negative control** on a well-formed
   package, that a real `attw` failure still fails, and that `--profile node16` is still forwarded
   rather than swallowed.
-  **The post-check reads a string, so what would hide that string is refused**, not tolerated. Six
-  routes were measured here against the pinned binary **with `--profile node16` present**, each
-  making the sentence unreadable while attw still exited 0: `--quiet`, `-q`, `--format json`,
-  `--format=json`, and a `.attw.json` setting `quiet` or `format` (`readConfig()` applies it after
-  argv). `--config-path` is refused too, but **by inference, not measurement**. The refusal is **by
-  option name, wholesale, not by value** — a harmless `--format` value blinds nothing and is refused
-  anyway, the deliberate trade against value-parsing them.
+  **The post-check reads a string, so the argument guard is an ALLOW-LIST, NOT A DENY-LIST, AND THE
+  DENY-LIST IS THE SECOND THING A REFUTER BROKE IN THIS SLICE.** Six routes were measured here
+  against the pinned binary **with `--profile node16` present**, each making the sentence unreadable
+  while attw still exited 0: `--quiet`, `-q`, `--format json`, `-f json`, `--format=json`, and a
+  `.attw.json` setting `quiet` or `format` (`readConfig()` applies it after argv). The ported
+  deny-list refused a set of spellings via `arg.split("=")[0]` — **token equality, not option-name
+  matching** — and commander accepts a value fused to a short flag, so **`-fjson` is neither `-f` nor
+  `--format`**, walked through, and handed back exit 0 with the sentence gone. The empty-transcript
+  net backstops a `-q` cluster and **structurally cannot backstop `-f`**, because JSON output is not
+  empty. **Do not answer this with a seventh spelling** — that is the failure mode
+  `scripts/check-test-selection.ts` documents at length for a different guard here. The guard is
+  total instead: `--profile` and `--no-definitely-typed` are forwarded and everything else is
+  refused, including options that would blind nothing, since "harmless" is not a judgement this
+  script can make from an option name. `--config-path` falls out for free. Widening the set is a
+  deliberate one-line edit. **The `.attw.json` refusal stays separate** — it is not an argument, and
+  no argument guard of any shape can reach a config applied after argv.
   **The seven `file:vendor/*.tgz` devDeps are NOT part of this.** `files` is `dist` plus three doc
   files, so `npm pack` emits no `vendor/` and no `node_modules/`, and attw does not resolve bare
   external specifiers at all — measured on a fixture whose only declaration imports a package that
-  exists nowhere, which attw calls "No problems found". A stale vendored tarball can make this gate
-  neither red nor green.
+  exists nowhere, which attw calls "No problems found". A **stale** vendored tarball can make this
+  gate neither red nor green. A **missing** one is a different thing and this sentence does not cover
+  it: `pnpm install`/`build` fail first, and the gate then reds at the preflight or at `could not run`.
 - Coverage: per-directory >= 90% (lines/branches/functions/statements), enforced by
   `pnpm test:coverage`.
 
