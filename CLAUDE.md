@@ -21,9 +21,11 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
 
 - **Phases 1–9 shipped (SYNTH-1 … SYNTH-11) — the roadmap is complete.** Pre-alpha `0.0.x`, and
   **published to npm** (verify with `npm view @cosyte/synth version`; this line deliberately does not
-  name the number, which is stale by construction on the next release). The repo public-flip remains a
-  standing founder gate; `npm publish` is covered by the standing waiver. **Publish state and
-  visibility are independent, so never infer one from the other.** **SYNTH-11 (Phase 9, release hardening)** added no runtime API — it is the
+  name the number, which is stale by construction on the next release). The repo is **already public**
+  (`gh repo view cosyte/synth --json visibility`), so neither founder gate is still pending: flipping a
+  repo public remains a non-waived act as **policy**, but it is not an outstanding item of **state**
+  here, and `npm publish` is covered by the standing waiver. **Publish state and visibility are
+  independent, so never infer one from the other, in either direction.** **SYNTH-11 (Phase 9, release hardening)** added no runtime API — it is the
   release-readiness layer: a **consolidated conformance property suite**
   (`test/property/all-formats.property.test.ts`) driving every spec-clean format generator through the
   same three mandatory properties (round-trip · seed-determinism · synthetic-safety) with an
