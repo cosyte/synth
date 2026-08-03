@@ -241,21 +241,37 @@ if (broken.length > 0) {
   //
   //   So an EMPTY declaration among the casualties means this script cannot say
   //   what attw would have done, and it says that instead of guessing. Below that
-  //   guard, every remaining declaration casualty is MISSING, which is the only
-  //   state `getExitCode()`'s early return actually keys on. A gate that reds
-  //   correctly and then explains itself with a falsehood teaches the next reader
-  //   the wider, wrong story — and this file gets copied to sixteen more manifests.
+  //   guard, every remaining declaration casualty is MISSING.
+  //
+  //   ▶ AND "MISSING" IS A PROXY, NOT THE KEY. DO NOT WRITE IT DOWN AS THE KEY —
+  //     A THIRD REFUTER PASS CAUGHT THAT SENTENCE. `analysis.types` comes from
+  //     `containsTypes()` in `@arethetypeswrong/core`'s `createPackage.js`, which is
+  //     `listFiles(directory).some(ts.hasTSFileExtension)` — ANY declaration file in
+  //     the PACKED TARBALL, not the set `exports` declares. This package's `dist/`
+  //     carries undeclared chunk declarations (`example-codes-*.d.ts`,
+  //     `providers-*.d.ts`, `quirk-*.d.cts`) and `files` packs all of `dist`, so
+  //     with every DECLARED declaration missing and one chunk still packed, attw
+  //     finds types and exits 1 while the exit-0 arm below claims otherwise.
+  //     Measured; it predates this guard and is unchanged by it. KNOWN LIMIT, filed
+  //     rather than fixed here: closing it means the preflight reading the tarball,
+  //     which is a second moving part for a wrong EXPLANATION of a correct red. If
+  //     you take it up, weaken the sentence — do not add a fifth arm.
+  //
+  //   A gate that reds correctly and then explains itself with a falsehood teaches
+  //   the next reader the wider, wrong story — and this file gets copied to sixteen
+  //   more manifests, which is what makes a loose sentence here expensive.
   const declaredDeclarations = declared.filter((rel) => DECLARATION.test(rel));
   const brokenDeclarations = broken.filter(({ rel }) => DECLARATION.test(rel));
   const emptyDeclaration = brokenDeclarations.some(({ why }) => why === "empty");
   const everyDeclarationGone =
     declaredDeclarations.length > 0 && brokenDeclarations.length === declaredDeclarations.length;
   const counterfactual = emptyDeclaration
-    ? // A zero-byte declaration resolves, so it types the package. Which way attw
-      // lands then depends on the other entry points; no exit code is claimed.
+    ? // A zero-byte declaration still packs and still resolves, so it can type the
+      // package. Which way attw lands then depends on the other entry points and on
+      // what else the tarball carries, so no exit code is claimed here at all.
       `  What attw would have done here is deliberately not stated: a zero-byte\n` +
-      `  declaration file still RESOLVES, so it types the package while declaring\n` +
-      `  nothing, and the early return in getExitCode() is not taken.\n`
+      `  declaration file still RESOLVES, so it can type the package while declaring\n` +
+      `  nothing.\n`
     : everyDeclarationGone
       ? // Every declared declaration is missing, so attw finds no types at all.
         `  attw would have reported "${UNTYPED}" and EXITED 0 on this tree.\n`

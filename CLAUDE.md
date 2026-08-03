@@ -357,9 +357,20 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
   plus a subpath's missing → attw exit **1** with `UntypedResolution`; **all** declarations zero-byte
   → **"No problems found"** and exit 0. Neither is the untyped sentence. So an **empty** declaration
   casualty now makes **no exit-code claim at all**, and the exit-0 arm is reached only when every
-  declared declaration is **missing** — the one state `getExitCode()`'s early return keys on. A gate
-  that reds correctly and then explains itself with a falsehood teaches the next reader the wrong
-  story, and this script gets copied to sixteen more manifests.
+  declared declaration is **missing**.
+  **▶ AND "MISSING" IS A PROXY, NOT THE KEY — A THIRD REFUTER PASS CAUGHT THAT SENTENCE TOO. THIS IS
+  A KNOWN LIMIT, FILED RATHER THAN FIXED.** `analysis.types` comes from `containsTypes()` in
+  `@arethetypeswrong/core`'s `createPackage.js`: `listFiles(directory).some(ts.hasTSFileExtension)` —
+  **any** declaration file in the **packed tarball**, not the set `exports` declares. This package's
+  `dist/` carries undeclared chunk declarations (`example-codes-*.d.ts`, `providers-*.d.ts`,
+  `quirk-*.d.cts`) and `files` packs all of `dist`, so with every **declared** declaration missing and
+  one chunk still packed, attw finds types and exits 1 while the exit-0 arm claims otherwise. Measured;
+  it **predates this guard and is unchanged by it** (byte-identical output three commits back), which
+  is why it was not taken inside the slice. Closing it means the preflight reading the tarball — a
+  second moving part, for a wrong _explanation_ of a correct red. **If you take it up, weaken the
+  sentence; do not add a fifth arm.**
+  A gate that reds correctly and then explains itself with a falsehood teaches the next reader the
+  wrong story, and this script gets copied to sixteen more manifests.
   `scripts/attw.mjs` carries **two nets, and they catch different things** — a preflight that every
   relative path `package.json` promises (`main`, `module`, `types`, `typings`, every string leaf of
   `exports`, across all eight subpaths) exists and is non-empty, which catches the window and _names

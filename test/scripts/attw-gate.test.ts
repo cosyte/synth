@@ -21,6 +21,13 @@
  *     exits 1. The false green needs EVERY entry point untyped at once. That
  *     distinction is asserted rather than described, because the first draft of
  *     this file asserted the opposite and was red inside a minute.
+ *
+ *     THE PREFLIGHT'S COUNTERFACTUAL ARMS ARE PINNED ONE PER TEST, alongside that
+ *     one: every declaration MISSING claims exit 0; some surviving claims exit 1;
+ *     a declaration present but ZERO-BYTE claims no exit code at all, because such
+ *     a file still resolves and can type the package while declaring nothing. Each
+ *     asserts what the message must NOT say as well as what it must — that is the
+ *     half whose absence let two wrong conditions ship.
  *  5. A NEGATIVE CONTROL. On a package whose tarball really does carry types, the
  *     wrapper is transparent: same exit status as `attw` itself, and green. A gate
  *     that only ever fails is not a gate, and a false red here would cost every
@@ -47,10 +54,19 @@
  *     in that table because the DENY-list this was ported with let it through:
  *     `arg.split("=")[0]` is token equality, not option-name matching.
  *
- * TWO OF THESE CASES EXIST BECAUSE A REFUTER BROKE THE FIRST VERSION OF THIS FILE,
- * and both were assertions it did not make rather than assertions it got wrong:
- * the exit-0 counterfactual was keyed on ANY missing declaration (item 4), and the
- * argument guard was a deny-list (item 9). Neither is a case to trim.
+ * THREE OF THESE CASES EXIST BECAUSE A REFUTER BROKE AN EARLIER VERSION OF THIS
+ * FILE, and each was an assertion it did not make rather than one it got wrong:
+ * the exit-0 counterfactual was keyed on ANY missing declaration, then re-keyed on
+ * every declared declaration being BROKEN, which counts a zero-byte one as gone
+ * (both item 4); and the argument guard was a deny-list (item 9). None is a case
+ * to trim.
+ *
+ * ONE KNOWN GAP IS NOT PINNED HERE, DELIBERATELY. `analysis.types` keys on any
+ * declaration file in the packed TARBALL, not on the declared set, so item 4's
+ * exit-0 arm is still falsifiable by an undeclared chunk declaration that `files`
+ * packs. It predates all of this and is filed as a backlog line; see the
+ * KNOWN LIMIT block in `scripts/attw.mjs`. A test here would pin behaviour the
+ * slice did not change.
  *
  * The fixtures are minimal throwaway packages in a temp dir — nothing about this
  * repo's own build, so the test does not need one and cannot race one. `attw` is
