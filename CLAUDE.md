@@ -146,7 +146,9 @@ a summary.
 - **Language:** TypeScript (strict, full rigor set incl. `noUncheckedIndexedAccess`) via
   `@cosyte/tsconfig`. **Target ES2023**, `NodeNext`. TypeScript 5.9.x, exact-pinned.
 - **Build:** dual ESM + CJS + `.d.ts` via `tsup` (`@cosyte/tsup-config`); `attw` is a publish gate
-  (per-condition types: `.d.ts` for `import`, `.d.cts` for `require`).
+  (per-condition types: `.d.ts` for `import`, `.d.cts` for `require`). The `attw` script is
+  **`node scripts/attw.mjs --profile node16`, not the bare CLI** — see the guardrail below; the CLI
+  reports a wholly-untyped pack as "does not contain types" and **exits 0**.
 - **Node:** **>= 22** (CI matrix 22 + 24).
 - **Package manager:** `pnpm@10`.
 - **Lint/format:** **ESLint 10** + unified `typescript-eslint` (type-checked) via
@@ -321,6 +323,87 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
   shared code, and this package had inherited the sentence and used it as a reason not to bound
   anything. A new safety sentence here is worth nothing without a slot in that table behind it.
 
+- **▶ `attw` SAYS "does not contain types" AND EXITS 0, SO THE `attw` SCRIPT IS A WRAPPER, NOT THE
+  BARE CLI.** `getExitCode.js` in `@arethetypeswrong/cli@0.18.4` opens with
+  `if (!analysis.types) return 0` — an untyped package is a legitimate npm package, so "no types at
+  all" is a description, not a problem, and the problem list is never consulted. No `--profile`,
+  `--ignore-rules` or config setting reaches that early return. For a package that ships types it
+  means the declarations were **not in the tarball**, which is a broken publish reported as a pass.
+  Measured on this package with its own arguments, on a quiet box with **zero concurrency**: both
+  `rm -rf dist && pnpm attw` and `find dist -name '*.d.*ts' -delete && pnpm attw` printed the
+  sentence and exited 0 under the old `attw --pack . --profile node16`.
+  **The race only supplies the condition.** `tsup` emits JS in one pass and declarations in a later
+  one, so every build here has a window where `dist/` holds `.mjs`/`.cjs` and no `.d.ts` — measured
+  at **6.4 s, 8.6 s and 7.4 s on three consecutive clean builds**, against a whole build of roughly
+  11 s. It is wide because this package emits declarations for eight entry points. A concurrent
+  build or `clean` in the same working tree lands `attw` in it. So the answer is **not** a lock, a
+  lease or a build queue: the gate must be able to say its own inputs were missing, whatever removed
+  them.
+  **▶ AND THE FALSE GREEN NEEDS EVERY ENTRY POINT UNTYPED AT ONCE — "attw misses subpaths" IS THE
+  PLAUSIBLE, WRONG STORY, AND IT WAS ASSERTED AND REFUTED INSIDE THIS SLICE.** With the root entry
+  intact and one subpath's declarations missing, bare `attw` reports `UntypedResolution` and
+  **exits 1**, because `analysis.types` is truthy and `getExitCode()` runs past the early return. A
+  **partial** loss is attw's own catch. Do not restore the wider claim — **and note that the first
+  version of this slice forbade it in this paragraph while restoring it IN CODE twenty lines away.**
+  The preflight's counterfactual was keyed on `broken.some(isDeclaration)`, i.e. ANY missing
+  declaration, so a partial loss red-flagged correctly and then printed "attw would have … EXITED 0",
+  which is false — and false inside the very build window this gate exists for, because `tsup` writes
+  eight entry points' declarations in sequence. A refuter measured it.
+  **THE FIRST CORRECTION WAS ALSO WRONG, IN THE SAME DIRECTION, AND THE SECOND REFUTER PASS CAUGHT
+  IT. DO NOT RE-DERIVE THIS CONDITION FROM THE SHAPE OF THE CODE.** It was re-keyed on "every declared
+  declaration is in `broken`" — still false, because the preflight counts **empty** as broken and **a
+  zero-byte `.d.ts` STILL RESOLVES**. It types the package while declaring nothing, so
+  `analysis.types` is truthy and the early return is not taken. Measured: root declarations zero-byte
+  plus a subpath's missing → attw exit **1** with `UntypedResolution`; **all** declarations zero-byte
+  → **"No problems found"** and exit 0. Neither is the untyped sentence. So an **empty** declaration
+  casualty now makes **no exit-code claim at all**, and the exit-0 arm is reached only when every
+  declared declaration is **missing**.
+  **▶ AND "MISSING" IS A PROXY, NOT THE KEY — A THIRD REFUTER PASS CAUGHT THAT SENTENCE TOO. THIS IS
+  A KNOWN LIMIT, FILED RATHER THAN FIXED.** `analysis.types` comes from `containsTypes()` in
+  `@arethetypeswrong/core`'s `createPackage.js`: `listFiles(directory).some(ts.hasTSFileExtension)` —
+  **any** declaration file in the **packed tarball**, not the set `exports` declares. This package's
+  `dist/` carries undeclared chunk declarations (`example-codes-*.d.ts`, `providers-*.d.ts`,
+  `quirk-*.d.cts`) and `files` packs all of `dist`, so with every **declared** declaration missing and
+  one chunk still packed, attw finds types and exits 1 while the exit-0 arm claims otherwise. Measured;
+  it **predates this guard and is unchanged by it** (byte-identical output three commits back), which
+  is why it was not taken inside the slice. Closing it means the preflight reading the tarball — a
+  second moving part, for a wrong _explanation_ of a correct red. **If you take it up, weaken the
+  sentence; do not add a fifth arm.**
+  A gate that reds correctly and then explains itself with a falsehood teaches the next reader the
+  wrong story, and this script gets copied to sixteen more manifests.
+  `scripts/attw.mjs` carries **two nets, and they catch different things** — a preflight that every
+  relative path `package.json` promises (`main`, `module`, `types`, `typings`, every string leaf of
+  `exports`, across all eight subpaths) exists and is non-empty, which catches the window and _names
+  the missing file_ where attw's message names none; and a post-check on attw's untyped sentence,
+  which catches what the preflight structurally cannot — declarations present on disk but excluded
+  from the tarball by `files`/`.npmignore`. **No instance of that second case is on record here.**
+  `test/scripts/attw-gate.test.ts` pins both nets against the real binary, including the upstream
+  exit-0 itself, so an `attw` upgrade that reworks the wording or fixes the exit code reds the suite
+  instead of letting the net go quietly slack. It also pins a **negative control** on a well-formed
+  package, that a real `attw` failure still fails, and that `--profile node16` is still forwarded
+  rather than swallowed.
+  **The post-check reads a string, so the argument guard is an ALLOW-LIST, NOT A DENY-LIST, AND THE
+  DENY-LIST IS THE SECOND THING A REFUTER BROKE IN THIS SLICE.** Six routes were measured here
+  against the pinned binary **with `--profile node16` present**, each making the sentence unreadable
+  while attw still exited 0: `--quiet`, `-q`, `--format json`, `-f json`, `--format=json`, and a
+  `.attw.json` setting `quiet` or `format` (`readConfig()` applies it after argv). The ported
+  deny-list refused a set of spellings via `arg.split("=")[0]` — **token equality, not option-name
+  matching** — and commander accepts a value fused to a short flag, so **`-fjson` is neither `-f` nor
+  `--format`**, walked through, and handed back exit 0 with the sentence gone. The empty-transcript
+  net backstops a `-q` cluster and **structurally cannot backstop `-f`**, because JSON output is not
+  empty. **Do not answer this with a seventh spelling** — that is the failure mode
+  `scripts/check-test-selection.ts` documents at length for a different guard here. The guard is
+  total instead: `--profile` and `--no-definitely-typed` are forwarded and everything else is
+  refused, including options that would blind nothing, since "harmless" is not a judgement this
+  script can make from an option name. `--config-path` falls out for free. Widening the set is a
+  deliberate one-line edit. **The `.attw.json` refusal stays separate** — it is not an argument, and
+  no argument guard of any shape can reach a config applied after argv.
+  **The seven `file:vendor/*.tgz` devDeps are NOT part of this.** `files` is `dist` plus three doc
+  files, so `npm pack` emits no `vendor/` and no `node_modules/`, and attw does not resolve bare
+  external specifiers at all — measured on a fixture whose only declaration imports a package that
+  exists nowhere, which attw calls "No problems found". A **stale** vendored tarball can make this
+  gate neither red nor green. A **missing** one is a different thing and this sentence does not cover
+  it: `pnpm install`/`build` fail first, and the gate then reds at the preflight or at `could not run`.
 - Coverage: per-directory >= 90% (lines/branches/functions/statements), enforced by
   `pnpm test:coverage`.
 
