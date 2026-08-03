@@ -1086,6 +1086,211 @@ describe("phi-scan --staged: the enumerator excludes status letters rather than 
 });
 
 // ---------------------------------------------------------------------------
+// NON-REGULAR ENTRIES — a symlink under a scan root read CLEAN on BOTH routes.
+//
+// The rule and its evidence live in ONE place, `scripts/phi-scan.ts` under
+// "NON-REGULAR ENTRIES"; this block does not restate the argument, it executes it.
+//
+// Every case here uses a throwaway git root. A link seeded into THIS checkout would
+// (correctly) refuse the real `pnpm phi-scan`, and a parallel worker sweeping the
+// same tree would see it.
+// ---------------------------------------------------------------------------
+
+/**
+ * The link TARGET is a path built out of the same name tokens the rest of this suite
+ * assembles, and it lives outside the scan roots. That makes two assertions possible
+ * at once: the scan must refuse over the link, and the refusal must never echo the
+ * target — a target path of this shape is itself PHI.
+ */
+const SECRET_REL = `secret/${FAMILY}-${GIVEN}.xml`;
+
+/** Seed the out-of-roots PHI document and return its ABSOLUTE path, for linking at. */
+function seedSecret(root: string): string {
+  put(root, SECRET_REL, VIOLATOR);
+  return join(root, SECRET_REL);
+}
+
+/** Create a symlink at repo-relative `rel` under `root`, creating parent directories. */
+function linkAt(root: string, rel: string, target: string): void {
+  const abs = join(root, rel);
+  mkdirSync(dirname(abs), { recursive: true });
+  symlinkSync(target, abs);
+}
+
+/** Whether the whole run — stdout and stderr — is free of the target's name tokens. */
+function mentionsTarget(r: RunResult): boolean {
+  const all = `${r.stdout}${r.stderr}`;
+  return all.includes(FAMILY) || all.includes(GIVEN) || all.includes("secret/");
+}
+
+describe("phi-scan: a non-regular in-scope entry refuses the scan, on both routes", () => {
+  it("all-mode REFUSES a symlink under a scan root, and never names its target", () => {
+    const { linked, control } = withGitRoot((root) => {
+      const secret = seedSecret(root);
+      linkAt(root, "src/link.xml", secret);
+      const linked = runScannerIn(root, []);
+      // NOT VACUOUS BY FIXTURE: the same bytes as a regular file are a real hit, so
+      // the clean-over-the-link reading was about the LINK and not about the payload.
+      rmSync(join(root, "src", "link.xml"));
+      copyFileSync(secret, join(root, "src", "regular.xml"));
+      return { linked, control: runScannerIn(root, []) };
+    });
+    expect(linked.code, `stdout: ${linked.stdout}`).toBe(2);
+    expect(linked.stderr).toContain("src/link.xml (a symbolic link)");
+    expect(linked.stderr).toMatch(/refusing the scan: 1 entry is not a regular file/);
+    expect(mentionsTarget(linked)).toBe(false);
+
+    expect(control.code, `stderr: ${control.stderr}`).toBe(1);
+    expect(control.stderr).toContain("src/regular.xml");
+  });
+
+  it("all-mode REFUSES a linked DIRECTORY — it takes a whole subtree with it", () => {
+    const r = withGitRoot((root) => {
+      seedSecret(root);
+      linkAt(root, "src/linkdir", join(root, "secret"));
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).toContain("src/linkdir (a symbolic link)");
+    expect(mentionsTarget(r)).toBe(false);
+  });
+
+  it("names EVERY offender, not just the first", () => {
+    const r = withGitRoot((root) => {
+      const secret = seedSecret(root);
+      linkAt(root, "src/a.xml", secret);
+      linkAt(root, "test/b", join(root, "secret"));
+      linkAt(root, "scripts/c.xml", secret);
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).toMatch(/refusing the scan: 3 entries are not regular files/);
+    for (const p of ["src/a.xml", "test/b", "scripts/c.xml"]) expect(r.stderr).toContain(p);
+  });
+
+  it("keeps ONE boundary: a git-ignored link is out of scope, exactly like an ignored file", () => {
+    const r = withGitRoot((root) => {
+      const secret = seedSecret(root);
+      linkAt(root, "src/link.xml", secret);
+      put(root, ".gitignore", "src/link.xml\n");
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(scannedCount(r)).toBeGreaterThan(0);
+  });
+
+  it("does NOT extend the `.md` exemption to a link — a name is no evidence", () => {
+    // A markdown FILE is out of scope because documentation quotes violator values.
+    // A link merely NAMED `.md` says nothing about what is on the other side.
+    const r = withGitRoot((root) => {
+      const secret = seedSecret(root);
+      linkAt(root, "src/notes.md", secret);
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).toContain("src/notes.md (a symbolic link)");
+  });
+
+  it("refuses a FIFO with its own kind token — the rule is not keyed on symlinks", () => {
+    // A FIFO is the case that would BLOCK the gate forever if anything followed it.
+    const r = withGitRoot((root) => {
+      mkdirSync(join(root, "src"), { recursive: true });
+      const made = spawnSync("mkfifo", [join(root, "src", "pipe.xml")], { shell: false });
+      if (made.status !== 0) return null;
+      return runScannerIn(root, []);
+    });
+    if (r === null) return; // no mkfifo on this box; the symlink cases carry the rule.
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).toContain("src/pipe.xml (a FIFO)");
+  });
+
+  it("--staged REFUSES a staged symlink, whose blob is the target PATH and not content", () => {
+    const { scanned, blob } = withGitRoot((root) => {
+      const secret = seedSecret(root);
+      linkAt(root, "src/link.xml", secret);
+      git(root, ["add", "--", "src/link.xml"]);
+      return {
+        scanned: runScannerIn(root, ["--staged"]),
+        // The measurement behind the rule: git stores the TARGET STRING under mode
+        // 120000, so `git show :<path>` never hands back the target's bytes.
+        blob: spawnSync("git", ["show", ":src/link.xml"], { cwd: root, encoding: "utf8" }).stdout,
+      };
+    });
+    expect(scanned.code, `stdout: ${scanned.stdout}`).toBe(2);
+    expect(scanned.stderr).toContain("src/link.xml (a symbolic link)");
+    expect(mentionsTarget(scanned)).toBe(false);
+    expect(blob).toContain(SECRET_REL);
+    expect(blob).not.toContain("<ClinicalDocument");
+  });
+
+  it("--staged REFUSES the REVERSE typechange: a tracked regular file replaced by a link", () => {
+    // THE FLAG THIS SLICE CHANGED IS `--name-only` -> `--raw`, NOT the status filter.
+    // `--diff-filter=d` is an exclusion, so `T` was ALREADY enumerated here — what was
+    // missing was the MODE, which `--name-only` does not carry. Both halves measured.
+    const { scanned, nameOnly } = withGitRoot((root) => {
+      const secret = seedSecret(root);
+      put(root, "src/doc.xml", CLEAN_DOC);
+      git(root, ["add", "--", "src/doc.xml"]);
+      git(root, ["commit", "-q", "-m", "regular fixture"]);
+      rmSync(join(root, "src", "doc.xml"));
+      symlinkSync(secret, join(root, "src", "doc.xml"));
+      git(root, ["add", "--", "src/doc.xml"]);
+      return {
+        scanned: runScannerIn(root, ["--staged"]),
+        nameOnly: stagedUnder(root, ["--no-renames", "--diff-filter=d"]),
+      };
+    });
+    expect(scanned.code, `stdout: ${scanned.stdout}`).toBe(2);
+    expect(scanned.stderr).toContain("src/doc.xml (a symbolic link)");
+    // The record was never missing: the superseded flags listed the path, with no mode.
+    expect(nameOnly).toContain("src/doc.xml");
+  });
+
+  it("--staged REFUSES a staged gitlink, naming its own engine-owned token", () => {
+    const r = withGitRoot((root) => {
+      const sha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" });
+      const head = (sha.stdout ?? "").trim();
+      const added = spawnSync(
+        "git",
+        ["update-index", "--add", "--cacheinfo", `160000,${head},src/nested`],
+        { cwd: root, encoding: "utf8", shell: false },
+      );
+      if (added.status !== 0) return null;
+      return runScannerIn(root, ["--staged"]);
+    });
+    if (r === null) return;
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).toContain("src/nested (a gitlink (a nested repository))");
+  });
+
+  it("--staged still scans an EXECUTABLE regular blob — mode 100755 is a file", () => {
+    // The mode check is an allow-list of the two regular blob modes, so the
+    // executable one has to be in it or every `chmod +x` fixture would refuse.
+    const r = withGitRoot((root) => {
+      put(root, "src/gen.xml", VIOLATOR);
+      spawnSync("chmod", ["+x", join(root, "src", "gen.xml")], { shell: false });
+      git(root, ["add", "--", "src/gen.xml"]);
+      return runScannerIn(root, ["--staged"]);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(1);
+    expect(r.stderr).toContain("src/gen.xml");
+  });
+
+  it("is THIS package's scanner, and refuses over a sibling's name appearing anywhere", () => {
+    // Negative control against a cross-repo mix-up: the binary under test is resolved
+    // from this checkout, and nothing it prints names another `@cosyte` package.
+    const r = withGitRoot((root) => {
+      linkAt(root, "src/link.txt", join(root, "scripts", "phi-allow-list.txt"));
+      return runScannerIn(root, []);
+    });
+    expect(SCANNER_PATH.startsWith(REPO_ROOT)).toBe(true);
+    expect(readFileSync(SCANNER_PATH, "utf8")).toContain("`@cosyte/synth` PHI scanner");
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(`${r.stdout}${r.stderr}`).not.toMatch(/@cosyte\/(ncpdp|terminology|ccda|hl7)/);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // The two modes DISAGREE about a git-ignored file, and neither direction was
 // exercised. The scanner header has disclosed the disagreement since the roots
 // widening; a disclosed behaviour with no test is one refactor away from becoming
