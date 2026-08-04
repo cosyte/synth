@@ -37,10 +37,14 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
 - **Never quote a version here** — `npm view @cosyte/synth version` is the only source of truth; a
   number written into this file is stale on the next release.
 - **ON THE REGISTRY BUT IT FAILS TO INSTALL.** `@cosyte/synth` is published and a consumer install
-  still fails, because its `@cosyte/fhir` peer is **unpublished** — `FHIR-NPM-NAME`, a persistent
-  unexplained npm **E403**, **not missing work** (`fhir` is built and staged on `main`). **The
-  "name-similarity" reading is RETRACTED**: it implies a rename, and the error never asked for one.
-  **Do not rename anything** to chase it, and never write this up as resolved.
+  still fails: **`npm error code ERESOLVE` on `peerOptional @cosyte/fhir`** — measured against the
+  live registry, and it fails **despite the peer being declared optional**, so do not reason from
+  `peerDependenciesMeta` that it cannot. The peer is unpublished because `@cosyte/fhir` itself hits
+  `FHIR-NPM-NAME`, a persistent unexplained npm **E403 on publish** — **not missing work** (`fhir` is
+  built and staged on `main`). **Two different codes: `ERESOLVE` is ours, `E403` is `fhir`'s; a
+  sibling's note generalising `E404` is not this.** **The "name-similarity" reading is RETRACTED**:
+  it implies a rename, and the error never asked for one. **Do not rename anything** to chase it, and
+  never write this up as resolved.
 - The repo is **already public**, so flipping a repo public — still a non-waived act as **policy** —
   is not an outstanding item of **state** here; `npm publish` is covered by the standing waiver.
   **Publish state and visibility are independent: never infer one from the other, in either
@@ -64,6 +68,11 @@ traps a fixture generator gets wrong exactly once.
   synthetic identifier so it validates. Per-format scanner arms (X12 NM1/PER/REF; NCPDP SCRIPT
   `<NPI>`/`<DEANumber>` + Telecom CA/CB/CC/CD/CQ/CY/C2/DB; ASTM P-record fields 3/4/6):
   `notes#x12-005010-synth-6`, `notes#ncpdp-synth-7`, `notes#astm-synth-8`.
+- **Never hand-write framing, checksums or envelopes — they are the parser's own, never faked.** The
+  ASTM E1381 modulo-256 checksum and `0`–`7` frame numbers come from `composeAstmFrames`, the X12
+  ISA/GS/ST…SE/GE/IEA envelope and HL spine from `@cosyte/x12`'s domain builders, and NCPDP goes
+  through the public typed model + serializer, **never hand-written bytes**. `notes#astm-synth-8`,
+  `notes#x12-005010-synth-6`, `notes#ncpdp-synth-7`.
 - **Never let a builder default supply a wall-clock value.** `buildCcda`'s default
   `effectiveTime: new Date()` is **always overridden** with a synthetic date or the reproducibility
   contract silently breaks. `notes#c-cda-r21-synth-5`.
@@ -80,8 +89,9 @@ traps a fixture generator gets wrong exactly once.
 - **The `deid` pairing loop is CO-VALIDATION, not an independent audit of `@cosyte/deid`.** A
   surviving sentinel is a hard failure; the over-scrub guard is equally load-bearing. **Never widen
   the sweep past the former PHI loci** — provider/organization identity a de-identifier legitimately
-  retains comes from the same synthetic pools and would read as a false survivor.
-  `notes#the-cosytedeid-pairing-loop-synth-10-phase-8`.
+  retains comes from the same synthetic pools and would read as a false survivor. It **consumes the
+  shipped generators unchanged**, and `deidLoopPolicy` needs **no key context** — deliberately, so the
+  loop stays a pure function of the seed. `notes#the-cosytedeid-pairing-loop-synth-10-phase-8`.
 - **Never commit realistic PHI.** A vendor quirk is encoded only when a real de-identified document
   grounds it — never invented.
 
