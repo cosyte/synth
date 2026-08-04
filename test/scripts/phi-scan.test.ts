@@ -322,18 +322,46 @@ function stagedUnder(cwd: string, flags: readonly string[]): string[] {
 }
 
 /**
- * Create a directory the scanner accepts as a repo root: a copy of the committed
- * allow-list (so detection behaves identically to the real thing) plus an override
- * log carrying `entries` under `## Entries`.
+ * The in-scope files every throwaway root starts with — ONE UNDER EACH SCAN ROOT,
+ * which is what makes the root well-formed under the PER-ROOT observation rule.
  *
- * Note that the allow-list necessarily lands at `scripts/phi-allow-list.txt`, which
- * is itself inside a scan root — so a well-formed root always enumerates at least
- * one file.
+ * The allow-list has to be here anyway (the scanner refuses without it) and it lands
+ * at `scripts/phi-allow-list.txt`, inside a scan root. The other two are inert
+ * placeholders carrying no PHI shape whatsoever, and they exist for exactly one
+ * reason: an all-mode sweep now refuses when ANY declared root yields nothing, so a
+ * root holding only the allow-list would refuse every all-mode test in this file with
+ * `src` and `test` starved. That is the rule working, not a fixture worked around.
+ *
+ * SEEDING THEM IS NOT A LOOSENING, and the difference is worth stating because it is
+ * the shape a reviewer should check. These files make the throwaway root RESEMBLE the
+ * repo (all three roots populated); they do not silence anything. Every test below
+ * that asserts a hit still asserts the same hit, and the two tests that need a corpus
+ * they can empty subtract all three paths explicitly.
+ */
+const SEEDED_ROOT_FILES: readonly string[] = [
+  "scripts/phi-allow-list.txt",
+  "src/zz-root-seed.ts",
+  "test/zz-root-seed.ts",
+];
+
+/**
+ * Create a directory the scanner accepts as a repo root: a copy of the committed
+ * allow-list (so detection behaves identically to the real thing), an inert file
+ * under each remaining scan root (see {@link SEEDED_ROOT_FILES}), plus an override
+ * log carrying `entries` under `## Entries`.
  */
 function makeRoot(entries: readonly string[] = []): string {
   const root = mkdtempSync(join(tmpdir(), "phi-scan-root-"));
   mkdirSync(join(root, "scripts"), { recursive: true });
   copyFileSync(ALLOW_LIST_PATH, join(root, "scripts", "phi-allow-list.txt"));
+  // Driven off the constant, never a second inline copy of the same two paths: the tests
+  // that subtract the whole corpus read that constant, so a drift between the two lists
+  // would leave them subtracting a file the root does not have.
+  for (const rel of SEEDED_ROOT_FILES.filter((p) => p !== "scripts/phi-allow-list.txt")) {
+    const abs = join(root, rel);
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, "// inert: gives this throwaway root a file under every scan root\n");
+  }
   writeFileSync(
     join(root, "phi-scan-overrides.md"),
     `# throwaway log\n\n## Entries\n\n${entries.map((p) => `### ${p}\n`).join("\n")}`,
@@ -959,10 +987,18 @@ describe("phi-scan: a scan that observes nothing must not report OK", () => {
   });
 
   it("refuses when every enumerated file is excluded by --allow-fixture (exit 2)", () => {
-    // A throwaway root whose only in-scope file is the allow-list itself, then
-    // overridden away: the target set empties and the gate must refuse, not report OK.
-    const rel = "scripts/phi-allow-list.txt";
-    const r = withRoot([rel], (root) => runScannerIn(root, ["--allow-fixture", rel]));
+    // A throwaway root's whole in-scope corpus, overridden away one path at a time:
+    // the target set empties and the gate must refuse, not report OK. This must
+    // subtract EVERY seeded path — an override log naming only the allow-list now
+    // leaves two survivors and the run passes, which is the per-root rule's fixture
+    // cost and not a weaker assertion.
+    const rels = [...SEEDED_ROOT_FILES];
+    const r = withRoot(rels, (root) =>
+      runScannerIn(
+        root,
+        rels.flatMap((rel) => ["--allow-fixture", rel]),
+      ),
+    );
     expect(r.code, `stdout: ${r.stdout}`).toBe(2);
     expect(r.stderr).toMatch(/would observe nothing/);
   });
@@ -977,6 +1013,187 @@ describe("phi-scan: a scan that observes nothing must not report OK", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The observation rule is PER-ROOT, not global (PHI-SCAN-OBSERVED-NOTHING-IS-GLOBAL)
+//
+// The rule above refused a sweep that observed NOTHING, which any one surviving file
+// satisfied while two of the three roots went unread. WHAT THAT COST, WHY NOTHING ELSE
+// IN THE SCANNER NOTICED, AND WHAT THE PER-ROOT RULE STILL DOES NOT REACH ARE STATED
+// WHERE THE RULE IS, at the end of `main()` in `scripts/phi-scan.ts` and in that file's
+// limits list. They are not repeated here: this slice's own finding was a measurement
+// copied into five places and bounded correctly in only some of them.
+//
+// WHAT THIS BLOCK ADDS is the executable half. Each case below drives one starved shape
+// through the real CLI, and EVERY ONE IS PAIRED WITH THE SAME ROOT INTACT: a refusal
+// test that never shows its control passing is a test that a fixture is broken, not
+// that a rule fires.
+// ---------------------------------------------------------------------------
+
+/** The seeded in-scope file a throwaway root holds under `scanRoot`. */
+function seedUnder(scanRoot: string): string {
+  const seed = SEEDED_ROOT_FILES.find((rel) => rel.startsWith(`${scanRoot}/`));
+  if (seed === undefined) throw new Error(`no seeded file under ${scanRoot}`);
+  return seed;
+}
+
+/** Repo-relative in-scope files git tracks under `scanRoot` in THIS checkout. */
+function trackedInScopeUnder(scanRoot: string): string[] {
+  const r = spawnSync("git", ["ls-files", "-z", "--", scanRoot], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    shell: false,
+  });
+  return (r.stdout ?? "")
+    .split("\0")
+    .filter((p) => p.length > 0 && !p.toLowerCase().endsWith(".md"));
+}
+
+describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
+  // `src` and `test` only. `scripts/` cannot be starved by removing a file while the
+  // allow-list lives there, because the scanner refuses earlier with `allow-list not
+  // found` — a different rule. THAT IS THE POINT OF THE WHOLE ITEM: "all-mode always
+  // reaches at least the allow-list" was an argument about `scripts/` that was doing
+  // duty as an argument about all three roots. `scripts/` gets its own case below,
+  // starved by the one route that does reach it.
+  for (const scanRoot of ["src", "test"]) {
+    it(`REFUSES when \`${scanRoot}/\` is EMPTIED while the other roots still yield files`, () => {
+      const { starved, control } = withRoot([], (root) => {
+        const control = runScannerIn(root, []);
+        rmSync(join(root, scanRoot), { recursive: true, force: true });
+        return { starved: runScannerIn(root, []), control };
+      });
+      // The control proves the same fixture scans clean with every root populated, so
+      // the refusal below is about the starved root and nothing else.
+      expect(control.code, `stderr: ${control.stderr}`).toBe(0);
+      expect(scannedCount(control)).toBe(SEEDED_ROOT_FILES.length);
+
+      expect(starved.code, `stdout: ${starved.stdout}`).toBe(2);
+      expect(starved.stderr).toMatch(
+        new RegExp(`observed no files under 1 of its 3 scan roots \\(${scanRoot}\\)`),
+      );
+      expect(starved.stdout).not.toContain("OK");
+    });
+  }
+
+  it("REFUSES a scan root that is a DANGLING SYMLINK, which no other rule sees", () => {
+    // The sharpest case, and the one the global rule was blindest to: the root is not
+    // missing, it is a link the walk silently gives up on. `existsSync` follows it and
+    // answers false, so `walk` returns before `readdirSync` — and the non-regular check
+    // never runs either, because it only ever classifies entries found INSIDE a root.
+    const { linked, control } = withRoot([], (root) => {
+      const control = runScannerIn(root, []);
+      rmSync(join(root, "test"), { recursive: true, force: true });
+      symlinkSync(join(root, "no-such-target"), join(root, "test"));
+      // Not vacuous: the link really is dangling, so nothing is on the other side to
+      // scan and the refusal cannot be an artifact of a resolvable target.
+      expect(existsSync(join(root, "test"))).toBe(false);
+      return { linked: runScannerIn(root, []), control };
+    });
+    expect(control.code, `stderr: ${control.stderr}`).toBe(0);
+    expect(linked.code, `stdout: ${linked.stdout}`).toBe(2);
+    expect(linked.stderr).toMatch(/observed no files under 1 of its 3 scan roots \(test\)/);
+  });
+
+  it("REFUSES a root that EXISTS, is readable, and holds only out-of-scope files", () => {
+    // A root need not be missing to go unobserved. `.md` is exempt everywhere, so a
+    // `test/` holding nothing but markdown enumerates zero files and the sweep learns
+    // nothing about it — the same unobserved corpus, with the tree shape untouched.
+    const r = withRoot([], (root) => {
+      rmSync(join(root, seedUnder("test")), { force: true });
+      put(root, "test/notes.md", "# nothing in scope here\n");
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).toMatch(/observed no files under 1 of its 3 scan roots \(test\)/);
+  });
+
+  it("REFUSES when --allow-fixture subtracts the last file under ONE root", () => {
+    // The route that DOES starve `scripts/`, and the one the emptied-target-set rule
+    // structurally cannot see: two roots still survive, so `enforceObservation` passes
+    // and the old global check counted 2 observed files and reported OK over a
+    // `scripts/` the sweep had been argued into never reading.
+    const rel = "scripts/phi-allow-list.txt";
+    const { starved, control } = withRoot([rel], (root) => ({
+      control: runScannerIn(root, []),
+      starved: runScannerIn(root, ["--allow-fixture", rel]),
+    }));
+    expect(control.code, `stderr: ${control.stderr}`).toBe(0);
+    expect(starved.code, `stdout: ${starved.stdout}`).toBe(2);
+    expect(starved.stderr).toMatch(/observed no files under 1 of its 3 scan roots \(scripts\)/);
+  });
+
+  it("prints hits found under the yielding roots BEFORE refusing over the starved one", () => {
+    // A refusal must not swallow a real finding. The sweep still reports what it read;
+    // the exit code is 2 rather than 1 because an incomplete sweep is not a verdict,
+    // whatever it turned up on the way.
+    const r = withRoot([], (root) => {
+      rmSync(join(root, "test"), { recursive: true, force: true });
+      put(root, "src/leak.xml", VIOLATOR);
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).toContain("src/leak.xml");
+    expect(r.stderr).toMatch(/observed no files under 1 of its 3 scan roots \(test\)/);
+  });
+
+  it("does NOT apply to --staged, which enumerates the index and promises no root", () => {
+    // `--staged` reads what a commit will carry. A commit that touches no file under
+    // `test/` is the normal case, and refusing it would make the pre-commit gate
+    // unusable — so the per-root rule is all-mode only, and this pins that.
+    const r = withGitRoot((root) => {
+      put(root, "src/added.xml", CLEAN_DOC);
+      git(root, ["add", "--", "src/added.xml"]);
+      return runScannerIn(root, ["--staged"]);
+    });
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stderr).not.toMatch(/scan roots/);
+  });
+
+  it("does NOT apply to a named path, whose denominator is honest and small", () => {
+    const r = withRoot([], (root) => runScannerIn(root, [join(root, seedUnder("src"))]));
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(scannedCount(r)).toBe(1);
+  });
+
+  it("CHARACTERIZES the granularity limit: an absent SUB-TREE of a root still exits 0", () => {
+    // A KNOWN LIMIT MADE EXECUTABLE, not an endorsement. The rule's granularity is the
+    // declared root, so a directory removed from INSIDE a root goes unobserved under a
+    // plausible denominator — the same shape as the defect this block closes, one level
+    // down. It is recorded in the scanner's limits list with its reading.
+    //
+    // IF THIS REDS, the gate was narrowed and that is a reviewer moment, not a failure:
+    // update this test visibly and move the limits-list entry, exactly as the extension
+    // gate's characterization test was rewritten when its gap was closed. Never quietly
+    // delete it to get green.
+    const { narrowed, control } = withRoot([], (root) => {
+      put(root, "test/deep/one.ts", "// in scope, under a sub-tree\n");
+      const control = runScannerIn(root, []);
+      rmSync(join(root, "test/deep"), { recursive: true, force: true });
+      return { narrowed: runScannerIn(root, []), control };
+    });
+    // The control counts the sub-tree file; the narrowed run does not, and still passes,
+    // which is precisely the limit: the denominator moved and the verdict did not.
+    expect(control.code, `stderr: ${control.stderr}`).toBe(0);
+    expect(scannedCount(control)).toBe(SEEDED_ROOT_FILES.length + 1);
+    expect(narrowed.code, `stderr: ${narrowed.stderr}`).toBe(0);
+    expect(scannedCount(narrowed)).toBe(SEEDED_ROOT_FILES.length);
+  });
+
+  it("is NON-VACUOUS on this checkout: every declared root really does carry a corpus", () => {
+    // A rule nothing satisfies is a rule about nothing. Each root is asked of git
+    // rather than of a number written here, because a number written here goes stale.
+    for (const scanRoot of ["src", "test", "scripts"]) {
+      expect(
+        trackedInScopeUnder(scanRoot).length,
+        `no in-scope tracked files under ${scanRoot}/`,
+      ).toBeGreaterThan(0);
+    }
+    const r = runScanner([]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(scannedCount(r)).toBeGreaterThan(100);
   });
 });
 
@@ -1523,9 +1740,10 @@ describe("phi-scan: the enumeration TOCTOU window", () => {
     // Never silent: the skip is named, with the path that went away.
     expect(r.stderr).toMatch(/skipped 1 untracked file\(s\) gone between enumeration and read/);
     expect(r.stderr).toContain(DECOY);
-    // And the denominator does not count it. The allow-list is the one file this
-    // root observes, so a tolerated skip must leave the count at 1, not 2.
-    expect(scannedCount(r)).toBe(1);
+    // And the denominator does not count it. A well-formed throwaway root observes
+    // exactly its three seeded files, so a tolerated skip must leave the count at 3,
+    // not 4.
+    expect(scannedCount(r)).toBe(SEEDED_ROOT_FILES.length);
   });
 
   it("still REFUSES when a TRACKED file vanishes in the same window", () => {
@@ -1596,13 +1814,18 @@ describe("phi-scan: the enumeration TOCTOU window", () => {
   it("REFUSES an all-mode sweep that ENUMERATED files but OBSERVED none", () => {
     // The refuse-a-scan-that-observes-nothing rule, one step later than
     // `enforceObservation`: tolerating a vanished file must never be able to decay
-    // into a clean report of a tree nothing was read from. The only in-scope file
-    // here is the UNTRACKED allow-list, which the shim removes after the walk has
-    // listed it; a tracked out-of-scope file keeps `git ls-files` non-empty so the
+    // into a clean report of a tree nothing was read from. The in-scope corpus here
+    // is the three UNTRACKED seeded files, which the shim removes after the walk has
+    // listed them; a tracked out-of-scope file keeps `git ls-files` non-empty so the
     // tolerance stays switched on and this branch is the one that fires.
+    //
+    // ALL THREE, NOT JUST THE ALLOW-LIST. Removing one would now refuse under the
+    // PER-ROOT arm instead, which is a different assertion — this test is the
+    // ALL-starved case, and it is kept genuinely all-starved so that the global rule
+    // stays pinned as the special case of the per-root one that it is.
     const r = withToctouRoot(
       { git: true, track: false },
-      (root) => `rm -f '${join(root, "scripts/phi-allow-list.txt")}'`,
+      (root) => SEEDED_ROOT_FILES.map((rel) => `rm -f '${join(root, rel)}'`).join("\n"),
       (root, shim) => {
         put(root, "README.md", "# throwaway\n");
         git(root, ["add", "--", "README.md"]);
@@ -1611,6 +1834,9 @@ describe("phi-scan: the enumeration TOCTOU window", () => {
     );
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
     expect(r.stderr).toMatch(/observed no files/);
+    // Zero files read names EVERY root, which is what "the global rule is the
+    // all-starved case of the per-root rule" means in the output.
+    expect(r.stderr).toMatch(/under 3 of its 3 scan roots \(src, test, scripts\)/);
   });
 
   it("still CATCHES a violator in an untracked file that does NOT vanish", () => {
