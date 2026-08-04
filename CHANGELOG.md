@@ -547,6 +547,31 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
 
 ### Fixed
 
+- **`pnpm phi-scan` could print `OK` and exit 0 over a whole scan root it never opened, because the
+  observe-something rule was global instead of per-root.** The scanner walks three roots (`src/`,
+  `test/`, `scripts/`) and refused only when it had read _zero_ files in total, so any one surviving
+  file vouched for all three. Measured on `a4b249a` before the change, twice: with `test/` moved
+  aside, and again with `test` replaced by a dangling symlink, the sweep printed
+  `OK - no hits (76 file(s) scanned)` and exited **0** while all **98** files of the test corpus went
+  unobserved. Neither state trips anything else in the scanner, which is why the denominator was the
+  only signal and still read plausible: `walk()` returns early on a root `existsSync` cannot resolve,
+  so an absent root, a dangling one and an empty one are indistinguishable, and the not-a-regular-file
+  refusal never sees a root at all, because it only classifies entries found _inside_ one. The rule is
+  now **per-root**: all-mode refuses (exit 2) unless every declared root yielded at least one file that
+  was actually read, and the refusal names the starved roots. The superseded justification only ever
+  covered one root, which is how the shape survived review here: "all-mode always reaches at least the
+  allow-list itself" is true, and the allow-list lives under `scripts/`. It was an argument that
+  `scripts/` cannot be starved, doing duty as an argument about all three. Observing nothing at all is
+  now the all-starved case of the same rule rather than a second one beside it, and the wording
+  carries. Two behaviours are deliberately unchanged and are pinned as such: `--staged` and named-path
+  mode make no per-root promise (a commit that touches no file under `test/` is the normal case), and
+  hits found under the roots that _did_ yield are still reported before the refusal, so an incomplete
+  sweep never swallows a real finding. It exits 2 rather than 1 regardless, because an incomplete
+  sweep is not a verdict. This matters more here than in any sibling: `@cosyte/synth` exists to emit
+  PHI-shaped bytes, so a scan that silently observes nothing is the emptiest possible green. The rule
+  is stated once, with its measurement, at the end of `main()` in `scripts/phi-scan.ts`; this entry and
+  the changeset point at it rather than restating it. Found independently by two siblings' review
+  passes, which is what made it an item rather than a note.
 - **The exported `VERSION` constant reported `0.0.0` on every published release, and the fix is the
   binding rather than the literal.** `src/index.ts` carried a hand-written constant while Changesets
   bumped `package.json`, so the two were never connected and the export went stale at the first
