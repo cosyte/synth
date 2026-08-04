@@ -71,11 +71,12 @@
  * `OK` over a file nothing was read from.
  *
  * THE OBSERVATION RULE IS PER-ROOT, NOT GLOBAL: all-mode refuses unless EVERY
- * member of `SCAN_ROOTS` yielded at least one file that was actually read. The
- * global form it replaces was satisfied by any one surviving file, so an absent
- * or dangling `test/` reported `OK` over a corpus it never opened. That rule is
- * stated once, with its measurement, at the end of `main()`; it is not restated
- * here and it should not be restated anywhere else either.
+ * member of `SCAN_ROOTS` yielded at least one file that was actually read.
+ * ITS GRANULARITY IS THE DECLARED ROOT AND NOTHING FINER, which is a real bound
+ * and not a slogan — see the limits list below for what that leaves open, each
+ * entry with the reading that produced it. The rule, its cause and its
+ * measurement live at the end of `main()`; the limits live below; nothing else
+ * in this file restates either.
  *
  * An in-scope entry that is NOT A REGULAR FILE refuses the scan (exit 2) on both
  * enumerating routes, rather than being skipped or followed. That rule is stated
@@ -150,6 +151,41 @@
  *   - A scan of one named in-scope file truthfully reports `1 file(s) scanned`;
  *     the denominator is honest but small, and small is not the same as wrong.
  *
+ * AND WHAT THE PER-ROOT OBSERVATION RULE DOES NOT COVER. Every reading below was
+ * taken on this checkout with the rule in place, because a bound asserted without
+ * one is the failure this file already keeps a paragraph about:
+ *
+ *   - ITS GRANULARITY IS THE DECLARED ROOT, NOT A SUB-TREE, so an absent
+ *     directory INSIDE a root is still unobserved under a plausible denominator.
+ *     `mv test/fixtures ..` then `pnpm phi-scan` returns
+ *     `OK — no hits (128 file(s) scanned)` and exit 0 with 46 files unread — the
+ *     same shape as the defect the per-root rule closed, one level down. Do NOT
+ *     read the rule as "the scanner can no longer report a clean sweep over a
+ *     directory it never opened"; it is a whole SCAN ROOT that can no longer go
+ *     unobserved. A DANGLING `test/fixtures` is a different case and does refuse
+ *     (exit 2), but through the non-regular-entry rule, not this one. Closing the
+ *     sub-tree case needs a floor derived from what git tracks under each root,
+ *     which is a second moving part and a separate decision.
+ *   - A ROOT THAT IS A REGULAR FILE, or a link to one, throws `ENOTDIR` out of
+ *     `walk()` past the `InvocationError`-only catch, so node exits **1** — the
+ *     code this contract reserves for "hits found" — rather than refusing with 2.
+ *     Measured by replacing `test` with a regular file. Fail-closed in every
+ *     caller, since all of them test for non-zero, so it is not a false green;
+ *     but the per-root rule is not what handles it, and the sentence above does
+ *     not claim otherwise. Same shape as the `loadAllowList` escape already fixed
+ *     further down this file.
+ *   - A ROOT THAT IS ITSELF A SYMLINK IS FOLLOWED, including to ANOTHER ROOT, and
+ *     the rule is then satisfied by that other root's bytes: `rm -rf test && ln -s
+ *     src test` returns `OK — no hits (144 file(s) scanned)` and exit 0 with the
+ *     98-file test corpus absent from disk, because `normalizePath` is purely
+ *     lexical (`resolve`/`relative`, never `realpath`) so `src/` is read twice and
+ *     attributed once to each prefix. "A root yielded a file" is not "that root's
+ *     corpus was observed". Adversarial rather than accidental, and the existing
+ *     residual note under NON-REGULAR ENTRIES says such a root is followed.
+ *   - IT IS A FLOOR OF ONE. A root reduced from 98 files to 1 returns
+ *     `OK — no hits (77 file(s) scanned)` and exit 0. The rule asks whether a root
+ *     was observed at all, never whether it was observed in full.
+ *
  * THAT IS NOT A CLOSED LIST, and in `ncpdp` saying
  * otherwise was wrong twice: the staged enumerator turned out to be dropping
  * renames, and then typechanges, both because `--diff-filter` was an allow-list
@@ -214,6 +250,14 @@ const SCAN_ROOTS: readonly string[] = ["src", "test", "scripts"];
  * per-root observation rule in `main` attributes every file it read through it. A second
  * copy of `rel === root || rel.startsWith(root + "/")` anywhere is a bug waiting to
  * happen, because the two copies decide scope and coverage respectively.
+ *
+ * ONE DEFINITION IS NOT THE SAME AS ONE ANSWER, so do not read the above as a claim that
+ * scope and coverage can never disagree. This returns the FIRST match, which is exactly
+ * right while `SCAN_ROOTS` are disjoint (they are: `src`, `test`, `scripts`) and wrong the
+ * moment one nests inside another — scope wants ANY match, coverage wants EVERY match, and
+ * a nested root would be scanned and never attributed, so all-mode would refuse forever.
+ * Fail-closed, and not hypothetical housekeeping: `test/` used to be `test/fixtures/`.
+ * Nesting a root means revisiting this function, not just the list.
  */
 function rootOf(rel: string): string | undefined {
   return SCAN_ROOTS.find((root) => rel === root || rel.startsWith(`${root}/`));
@@ -1905,6 +1949,13 @@ function main(): number {
   //
   // THE ALL-STARVED CASE IS THE GLOBAL RULE, so this REPLACES it rather than sitting
   // beside it: observing zero files names every root here, and the same wording carries.
+  //
+  // AND THE GRANULARITY IS THE DECLARED ROOT, NOTHING FINER. An absent directory INSIDE
+  // a root still goes unobserved under a plausible denominator, a root that is a regular
+  // file still exits 1 out of `walk()`, a root symlinked at another root is satisfied by
+  // that root's bytes, and one file is enough to satisfy a root of 98. All four are
+  // measured in the limits list in the header. Do not read this rule as more than a
+  // per-ROOT floor of one, and do not answer any of them by growing this block.
   //
   // (`staged` legitimately has nothing to scan when a commit touches no in-scope file,
   // and `paths` is bounded by the caller's argv. Neither enumerates a root, so neither

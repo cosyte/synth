@@ -569,9 +569,14 @@ its public history at `0.0.x`, per the cosyte version ladder (`0.0.x` until firs
   sweep never swallows a real finding. It exits 2 rather than 1 regardless, because an incomplete
   sweep is not a verdict. This matters more here than in any sibling: `@cosyte/synth` exists to emit
   PHI-shaped bytes, so a scan that silently observes nothing is the emptiest possible green. The rule
-  is stated once, with its measurement, at the end of `main()` in `scripts/phi-scan.ts`; this entry and
-  the changeset point at it rather than restating it. Found independently by two siblings' review
-  passes, which is what made it an item rather than a note.
+  and its measurement live at the end of `main()` in `scripts/phi-scan.ts`. **Its granularity is the
+  declared root and nothing finer**, and that bound is recorded rather than glossed, because the natural
+  way to describe this fix overstates it: an absent directory _inside_ a root is still unobserved under a
+  plausible denominator (`mv test/fixtures ..` still returns `OK - no hits (128 file(s) scanned)` exit 0,
+  46 files unread). That is unchanged here, and closing it needs a per-root floor derived from what git
+  tracks, which is a second moving part and a separate decision. The scanner's limits list now carries it
+  and three more residuals, each with the reading that produced it. Found independently by two siblings'
+  review passes, which is what made it an item rather than a note.
 - **The exported `VERSION` constant reported `0.0.0` on every published release, and the fix is the
   binding rather than the literal.** `src/index.ts` carried a hand-written constant while Changesets
   bumped `package.json`, so the two were never connected and the export went stale at the first

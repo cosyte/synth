@@ -354,7 +354,10 @@ function makeRoot(entries: readonly string[] = []): string {
   const root = mkdtempSync(join(tmpdir(), "phi-scan-root-"));
   mkdirSync(join(root, "scripts"), { recursive: true });
   copyFileSync(ALLOW_LIST_PATH, join(root, "scripts", "phi-allow-list.txt"));
-  for (const rel of ["src/zz-root-seed.ts", "test/zz-root-seed.ts"]) {
+  // Driven off the constant, never a second inline copy of the same two paths: the tests
+  // that subtract the whole corpus read that constant, so a drift between the two lists
+  // would leave them subtracting a file the root does not have.
+  for (const rel of SEEDED_ROOT_FILES.filter((p) => !p.startsWith("scripts/"))) {
     const abs = join(root, rel);
     mkdirSync(dirname(abs), { recursive: true });
     writeFileSync(abs, "// inert: gives this throwaway root a file under every scan root\n");
@@ -1016,22 +1019,17 @@ describe("phi-scan: a scan that observes nothing must not report OK", () => {
 // ---------------------------------------------------------------------------
 // The observation rule is PER-ROOT, not global (PHI-SCAN-OBSERVED-NOTHING-IS-GLOBAL)
 //
-// The rule above refused a sweep that observed NOTHING. That was satisfied by ANY ONE
-// surviving file, and this package walks THREE roots, so one `src/` module vouched for
-// all of them. Measured on this checkout at `a4b249a`: with `test/` moved away, and
-// again with `test` replaced by a dangling symlink, `pnpm phi-scan` printed
-// `OK - no hits (76 file(s) scanned)` and exited 0 while all 98 files of the test
-// corpus went unobserved. In a package whose whole corpus is PHI-shaped by
-// construction, that is the emptiest possible green.
+// The rule above refused a sweep that observed NOTHING, which any one surviving file
+// satisfied while two of the three roots went unread. WHAT THAT COST, WHY NOTHING ELSE
+// IN THE SCANNER NOTICED, AND WHAT THE PER-ROOT RULE STILL DOES NOT REACH ARE STATED
+// WHERE THE RULE IS, at the end of `main()` in `scripts/phi-scan.ts` and in that file's
+// limits list. They are not repeated here: this slice's own finding was a measurement
+// copied into five places and bounded correctly in only some of them.
 //
-// NEITHER STARVED STATE IS AN ERROR ANYWHERE ELSE IN THE SCANNER, which is why the
-// count was the only signal and the count still read plausible. `walk()` returns early
-// when `existsSync` cannot resolve a root, so an absent root and a dangling one are
-// indistinguishable from an empty one; and the non-regular rule never sees a root at
-// all, because `walk` is entered AT a root and only classifies entries INSIDE one.
-//
-// EVERY CASE HERE IS PAIRED WITH THE SAME ROOT INTACT. A refusal test that never shows
-// the control passing is a test that a fixture is broken, not that a rule fires.
+// WHAT THIS BLOCK ADDS is the executable half. Each case below drives one starved shape
+// through the real CLI, and EVERY ONE IS PAIRED WITH THE SAME ROOT INTACT: a refusal
+// test that never shows its control passing is a test that a fixture is broken, not
+// that a rule fires.
 // ---------------------------------------------------------------------------
 
 /** The seeded in-scope file a throwaway root holds under `scanRoot`. */
@@ -1158,6 +1156,30 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
     const r = withRoot([], (root) => runScannerIn(root, [join(root, seedUnder("src"))]));
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
     expect(scannedCount(r)).toBe(1);
+  });
+
+  it("CHARACTERIZES the granularity limit: an absent SUB-TREE of a root still exits 0", () => {
+    // A KNOWN LIMIT MADE EXECUTABLE, not an endorsement. The rule's granularity is the
+    // declared root, so a directory removed from INSIDE a root goes unobserved under a
+    // plausible denominator — the same shape as the defect this block closes, one level
+    // down. It is recorded in the scanner's limits list with its reading.
+    //
+    // IF THIS REDS, the gate was narrowed and that is a reviewer moment, not a failure:
+    // update this test visibly and move the limits-list entry, exactly as the extension
+    // gate's characterization test was rewritten when its gap was closed. Never quietly
+    // delete it to get green.
+    const { narrowed, control } = withRoot([], (root) => {
+      put(root, "test/deep/one.ts", "// in scope, under a sub-tree\n");
+      const control = runScannerIn(root, []);
+      rmSync(join(root, "test/deep"), { recursive: true, force: true });
+      return { narrowed: runScannerIn(root, []), control };
+    });
+    // The control counts the sub-tree file; the narrowed run does not, and still passes,
+    // which is precisely the limit: the denominator moved and the verdict did not.
+    expect(control.code, `stderr: ${control.stderr}`).toBe(0);
+    expect(scannedCount(control)).toBe(SEEDED_ROOT_FILES.length + 1);
+    expect(narrowed.code, `stderr: ${narrowed.stderr}`).toBe(0);
+    expect(scannedCount(narrowed)).toBe(SEEDED_ROOT_FILES.length);
   });
 
   it("is NON-VACUOUS on this checkout: every declared root really does carry a corpus", () => {
