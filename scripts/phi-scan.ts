@@ -75,8 +75,7 @@
  * ITS GRANULARITY IS THE DECLARED ROOT AND NOTHING FINER, which is a real bound
  * and not a slogan — see the limits list below for what that leaves open, each
  * entry with the reading that produced it. The rule, its cause and its
- * measurement live at the end of `main()`; the limits live below; nothing else
- * in this file restates either.
+ * measurement live at the end of `main()`; the limits live below.
  *
  * An in-scope entry that is NOT A REGULAR FILE refuses the scan (exit 2) on both
  * enumerating routes, rather than being skipped or followed. That rule is stated
@@ -162,7 +161,8 @@
  *     same shape as the defect the per-root rule closed, one level down. Do NOT
  *     read the rule as "the scanner can no longer report a clean sweep over a
  *     directory it never opened"; it is a whole SCAN ROOT that can no longer go
- *     unobserved. A DANGLING `test/fixtures` is a different case and does refuse
+ *     UNOPENED — and not "unobserved", because bullet 3 below is a whole scan
+ *     root going unobserved at exit 0. A DANGLING `test/fixtures` does refuse
  *     (exit 2), but through the non-regular-entry rule, not this one. Closing the
  *     sub-tree case needs a floor derived from what git tracks under each root,
  *     which is a second moving part and a separate decision.
@@ -254,10 +254,12 @@ const SCAN_ROOTS: readonly string[] = ["src", "test", "scripts"];
  * ONE DEFINITION IS NOT THE SAME AS ONE ANSWER, so do not read the above as a claim that
  * scope and coverage can never disagree. This returns the FIRST match, which is exactly
  * right while `SCAN_ROOTS` are disjoint (they are: `src`, `test`, `scripts`) and wrong the
- * moment one nests inside another — scope wants ANY match, coverage wants EVERY match, and
- * a nested root would be scanned and never attributed, so all-mode would refuse forever.
- * Fail-closed, and not hypothetical housekeeping: `test/` used to be `test/fixtures/`.
- * Nesting a root means revisiting this function, not just the list.
+ * moment one nests inside another — scope wants ANY match, coverage wants EVERY match. With
+ * the OUTER root listed first, the inner one is never attributed and all-mode refuses
+ * forever; listed inner-first it happens to work, which is worse, because then the ordering
+ * is load-bearing and nothing says so. Fail-closed either way, and not hypothetical
+ * housekeeping: `test/` used to be `test/fixtures/`. Nesting a root means revisiting this
+ * function, not just the list.
  */
 function rootOf(rel: string): string | undefined {
   return SCAN_ROOTS.find((root) => rel === root || rel.startsWith(`${root}/`));

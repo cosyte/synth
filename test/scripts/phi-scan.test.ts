@@ -357,7 +357,7 @@ function makeRoot(entries: readonly string[] = []): string {
   // Driven off the constant, never a second inline copy of the same two paths: the tests
   // that subtract the whole corpus read that constant, so a drift between the two lists
   // would leave them subtracting a file the root does not have.
-  for (const rel of SEEDED_ROOT_FILES.filter((p) => !p.startsWith("scripts/"))) {
+  for (const rel of SEEDED_ROOT_FILES.filter((p) => p !== "scripts/phi-allow-list.txt")) {
     const abs = join(root, rel);
     mkdirSync(dirname(abs), { recursive: true });
     writeFileSync(abs, "// inert: gives this throwaway root a file under every scan root\n");
