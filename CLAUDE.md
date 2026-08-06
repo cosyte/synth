@@ -241,8 +241,17 @@ Mirrors the three disciplines in the meta-repo's `documentation/conventions.md` 
    docs are: this repo's docs content (`README.md`, `docs-content/`), the meta-repo
    `documentation/repos/synth.md` (bump its "last verified" date), and the `ecosystem-map.md`
    status table.
-2. **Version + changelog** — a Changeset (`patch` on the `0.0.x` ladder) + a `CHANGELOG.md`
-   `[Unreleased]` entry per meaningful change. Renaming a stable warning code is a **breaking change**.
+2. **Version + changelog** — a Changeset (`patch` on the `0.0.x` ladder) per meaningful change.
+   **The changeset summary IS the changelog entry**, and `CHANGELOG.md` is generated output above
+   `## Released before this file was generated`: `.changeset/config.json` names a `changelog`
+   generator, so the release writes the version heading and the entry itself. **Do not hand-edit
+   `CHANGELOG.md`, and never reintroduce a hand-maintained `[Unreleased]` heading** — one stood over
+   this package's whole published history and shipped a tarball calling its own contents unreleased;
+   with generation on, a release prepends ABOVE such a heading, which is worse. Only the H1 may sit
+   above the first heading, and Changesets' Prettier pass stays ON here — derived, not copied:
+   `notes#the-changelog-is-generated-by-the-release`. Gated by
+   `test/scripts/changelog-generation.test.ts`. Renaming a stable warning code is a **breaking
+   change**.
 3. **Crew + knowledgebase loop** — if this parser's public API or warning codes change, flag/update
    the matching `crew` healthcare skill + the KB product doc.
 4. **No internal project bookkeeping on a public surface** (founder directive, 2026-07-27). What a
