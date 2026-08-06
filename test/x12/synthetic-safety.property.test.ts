@@ -1,5 +1,5 @@
 /**
- * The **synthetic-safety property** for X12 (roadmap §4, §6 — mandatory, and the invariant most
+ * The **synthetic-safety property** for X12 (roadmap §4, §6: mandatory, and the invariant most
  * attacked here because an 837/271 is identity-dense). For arbitrary seeds and every transaction, no
  * value at a PHI-bearing X12 locus may escape the reserved/synthetic sources:
  *
@@ -97,7 +97,7 @@ describe("X12 synthetic-safety (mandatory property)", () => {
   });
 
   it("member ids emitted in 271 live under the synthetic assigning authority namespace", () => {
-    // The synthetic AA is the guarantee for member ids (no reserved range exists — roadmap §4.1).
+    // The synthetic AA is the guarantee for member ids (no reserved range exists: roadmap §4.1).
     expect(SYNTHETIC_ASSIGNING_AUTHORITY.namespaceId).toBe("COSYTE-SYNTH");
   });
 });

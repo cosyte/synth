@@ -1,10 +1,10 @@
 /**
  * License-clean example drug + code pools for synthetic NCPDP generation. NCPDP charges for its
- * standards and is protective of their prose, so — like every other `synth` format — **no NCPDP
+ * standards and is protective of their prose, so, like every other `synth` format, **no NCPDP
  * copyrighted text is bundled**: these are widely-known generic drug descriptions and invented,
  * clearly-example product codes, not lifted from any NCPDP data dictionary.
  *
- * A drug code is **not** PHI — it names a product, never a patient — so realism here carries no
+ * A drug code is **not** PHI: it names a product, never a patient, so realism here carries no
  * synthetic-safety hazard; the pool exists only to give a generated NewRx / claim a plausible,
  * license-clean drug. Patient / prescriber identity comes from the synthetic-safety providers
  * (`../safe`), never from here.
@@ -18,7 +18,7 @@
 export interface NcpdpExampleDrug {
   /** A widely-known generic drug description (RxNorm-style; public knowledge, not NCPDP prose). */
   readonly description: string;
-  /** An invented 11-digit NDC (`5-4-2`, digits only) — an example product code, never a real NDC. */
+  /** An invented 11-digit NDC (`5-4-2`, digits only), an example product code, never a real NDC. */
   readonly ndc: string;
   /** The dispense quantity unit-of-measure qualifier hint (structural only). */
   readonly form: string;
@@ -42,7 +42,7 @@ export const EXAMPLE_DRUGS: readonly NcpdpExampleDrug[] = Object.freeze([
   { description: "Albuterol 90 MCG Metered Dose Inhaler", ndc: "00000101010", form: "EA" },
 ]);
 
-/** Example free-text SIG directions (public, common-sense dosing text — not NCPDP prose). */
+/** Example free-text SIG directions (public, common-sense dosing text, not NCPDP prose). */
 export const EXAMPLE_SIG_TEXT: readonly string[] = Object.freeze([
   "Take 1 tablet by mouth once daily",
   "Take 1 capsule by mouth twice daily with food",

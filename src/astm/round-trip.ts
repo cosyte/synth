@@ -1,13 +1,13 @@
 /**
- * The **round-trip-through-the-parser harness** for ASTM — the headline gate for the synthetic-fixture
+ * The **round-trip-through-the-parser harness** for ASTM: the headline gate for the synthetic-fixture
  * generator. A generated ASTM record stream (or framed byte stream) is "spec-clean" only
- * if `@cosyte/astm` — not `@cosyte/synth`'s own opinion — reads it back cleanly. Each harness parses the
+ * if `@cosyte/astm`, not `@cosyte/synth`'s own opinion, reads it back cleanly. Each harness parses the
  * generated wire straight back through the parser and reports what it found, so a false "spec-clean"
  * claim cannot hide.
  *
  * The **record** layer (E1394) and the **frame** layer (E1381) are separate concerns, so each gets its
  * own harness; both report the same {@link AstmRoundTripResult} shape (the framed one additionally folds
- * the frame-layer warnings — bad checksum, sequence gap, unterminated, oversize — into `warnings`, so a
+ * the frame-layer warnings (bad checksum, sequence gap, unterminated, oversize) into `warnings`, so a
  * framing defect is caught by the same gate).
  *
  * @module
@@ -58,7 +58,7 @@ export function astmRoundTrip(raw: string): AstmRoundTripResult {
  * byte-identically.
  *
  * @param bytes - The framed byte stream (typically from `generateAstmResultFramed`).
- * @returns The {@link AstmRoundTripResult} — `content` holds the framed bytes decoded as latin1.
+ * @returns The {@link AstmRoundTripResult}: `content` holds the framed bytes decoded as latin1.
  * @example
  * ```ts
  * import { generateAstmResultFramed, astmFramedRoundTrip } from "@cosyte/synth/astm";

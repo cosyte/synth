@@ -1,5 +1,5 @@
 /**
- * Synthetic FHIR R4 **`Condition`** generation — a US Core "Problems and Health Concerns" problem-list
+ * Synthetic FHIR R4 **`Condition`** generation: a US Core "Problems and Health Concerns" problem-list
  * item. Built through `@cosyte/fhir`; the `code` comes from the license-clean SNOMED
  * example pool, the `subject` from a supplied or derived synthetic Patient reference.
  *

@@ -1,12 +1,12 @@
 /**
- * Unit tests for scripts/phi-scan.ts — the PHI commit-gate.
+ * Unit tests for scripts/phi-scan.ts: the PHI commit-gate.
  *
  * This docblock previously said the suite "deliberately does NOT test structured,
  * field-level PHI detection". That was false when it was written and stayed false:
  * the HL7, FHIR, X12, NCPDP, ASTM and quirk suites below have been exercising
  * exactly that, and the seeded-violator suites added since drive the C-CDA arm. It
  * is deleted rather than reworded, because the dangerous half of a wrong assertion
- * is not the code around it — it is the next reader trusting it and not looking.
+ * is not the code around it: it is the next reader trusting it and not looking.
  *
  * What the suite covers:
  *   - the cross-cutting floor (dashed SSN outside the never-issued space, email
@@ -16,28 +16,28 @@
  *   - the argument-driven collapse routes. Note they do NOT all end the same way:
  *     `--allow-fixture` being purely subtractive is a `parseArgs` change and shows
  *     up as a FULL scan (exit 0 over a large denominator), while the two
- *     `enforceObservation` refusals — an override that subtracts nothing, and a
- *     target set emptied by overrides — exit 2;
+ *     `enforceObservation` refusals, an override that subtracts nothing, and a
+ *     target set emptied by overrides, exit 2;
  *   - the scan roots, seeded in-repo (below), and two of the exclusions that are
  *     real limits of the enumerator rather than oversights: markdown, and anything
  *     outside `src/` / `test/` / `scripts/` (repo-root files included). Those two
- *     are the ones exercised here, not the whole set — the scanner's header lists
+ *     are the ones exercised here, not the whole set: the scanner's header lists
  *     the limits known at the time of writing, and does not claim to be complete;
  *   - CONTENT-GATED ADMISSION: the same bytes get the same verdict as `.ts` and as
  *     `.xml`, for all three arms that used to gate on the extension. This block
  *     REPLACES a characterization test that asserted the opposite; see the comment
  *     above it for why the old assertion is gone rather than quietly relaxed. It
- *     also pins the limits the widening did NOT close — file-scoped admission,
- *     placeholders, namespace prefixes — so they stay known;
- *   - `--staged` enumeration, against a throwaway git repo — including the `R` and
+ *     also pins the limits the widening did NOT close: file-scoped admission,
+ *     placeholders, namespace prefixes, so they stay known;
+ *   - `--staged` enumeration, against a throwaway git repo, including the `R` and
  *     `T` statuses the superseded `--diff-filter=AM` allow-list dropped, with the
  *     old flags run alongside so the gap is measured rather than asserted;
  *   - the GIT-IGNORE DISAGREEMENT between all-mode and `--staged`, both directions,
  *     which the scanner header disclosed and nothing exercised;
  *   - the ENUMERATION TOCTOU WINDOW: what a file that vanishes between the walk and
  *     its read is allowed to do to a sweep, and five of the six ways it still
- *     refuses. The sixth — a tolerated file written BACK before the post-sweep
- *     re-check — is not reachable from a deterministic harness; that block's own
+ *     refuses. The sixth (a tolerated file written BACK before the post-sweep
+ *     re-check) is not reachable from a deterministic harness; that block's own
  *     note says why it is left unpinned rather than guarded by a sleep.
  *
  * Three different sandboxes, because the questions differ:
@@ -65,12 +65,12 @@
  * `test/fixtures/astm` and `test/fixtures/ncpdp` (the three `round-trip.test.ts`
  * modules) and all of `src/` (walked recursively by
  * `test/phi/diagnostic-surface.test.ts`). The seeds below therefore land in
- * `test/fixtures/` itself, `test/scripts/`, and `scripts/` — none of which any
+ * `test/fixtures/` itself, `test/scripts/`, and `scripts/`, none of which any
  * module enumerates. Three consequences worth knowing: a hard kill mid-run leaves a
  * `zz-phi-scan-seed-*` file behind, which reds the next scan loudly rather than
  * silently; this file is not safe to run concurrently against the same checkout
  * (CI gives each job its own); and the seeds must NOT be added to `.gitignore` to
- * quiet that leftover, because the all-mode enumerator drops git-ignored files —
+ * quiet that leftover, because the all-mode enumerator drops git-ignored files,
  * ignoring them would make every seeded test below pass over a scan that never saw
  * the violator, which is the exact failure this suite exists to catch.
  *
@@ -119,12 +119,12 @@ const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
 /**
  * WHY THE SWEEP SPAWNS `node` AND NOT `tsx`, THOUGH `pnpm phi-scan` USES `tsx`.
  *
- * Every test below runs the scanner in a real subprocess, on purpose — that is what
+ * Every test below runs the scanner in a real subprocess, on purpose: that is what
  * exercises the full CLI path (argv parse, exit code, stderr). The cost is a fixed
  * per-spawn startup, paid ~65 times, and it dominated this file: measured on this
  * box, warmed medians were **2.1 s** for a `tsx` cold start against **0.6 s** for
  * `node` running the same TypeScript through its native type stripping. That fixed cost, not any
- * assertion, is what put a dozen tests here within 3x of the 10 s global timeout —
+ * assertion, is what put a dozen tests here within 3x of the 10 s global timeout,
  * i.e. the suite was measuring interpreter startup on a loaded machine rather than
  * the scanner. Cutting the cost is a better answer than a bigger ceiling: a ceiling
  * would hide the startup time, this removes it, and every test in the file gains the
@@ -132,7 +132,7 @@ const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
  *
  * THE NODE FLOOR THIS ASSUMES IS 22.18, WHICH IS HIGHER THAN THE ONE THE PACKAGE
  * DECLARES. Type stripping landed flagged in 22.6 and unflagged only in **22.18**,
- * while `engines.node` here is `>=22.0.0` — so on 22.0-22.17 the package itself is
+ * while `engines.node` here is `>=22.0.0`, so on 22.0-22.17 the package itself is
  * fine and only THIS FILE breaks. `engines` is deliberately not raised for a
  * dev-only harness detail: nothing a consumer installs is affected. The failure is
  * loud rather than silent (the scanner fails to load, so every test in the file
@@ -154,13 +154,13 @@ const NODE_BIN = process.execPath;
  * same way. The scanner now walks all of `test/`, so this suite sits inside the
  * corpus it guards: a literal violator here would be a correct hit on every run.
  * Assembling keeps the value the scanner sees identical while keeping the literal
- * out of the file — allow-listing instead would defeat the very tests using it.
+ * out of the file, allow-listing instead would defeat the very tests using it.
  */
 const digits = (...parts: string[]): string => parts.join("");
 const addr = (user: string, ...domain: string[]): string => `${user}@${domain.join(".")}`;
 
 /**
- * The same trick for a real-looking person NAME, and it is now LOAD-BEARING — which
+ * The same trick for a real-looking person NAME, and it is now LOAD-BEARING, which
  * is the clearest single measure of what this change did.
  *
  * It was written as insurance while the C-CDA and FHIR arms still gated on `.xml` /
@@ -188,7 +188,7 @@ function runScannerIn(cwd: string, args: string[]): RunResult {
   return { code: r.status ?? -1, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
 }
 
-/** The `tsx` invocation `pnpm phi-scan` actually uses — kept for the one test that pins it. */
+/** The `tsx` invocation `pnpm phi-scan` actually uses, kept for the one test that pins it. */
 function runScannerViaTsx(args: string[]): RunResult {
   const r = spawnSync(TSX_BIN, [SCANNER_PATH, ...args], {
     cwd: REPO_ROOT,
@@ -224,10 +224,10 @@ function scannedCount(r: RunResult): number {
  * THIS IS WHY THE SCANNER NEEDS NO PLACEHOLDER RULE. Once the C-CDA / SCRIPT / FHIR arms stopped
  * gating on the file extension, this suite became one of their targets, and every fixture below that
  * spelled out a `given` element with content was a hit against the gate itself. (Note this sentence
- * does not write one either — with no skip rule in the scanner, prose that forges a name element reds
+ * does not write one either, with no skip rule in the scanner, prose that forges a name element reds
  * the gate, and that discipline is the trade for a detector with nothing to audit.) The first three
  * attempts at fixing
- * that taught the SCANNER to skip template placeholders — a subtraction that has to be exactly right
+ * that taught the SCANNER to skip template placeholders: a subtraction that has to be exactly right
  * on a PHI detector, and twice was not: it silenced `Anderson ...`, then `${"Anderson"}`, then spliced
  * `{{Anderson ${s}}` across two constructs. Each fix bought one more evasion shape.
  *
@@ -247,9 +247,9 @@ const VIOLATOR = `<?xml version="1.0" encoding="UTF-8"?>
 
 /** Seeded under `test/fixtures/` (the historical root), but not in an enumerated subdir. */
 const SEED_IN_FIXTURES = "test/fixtures/zz-phi-scan-seed-fixtures.xml";
-/** Seeded under `test/` but OUTSIDE `fixtures/` — the root the scan used to miss. */
+/** Seeded under `test/` but OUTSIDE `fixtures/`: the root the scan used to miss. */
 const SEED_OUTSIDE_FIXTURES = "test/scripts/zz-phi-scan-seed-outside.xml";
-/** Seeded under `scripts/` — the other root the scan used to miss. */
+/** Seeded under `scripts/`: the other root the scan used to miss. */
 const SEED_IN_SCRIPTS = "scripts/zz-phi-scan-seed-scripts.xml";
 /** The same violator as markdown: out of scope in every mode, because docs quote violator values. */
 const SEED_MARKDOWN = "test/scripts/zz-phi-scan-seed-doc.md";
@@ -257,13 +257,13 @@ const SEED_MARKDOWN = "test/scripts/zz-phi-scan-seed-doc.md";
 /**
  * The same document with every name drawn from the shipped fake-name pool. Used as
  * the pre-edit blob in the staged-mode rename case, where git's similarity index
- * has to stay high enough that it really reports `R` — the status the old
+ * has to stay high enough that it really reports `R`: the status the old
  * `--diff-filter=AM` allow-list dropped.
  */
 // MEASURED MARGIN: git scores this pair `R065` against its 50% rename-detection
 // default, so the `R` case below is real but the headroom is 15 points, not the
 // comfortable gap it looks like. Widen the edit between VIOLATOR and CLEAN_DOC and
-// git stops calling it a rename, which turns the staged `R` test red — the safe
+// git stops calling it a rename, which turns the staged `R` test red: the safe
 // direction, but red for a reason that has nothing to do with the scanner.
 const CLEAN_DOC = VIOLATOR.replace(GIVEN, "Exampla").replace(FAMILY, "Mockridge");
 
@@ -322,7 +322,7 @@ function stagedUnder(cwd: string, flags: readonly string[]): string[] {
 }
 
 /**
- * The in-scope files every throwaway root starts with — ONE UNDER EACH SCAN ROOT,
+ * The in-scope files every throwaway root starts with: ONE UNDER EACH SCAN ROOT,
  * which is what makes the root well-formed under the PER-ROOT observation rule.
  *
  * The allow-list has to be here anyway (the scanner refuses without it) and it lands
@@ -386,7 +386,7 @@ function withRoot<T>(entries: readonly string[], fn: (root: string) => T): T {
   }
 }
 
-/** Write a file to the temp dir and scan it by path (paths mode — no git needed). */
+/** Write a file to the temp dir and scan it by path (paths mode, no git needed). */
 function scan(name: string, content: string): RunResult {
   const path = join(dir, name);
   writeFileSync(path, content);
@@ -406,7 +406,7 @@ describe("phi-scan: the `tsx` entry point `pnpm phi-scan` uses is the same scann
   // other test in this file. The sweep spawns `node` (see NODE_BIN above) because a tsx
   // start costs ~3x a node one and that fixed cost, multiplied by ~65 spawns, was what
   // pushed this file's tests toward the 10 s global. That substitution is only sound
-  // while the two runners agree, so this asserts they do — on a hit AND on a pass, since
+  // while the two runners agree, so this asserts they do, on a hit AND on a pass, since
   // a runner that failed to start would exit non-zero and read as a "hit" on both.
   //
   // It also covers what `node` alone cannot: that `scripts/phi-scan.ts` still LOADS under
@@ -466,7 +466,7 @@ describe("phi-scan: clean + allow-listed content passes", () => {
   it("a clean file with no PHI shapes exits 0", () => {
     const r = scan("clean.txt", "just some ordinary text, no identifiers here\n");
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
-    expect(r.stdout).toMatch(/OK — no hits/);
+    expect(r.stdout).toMatch(/OK, no hits/);
   });
 
   it("honors the allow-list: an email at a reserved test domain passes (exit 0)", () => {
@@ -577,7 +577,7 @@ describe("phi-scan: X12 structured detection (SYNTH-6)", () => {
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
   });
 
-  it("flags a Luhn-VALID NPI (NM1*XX) — it could be a real provider", () => {
+  it("flags a Luhn-VALID NPI (NM1*XX): it could be a real provider", () => {
     // Take a clean 837P and swap the invalid-Luhn NPI for a Luhn-valid one (1234567893).
     const content = roundTrip(generate837P({ seed: 6001 })).content.replace(
       /(NM1\*85\*2\*[^~]*XX\*)\d{10}/,
@@ -598,7 +598,7 @@ describe("phi-scan: X12 structured detection (SYNTH-6)", () => {
     expect(r.stderr).toMatch(/SSN not in synthetic range/);
   });
 
-  it("flags an SSN qualifier (NM1*34) — a raw SSN must never appear in a synthetic fixture", () => {
+  it("flags an SSN qualifier (NM1*34): a raw SSN must never appear in a synthetic fixture", () => {
     // Append a segment carrying an SSN (NM1-08 = 34). The scanner splits on the ISA-declared
     // terminator, so an appended NM1 is scanned like any other segment.
     const content = `${roundTrip(generate837P({ seed: 6001 })).content}NM1*IL*1*TESTINA*FIXTURA****34*900112222~`;
@@ -621,7 +621,7 @@ describe("phi-scan: NCPDP structured detection (SYNTH-7)", () => {
 
   it("flags a real prescriber name in a SCRIPT message (exit 1)", () => {
     // Assembled, like the floor values above. Once the SCRIPT arm stopped needing an
-    // `.xml` path, this `.ts` file became a target for it — and this file carries a
+    // `.xml` path, this `.ts` file became a target for it, and this file carries a
     // `<Message>` marker, so a spelled-out `<LastName>` here is a correct hit on every
     // `pnpm phi-scan`. The value the scanner sees at run time is unchanged; only the
     // literal leaves the source.
@@ -635,7 +635,7 @@ describe("phi-scan: NCPDP structured detection (SYNTH-7)", () => {
     expect(r.stderr).toMatch(/not declared synthetic/);
   });
 
-  it("flags a Luhn-VALID <NPI> in a SCRIPT message — it could be a real provider", () => {
+  it("flags a Luhn-VALID <NPI> in a SCRIPT message: it could be a real provider", () => {
     const content = generateNewRx({ seed: 7001 }).replace(
       /<NPI>\d{10}<\/NPI>/,
       `<NPI>${digits("123456", "7893")}</NPI>`,
@@ -645,7 +645,7 @@ describe("phi-scan: NCPDP structured detection (SYNTH-7)", () => {
     expect(r.stderr).toMatch(/Luhn/);
   });
 
-  it("flags a checksum-VALID <DEANumber> in a SCRIPT message — it could be a real DEA", () => {
+  it("flags a checksum-VALID <DEANumber> in a SCRIPT message: it could be a real DEA", () => {
     const content = generateNewRx({ seed: 7001 }).replace(
       /<DEANumber>[^<]+<\/DEANumber>/,
       `<DEANumber>${token("AB", "3512349")}</DEANumber>`,
@@ -704,7 +704,7 @@ describe("phi-scan: ASTM structured detection (SYNTH-8)", () => {
       /\rP\|([^\r]*)/,
       (_m, body: string) => {
         const fields = `P|${body}`.split("|");
-        fields[2] = "123456789"; // a bare 9-digit id, area 123 — not a synthetic shape.
+        fields[2] = "123456789"; // a bare 9-digit id, area 123, not a synthetic shape.
         return `\r${fields.join("|")}`;
       },
     );
@@ -715,7 +715,7 @@ describe("phi-scan: ASTM structured detection (SYNTH-8)", () => {
 });
 
 describe("phi-scan: synthetic-safety holds in QUIRK mode (SYNTH-9)", () => {
-  it("passes every HL7 v2 quirk artifact — a quirk deviates structure, never provenance", () => {
+  it("passes every HL7 v2 quirk artifact, a quirk deviates structure, never provenance", () => {
     for (const quirk of ["unknown-zsegment", "unknown-escape"] as const) {
       const r = scan(`quirk-${quirk}.hl7`, generateHl7Quirk({ seed: 9101, quirk }).content);
       expect(r.code, `${quirk} stderr: ${r.stderr}`).toBe(0);
@@ -789,7 +789,7 @@ describe("phi-scan: the scan roots cover src/, test/ and scripts/", () => {
     expect(r.stderr).toContain(SEED_IN_FIXTURES);
   });
 
-  it("leaves markdown out of scope — documentation quotes violator values on purpose", () => {
+  it("leaves markdown out of scope: documentation quotes violator values on purpose", () => {
     const r = withSeeded([SEED_MARKDOWN], () => runScanner([]));
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
   });
@@ -806,13 +806,13 @@ describe("phi-scan: the scan roots cover src/, test/ and scripts/", () => {
 });
 
 // ---------------------------------------------------------------------------
-// The extension gate — CLOSED. Every structured arm now keys off the bytes.
+// The extension gate: CLOSED. Every structured arm now keys off the bytes.
 //
 // THIS BLOCK REPLACES A CHARACTERIZATION TEST, DELIBERATELY AND IN THE OPEN. The
 // version it replaces asserted the OPPOSITE of the first test below: that the same
 // bytes exited 0 as `.ts` and 1 as `.xml`, because `scanCcda` and `scanNcpdpScript`
 // returned early unless the path ended `.xml` and `scanFhir` unless it ended
-// `.json`. That test was right to exist — it made a known gap executable instead of
+// `.json`. That test was right to exist: it made a known gap executable instead of
 // a sentence in a header, and it was written so that narrowing the gate would red
 // it and force a reviewer into the loop.
 //
@@ -820,12 +820,12 @@ describe("phi-scan: the scan roots cover src/, test/ and scripts/", () => {
 // than narrowed, the old assertion is now false, and it is rewritten rather than
 // deleted: the same probe bytes, the same two paths, the opposite expectation, plus
 // the residual limits the widening did NOT close. If you are here because one of
-// these reds, the same rule applies — update it visibly or fix the gate, never
+// these reds, the same rule applies: update it visibly or fix the gate, never
 // quietly drop it to get green.
 // ---------------------------------------------------------------------------
 
 describe("phi-scan: every structured arm keys off content, not the file extension", () => {
-  it("catches a C-CDA name as `.ts` AND as `.xml` — same bytes, same verdict", () => {
+  it("catches a C-CDA name as `.ts` AND as `.xml`, same bytes, same verdict", () => {
     const asTs = scan("gate-probe.ts", VIOLATOR);
     const asXml = scan("gate-probe.xml", VIOLATOR);
     expect(asTs.code, `stdout: ${asTs.stdout}`).toBe(1);
@@ -837,7 +837,7 @@ describe("phi-scan: every structured arm keys off content, not the file extensio
     expect(asTs.stderr).toMatch(/name\/given/);
   });
 
-  it("catches an NCPDP SCRIPT name as `.ts` — the arm was already content-gated underneath", () => {
+  it("catches an NCPDP SCRIPT name as `.ts`: the arm was already content-gated underneath", () => {
     // `scanNcpdpScript`'s `.xml` check sat ABOVE a `<Message>` + transaction-element
     // check that was strictly narrower, so removing it could only ever admit SCRIPT
     // messages in files not named `.xml`. Asserted rather than argued.
@@ -890,7 +890,7 @@ describe("phi-scan: every structured arm keys off content, not the file extensio
     expect(r.code, `stdout: ${r.stdout}`).toBe(0);
   });
 
-  it("reads EVERY name shape it reaches — the scanner skips no token at all", () => {
+  it("reads EVERY name shape it reaches: the scanner skips no token at all", () => {
     // THE STRONGEST FORM OF THIS SLICE'S CLAIM, and the reason the scanner carries no
     // placeholder rule. Three earlier drafts taught the detector to skip tokens that
     // looked like template syntax, and a refuter broke each one on a shape that put a
@@ -901,7 +901,7 @@ describe("phi-scan: every structured arm keys off content, not the file extensio
     // Every entry below was silenced by at least one of those drafts. All are read now,
     // because nothing is skipped: the only question the gate asks of a name token is
     // whether the allow-list declares it. A skip rule on a PHI detector has to be
-    // exactly right, and the way to be exactly right here was not to have one — the
+    // exactly right, and the way to be exactly right here was not to have one: the
     // suite assembles its own fixtures instead (see `el`).
     //
     // If a later change reintroduces a skip rule, this test is what reds.
@@ -960,7 +960,7 @@ describe("phi-scan: every structured arm keys off content, not the file extensio
 describe("phi-scan: a scan that observes nothing must not report OK", () => {
   it("--allow-fixture SUBTRACTS from the full scan; it never becomes the scan", () => {
     // The collapse: `--allow-fixture X` used to also SEED the target set, so the
-    // run became "scan [X], then subtract X" — zero targets, `OK — no hits`,
+    // run became "scan [X], then subtract X", zero targets, `OK, no hits`,
     // exit 0, over a scan that never happened. The mode now stays `all`.
     const r = withSeeded([SEED_IN_FIXTURES], () =>
       withOverrides([SEED_IN_FIXTURES], () => runScanner(["--allow-fixture", SEED_IN_FIXTURES])),
@@ -970,7 +970,7 @@ describe("phi-scan: a scan that observes nothing must not report OK", () => {
   });
 
   it("refuses an --allow-fixture that subtracts nothing, for a path that does not exist", () => {
-    // Logged, therefore past the override gate — but it matches no enumerated
+    // Logged, therefore past the override gate, but it matches no enumerated
     // target, so the operator believes a bypass is live when it is inert.
     const ghost = "test/fixtures/zz-phi-scan-seed-absent.xml";
     const r = withOverrides([ghost], () => runScanner(["--allow-fixture", ghost]));
@@ -979,7 +979,7 @@ describe("phi-scan: a scan that observes nothing must not report OK", () => {
   });
 
   it("refuses an --allow-fixture that subtracts nothing, for a file that is out of scope", () => {
-    // `README.md` exists and is tracked, but markdown is never enumerated — the
+    // `README.md` exists and is tracked, but markdown is never enumerated: the
     // same inert-override failure, reached by a different route.
     const r = withOverrides(["README.md"], () => runScanner(["--allow-fixture", "README.md"]));
     expect(r.code, `stdout: ${r.stdout}`).toBe(2);
@@ -989,7 +989,7 @@ describe("phi-scan: a scan that observes nothing must not report OK", () => {
   it("refuses when every enumerated file is excluded by --allow-fixture (exit 2)", () => {
     // A throwaway root's whole in-scope corpus, overridden away one path at a time:
     // the target set empties and the gate must refuse, not report OK. This must
-    // subtract EVERY seeded path — an override log naming only the allow-list now
+    // subtract EVERY seeded path: an override log naming only the allow-list now
     // leaves two survivors and the run passes, which is the per-root rule's fixture
     // cost and not a weaker assertion.
     const rels = [...SEEDED_ROOT_FILES];
@@ -1054,7 +1054,7 @@ function trackedInScopeUnder(scanRoot: string): string[] {
 describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
   // `src` and `test` only. `scripts/` cannot be starved by removing a file while the
   // allow-list lives there, because the scanner refuses earlier with `allow-list not
-  // found` — a different rule. THAT IS THE POINT OF THE WHOLE ITEM: "all-mode always
+  // found`: a different rule. THAT IS THE POINT OF THE WHOLE ITEM: "all-mode always
   // reaches at least the allow-list" was an argument about `scripts/` that was doing
   // duty as an argument about all three roots. `scripts/` gets its own case below,
   // starved by the one route that does reach it.
@@ -1081,7 +1081,7 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
   it("REFUSES a scan root that is a DANGLING SYMLINK, which no other rule sees", () => {
     // The sharpest case, and the one the global rule was blindest to: the root is not
     // missing, it is a link the walk silently gives up on. `existsSync` follows it and
-    // answers false, so `walk` returns before `readdirSync` — and the non-regular check
+    // answers false, so `walk` returns before `readdirSync`, and the non-regular check
     // never runs either, because it only ever classifies entries found INSIDE a root.
     const { linked, control } = withRoot([], (root) => {
       const control = runScannerIn(root, []);
@@ -1100,7 +1100,7 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
   it("REFUSES a root that EXISTS, is readable, and holds only out-of-scope files", () => {
     // A root need not be missing to go unobserved. `.md` is exempt everywhere, so a
     // `test/` holding nothing but markdown enumerates zero files and the sweep learns
-    // nothing about it — the same unobserved corpus, with the tree shape untouched.
+    // nothing about it: the same unobserved corpus, with the tree shape untouched.
     const r = withRoot([], (root) => {
       rmSync(join(root, seedUnder("test")), { force: true });
       put(root, "test/notes.md", "# nothing in scope here\n");
@@ -1142,7 +1142,7 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
   it("does NOT apply to --staged, which enumerates the index and promises no root", () => {
     // `--staged` reads what a commit will carry. A commit that touches no file under
     // `test/` is the normal case, and refusing it would make the pre-commit gate
-    // unusable — so the per-root rule is all-mode only, and this pins that.
+    // unusable, so the per-root rule is all-mode only, and this pins that.
     const r = withGitRoot((root) => {
       put(root, "src/added.xml", CLEAN_DOC);
       git(root, ["add", "--", "src/added.xml"]);
@@ -1161,7 +1161,7 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
   it("CHARACTERIZES the granularity limit: an absent SUB-TREE of a root still exits 0", () => {
     // A KNOWN LIMIT MADE EXECUTABLE, not an endorsement. The rule's granularity is the
     // declared root, so a directory removed from INSIDE a root goes unobserved under a
-    // plausible denominator — the same shape as the defect this block closes, one level
+    // plausible denominator: the same shape as the defect this block closes, one level
     // down. It is recorded in the scanner's limits list with its reading.
     //
     // IF THIS REDS, the gate was narrowed and that is a reviewer moment, not a failure:
@@ -1234,7 +1234,7 @@ describe("phi-scan --staged: the enumerator excludes status letters rather than 
 
   it("catches PHI in a file that was RENAMED and edited in the same commit", () => {
     // git reports this as a single `R` entry. `--diff-filter=AM` named A and M and
-    // therefore dropped it silently — the whole reason the filter is now an
+    // therefore dropped it silently: the whole reason the filter is now an
     // exclusion list. The old flags are run here too, so the gap is measured.
     const { scanned, oldFlags } = withGitRoot((root) => {
       put(root, "src/doc.xml", CLEAN_DOC);
@@ -1256,7 +1256,7 @@ describe("phi-scan --staged: the enumerator excludes status letters rather than 
 
   it("catches PHI in a file whose TYPE changed from a symlink to a regular file", () => {
     // git reports `T`. `AM` dropped this one too, found by a separate refuter pass
-    // in a sibling repo — which is the argument for excluding letters, not naming them.
+    // in a sibling repo, which is the argument for excluding letters, not naming them.
     const { scanned, oldFlags } = withGitRoot((root) => {
       put(root, "src/target.xml", CLEAN_DOC);
       symlinkSync("target.xml", join(root, "src", "link.xml"));
@@ -1285,7 +1285,7 @@ describe("phi-scan --staged: the enumerator excludes status letters rather than 
     expect(scannedCount(r)).toBe(1);
   });
 
-  it("allows an empty staged set — the one mode where observing nothing is legitimate", () => {
+  it("allows an empty staged set: the one mode where observing nothing is legitimate", () => {
     const r = withGitRoot((root) => runScannerIn(root, ["--staged"]));
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
     expect(scannedCount(r)).toBe(0);
@@ -1303,7 +1303,7 @@ describe("phi-scan --staged: the enumerator excludes status letters rather than 
 });
 
 // ---------------------------------------------------------------------------
-// NON-REGULAR ENTRIES — a symlink under a scan root read CLEAN on BOTH routes.
+// NON-REGULAR ENTRIES: a symlink under a scan root read CLEAN on BOTH routes.
 //
 // The rule and its evidence live in ONE place, `scripts/phi-scan.ts` under
 // "NON-REGULAR ENTRIES"; this block does not restate the argument, it executes it.
@@ -1317,7 +1317,7 @@ describe("phi-scan --staged: the enumerator excludes status letters rather than 
  * The link TARGET is a path built out of the same name tokens the rest of this suite
  * assembles, and it lives outside the scan roots. That makes two assertions possible
  * at once: the scan must refuse over the link, and the refusal must never echo the
- * target — a target path of this shape is itself PHI.
+ * target, a target path of this shape is itself PHI.
  */
 const SECRET_REL = `secret/${FAMILY}-${GIVEN}.xml`;
 
@@ -1334,7 +1334,7 @@ function linkAt(root: string, rel: string, target: string): void {
   symlinkSync(target, abs);
 }
 
-/** Whether the whole run — stdout and stderr — is free of the target's name tokens. */
+/** Whether the whole run (stdout and stderr) is free of the target's name tokens. */
 function mentionsTarget(r: RunResult): boolean {
   const all = `${r.stdout}${r.stderr}`;
   return all.includes(FAMILY) || all.includes(GIVEN) || all.includes("secret/");
@@ -1361,7 +1361,7 @@ describe("phi-scan: a non-regular in-scope entry refuses the scan, on both route
     expect(control.stderr).toContain("src/regular.xml");
   });
 
-  it("all-mode REFUSES a linked DIRECTORY — it takes a whole subtree with it", () => {
+  it("all-mode REFUSES a linked DIRECTORY: it takes a whole subtree with it", () => {
     const r = withGitRoot((root) => {
       seedSecret(root);
       linkAt(root, "src/linkdir", join(root, "secret"));
@@ -1396,14 +1396,14 @@ describe("phi-scan: a non-regular in-scope entry refuses the scan, on both route
     expect(scannedCount(r)).toBeGreaterThan(0);
   });
 
-  it("does NOT extend the `.md` exemption to a link — on BOTH routes, not one", () => {
+  it("does NOT extend the `.md` exemption to a link, on BOTH routes, not one", () => {
     // A markdown FILE is out of scope because documentation quotes violator values.
     // A link merely NAMED `.md` says nothing about what is on the other side.
     //
     // BOTH ROUTES, DELIBERATELY. The first version of this slice ran the staged route's
     // non-regular check AFTER the `.md` filter, so this exact link refused in all-mode
-    // and returned `OK — no hits (0 file(s) scanned)` exit 0 when staged, with `.md`
-    // the sole discriminator — while the scanner's own authoritative note claimed the
+    // and returned `OK, no hits (0 file(s) scanned)` exit 0 when staged, with `.md`
+    // the sole discriminator, while the scanner's own authoritative note claimed the
     // exemption did not extend to a link. An all-mode-only test let that survive green.
     const { all, staged, mdFile } = withGitRoot((root) => {
       const secret = seedSecret(root);
@@ -1455,12 +1455,12 @@ describe("phi-scan: a non-regular in-scope entry refuses the scan, on both route
     // in hand. Written as a POSITIVE match on the qualifier, not as a negative match on
     // the claim: the superseded text read "hands back ITS target path rather than any
     // content", which a negative regex aimed at the current wording does not match
-    // either — so it would have passed over the very message it named and pinned
+    // either, so it would have passed over the very message it named and pinned
     // nothing. A negative assertion is only as good as the string it was checked against.
     expect(r.stderr).toMatch(/for a symbolic link it hands back the target path/);
   });
 
-  it("refuses a FIFO with its own kind token — the rule is not keyed on symlinks", () => {
+  it("refuses a FIFO with its own kind token: the rule is not keyed on symlinks", () => {
     // A FIFO is the case that would BLOCK the gate forever if anything followed it.
     const r = withGitRoot((root) => {
       mkdirSync(join(root, "src"), { recursive: true });
@@ -1495,7 +1495,7 @@ describe("phi-scan: a non-regular in-scope entry refuses the scan, on both route
 
   it("--staged REFUSES the REVERSE typechange: a tracked regular file replaced by a link", () => {
     // THE FLAG THIS SLICE CHANGED IS `--name-only` -> `--raw`, NOT the status filter.
-    // `--diff-filter=d` is an exclusion, so `T` was ALREADY enumerated here — what was
+    // `--diff-filter=d` is an exclusion, so `T` was ALREADY enumerated here, what was
     // missing was the MODE, which `--name-only` does not carry. Both halves measured.
     const { scanned, nameOnly } = withGitRoot((root) => {
       const secret = seedSecret(root);
@@ -1532,7 +1532,7 @@ describe("phi-scan: a non-regular in-scope entry refuses the scan, on both route
     expect(r.stderr).toContain("src/nested (a gitlink (a nested repository))");
   });
 
-  it("--staged still scans an EXECUTABLE regular blob — mode 100755 is a file", () => {
+  it("--staged still scans an EXECUTABLE regular blob: mode 100755 is a file", () => {
     // The mode check is an allow-list of the two regular blob modes, so the
     // executable one has to be in it or every `chmod +x` fixture would refuse.
     const r = withGitRoot((root) => {
@@ -1568,7 +1568,7 @@ describe("phi-scan: a non-regular in-scope entry refuses the scan, on both route
 // NEITHER DIRECTION IS CHANGED BY THESE TESTS, because on inspection both are the
 // right answer for their mode and the disagreement is not a defect:
 //   - all-mode SKIPS ignored files. It walks the working tree, where an ignored
-//     path is build output or a local scratch file — never something a commit will
+//     path is build output or a local scratch file, never something a commit will
 //     carry. Scanning them would red the gate on artifacts nobody is committing.
 //   - --staged does NOT skip them, because it enumerates the INDEX. A file reaches
 //     the index only by `git add -f`, which is an explicit override of the ignore
@@ -1637,7 +1637,7 @@ describe("phi-scan: EMAIL clears one exact address, not a whole domain", () => {
  * enumerated here. THIS suite is the reachable writer: `withSeeded` puts untracked
  * violators at `scripts/zz-phi-scan-seed-scripts.xml`,
  * `test/scripts/zz-phi-scan-seed-outside.xml` and
- * `test/fixtures/zz-phi-scan-seed-fixtures.xml` — all three inside `SCAN_ROOTS` —
+ * `test/fixtures/zz-phi-scan-seed-fixtures.xml`, all three inside `SCAN_ROOTS`,
  * and removes them in a `finally`. Sweeping this checkout in all-mode while the
  * seeded tests ran refused 8 of 165 sweeps with exit 2 naming those paths.
  *
@@ -1674,7 +1674,7 @@ function realGit(): string {
 /**
  * A directory holding a `git` that runs `pre` (one line of `sh`) before delegating
  * to the real git. Put first on the scanner's `PATH`, this fires between the walk
- * and the first read — the window under test.
+ * and the first read: the window under test.
  */
 function shimDirRunning(pre: string): string {
   const d = mkdtempSync(join(tmpdir(), "phi-scan-shim-"));
@@ -1736,7 +1736,7 @@ describe("phi-scan: the enumeration TOCTOU window", () => {
       },
     );
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
-    expect(r.stdout).toMatch(/OK — no hits/);
+    expect(r.stdout).toMatch(/OK, no hits/);
     // Never silent: the skip is named, with the path that went away.
     expect(r.stderr).toMatch(/skipped 1 untracked file\(s\) gone between enumeration and read/);
     expect(r.stderr).toContain(DECOY);
@@ -1820,7 +1820,7 @@ describe("phi-scan: the enumeration TOCTOU window", () => {
     // tolerance stays switched on and this branch is the one that fires.
     //
     // ALL THREE, NOT JUST THE ALLOW-LIST. Removing one would now refuse under the
-    // PER-ROOT arm instead, which is a different assertion — this test is the
+    // PER-ROOT arm instead, which is a different assertion: this test is the
     // ALL-starved case, and it is kept genuinely all-starved so that the global rule
     // stays pinned as the special case of the per-root one that it is.
     const r = withToctouRoot(

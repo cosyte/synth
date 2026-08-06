@@ -1,8 +1,8 @@
 /**
- * The **seed-determinism property** for C-CDA (roadmap §5, §6 — mandatory). A seed, and only the seed,
+ * The **seed-determinism property** for C-CDA (roadmap §5, §6: mandatory). A seed, and only the seed,
  * determines the output: generating twice yields byte-identical serialized documents, for both the CCD
  * and Referral Note generators and the corpus. This is the property that makes `synth` a reproducible
- * fixture source — and the one `buildCcda`'s default `effectiveTime: new Date()` would silently break
+ * fixture source, and the one `buildCcda`'s default `effectiveTime: new Date()` would silently break
  * if the generator did not pass an explicit synthetic date.
  */
 
@@ -16,7 +16,7 @@ const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 }
 
 describe("C-CDA seed-determinism (mandatory property)", () => {
   // `buildCcda` parses XML through @xmldom/xmldom on every build, so a C-CDA build is materially
-  // heavier than a FHIR/HL7 one — the seed sweeps here are sized (and given a generous per-test
+  // heavier than a FHIR/HL7 one: the seed sweeps here are sized (and given a generous per-test
   // timeout) so the property stays meaningful without timing out under v8 coverage instrumentation.
   it("each document generator is byte-identical for the same seed", () => {
     fc.assert(

@@ -1,8 +1,8 @@
 /**
- * The **seed-determinism property** for X12 (roadmap §5, §6 — mandatory). A seed, and only the seed,
+ * The **seed-determinism property** for X12 (roadmap §5, §6: mandatory). A seed, and only the seed,
  * determines the output: generating twice yields byte-identical serialized interchanges, for every
  * transaction generator and the corpus. This is the property that makes `synth` a reproducible fixture
- * source — every control number, date, and identifier is drawn from the seeded PRNG, never wall-clock
+ * source: every control number, date, and identifier is drawn from the seeded PRNG, never wall-clock
  * or ambient entropy.
  */
 

@@ -1,5 +1,5 @@
 /**
- * `@cosyte/synth` — a deterministic, seedable **synthetic-data / test-fixture generator** for the
+ * `@cosyte/synth`: a deterministic, seedable **synthetic-data / test-fixture generator** for the
  * cosyte healthcare formats. A *consumer* of the parsers, not a parser: it builds artifacts **through
  * each parser's own builder/serializer** (so output is spec-clean by construction) and draws every
  * value from a **guaranteed-non-colliding synthetic source** (so no output can be real or
@@ -8,7 +8,7 @@
  * This root entry point exposes the **format-agnostic core**: the seeded PRNG, the synthetic-safety
  * providers, the `Corpus` abstraction, the profile skeleton, and the fatal codes. Per-format
  * generation lives behind its own subpath (`@cosyte/synth/hl7`) so importing the root never pulls a
- * parser — the lazy per-format boundary.
+ * parser: the lazy per-format boundary.
  *
  * @module
  */
@@ -94,7 +94,7 @@ export {
 // ── The profile growth-loop skeleton (roadmap §Phase 1) ──
 export { defineSynthProfile, type SynthProfile, type SynthProfileSpec } from "./profile.js";
 
-// ── The quirk core (roadmap §Phase 7 — the differentiator; format recipes live per-subpath) ──
+// ── The quirk core (roadmap §Phase 7: the differentiator; format recipes live per-subpath) ──
 export {
   resolveQuirk,
   sameCodeSet,

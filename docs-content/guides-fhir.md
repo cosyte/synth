@@ -7,7 +7,7 @@ sidebar_position: 3
 # Generate FHIR R4 / US Core resources
 
 The `@cosyte/synth/fhir` subpath builds FHIR resources **through `@cosyte/fhir`'s own model
-constructors and serializer**, so every resource is **spec-clean by construction** — it validates under
+constructors and serializer**, so every resource is **spec-clean by construction**: it validates under
 `@cosyte/fhir.validateResource` and re-serializes byte-for-byte. `@cosyte/fhir` is an **optional peer
 dependency**, needed only for this subpath.
 
@@ -29,7 +29,7 @@ const result = roundTrip(patient);
 result.specClean; // => true
 ```
 
-Every identity field — name, MRN, birth date, phone, email, address — is drawn from a
+Every identity field (name, MRN, birth date, phone, email, address) is drawn from a
 guaranteed-non-colliding synthetic source, so **no generated value can be real or plausibly-real PHI**.
 
 ## The clinical spine, wired to a patient
@@ -48,7 +48,7 @@ roundTrip(lab).errors; // => []
 
 ## Validating against US Core (bring your own profile)
 
-`@cosyte/synth` bundles **no** US Core IG — matching `@cosyte/fhir`'s content-free posture. To assert US
+`@cosyte/synth` bundles **no** US Core IG: matching `@cosyte/fhir`'s content-free posture. To assert US
 Core conformance, load the published US Core `StructureDefinition`s yourself and pass them to
 `roundTrip`:
 
@@ -63,13 +63,13 @@ const usCorePatient = loadStructureDefinition(resource);
 const result = roundTrip(generatePatient({ seed: 1, profile: "us-core" }), {
   profiles: usCorePatient ? [usCorePatient] : [],
 });
-result.errors; // [] — conformant to the real US Core 6.1.0 Patient profile
+result.errors; // [], conformant to the real US Core 6.1.0 Patient profile
 ```
 
 ## The rest of the clinical set
 
 `Encounter`, `DiagnosticReport`, `Immunization`, `AllergyIntolerance`, and `Procedure` follow the same
-shape — a `subject`/`patient` reference and a US Core `meta.profile` by default:
+shape, a `subject`/`patient` reference and a US Core `meta.profile` by default:
 
 ```ts runnable
 import {
@@ -109,5 +109,5 @@ corpus.artifacts.length; // => 11
 
 ## Next
 
-- [Core Concepts](./concepts-archetype) — synthetic-by-construction, determinism, the round-trip gate.
-- **API Reference** — every export, generated from source.
+- [Core Concepts](./concepts-archetype): synthetic-by-construction, determinism, the round-trip gate.
+- **API Reference**: every export, generated from source.

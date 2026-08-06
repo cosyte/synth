@@ -1,48 +1,48 @@
 ---
 id: limitations
-title: What it does — and does not do
+title: What it does and does not do
 sidebar_position: 1
 ---
 
-# What `@cosyte/synth` does — and does not do
+# What `@cosyte/synth` does and does not do
 
 `@cosyte/synth` is a **format/conformance generator, not a clinical simulator (not Synthea); every
 value is synthetic-by-construction; output is deterministic per seed within a version window; no
 terminology is bundled; and there is no DICOM in v1.**
 
 That one sentence governs the whole library. This page is the honest, blunt shape of the promise and
-its edges — read it before you rely on `synth`. The **API Reference** is always the exact truth of what
+its edges, read it before you rely on `synth`. The **API Reference** is always the exact truth of what
 a given release ships; this page is the shape of the whole.
 
 ## The promise (narrow, on purpose)
 
 `@cosyte/synth` emits **deterministic, seedable, spec-clean (and, in quirk mode, deliberately
-off-spec) synthetic fixtures** across the six cosyte formats — and **every value it emits is drawn from
+off-spec) synthetic fixtures** across the six cosyte formats, and **every value it emits is drawn from
 a guaranteed-non-colliding synthetic source.**
 
 - **Spec-clean by construction.** Each artifact is built **through the parser's own
   builder/serializer** (`@cosyte/hl7`'s `buildMessage`, `@cosyte/fhir`'s model + serializer,
   `@cosyte/ccda`'s `buildCcda`, the X12/NCPDP/ASTM domain builders), so it is spec-clean by the same
-  mechanism that makes the parser's emit side spec-clean — and it is proven by feeding the output
+  mechanism that makes the parser's emit side spec-clean, and it is proven by feeding the output
   straight back into that parser and asserting **zero warnings**. `synth` never hand-writes wire bytes
   around a builder.
 - **Synthetic-by-construction.** There is no code path that can emit a name, identifier, date, phone,
   email, address, or IP not sourced from a reserved range or a shipped clearly-fake pool (see the
   posture below). This is the inverse of a de-identifier: `deid` proves real PHI is _gone_; `synth`
   proves plausibly-real PHI was _never generated_.
-- **Deterministic.** The same seed yields **byte-identical** output on any machine, any run — the
+- **Deterministic.** The same seed yields **byte-identical** output on any machine, any run, the
   property every downstream regression and golden-file suite depends on. Determinism is threaded
   through a hand-rolled seeded PRNG (`splitmix32`/`sfc32`); `Math.random` is lint-banned in `src/`.
 
 ## What it does **not** do
 
-These are **non-goals**, not missing features — named so nothing over-trusts the generator.
+These are **non-goals**, not missing features: named so nothing over-trusts the generator.
 
-- **Not a clinical-simulation engine — this is the load-bearing boundary vs Synthea.** **Synthea**
+- **Not a clinical-simulation engine: this is the load-bearing boundary vs Synthea.** **Synthea**
   (MITRE) models each patient's disease progression and lifetime medical history and emits
   **clinically-coherent** records. `synth` is the opposite kind of tool: its randomness is
   **structural** (field shapes, delimiters, quirks, edge cases), not epidemiological. A `synth`-generated
-  `ORU` may pair a diagnosis code and a result value that make no clinical sense — **and that is
+  `ORU` may pair a diagnosis code and a result value that make no clinical sense, **and that is
   correct**, because its job is to exercise the _parser_, not to be a plausible patient. `synth` does
   **not** reimplement Synthea (optional Synthea-content ingestion is a documented future concern, below).
 - **Not statistically-representative populations.** No claim is made that a generated cohort matches any
@@ -65,22 +65,22 @@ These are **non-goals**, not missing features — named so nothing over-trusts t
 Every PHI-bearing locus is filled from a source **provably incapable of denoting a real person or
 resource.** The floors, each an authoritative never-collide range or a deliberately-invalid check value:
 
-| Locus                        | Source                                                                   | Why it cannot be real                                                            |
-| ---------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| **SSN**                      | area `900–999` (never issued) + the `987-65-432x` advertising block      | SSA never issues these areas                                                     |
-| **NPI**                      | 10 digits with a **deliberately-invalid Luhn** check digit               | a real NPI must pass Luhn — `isSyntheticNpi` proves the failure                  |
-| **DEA**                      | registrant letter + 7 digits with a **deliberately-invalid** check digit | a real DEA must pass its checksum — `isSyntheticDea` proves the failure          |
-| **Phone**                    | NANP `555-0100 … 555-0199` only                                          | the reserved fictional block (not "any 555 number")                              |
-| **Email / domain**           | `example.com/.net/.org`, `.test/.example/.invalid/.localhost`            | RFC 2606 / RFC 6761 special-use                                                  |
-| **IP**                       | `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`, `2001:db8::/32`     | RFC 5737 / RFC 3849 documentation ranges                                         |
-| **MRN / member / account**   | a clearly-synthetic **assigning-authority** namespace (`COSYTE-SYNTH`)   | there is no reserved MRN range — so the _namespace_ is synthetic, not the digits |
-| **ZIP**                      | `00000`                                                                  | not an assignable ZIP                                                            |
-| **Names / streets / cities** | a shipped, curated **clearly-fake pool**                                 | not a realistic-name corpus that could match a real person at a real address     |
+| Locus                        | Source                                                                   | Why it cannot be real                                                           |
+| ---------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| **SSN**                      | area `900–999` (never issued) + the `987-65-432x` advertising block      | SSA never issues these areas                                                    |
+| **NPI**                      | 10 digits with a **deliberately-invalid Luhn** check digit               | a real NPI must pass Luhn: `isSyntheticNpi` proves the failure                  |
+| **DEA**                      | registrant letter + 7 digits with a **deliberately-invalid** check digit | a real DEA must pass its checksum: `isSyntheticDea` proves the failure          |
+| **Phone**                    | NANP `555-0100 … 555-0199` only                                          | the reserved fictional block (not "any 555 number")                             |
+| **Email / domain**           | `example.com/.net/.org`, `.test/.example/.invalid/.localhost`            | RFC 2606 / RFC 6761 special-use                                                 |
+| **IP**                       | `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`, `2001:db8::/32`     | RFC 5737 / RFC 3849 documentation ranges                                        |
+| **MRN / member / account**   | a clearly-synthetic **assigning-authority** namespace (`COSYTE-SYNTH`)   | there is no reserved MRN range, so the _namespace_ is synthetic, not the digits |
+| **ZIP**                      | `00000`                                                                  | not an assignable ZIP                                                           |
+| **Names / streets / cities** | a shipped, curated **clearly-fake pool**                                 | not a realistic-name corpus that could match a real person at a real address    |
 
 The floors are enforced two ways: a **union `phi-scan`** (the parsers' own PHI scanners) sweeps a
 representative generated corpus in CI and must report **zero** real-data hits, and a **property suite**
 asserts, for arbitrary seeds and every format, that no emitted value escapes these sources. A quirk
-fixture deviates _structure_, never _provenance_ — the safety floor holds over quirk output too.
+fixture deviates _structure_, never _provenance_: the safety floor holds over quirk output too.
 
 **The diagnostics have their own floor, and it is a different one.** The table above is about the
 values `synth` emits. A separate guarantee covers what `synth` says about your call:
@@ -88,8 +88,8 @@ values `synth` emits. A separate guarantee covers what `synth` says about your c
 - A fatal message is a **fixed string from a frozen registry**. `SynthError` takes a code and no value
   parameter, so there is no position through which a value could reach `message`, `stack`, or a field
   on the thrown object.
-- Caller-supplied **selectors** — a message kind, a document type, a corpus mix entry, a claim
-  variant, a Bundle type, a resource profile, a quirk name — are resolved against their own closed set
+- Caller-supplied **selectors** (a message kind, a document type, a corpus mix entry, a claim
+  variant, a Bundle type, a resource profile, a quirk name) are resolved against their own closed set
   before anything is generated. An unrecognised one is a fatal `SYNTH_UNSUPPORTED_KIND` (or
   `SYNTH_UNSUPPORTED_QUIRK`), so it does not reach a peer builder that might quote it back and does
   not become an artifact `kind` or a manifest key.
@@ -99,7 +99,7 @@ values `synth` emits. A separate guarantee covers what `synth` says about your c
 Each of those is asserted per position, against a marker planted in each one, rather than argued from
 the fact that a fixture generator's values are synthetic anyway. **The list of positions is an
 enumeration, not a proof of exhaustiveness.** What holds generally is the mechanism: the error type
-has no value parameter, and a selector is resolved against its closed set in one place — everywhere
+has no value parameter, and a selector is resolved against its closed set in one place, everywhere
 except the `@cosyte/synth/deid` pairing loops. Those are the stated exception: `x12DeidLoop({ variant })`
 and `ncpdpTelecomDeidLoop({ transaction })` still surface an uncoded `TypeError` for an unrecognised
 value, and `ccdaDeidLoop({ documentType })` still generates a Referral Note for anything but `"ccd"`.
@@ -109,21 +109,21 @@ None echoes your value into a message, and all three are tracked separately.
 `content` is what you asked to be built and carries what you asked for, and the same goes for a name
 pool or a profile name you supply and get handed back. A **document or model you pass to a round-trip
 harness** is parsed by the sibling parser, and a fatal it raises on input it could not read is that
-parser's diagnostic, not this one's. And a **caller-authored label** — a `SynthProfile` name, an
-`Artifact` you construct yourself and hand to `makeCorpus` — is stored and returned verbatim, because
+parser's diagnostic, not this one's. And a **caller-authored label** (a `SynthProfile` name, an
+`Artifact` you construct yourself and hand to `makeCorpus`) is stored and returned verbatim, because
 that is what you asked for; no `synth` code path derives anything from it.
 
 ```ts runnable
 import { createRng, safe, isSyntheticSsn, isSyntheticNpi, isSyntheticDea } from "@cosyte/synth";
 
 const rng = createRng(1);
-// Every provider draws from a never-collide source — the checks below can never be false.
+// Every provider draws from a never-collide source: the checks below can never be false.
 isSyntheticSsn(safe.ssn(rng)) && isSyntheticNpi(safe.npi(rng)) && isSyntheticDea(safe.dea(rng)); // => true
 ```
 
 ## Determinism holds within a version window
 
-A seed maps to the same bytes **within a documented compatibility window** — not across _major_
+A seed maps to the same bytes **within a documented compatibility window**, not across _major_
 `synth` versions. A version bump may change a value list or the algorithm and thus the seed→bytes
 mapping; that is a **documented breaking change**. For a long-lived golden fixture, **pin the `synth`
 version alongside the seed.** Cross-engine determinism assumes the pinned toolchain (Node ≥22, ES2019+
@@ -134,14 +134,14 @@ stable sort and spec key order); it is not promised on arbitrary old engines.
 The spec-clean generation core is **feature-complete across all six formats**. Quirk mode and the
 `deid` pairing loop ship for a subset; the honest gaps:
 
-- **Vendor-quirk mode** ships for the three richest profile systems — **HL7 v2, C-CDA, ASTM**. Quirk
+- **Vendor-quirk mode** ships for the three richest profile systems: **HL7 v2, C-CDA, ASTM**. Quirk
   recipes for **FHIR / X12 / NCPDP are deferred**, as is any quirk needing a private vendor corpus
   (built-in quirks are grounded only on **public** vendor profiles).
 - **The `deid` pairing loop** ships for **HL7 v2, FHIR, C-CDA, X12, and NCPDP Telecom**. NCPDP
-  **SCRIPT**, **ASTM**, and **DICOM** pairing are deferred (no adapter, or not generated —
+  **SCRIPT**, **ASTM**, and **DICOM** pairing are deferred (no adapter, or not generated:
   `DEID_LOOP_SKIPPED` names each).
 - **Format-specific gaps flagged, never faked:** the X12 **270** request (no `build270` upstream) and
-  NCPDP **SCRIPT lifecycle responses** are not generated — a gap is surfaced, never hand-written.
+  NCPDP **SCRIPT lifecycle responses** are not generated, a gap is surfaced, never hand-written.
 - **Built-in `synth` profiles.** `defineSynthProfile()` is the public growth-loop hook, and
   ready-made quirk profiles ship for the three quirk formats; broader **named site/vendor** recipes
   stay **consumer-authored** until a public spec grounds a built-in one (the same public-only
@@ -153,8 +153,8 @@ The spec-clean generation core is **feature-complete across all six formats**. Q
 
 - **The library is MIT.** Third-party **runtime** dependencies are **zero**; the parser and `deid`
   peers are first-party, optional, and lazily loaded per format.
-- **HIPAA-capable, not HIPAA-compliant** — and here that framing is nearly vacuous, because there is no
+- **HIPAA-capable, not HIPAA-compliant**, and here that framing is nearly vacuous, because there is no
   real PHI: `synth`'s entire output _looks like_ PHI and contains none, by construction. Every value
   it emits is drawn from the reserved sources above, and a `phi-scan` gate sweeps this project's own
   sources, fixtures and tooling on every change. You can commit and log a generated corpus without a
-  PHI review of its contents — that is the whole point.
+  PHI review of its contents: that is the whole point.

@@ -1,8 +1,8 @@
 /**
- * The **seed-determinism property** for ASTM (roadmap §5, §6 — mandatory). A seed, and only the seed,
+ * The **seed-determinism property** for ASTM (roadmap §5, §6: mandatory). A seed, and only the seed,
  * determines the output: generating twice yields a byte-identical record stream (and framed byte stream)
  * for every generator and the corpus. Every name, DOB, identifier, result value, and comment is drawn
- * from the seeded PRNG, never wall-clock or ambient entropy — and `buildAstmMessage` injects no clock
+ * from the seeded PRNG, never wall-clock or ambient entropy, and `buildAstmMessage` injects no clock
  * (unlike `buildCcda`'s `effectiveTime`), so the report is reproducible end to end.
  */
 

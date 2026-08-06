@@ -1,5 +1,5 @@
 /**
- * Generator behaviour for NCPDP (SYNTH-7) — every generator produces a spec-clean artifact (zero
+ * Generator behaviour for NCPDP (SYNTH-7): every generator produces a spec-clean artifact (zero
  * warnings, byte-stable) via the round-trip harness, the corpus is well-formed, and the SCRIPT
  * lifecycle requests carry the transaction element they claim.
  */

@@ -1,5 +1,5 @@
 /**
- * Unit tests for the **quirk core** (`src/quirk.ts`) — the format-agnostic contract machinery: exact
+ * Unit tests for the **quirk core** (`src/quirk.ts`), the format-agnostic contract machinery: exact
  * intended-warning comparison, fail-closed quirk resolution (`SYNTH_UNSUPPORTED_QUIRK`), the
  * suppressed-vs-rebadged profile disposition logic, and `defineSynthProfile` quirk validation.
  */
@@ -31,7 +31,7 @@ const REGISTRY: Readonly<Record<string, QuirkDescriptor>> = Object.freeze({
   }),
 });
 
-describe("sameCodeSet — exact multiset equality", () => {
+describe("sameCodeSet: exact multiset equality", () => {
   it("is order-independent", () => {
     expect(sameCodeSet(["A", "B"], ["B", "A"])).toBe(true);
   });
@@ -50,7 +50,7 @@ describe("sameCodeSet — exact multiset equality", () => {
   });
 });
 
-describe("resolveQuirk — fail-closed on an unsupported quirk", () => {
+describe("resolveQuirk: fail-closed on an unsupported quirk", () => {
   it("returns the descriptor for a known quirk", () => {
     expect(resolveQuirk(REGISTRY, "hl7v2", "demo-quirk").name).toBe("demo-quirk");
   });
@@ -74,7 +74,7 @@ describe("resolveQuirk — fail-closed on an unsupported quirk", () => {
   });
 });
 
-describe("profileTolerated — suppressed vs rebadged vs bare", () => {
+describe("profileTolerated: suppressed vs rebadged vs bare", () => {
   it("suppressed ⇒ tolerated iff the intended code is gone", () => {
     expect(profileTolerated("suppressed", ["X"], [])).toBe(true);
     expect(profileTolerated("suppressed", ["X"], ["X"])).toBe(false);
@@ -90,7 +90,7 @@ describe("profileTolerated — suppressed vs rebadged vs bare", () => {
   });
 });
 
-describe("assertIntendedWarnings — the generation-time contract self-check", () => {
+describe("assertIntendedWarnings: the generation-time contract self-check", () => {
   it("passes when the bare parse produced exactly the intended code(s)", () => {
     expect(() => assertIntendedWarnings(["A"], ["A"])).not.toThrow();
   });
@@ -106,7 +106,7 @@ describe("assertIntendedWarnings — the generation-time contract self-check", (
   });
 });
 
-describe("validateProfileQuirks — a SynthProfile's quirks are checked against the registry", () => {
+describe("validateProfileQuirks: a SynthProfile's quirks are checked against the registry", () => {
   it("returns the quirk names when all are supported", () => {
     const profile = defineSynthProfile({ name: "ok", quirks: ["demo-quirk"] });
     expect(validateProfileQuirks(profile, REGISTRY, "hl7v2")).toEqual(["demo-quirk"]);

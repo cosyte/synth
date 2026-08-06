@@ -1,12 +1,12 @@
 /**
- * `splitmix32` — a tiny, well-studied 32-bit mixing PRNG used **only** to expand a single integer
+ * `splitmix32`: a tiny, well-studied 32-bit mixing PRNG used **only** to expand a single integer
  * seed into the four 32-bit state words that seed {@link ../rng/sfc32.sfc32}. It is not the corpus
  * generator itself (that is `sfc32`); it exists so that a one-number seed deterministically produces a
  * well-distributed 128-bit `sfc32` state, avoiding the poor low-bit behavior of naive
  * `state = seed`-style initialization.
  *
- * Zero-dependency, `Math.random`-free (lint-enforced): the whole point of the library is that a seed —
- * and only the seed — determines the output, on any machine, any run.
+ * Zero-dependency, `Math.random`-free (lint-enforced): the whole point of the library is that a seed,
+ * and only the seed, determines the output, on any machine, any run.
  *
  * @module
  */

@@ -16,14 +16,14 @@ import { mshScaffold, patientIdentity, pidSegment, seededTimestamp } from "./com
 
 /** Options for {@link generateSiu}. */
 export interface GenerateSiuOptions {
-  /** The seed — the same seed yields a byte-identical message. Defaults to `0`. */
+  /** The seed: the same seed yields a byte-identical message. Defaults to `0`. */
   readonly seed?: number;
 }
 
 /**
  * Generate a spec-clean `SIU^S12` {@link Hl7Message} through `@cosyte/hl7`. Deterministic in `seed`.
  *
- * Layout: MSH, `SCH` (schedule activity — the required group), `PID` (synthetic identity), `RGS`
+ * Layout: MSH, `SCH` (schedule activity, the required group), `PID` (synthetic identity), `RGS`
  * (resource group), `AIL` (location resource). The `SCH` satisfies the parser's `SIU^S12` structure
  * net, so the message re-parses with **zero warnings** (proven by {@link ./round-trip}).
  *

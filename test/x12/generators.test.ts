@@ -1,13 +1,13 @@
 /**
- * Unit tests for the X12 generators (SYNTH-6, roadmap §Phase 5) — 837P/I/D, 835, 271. Each generator
+ * Unit tests for the X12 generators (SYNTH-6, roadmap §Phase 5): 837P/I/D, 835, 271. Each generator
  * is checked for:
  *
- * - **Envelope identity** — GS-01 / ST-01 / ST-03 per transaction (the built interchange names itself).
- * - **The round-trip contract** — every generated interchange re-parses through `@cosyte/x12` with zero
+ * - **Envelope identity**, GS-01 / ST-01 / ST-03 per transaction (the built interchange names itself).
+ * - **The round-trip contract**, every generated interchange re-parses through `@cosyte/x12` with zero
  *   warnings and re-serializes byte-identically (roadmap §6, the headline gate).
- * - **Field fidelity** — the generated identity survives a parse back through `get837Claims` /
+ * - **Field fidelity**, the generated identity survives a parse back through `get837Claims` /
  *   `get835` / `get271Eligibility` (the parser is the judge).
- * - **The corpus** — a self-describing, deterministic `Corpus` across all five kinds.
+ * - **The corpus**, a self-describing, deterministic `Corpus` across all five kinds.
  *
  * Synthetic-only fixtures: every identifier is synthetic-by-construction (see
  * `synthetic-safety.property.test.ts`).
@@ -27,7 +27,7 @@ import {
   x12Corpus,
 } from "../../src/x12/index.js";
 
-describe("837 — envelope identity", () => {
+describe("837: envelope identity", () => {
   it("emits GS-01 HC, ST-01 837, and the per-variant ST-03 TR3 version", () => {
     const cases = [
       { ix: generate837P({ seed: 1 }), v: "005010X222A2" },
@@ -49,7 +49,7 @@ describe("837 — envelope identity", () => {
   });
 });
 
-describe("837 — round-trip + field fidelity", () => {
+describe("837: round-trip + field fidelity", () => {
   for (const variant of ["P", "I", "D"] as const) {
     it(`837${variant} round-trips spec-clean and re-parses field-for-field`, () => {
       const ix = generate837(variant, { seed: 100 + variant.charCodeAt(0) });
@@ -68,7 +68,7 @@ describe("837 — round-trip + field fidelity", () => {
   }
 });
 
-describe("835 — identity, round-trip, balance", () => {
+describe("835: identity, round-trip, balance", () => {
   it("emits GS-01 HP, ST-01 835, ST-03 005010X221A1", () => {
     const ix = generate835({ seed: 3 });
     expect(ix.groups[0]?.gs.elements[1]).toBe("HP");
@@ -88,7 +88,7 @@ describe("835 — identity, round-trip, balance", () => {
   });
 });
 
-describe("271 — identity, round-trip", () => {
+describe("271: identity, round-trip", () => {
   it("emits GS-01 HB, ST-01 271, ST-03 005010X279A1", () => {
     const ix = generate271({ seed: 5 });
     expect(ix.groups[0]?.gs.elements[1]).toBe("HB");

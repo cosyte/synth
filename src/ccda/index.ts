@@ -1,9 +1,9 @@
 /**
- * `@cosyte/synth/ccda` — the C-CDA generation surface, exposed as its own subpath so importing the
+ * `@cosyte/synth/ccda`: the C-CDA generation surface, exposed as its own subpath so importing the
  * package root does **not** pull `@cosyte/ccda`. This is the **lazy, per-format** boundary: a consumer
  * who only needs C-CDA fixtures imports `@cosyte/synth/ccda`; one who needs only the core primitives
  * never loads a parser.
- * `@cosyte/ccda` is an **optional peer dependency** — present only for this subpath.
+ * `@cosyte/ccda` is an **optional peer dependency**, present only for this subpath.
  *
  * This subpath ships spec-clean C-CDA document generation via `@cosyte/ccda`'s
  * `buildCcda`: a **CCD** (`generateCcd`) and a **Referral Note** (`generateReferralNote`), each built
@@ -56,10 +56,10 @@ export {
   type CcdaQuirkCorpusOptions,
 } from "./quirk.js";
 
-/** Every C-CDA document kind {@link ccdaCorpus} generates — the `documentType` used as the corpus `kind`. */
+/** Every C-CDA document kind {@link ccdaCorpus} generates: the `documentType` used as the corpus `kind`. */
 export type CcdaCorpusKind = CcdaDocumentType;
 
-/** Every kind {@link ccdaCorpus} accepts, and the default mix — one CCD and one Referral Note. */
+/** Every kind {@link ccdaCorpus} accepts, and the default mix: one CCD and one Referral Note. */
 const ALL_KINDS: readonly CcdaCorpusKind[] = Object.freeze(["ccd", "referralNote"]);
 const DEFAULT_MIX = ALL_KINDS;
 
@@ -84,7 +84,7 @@ export interface CcdaCorpusOptions {
  * ```ts
  * import { ccdaCorpus } from "@cosyte/synth/ccda";
  * const corpus = ccdaCorpus({ seed: 42, count: 4 });
- * corpus.artifacts.every((a) => a.warnings.length === 0); // true — spec-clean
+ * corpus.artifacts.every((a) => a.warnings.length === 0); // true, spec-clean
  * ```
  */
 export function ccdaCorpus(options: CcdaCorpusOptions): Corpus {

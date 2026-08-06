@@ -1,14 +1,14 @@
 /**
- * `Rng` — the seeded, deterministic random source every `@cosyte/synth` provider draws from.
+ * `Rng`: the seeded, deterministic random source every `@cosyte/synth` provider draws from.
  *
- * **The reproducibility contract.** A seed — and only the seed — determines the output.
+ * **The reproducibility contract.** A seed, and only the seed, determines the output.
  * `createRng(seed)` expands the integer seed through {@link ./splitmix32.splitmix32} into the four
  * `sfc32` state words, then every draw advances that state via {@link ./sfc32.sfc32Next}. Two `Rng`s
- * created from the same seed emit the **identical** sequence on any machine, any run — the property
+ * created from the same seed emit the **identical** sequence on any machine, any run: the property
  * the parsers', `transform`'s, and `deid`'s regression suites depend on.
  *
  * **Explicit, never global.** An `Rng` is a value you thread through a build; there is no ambient
- * shared generator and **`Math.random` is lint-banned** in `src/` (it is not seedable — its seed is
+ * shared generator and **`Math.random` is lint-banned** in `src/` (it is not seedable: its seed is
  * engine-chosen and cannot be reset, so a corpus built on it is not reproducible). Because each
  * generation creates a fresh `Rng` from its seed, generations are independent and parallel-safe.
  *

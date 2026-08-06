@@ -1,5 +1,5 @@
 /**
- * `@cosyte/synth/deid` — the **`@cosyte/deid` pairing loop**: a deterministic,
+ * `@cosyte/synth/deid`, the **`@cosyte/deid` pairing loop**: a deterministic,
  * seeded **co-validation harness** for the `synth` ⇄ `deid` pair.
  *
  * For each covered format it **generates** a spec-clean synthetic artifact through `@cosyte/synth`'s own
@@ -8,7 +8,7 @@
  * the de-identified output while the clinical payload survives. A surviving sentinel is a hard failure;
  * an over-scrubbed clinical value is a hard failure.
  *
- * **Scope & honesty.** This proves *the pair works on `synth`'s own output* — it
+ * **Scope & honesty.** This proves *the pair works on `synth`'s own output*: it
  * is **not** an independent audit of `@cosyte/deid` against real-world documents. The sentinels are
  * synthetic-by-construction (never realistic); a sentinel `deid` **blocks** rather than redacts still
  * passes (blocked = gone). The loop covers the five formats both packages support
@@ -81,7 +81,7 @@ export {
 } from "./loop.js";
 
 /**
- * The cosyte formats the pairing loop covers — every format for which **both** `@cosyte/synth`
+ * The cosyte formats the pairing loop covers: every format for which **both** `@cosyte/synth`
  * generates and `@cosyte/deid` ships an adapter.
  *
  * @example
@@ -99,7 +99,7 @@ export const DEID_LOOP_COVERED_FORMATS = Object.freeze([
 ] as const);
 
 /**
- * The format paths the loop **deliberately skips**, each with the honest reason — so a coverage gap is
+ * The format paths the loop **deliberately skips**, each with the honest reason, so a coverage gap is
  * named, never silent.
  *
  * @example
@@ -138,7 +138,7 @@ function residue(loci: readonly GenericLocus[]): string {
   return loci.map((l) => l.value).join("\n");
 }
 
-/** The de-identified `<recordTarget>` block of a C-CDA document — the patient PHI residue. @internal */
+/** The de-identified `<recordTarget>` block of a C-CDA document: the patient PHI residue. @internal */
 function recordTargetResidue(xml: string): string {
   return /<recordTarget[\s\S]*?<\/recordTarget>/i.exec(xml)?.[0] ?? "";
 }
@@ -163,7 +163,7 @@ const NCPDP_CLINICAL = EXAMPLE_DRUGS.map((d) => d.ndc);
 
 /** Options accepted by {@link hl7DeidLoop}. */
 export interface Hl7DeidLoopOptions {
-  /** The seed — the same seed yields the same artifact and the same verdict. Defaults to `0`. */
+  /** The seed: the same seed yields the same artifact and the same verdict. Defaults to `0`. */
   readonly seed?: number;
   /** The HL7 v2 message family to generate. Defaults to `"ORU^R01"` (a PHI- and clinically-dense report). */
   readonly kind?: Hl7MessageKind;
@@ -327,7 +327,7 @@ function generateTelecomWire(transaction: NcpdpTelecomVariant, seed: number): st
 /**
  * Run the pairing loop for **NCPDP Telecom** (pharmacy claims): generate a spec-clean transaction
  * through `@cosyte/ncpdp`, plant PHI sentinels at the patient/cardholder segments, de-identify through
- * `@cosyte/deid/ncpdp`, and verify removal + clinical retention. **NCPDP SCRIPT is out of scope** —
+ * `@cosyte/deid/ncpdp`, and verify removal + clinical retention. **NCPDP SCRIPT is out of scope**:
  * `@cosyte/deid` ships no SCRIPT adapter ({@link DEID_LOOP_SKIPPED}).
  *
  * @param options - The seed and transaction. See {@link NcpdpTelecomDeidLoopOptions}.
@@ -412,11 +412,11 @@ export interface DeidCoverageRow {
   readonly artifacts: readonly string[];
   /** Total distinctive PHI sentinels planted across the runs. */
   readonly planted: number;
-  /** Total surviving sentinels — **0** on a clean pass. */
+  /** Total surviving sentinels, **0** on a clean pass. */
   readonly survivors: number;
   /** Total clinical tokens probed for over-scrub. */
   readonly clinicalProbed: number;
-  /** Total clinical tokens over-scrubbed — **0** on a clean pass. */
+  /** Total clinical tokens over-scrubbed, **0** on a clean pass. */
   readonly clinicalScrubbed: number;
   /** `true` iff every run for this format passed. */
   readonly pass: boolean;
@@ -428,9 +428,9 @@ export interface DeidCoverageSummary {
   readonly byFormat: readonly DeidCoverageRow[];
   /** Total sentinels planted across every run. */
   readonly totalPlanted: number;
-  /** Total surviving sentinels across every run — **0** on a clean pass. */
+  /** Total surviving sentinels across every run, **0** on a clean pass. */
   readonly totalSurvivors: number;
-  /** Total clinical over-scrubs across every run — **0** on a clean pass. */
+  /** Total clinical over-scrubs across every run, **0** on a clean pass. */
   readonly totalClinicalScrubbed: number;
   /** `true` iff every run passed. */
   readonly allPass: boolean;
@@ -439,7 +439,7 @@ export interface DeidCoverageSummary {
 }
 
 /**
- * Summarize a set of loop runs into a per-format coverage report — the "coverage summary per format" the
+ * Summarize a set of loop runs into a per-format coverage report: the "coverage summary per format" the
  * harness reports.
  *
  * @param results - The loop results to aggregate.

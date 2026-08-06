@@ -1,5 +1,5 @@
 /**
- * Generator behaviour for ASTM (SYNTH-8) — every generator produces a spec-clean artifact (zero
+ * Generator behaviour for ASTM (SYNTH-8): every generator produces a spec-clean artifact (zero
  * warnings, byte-stable) via the round-trip harness, the framed (E1381) twin round-trips clean with
  * computed checksums/frame-numbers, and the corpus is well-formed under the `astm` format.
  */

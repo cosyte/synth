@@ -18,14 +18,14 @@ import { EXAMPLE_VACCINES } from "./example-codes.js";
 
 /** Options for {@link generateVxu}. */
 export interface GenerateVxuOptions {
-  /** The seed — the same seed yields a byte-identical message. Defaults to `0`. */
+  /** The seed: the same seed yields a byte-identical message. Defaults to `0`. */
   readonly seed?: number;
 }
 
 /**
  * Generate a spec-clean `VXU^V04` {@link Hl7Message} through `@cosyte/hl7`. Deterministic in `seed`.
  *
- * Layout: MSH, `PID` (synthetic identity — the required group), `ORC` (common order), `RXA` (vaccine
+ * Layout: MSH, `PID` (synthetic identity, the required group), `ORC` (common order), `RXA` (vaccine
  * administration, CVX example code), `RXR` (route). The `PID` satisfies the parser's `VXU^V04`
  * structure net, so the message re-parses with **zero warnings** (proven by {@link ./round-trip}).
  *

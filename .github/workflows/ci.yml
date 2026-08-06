@@ -21,7 +21,7 @@ jobs:
   # step is switched on. That step runs `pnpm phi-scan` with NO arguments, which is all-mode: it
   # walks src/, test/ and scripts/ rather than the staged set, so it does not depend on what a
   # given push happened to touch. The pre-commit hook is the --staged half; this is the backstop.
-  # The scanner is a floor, not the whole gate — the property suites are the real proof (see the
+  # The scanner is a floor, not the whole gate: the property suites are the real proof (see the
   # header of scripts/phi-scan.ts).
   ci:
     uses: cosyte/.github/.github/workflows/ci.yml@main

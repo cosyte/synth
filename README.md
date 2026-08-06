@@ -5,7 +5,7 @@
 
 # @cosyte/synth
 
-> Deterministic, seedable **synthetic healthcare-fixture generator** for Node.js and TypeScript —
+> Deterministic, seedable **synthetic healthcare-fixture generator** for Node.js and TypeScript:
 > spec-clean by construction, and **never real PHI**.
 
 `@cosyte/synth` generates reproducible synthetic test corpora across the six cosyte formats (HL7 v2,
@@ -13,19 +13,19 @@ FHIR R4 / US Core, C-CDA, X12, NCPDP, and ASTM). It is a **consumer** of the
 cosyte parsers, not a parser: it builds each artifact **through the parser's own builder/serializer**
 (so the output is spec-clean by the same mechanism the parser proves) and draws every identifier, name,
 date, phone, and address from a **guaranteed-non-colliding synthetic source**. It is a
-**format/conformance generator, not a clinical simulator** — it does not model disease progression
+**format/conformance generator, not a clinical simulator**: it does not model disease progression
 (that is Synthea).
 
 > **Status:** pre-alpha (`0.0.x`), published to npm. The version shown on the npm package page is the
 > one that is live; this page never repeats it. The generator is **feature-complete**: the
 > seeded-PRNG core, the synthetic-safety providers, and the round-trip harness; **spec-clean generation
-> across all six formats** — HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`), FHIR R4 / US Core (the full clinical
+> across all six formats**, HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`), FHIR R4 / US Core (the full clinical
 > set + `collection`/`transaction`/`document` Bundles), C-CDA R2.1 (CCD + Referral Note), X12 005010
 > (837P/I/D, 835, 271), NCPDP (SCRIPT NewRx / RxRenewal / RxChange + Telecom B1/B2/B3), and ASTM (E1394
 > record reports + E1381 framing), each built **through its parser's own builder/serializer**; **vendor-quirk
-> mode** — profile-driven off-spec fixtures for the three richest profile systems (**HL7 v2, C-CDA, ASTM**),
+> mode**, profile-driven off-spec fixtures for the three richest profile systems (**HL7 v2, C-CDA, ASTM**),
 > each round-tripping to exactly the intended parser warning (the intended-warning contract); and the
-> **`@cosyte/deid` pairing loop** — a closed-loop co-validation harness that de-identifies generated output
+> **`@cosyte/deid` pairing loop**, a closed-loop co-validation harness that de-identifies generated output
 > and proves every planted synthetic PHI sentinel is removed.
 >
 > **Deferred (honestly out of scope for now):** quirk recipes for **FHIR / X12 / NCPDP** (and any quirk
@@ -42,13 +42,13 @@ npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cos
 `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, `@cosyte/ncpdp`, `@cosyte/astm`, and
 `@cosyte/deid` are **optional peer dependencies**, each needed only for its subpath (`@cosyte/synth/hl7`,
 `@cosyte/synth/fhir`, `@cosyte/synth/ccda`, `@cosyte/synth/x12`, `@cosyte/synth/ncpdp`,
-`@cosyte/synth/astm`, and `@cosyte/synth/deid` — the last needs `@cosyte/deid` **plus** the parsers for
-the formats it pairs) — install only the packages whose fixtures you generate. The package core has
+`@cosyte/synth/astm`, and `@cosyte/synth/deid`: the last needs `@cosyte/deid` **plus** the parsers for
+the formats it pairs): install only the packages whose fixtures you generate. The package core has
 **zero third-party runtime dependencies**.
 
 ## Generate a spec-clean HL7 v2 message
 
-The HL7 v2 set covers `ADT` (`A01`/`A04`/`A08`), `ORU^R01`, `ORM^O01`, `SIU^S12`, and `VXU^V04` —
+The HL7 v2 set covers `ADT` (`A01`/`A04`/`A08`), `ORU^R01`, `ORM^O01`, `SIU^S12`, and `VXU^V04`:
 each built through `@cosyte/hl7`'s `buildMessage`, so it is spec-clean by construction.
 
 ```ts
@@ -64,7 +64,7 @@ roundTrip(oru).specClean; // true
 
 // Or generate a reproducible mixed corpus across every family:
 const corpus = hl7Corpus({ seed: 42, count: 7 }); // one of each family, cycled
-corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-clean
+corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
 
 // Dispatch by kind when the message type is data:
 generateHl7("VXU^V04", 12345);
@@ -73,8 +73,8 @@ generateHl7("VXU^V04", 12345);
 ## Generate a spec-clean FHIR R4 / US Core resource
 
 The `@cosyte/synth/fhir` subpath builds resources **through `@cosyte/fhir`'s model constructors**, so
-they are spec-clean by construction — validating under `validateResource` and, against the **real US
-Core 6.1.0 profiles** (bring your own `StructureDefinition`s — none is bundled), conformant to US Core.
+they are spec-clean by construction: validating under `validateResource` and, against the **real US
+Core 6.1.0 profiles** (bring your own `StructureDefinition`s, none is bundled), conformant to US Core.
 The clinical set covers `Patient` (base + US Core), `Condition`, `Observation` (US Core Laboratory
 Result + Vital Signs), `MedicationRequest`, `Encounter`, `DiagnosticReport`, `Immunization`,
 `AllergyIntolerance`, and `Procedure`, assembled into a `collection`, `transaction`, or `document`
@@ -83,7 +83,7 @@ Result + Vital Signs), `MedicationRequest`, `Encounter`, `DiagnosticReport`, `Im
 ```ts
 import { generatePatient, generateBundle, fhirCorpus, roundTrip } from "@cosyte/synth/fhir";
 
-// A US Core Patient — same seed → byte-identical resource, anywhere.
+// A US Core Patient: same seed → byte-identical resource, anywhere.
 const patient = generatePatient({ seed: 12345, profile: "us-core" });
 
 // Spec-clean by construction: it round-trips through @cosyte/fhir with zero errors, byte-stable.
@@ -94,7 +94,7 @@ const bundle = generateBundle({ seed: 42, type: "transaction" });
 
 // Or a reproducible mixed corpus across the whole spine:
 const corpus = fhirCorpus({ seed: 2026, count: 6 });
-corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-clean
+corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
 ```
 
 `@cosyte/fhir` is an **optional peer dependency**, needed only for the `@cosyte/synth/fhir` subpath.
@@ -103,7 +103,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-cle
 
 The `@cosyte/synth/ccda` subpath builds Consolidated CDA R2.1 documents **through `@cosyte/ccda`'s
 `buildCcda`**, so template IDs, LOINC section codes, and structured/narrative agreement are the
-builder's own — the document round-trips through `parseCcda` with **zero warnings**. It emits a
+builder's own: the document round-trips through `parseCcda` with **zero warnings**. It emits a
 **CCD** (`generateCcd`) or a **Referral Note** (`generateReferralNote`), each with the CCD sections
 (Problems, Allergies, Medications, Results, Vital Signs, Immunizations, Procedures, Social History)
 populated from the reused, license-clean example-code pools.
@@ -123,7 +123,7 @@ roundTrip(generateReferralNote({ seed: 12345 })).specClean; // true
 
 // Or a reproducible mixed corpus (CCD + Referral Note, cycled):
 const corpus = ccdaCorpus({ seed: 42, count: 4 });
-corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-clean
+corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
 ```
 
 `@cosyte/ccda` is an **optional peer dependency**, needed only for the `@cosyte/synth/ccda` subpath.
@@ -132,7 +132,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-cle
 
 The `@cosyte/synth/x12` subpath builds HIPAA **005010** transactions **through `@cosyte/x12`'s domain
 builders** (`build837P/I/D`, `build835`, `build271`), so the ISA/GS/ST…SE/GE/IEA envelope, the
-computed HL spine, the control numbers, and every segment are the builder's own — each transaction
+computed HL spine, the control numbers, and every segment are the builder's own: each transaction
 round-trips through `@cosyte/x12` with **zero warnings**. It emits **837** professional / institutional
 / dental claims, the **835** remittance (balance-checked by construction), and the **271** eligibility
 response.
@@ -145,13 +145,13 @@ import { generate837P, generate835, generate271, x12Corpus, roundTrip } from "@c
 // never be a NPPES-issued NPI), the provider tax id is an SSA never-issued 900-range SSN, member ids
 // live under a synthetic assigning authority, and names come from the shipped fake-name pool.
 const claim = generate837P({ seed: 12345 });
-roundTrip(claim).specClean; // true — re-parses through @cosyte/x12 with zero warnings, byte-stable
+roundTrip(claim).specClean; // true, re-parses through @cosyte/x12 with zero warnings, byte-stable
 roundTrip(generate835({ seed: 7 })).specClean; // true
 roundTrip(generate271({ seed: 3 })).specClean; // true
 
 // Or a reproducible mixed corpus (837P/I/D + 835 + 271):
 const corpus = x12Corpus({ seed: 42 });
-corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-clean
+corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
 ```
 
 `@cosyte/x12` is an **optional peer dependency**, needed only for the `@cosyte/synth/x12` subpath.
@@ -180,12 +180,12 @@ import {
 // has a deliberately-INVALID Luhn check digit and the prescriber DEA a deliberately-INVALID checksum
 // (so neither can denote a real provider); patient/cardholder ids live under a synthetic assigning
 // authority, phones are reserved 555-01xx, and names come from the shipped fake-name pool.
-scriptRoundTrip(generateNewRx({ seed: 12345 })).specClean; // true — zero warnings, byte-stable
+scriptRoundTrip(generateNewRx({ seed: 12345 })).specClean; // true, zero warnings, byte-stable
 telecomRoundTrip(generateB1({ seed: 777 })).specClean; // true
 
 // Or a reproducible mixed corpus (NewRx + RxRenewal + RxChange + B1 + B2 + B3):
 const corpus = ncpdpCorpus({ seed: 42 });
-corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-clean
+corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
 ```
 
 `@cosyte/ncpdp` is an **optional peer dependency**, needed only for the `@cosyte/synth/ncpdp` subpath.
@@ -196,8 +196,8 @@ renewal/change _responses_ land as `@cosyte/ncpdp` grows builders.
 ## Generate a spec-clean ASTM message
 
 The `@cosyte/synth/astm` subpath builds ASTM laboratory messages **through `@cosyte/astm`'s own emit
-surface** — `buildAstmMessage` for the E1394 record layer, `composeAstmFrames` for the E1381 frame
-layer — so each message round-trips through the parser with **zero warnings**. It emits the
+surface**: `buildAstmMessage` for the E1394 record layer, `composeAstmFrames` for the E1381 frame
+layer, so each message round-trips through the parser with **zero warnings**. It emits the
 `H`/`P`/`O`/`R`…/`C`/`L` **result report** (`generateAstmResult`), the `H`/`P`/`O`/`L` **order**
 (`generateAstmOrder`), and the **framed** twin (`generateAstmResultFramed`).
 
@@ -211,17 +211,17 @@ import {
 } from "@cosyte/synth/astm";
 
 // Same seed → byte-identical output. The P (patient) record carries the name, birthdate, and the
-// practice- and laboratory-assigned patient ids — all synthetic-by-construction: names from the shipped
+// practice- and laboratory-assigned patient ids, all synthetic-by-construction: names from the shipped
 // fake-name pool, DOB seeded, and the two ids minted independently under a synthetic assigning authority
 // (so they stay DISTINCT, exactly as @cosyte/astm keeps them on parse).
-astmRoundTrip(generateAstmResult({ seed: 12345 })).specClean; // true — zero warnings, byte-stable
+astmRoundTrip(generateAstmResult({ seed: 12345 })).specClean; // true, zero warnings, byte-stable
 
 // The E1381-framed twin: the modulo-256 checksum and 0–7 frame numbers are computed by @cosyte/astm.
 astmFramedRoundTrip(generateAstmResultFramed({ seed: 12345 })).specClean; // true
 
 // Or a reproducible mixed corpus (a result report + an order):
 const corpus = astmCorpus({ seed: 42 });
-corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-clean
+corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
 ```
 
 `@cosyte/astm` is an **optional peer dependency**, needed only for the `@cosyte/synth/astm` subpath.
@@ -229,14 +229,14 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true — all spec-cle
 ## Generate a vendor-quirk fixture
 
 Spec-clean fixtures test that a parser reads a _correct_ message; **quirk mode** tests that it tolerates
-the realistic vendor deviations real traffic carries — and surfaces exactly the right diagnostic. The
+the realistic vendor deviations real traffic carries, and surfaces exactly the right diagnostic. The
 quirk vocabulary **is the parsers' own profile systems**: a quirk deviates the message _structure_ so it
 round-trips to **exactly one intended, stable warning code** (the **intended-warning contract**), and
 where a built-in **public** parser profile claims the deviation, it round-trips cleanly under it
-(suppressed, or re-badged to `PROFILE_QUIRK_APPLIED`). A quirk never introduces a real-looking value —
+(suppressed, or re-badged to `PROFILE_QUIRK_APPLIED`). A quirk never introduces a real-looking value:
 it changes shape, never provenance, so the synthetic-safety gate still passes.
 
-Quirks ship for the three richest profile systems — **HL7 v2, C-CDA, and ASTM**:
+Quirks ship for the three richest profile systems, **HL7 v2, C-CDA, and ASTM**:
 
 ```ts
 import { generateHl7Quirk, hl7QuirkRoundTrip } from "@cosyte/synth/hl7";
@@ -255,7 +255,7 @@ astmQuirkRoundTrip(generateAstmQuirk({ seed: 1, quirk: "unknown-escape" })).inte
 ```
 
 A quirk a format's profile system does not support fails closed with a stable `SYNTH_UNSUPPORTED_QUIRK`
-diagnostic — never a silently-wrong fixture — and so do the other selectors: a message kind, a
+diagnostic, never a silently-wrong fixture, and so do the other selectors: a message kind, a
 document type, a corpus mix entry, an `837` variant, a Bundle type. Each is checked against its own set
 before anything is generated, so an unrecognised one is a fatal `SYNTH_UNSUPPORTED_KIND` rather than a
 mislabelled corpus. Every refusal carries a code and a fixed message from a frozen table, and quotes
@@ -285,8 +285,8 @@ import {
 
 const r = hl7DeidLoop({ seed: 42, kind: "ORU^R01" });
 r.pass; // true
-r.survivors; // []  — every planted synthetic PHI sentinel was removed
-r.clinicalScrubbed; // []  — no clinical value was over-scrubbed
+r.survivors; // [], every planted synthetic PHI sentinel was removed
+r.clinicalScrubbed; // [], no clinical value was over-scrubbed
 
 const summary = summarizeDeidCoverage([
   hl7DeidLoop({ seed: 1 }),
@@ -295,11 +295,11 @@ const summary = summarizeDeidCoverage([
   ncpdpTelecomDeidLoop({ seed: 1, transaction: "B1" }),
   ccdaDeidLoop({ seed: 1 }),
 ]);
-summary.allPass; // true — zero survivors, zero over-scrub, per format
+summary.allPass; // true, zero survivors, zero over-scrub, per format
 ```
 
 This is a **co-validation harness, not an independent audit** of `@cosyte/deid` against real-world
-data — it proves the pair works on `synth`'s own output. The removal check is **locus-scoped**: it
+data: it proves the pair works on `synth`'s own output. The removal check is **locus-scoped**: it
 sweeps only the de-identified values remaining at the former PHI loci, so provider/organization
 identity a de-identifier legitimately retains never reads as a false survivor. `@cosyte/deid` is an
 **optional peer dependency**, needed only for this subpath. **Skipped and named** (`DEID_LOOP_SKIPPED`):
@@ -311,22 +311,22 @@ NCPDP **SCRIPT** and **ASTM** (no `@cosyte/deid` adapter) and **DICOM** (not gen
 import { createRng, safe, isSyntheticSsn, isSyntheticNpi } from "@cosyte/synth";
 
 const rng = createRng(42);
-isSyntheticSsn(safe.ssn(rng)); // true — always an SSA never-issued SSN
-isSyntheticNpi(safe.npi(rng)); // true — always a deliberately-invalid-Luhn NPI (never a real NPI)
+isSyntheticSsn(safe.ssn(rng)); // true, always an SSA never-issued SSN
+isSyntheticNpi(safe.npi(rng)); // true, always a deliberately-invalid-Luhn NPI (never a real NPI)
 ```
 
 ## What makes it trustworthy
 
-- **Synthetic-by-construction** — no code path emits a value not drawn from a reserved range or the
+- **Synthetic-by-construction**, no code path emits a value not drawn from a reserved range or the
   shipped fake-name pool (SSA never-issued SSNs, NANP `555-01xx` phones, RFC 2606/6761 `example.*`
   domains, RFC 5737/3849 TEST-NET IPs, a synthetic assigning authority for MRNs). A CI gate proves it.
   **No generated value can be real or plausibly-real PHI.**
-- **Spec-clean by the parser's own judgment** — built through the parser's conservative serializer, and
+- **Spec-clean by the parser's own judgment**, built through the parser's conservative serializer, and
   checked by feeding the artifact straight back in: a spec-clean artifact re-parses with zero warnings.
-- **Deterministic** — a hand-rolled seeded PRNG (`sfc32`/`splitmix32`); `Math.random` is lint-banned.
-  A seed, and only the seed, determines the output — byte-for-byte, anywhere.
-- **Immutable** — generated artifacts and the `Corpus` result are deep-frozen.
-- **Zero third-party runtime dependencies** — the parser peers are first-party cosyte packages,
+- **Deterministic**, a hand-rolled seeded PRNG (`sfc32`/`splitmix32`); `Math.random` is lint-banned.
+  A seed, and only the seed, determines the output, byte-for-byte, anywhere.
+- **Immutable**, generated artifacts and the `Corpus` result are deep-frozen.
+- **Zero third-party runtime dependencies**, the parser peers are first-party cosyte packages,
   vendored for dev/test; dual ESM + CJS, validated with `attw`.
 
 ## License

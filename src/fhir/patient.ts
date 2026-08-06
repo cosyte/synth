@@ -1,5 +1,5 @@
 /**
- * Synthetic FHIR R4 **`Patient`** generation — the anchor of the US Core clinical spine. Built through
+ * Synthetic FHIR R4 **`Patient`** generation: the anchor of the US Core clinical spine. Built through
  * `@cosyte/fhir`'s model constructors, every identity field drawn from the
  * synthetic-safety providers. In `us-core` mode the resource claims US Core Patient via
  * `meta.profile`, satisfies its required elements (`identifier` + `system` + `value`, `name`, `gender`),
@@ -42,7 +42,7 @@ export interface GeneratePatientOptions {
   /**
    * The profile posture. `"base"` (default) emits a spec-clean base-R4 `Patient`; `"us-core"` adds the
    * US Core `meta.profile` and the race/ethnicity/birthsex must-support extensions (the required
-   * elements — identifier/name/gender — are always present).
+   * elements, identifier/name/gender, are always present).
    */
   readonly profile?: "base" | "us-core";
 }

@@ -20,7 +20,7 @@ import { createRng, safe, isSyntheticSsn } from "@cosyte/synth";
 const rng = createRng(42);
 const nationalId = safe.ssn(rng);
 
-// The SSN is always drawn from the SSA never-issued space — it cannot be a real SSN.
+// The SSN is always drawn from the SSA never-issued space: it cannot be a real SSN.
 isSyntheticSsn(nationalId); // => true
 ```
 
@@ -39,7 +39,7 @@ result.warnings; // => []
 
 ## Build a reproducible corpus
 
-`hl7Corpus` returns a deep-frozen, self-describing `Corpus` — a seed plus a manifest of what was
+`hl7Corpus` returns a deep-frozen, self-describing `Corpus`: a seed plus a manifest of what was
 generated. Pin the seed and every downstream test gets a stable fixture set:
 
 ```ts runnable
@@ -52,7 +52,7 @@ corpus.artifacts.length; // => 3
 
 ## Determinism is the contract
 
-The same seed yields byte-identical output — this is a tested invariant, not a nicety:
+The same seed yields byte-identical output. This is a tested invariant, not a nicety:
 
 ```ts runnable
 import { generateAdt } from "@cosyte/synth/hl7";
@@ -65,5 +65,5 @@ a === b; // => true
 
 ## Next
 
-- [Core Concepts](./concepts-archetype) — synthetic-by-construction, determinism, the round-trip gate.
-- **API Reference** — every export, generated from source.
+- [Core Concepts](./concepts-archetype): synthetic-by-construction, determinism, the round-trip gate.
+- **API Reference**: every export, generated from source.

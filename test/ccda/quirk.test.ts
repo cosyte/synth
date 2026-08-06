@@ -83,7 +83,7 @@ describe("C-CDA intended-warning contract (mandatory)", () => {
       { numRuns: 90 },
     );
   }, 60_000);
-  it("holds for EVERY document type — ccd AND referralNote (regression: a doc-type-specific anchor)", () => {
+  it("holds for EVERY document type, ccd AND referralNote (regression: a doc-type-specific anchor)", () => {
     fc.assert(
       fc.property(
         seed(),
@@ -126,7 +126,7 @@ describe("C-CDA quirk seed-determinism (mandatory)", () => {
   }, 60_000);
 });
 
-describe("C-CDA quirk synthetic-safety — the deviation is a template/code, never a value", () => {
+describe("C-CDA quirk synthetic-safety: the deviation is a template/code, never a value", () => {
   it("the deprecated-loinc quirk introduces the deprecated code but no PHI locus changes", () => {
     const artifact = generateCcdaQuirk({ seed: 1, quirk: "deprecated-loinc" });
     expect(artifact.content).toContain('code="41909-3"');
@@ -142,7 +142,7 @@ describe("C-CDA quirk synthetic-safety — the deviation is a template/code, nev
 describe("C-CDA quirk fail-closed + anchor guard", () => {
   it("an unsupported quirk throws SYNTH_UNSUPPORTED_QUIRK", () => {
     try {
-      // @ts-expect-error — deliberately unsupported name
+      // @ts-expect-error, deliberately unsupported name
       generateCcdaQuirk({ seed: 1, quirk: "made-up" });
       expect.unreachable();
     } catch (err) {

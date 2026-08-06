@@ -1,14 +1,14 @@
 /**
  * The **US Core conformance gate** (roadmap §Phase 3). Every US-Core generator's output is validated by
  * `@cosyte/fhir.validateResource` against the **real, published US Core 6.1.0 `StructureDefinition`s**
- * (committed under `test/us-core-profiles/`, BYO — none is bundled in the package, matching
+ * (committed under `test/us-core-profiles/`, BYO, none is bundled in the package, matching
  * `@cosyte/fhir`'s content-free posture). A resource is US-Core-conformant iff the parser reports **zero
  * `error`/`fatal` findings** against the profile snapshot. This is the firsthand grounding the roadmap
  * requires: the profiles here are the IG's own artifacts, not a summary.
  *
  * The real profiles carry FHIRPath invariants and must-support obligations; `MUST_SUPPORT_ABSENT`,
  * `INVARIANT_UNCHECKED`, and base `dom-*` best-practice findings are advisory (information/warning) and
- * never fail conformance — only an `error` does (roadmap §4.5, the false-spec-clean head).
+ * never fail conformance, only an `error` does (roadmap §4.5, the false-spec-clean head).
  */
 
 import { describe, it, expect } from "vitest";
@@ -57,7 +57,7 @@ const SD = {
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
-describe("US Core conformance — validated against the real US Core 6.1.0 profiles (zero errors)", () => {
+describe("US Core conformance: validated against the real US Core 6.1.0 profiles (zero errors)", () => {
   it("US Core Patient validates clean against us-core-patient", () => {
     fc.assert(
       fc.property(seed(), (s) => {
@@ -186,7 +186,7 @@ describe("US Core conformance — validated against the real US Core 6.1.0 profi
     expect(SD.diagnosticReportLab.url).toBe(
       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-lab",
     );
-    // A snapshot must be present — validation binds against the profile's own element set.
+    // A snapshot must be present, validation binds against the profile's own element set.
     expect(SD.patient.snapshot?.length ?? 0).toBeGreaterThan(0);
     expect(SD.procedure.snapshot?.length ?? 0).toBeGreaterThan(0);
   });

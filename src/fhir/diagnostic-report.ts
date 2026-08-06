@@ -1,5 +1,5 @@
 /**
- * Synthetic FHIR R4 **`DiagnosticReport`** generation — the US Core DiagnosticReport Profile for
+ * Synthetic FHIR R4 **`DiagnosticReport`** generation: the US Core DiagnosticReport Profile for
  * Laboratory Results Reporting. Built through `@cosyte/fhir`;
  * the report `code` comes from the license-clean LOINC example pool, `subject` from a supplied or
  * derived synthetic Patient reference. The required `category` carries the profile's mandated `LAB`

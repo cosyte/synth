@@ -1,22 +1,22 @@
 /**
- * `@cosyte/synth/ncpdp` — the NCPDP generation surface, exposed as its own subpath so importing the
+ * `@cosyte/synth/ncpdp`: the NCPDP generation surface, exposed as its own subpath so importing the
  * package root does **not** pull `@cosyte/ncpdp`. This is the **lazy, per-format** boundary: a consumer
  * who only needs NCPDP fixtures imports `@cosyte/synth/ncpdp`; one who needs only the core primitives
  * never loads a parser.
- * `@cosyte/ncpdp` is an **optional peer dependency** — present only for this subpath.
+ * `@cosyte/ncpdp` is an **optional peer dependency**, present only for this subpath.
  *
  * This subpath ships spec-clean generation across both NCPDP standards, each built through
  * `@cosyte/ncpdp`'s own emit surface:
  *
  * - **SCRIPT** ePrescribing (`@cosyte/ncpdp/script`): `generateNewRx` (via the validated `buildNewRx`
  *   builder), `generateRxRenewalRequest`, and `generateRxChangeRequest` (via the parser's public typed
- *   `ScriptMessage` model + `serializeScript`) — each round-tripping through `parseScript` with zero
+ *   `ScriptMessage` model + `serializeScript`), each round-tripping through `parseScript` with zero
  *   warnings, and carrying a prescriber whose NPI is invalid-Luhn and whose **DEA is invalid-checksum**.
  * - **Telecom** claims (`@cosyte/ncpdp/telecom`): `generateB1` (billing), `generateB2` (reversal), and
- *   `generateB3` (rebill) via `buildTelecomRequest` + `serializeTelecom` — each round-tripping through
+ *   `generateB3` (rebill) via `buildTelecomRequest` + `serializeTelecom`, each round-tripping through
  *   `parseTelecom` with zero warnings, with patient / cardholder identity from the synthetic providers.
  *
- * **Deferred:** **quirk mode**. SCRIPT is limited to the transactions `@cosyte/ncpdp` can *build* — NewRx
+ * **Deferred:** **quirk mode**. SCRIPT is limited to the transactions `@cosyte/ncpdp` can *build*: NewRx
  * plus the
  * renewal/change **requests**; the renewal/change *responses* and the reversal cases beyond B2's
  * reference set track the parser's builder surface, never hand-written bytes.
@@ -66,10 +66,10 @@ export {
   type NcpdpExampleDrug,
 } from "./example-codes.js";
 
-/** Every NCPDP transaction kind {@link ncpdpCorpus} generates — the label used as the corpus `kind`. */
+/** Every NCPDP transaction kind {@link ncpdpCorpus} generates: the label used as the corpus `kind`. */
 export type NcpdpCorpusKind = "NewRx" | "RxRenewalRequest" | "RxChangeRequest" | "B1" | "B2" | "B3";
 
-/** Every kind {@link ncpdpCorpus} accepts, and the default mix — one of each shipped transaction. */
+/** Every kind {@link ncpdpCorpus} accepts, and the default mix: one of each shipped transaction. */
 const ALL_KINDS: readonly NcpdpCorpusKind[] = Object.freeze([
   "NewRx",
   "RxRenewalRequest",
@@ -117,7 +117,7 @@ export interface NcpdpCorpusOptions {
  * ```ts
  * import { ncpdpCorpus } from "@cosyte/synth/ncpdp";
  * const corpus = ncpdpCorpus({ seed: 42 });
- * corpus.artifacts.every((a) => a.warnings.length === 0); // true — spec-clean
+ * corpus.artifacts.every((a) => a.warnings.length === 0); // true, spec-clean
  * ```
  */
 export function ncpdpCorpus(options: NcpdpCorpusOptions): Corpus {

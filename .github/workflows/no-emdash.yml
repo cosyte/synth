@@ -1,0 +1,133 @@
+name: Em-dash gate
+
+# The brand rule (founder directive 2026-07-24, knowledgebase 06-brand/voice-and-tone.md)
+# bans U+2014 outright across every cosyte surface, and names commit messages explicitly.
+#
+# Like astm, this gate did not arrive on a clean tree: the change that landed this
+# workflow also swept 1,167 occurrences out of 135 of the 223 tracked files, including
+# `package.json`'s published npm `description` (visible on the registry and in every npm
+# search result) and the `docs-content/` pages that publish to docs.cosyte.com. A sweep
+# without the gate grows back; a gate without the sweep would have red-flagged CI on
+# arrival. Both are one change.
+#
+# WHY A SEPARATE WORKFLOW, and not a job in ci.yml. Same two reasons this repo's
+# `no-internal-refs.yml` gives, and the second is the deciding one here:
+#
+#   The reusable pipeline is not an option. synth's `ci` job calls
+#   cosyte/.github/.github/workflows/ci.yml@main, which runs a fixed ladder and no
+#   arbitrary repo script.
+#
+#   The trigger differs. The PR-text half below needs the `edited` activity type, which
+#   is not a default: without it, a title or body edited after the last push is never
+#   re-checked, and since this repo squash-merges, the PR title and body ARE the commit
+#   message that lands on main. But ci.yml's triggers drive the full Node 22 + 24 matrix
+#   (typecheck, lint, format, PHI scan, test, coverage, build, attw, dual ESM/CJS smoke).
+#   Re-running all of that every time someone fixes a typo in a PR description is a large
+#   cost for no extra safety. Same call hl7, astm and website made, for the same reason.
+#
+# ▶ THIS JOB IS DELIBERATELY NOT A REQUIRED CONTEXT, AND THE REASON IS NOT THAT IT IS
+#   WEAK. It scans the PR TITLE, BODY and COMMIT MESSAGES, and Dependabot composes a PR
+#   body by pasting the dependency's UPSTREAM RELEASE NOTES into it, em dashes included.
+#   Requiring this context would block a dependency bump on prose nobody in this org
+#   wrote and nobody in this org can edit without rewriting the PR by hand. That is the
+#   same refusal this ecosystem already made for a CI `pnpm audit`: a gate that fails on
+#   someone else's clock stops being a signal and starts being a tax. `website` reached
+#   the same conclusion and exempts its `no-emdash-messages` context on purpose.
+#
+#   THE PRECEDENT IS NOT EXACTLY THIS SHAPE, AND THE DIFFERENCE COSTS SOMETHING REAL. SAY
+#   WHAT IT COSTS RATHER THAN INHERIT THE CONCLUSION. `website` exempts a context that
+#   scans MESSAGES ONLY, so its tracked-file half stays required. This job bundles both
+#   halves into one, so exempting it un-requires the tracked-file half as well, and that
+#   is the half that protects the published surface.
+#
+#   NOTHING BUYS THAT HALF BACK TODAY, AND DO NOT WRITE THAT IT DOES. `ci / verify` runs a
+#   FIXED ladder in `cosyte/.github` (typecheck, lint, format:check, phi-scan, test,
+#   coverage, build, attw, dual ESM/CJS smoke) and no arbitrary repo script, so it does
+#   NOT run `pnpm check:no-emdash`. This workflow is the only place that script runs in
+#   CI. So the tracked-file half is a VISIBLE RED IN THE CHECKS LIST AND NOT A MERGE
+#   BLOCKER. That is the accepted cost, stated plainly, and it is what the sweep plus
+#   review carry until it is fixed.
+#
+#   THE FIX IS TO SPLIT THIS JOB IN TWO, and it is deferred rather than rejected: a
+#   tracked-file job that can be required, and a messages job that stays exempt, which is
+#   exactly `website`'s shape and exactly how `no-internal-refs` is already required in
+#   this repo. It is not done in this change because a context may not be required before
+#   its workflow has completed on `main`, and this workflow has never run on `main`.
+#   Requiring it now would leave every PR pending with nothing saying why.
+#
+#   What still holds without the required flag: the job runs on every PR and on every
+#   push to `main`, and it is red in the checks list where a reviewer sees it. And on the
+#   Dependabot case specifically, the exemption gives up nothing on the tracked-file
+#   half. Dependabot certainly DOES write tracked files (`package.json` and
+#   `pnpm-lock.yaml` are its entire job); what it cannot do is put an em dash in one,
+#   because it writes version specifiers and lockfile records, never prose. The upstream
+#   release notes it pastes go in the PR BODY and nowhere else.
+#
+#   Do not "fix" this by making it required and then adding an actor exemption. An
+#   `if: github.actor != 'dependabot[bot]'` on a REQUIRED context leaves the check
+#   permanently pending on exactly those PRs, which is worse than red: nothing says why.
+#
+# Run it locally with `pnpm check:no-emdash`, which is also on `scripts/verify.sh synth`'s
+# ladder in the meta-repo.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    # `edited` is deliberate and load-bearing. See the note above.
+    types: [opened, synchronize, reopened, edited]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # The job id is the check-run context name a branch ruleset would require. Renaming it
+  # silently detaches any such requirement, so the ruleset stops protecting anything
+  # while still looking configured. Rename both together or neither.
+  no-emdash:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # Full history: the commit-message step below reads the PR's commit range,
+          # and the default shallow clone does not contain the base commit.
+          fetch-depth: 0
+
+      - name: Check tracked files
+        run: bash scripts/check-no-emdash.sh
+
+      # The rule names commit messages explicitly, and a squash merge composes its
+      # message from the PR title, the PR body, and the branch commits, so all three are
+      # checked. Pull requests only: on a push to main the message is already written,
+      # and this gate exists to stop it landing.
+      #
+      # This half is also the one a local pre-commit scan structurally cannot cover, and
+      # two slices elsewhere have lost a review pass to that: a NEW file is untracked, so
+      # a scan of the index does not see it, and no local hook sees a PR body at all.
+      - name: Check PR title, body, and commit messages
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Collect first, scan second, and set the shell options here rather than trust
+          # the runner's default: piping the collection straight into the scanner would
+          # hide a failed `git log` (a rewritten base commit, or a future edit that drops
+          # fetch-depth) behind a clean title and body, and the gate would print OK over
+          # commits it never read. The title and body arrive through env and are never
+          # interpolated into the script, so a PR description cannot inject shell.
+          set -euo pipefail
+          {
+            printf '%s\n' "$PR_TITLE"
+            printf '%s\n' "$PR_BODY"
+            git log --format=%B "$BASE_SHA..$HEAD_SHA"
+          } > "$RUNNER_TEMP/pr-messages.txt"
+          bash scripts/check-no-emdash.sh --stdin "the PR title, body, or commit messages" \
+            < "$RUNNER_TEMP/pr-messages.txt"

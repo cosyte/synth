@@ -1,5 +1,5 @@
 /**
- * Spec-clean ASTM (E1394 / CLSI LIS02) message generation — the `H`/`P`/`O`/`R`/`C`/`L` record report —
+ * Spec-clean ASTM (E1394 / CLSI LIS02) message generation: the `H`/`P`/`O`/`R`/`C`/`L` record report,
  * built through `@cosyte/astm`'s `buildAstmMessage` so the delimiter declaration (`H|\^&`), the record
  * type letters, the per-type sequence counters, the `L` terminator, and every escape are the parser's
  * own conservative emit. Nothing clinical is defaulted: a
@@ -7,8 +7,8 @@
  *
  * A framed **E1381 / CLSI LIS01** variant is also offered ({@link generateAstmResultFramed}) via
  * `composeAstmFrames`, which frames each record into `<STX> FN text <ETB|ETX> CS <CR><LF>` with the
- * **modulo-256 checksum and the `0`–`7` frame number computed by the parser** — never faked. Both round
- * trip through `@cosyte/astm` cleanly (`parseAstmRecords` / `parseFramedAstm` — see `./round-trip`).
+ * **modulo-256 checksum and the `0`–`7` frame number computed by the parser**, never faked. Both round
+ * trip through `@cosyte/astm` cleanly (`parseAstmRecords` / `parseFramedAstm`: see `./round-trip`).
  *
  * Every value at a PHI-bearing locus (the `P` record's name / DOB / practice+lab IDs) is
  * drawn from the synthetic-safety providers via `./identity`, so no output can be real or plausibly-real
@@ -31,7 +31,7 @@ import { EXAMPLE_ASTM_TESTS, ASTM_ABNORMAL_FLAGS, ASTM_COMMENT_TEXT } from "./ex
 
 /** Options for the ASTM message generators. */
 export interface GenerateAstmOptions {
-  /** The seed (deterministic — same seed yields a byte-identical message). */
+  /** The seed (deterministic: same seed yields a byte-identical message). */
   readonly seed: number;
   /** How many `R` (result) records to emit. Defaults to a seeded 1–4. */
   readonly resultCount?: number;
@@ -103,7 +103,7 @@ function buildResultInput(options: GenerateAstmOptions): MessageInput {
 }
 
 /**
- * Generate a spec-clean ASTM **result message** — an `H`/`P`/`O`/`R`…/`C`/`L` record stream — built
+ * Generate a spec-clean ASTM **result message**: an `H`/`P`/`O`/`R`…/`C`/`L` record stream, built
  * through `@cosyte/astm`'s `buildAstmMessage`. Every identity value is synthetic-by-construction; the message
  * round-trips through `parseAstmRecords` with zero warnings and re-serializes
  * byte-identically (see `./round-trip`).
@@ -121,7 +121,7 @@ export function generateAstmResult(options: GenerateAstmOptions): string {
 }
 
 /**
- * Generate a spec-clean ASTM **order message** — an `H`/`P`/`O`/`L` record stream with no results, for
+ * Generate a spec-clean ASTM **order message**: an `H`/`P`/`O`/`L` record stream with no results, for
  * the order side of the flow. Built through `buildAstmMessage`; synthetic-by-construction; round-trips
  * clean.
  *
@@ -138,10 +138,10 @@ export function generateAstmOrder(options: GenerateAstmOptions): string {
 }
 
 /**
- * Generate a spec-clean **framed** ASTM result message — the same `H`/`P`/`O`/`R`…/`C`/`L` records,
+ * Generate a spec-clean **framed** ASTM result message: the same `H`/`P`/`O`/`R`…/`C`/`L` records,
  * wrapped in the **E1381 / CLSI LIS01** frame envelope (`<STX> FN text <ETB|ETX> CS <CR><LF>`) via
  * `@cosyte/astm`'s `composeAstmFrames`. The **modulo-256 checksum and the `0`–`7` frame number are
- * computed by the parser** (never hand-written), and a record over 240 bytes is split across frames —
+ * computed by the parser** (never hand-written), and a record over 240 bytes is split across frames,
  * so the bytes round-trip through `parseFramedAstm` with zero frame **and** record warnings (see
  * `./round-trip`). Each record is framed independently (one `ETX`-closed run per record), mirroring what
  * `decodeAstmFrames` reassembles.
@@ -151,7 +151,7 @@ export function generateAstmOrder(options: GenerateAstmOptions): string {
  * @example
  * ```ts
  * import { generateAstmResultFramed } from "@cosyte/synth/astm";
- * const bytes = generateAstmResultFramed({ seed: 42 }); // Uint8Array — E1381 framed
+ * const bytes = generateAstmResultFramed({ seed: 42 }); // Uint8Array, E1381 framed
  * ```
  */
 export function generateAstmResultFramed(options: GenerateAstmOptions): Uint8Array {

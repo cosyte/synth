@@ -1,7 +1,7 @@
 /**
  * Shared money helpers for the X12 generators. X12 amounts are {@link "@cosyte/x12".X12Decimal}, never
  * a float (float arithmetic destroys cents), so every generated charge / payment / adjustment is
- * constructed through {@link dec} — a single, tested conversion point rather than a per-generator
+ * constructed through {@link dec}: a single, tested conversion point rather than a per-generator
  * duplicate.
  *
  * @module
@@ -12,7 +12,7 @@ import { X12Decimal } from "@cosyte/x12";
 import { SYNTH_FATAL_CODES, SynthError } from "../codes.js";
 
 /**
- * A non-null `X12Decimal` from a decimal string. Throws on an unparseable string — the generators only
+ * A non-null `X12Decimal` from a decimal string. Throws on an unparseable string: the generators only
  * ever pass literals or `${n}.00` strings, so the throw is a defensive guard, never a runtime path.
  *
  * @param value - A decimal string, e.g. `"150.00"`.

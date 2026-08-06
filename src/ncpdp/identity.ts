@@ -1,19 +1,19 @@
 /**
- * Synthetic identity for NCPDP transactions — every patient, prescriber, pharmacy, and cardholder
+ * Synthetic identity for NCPDP transactions: every patient, prescriber, pharmacy, and cardholder
  * identifier `synth` puts into a SCRIPT ePrescription or a Telecom claim is minted here, and **only**
  * from the synthetic-safety providers. NCPDP is identity-dense in a way the refuter
  * attacks hardest: a NewRx carries the **patient** (name, DOB, gender) *and* the **prescriber** (name,
  * NPI, **DEA**); a Telecom claim adds the **cardholder / member** (name, member id). Every locus below
  * has a construction-level guarantee, not a heuristic:
  *
- * - **NPI** — a deliberately **invalid Luhn** check digit, so it can never be a NPPES-issued NPI
+ * - **NPI**: a deliberately **invalid Luhn** check digit, so it can never be a NPPES-issued NPI
  *   ({@link ../safe/reserved.isSyntheticNpi}).
- * - **DEA** — a deliberately **invalid checksum**, so it can never be a validly-issued DEA registration
+ * - **DEA**: a deliberately **invalid checksum**, so it can never be a validly-issued DEA registration
  *   ({@link ../safe/reserved.isSyntheticDea}). This is the NCPDP-specific identity locus X12 did not have.
- * - **member / cardholder / patient id** — minted under the synthetic assigning authority with an
+ * - **member / cardholder / patient id**: minted under the synthetic assigning authority with an
  *   `MBR` prefix (no reserved range exists; the *namespace* is the guarantee).
- * - **name** — the shipped clearly-fake pool; **DOB** — the seeded generator (no real event implied);
- *   **phone** — the reserved `555-01xx` block; **address** — synthetic street + reserved ZIP.
+ * - **name**: the shipped clearly-fake pool; **DOB**: the seeded generator (no real event implied);
+ *   **phone**: the reserved `555-01xx` block; **address**: synthetic street + reserved ZIP.
  *
  * @module
  */
@@ -21,7 +21,7 @@
 import type { Rng } from "../rng/rng.js";
 import { safe, type SyntheticName, type SyntheticAddress } from "../safe/index.js";
 
-/** Synthetic pharmacy business names — clearly fictional. */
+/** Synthetic pharmacy business names: clearly fictional. */
 const SYNTHETIC_PHARMACY_NAMES: readonly string[] = Object.freeze([
   "SYNTH COMMUNITY PHARMACY",
   "FIXTURE DRUG MART",
@@ -30,15 +30,15 @@ const SYNTHETIC_PHARMACY_NAMES: readonly string[] = Object.freeze([
   "MOCK PHARMACY GROUP",
 ]);
 
-/** A synthetic patient — every field from `../safe`. */
+/** A synthetic patient: every field from `../safe`. */
 export interface NcpdpPatient {
   /** Name from the shipped fake-name pool. */
   readonly person: SyntheticName;
   /** Date of birth `CCYYMMDD` from the seeded generator. */
   readonly dob: string;
-  /** Administrative gender code (`1` = male, `2` = female — NCPDP gender codes). */
+  /** Administrative gender code (`1` = male, `2` = female, NCPDP gender codes). */
   readonly gender: "1" | "2";
-  /** Patient id, synthetic-AA scoped (`MBR`-prefixed — never a bare SSN). */
+  /** Patient id, synthetic-AA scoped (`MBR`-prefixed, never a bare SSN). */
   readonly patientId: string;
   /** Reserved `555-01xx` phone. */
   readonly phone: string;
@@ -46,7 +46,7 @@ export interface NcpdpPatient {
   readonly address: SyntheticAddress;
 }
 
-/** A synthetic prescriber — name + invalid-Luhn NPI + invalid-checksum DEA. */
+/** A synthetic prescriber: name + invalid-Luhn NPI + invalid-checksum DEA. */
 export interface NcpdpPrescriber {
   /** A clearly-fake prescriber name. */
   readonly person: SyntheticName;
@@ -56,17 +56,17 @@ export interface NcpdpPrescriber {
   readonly dea: string;
 }
 
-/** A synthetic dispensing pharmacy — business name + invalid-Luhn NPI + synthetic NCPDP id. */
+/** A synthetic dispensing pharmacy: business name + invalid-Luhn NPI + synthetic NCPDP id. */
 export interface NcpdpPharmacy {
   /** A clearly-fictional pharmacy business name. */
   readonly businessName: string;
   /** A 10-digit NPI with a deliberately-invalid Luhn check digit. */
   readonly npi: string;
-  /** A 7-digit NCPDP provider id (synthetic — an all-digit id under no real chain). */
+  /** A 7-digit NCPDP provider id (synthetic, an all-digit id under no real chain). */
   readonly ncpdpId: string;
 }
 
-/** A synthetic cardholder / insurance identity — the covered person on a Telecom claim. */
+/** A synthetic cardholder / insurance identity: the covered person on a Telecom claim. */
 export interface NcpdpCardholder {
   /** The cardholder name (may differ from the patient). */
   readonly person: SyntheticName;
@@ -74,7 +74,7 @@ export interface NcpdpCardholder {
   readonly cardholderId: string;
   /** Group id, synthetic. */
   readonly groupId: string;
-  /** Person code (`01` = cardholder, `02` = spouse, `03` = child — structural). */
+  /** Person code (`01` = cardholder, `02` = spouse, `03` = child, structural). */
   readonly personCode: string;
 }
 
@@ -102,7 +102,7 @@ export function ncpdpPatient(rng: Rng): NcpdpPatient {
 }
 
 /**
- * Mint a synthetic prescriber — a person name, an invalid-Luhn NPI, and an invalid-checksum DEA (the
+ * Mint a synthetic prescriber: a person name, an invalid-Luhn NPI, and an invalid-checksum DEA (the
  * DEA's second letter is derived from the prescriber's family name so it reads plausibly).
  *
  * @param rng - The seeded generator.
@@ -122,7 +122,7 @@ export function ncpdpPrescriber(rng: Rng): NcpdpPrescriber {
 }
 
 /**
- * Mint a synthetic dispensing pharmacy — a fictional business name, an invalid-Luhn NPI, and a 7-digit
+ * Mint a synthetic dispensing pharmacy: a fictional business name, an invalid-Luhn NPI, and a 7-digit
  * synthetic NCPDP provider id.
  *
  * @param rng - The seeded generator.
@@ -161,13 +161,13 @@ export function ncpdpCardholder(rng: Rng): NcpdpCardholder {
   return { person, cardholderId, groupId, personCode };
 }
 
-/** A seeded SCRIPT routing/correlation bundle — message ids + timestamps, all reproducible. */
+/** A seeded SCRIPT routing/correlation bundle: message ids + timestamps, all reproducible. */
 export interface NcpdpScriptRouting {
-  /** `<MessageID>` — a synthetic message id. */
+  /** `<MessageID>`: a synthetic message id. */
   readonly messageId: string;
-  /** `<SentTime>` — a seeded ISO-8601 timestamp (never wall-clock). */
+  /** `<SentTime>`, a seeded ISO-8601 timestamp (never wall-clock). */
   readonly sentTime: string;
-  /** `<PrescriberOrderNumber>` — a synthetic order number. */
+  /** `<PrescriberOrderNumber>`, a synthetic order number. */
   readonly prescriberOrderNumber: string;
   /** A `CCYYMMDD` written / service date (seeded, recent window). */
   readonly date: string;

@@ -1,10 +1,10 @@
 /**
- * Synthetic **C-CDA document generation** — a spec-clean Continuity of Care Document
+ * Synthetic **C-CDA document generation**: a spec-clean Continuity of Care Document
  * (CCD) or Referral Note built **through `@cosyte/ccda`'s `buildCcda`**, so template IDs, LOINC section
  * codes, and structured/narrative agreement are the builder's own (spec-clean *by construction*), and
  * every `recordTarget` / clinical identifier is drawn from the synthetic-safety providers.
  *
- * The document round-trips through `parseCcda` with **zero warnings** — the builder's round-trip-by-
+ * The document round-trips through `parseCcda` with **zero warnings**: the builder's round-trip-by-
  * construction guarantee, re-verified independently by {@link ./round-trip.roundTrip}. Coverage tracks
  * `buildCcda`'s section/doc-type maturity: the CCD SHALL sections (Problems,
  * Allergies, Medications, Results, Vital Signs) plus Immunizations, Procedures, and Social History
@@ -37,7 +37,7 @@ import {
 import { ccdaPatientIdentity } from "./identity.js";
 import { resolveKind } from "../select.js";
 
-/** The C-CDA document type a generator emits — the two `buildCcda` supports. */
+/** The C-CDA document type a generator emits: the two `buildCcda` supports. */
 export type CcdaDocumentType = "ccd" | "referralNote";
 
 /** Every value {@link CcdaDocumentType} admits. Erased at run time, so it is resolved, not trusted. */
@@ -45,7 +45,7 @@ const CCDA_DOCUMENT_TYPES: readonly CcdaDocumentType[] = Object.freeze(["ccd", "
 
 /** Options common to every C-CDA generator. */
 export interface GenerateCcdaOptions {
-  /** The seed (deterministic — same seed yields a byte-identical document). Defaults to `0`. */
+  /** The seed (deterministic: same seed yields a byte-identical document). Defaults to `0`. */
   readonly seed?: number;
   /** The document type to emit. Defaults to `"ccd"`. */
   readonly documentType?: CcdaDocumentType;
@@ -69,7 +69,7 @@ function pickN<T>(rng: Rng, pool: readonly T[], n: number): T[] {
 }
 
 /**
- * Assemble the synthetic {@link BuildCcdaInit} — the identity + clinical content the builder turns into
+ * Assemble the synthetic {@link BuildCcdaInit}: the identity + clinical content the builder turns into
  * a spec-clean document. Section counts vary with the seed (each SHALL clinical section is always
  * non-empty; the optional sections are always populated for a rich fixture), and every code is drawn
  * from the reused example-code pools.
@@ -145,7 +145,7 @@ function buildInit(rng: Rng, documentType: CcdaDocumentType): BuildCcdaInit {
   };
 
   if (documentType === "referralNote") {
-    // The Referral Note's narrative-only SHALL sections — synthetic free text (never fabricated
+    // The Referral Note's narrative-only SHALL sections: synthetic free text (never fabricated
     // clinical judgment about a real person; the "patient" does not exist).
     return {
       ...base,
@@ -193,7 +193,7 @@ export function generateCcd(options: Omit<GenerateCcdaOptions, "documentType"> =
 }
 
 /**
- * Generate a spec-clean synthetic **Referral Note** — the second document type `buildCcda` supports,
+ * Generate a spec-clean synthetic **Referral Note**: the second document type `buildCcda` supports,
  * with its own US Realm Header specialization and Reason-for-Referral / Assessment narrative sections.
  *
  * @param options - Seed (deterministic). See {@link GenerateCcdaOptions}.

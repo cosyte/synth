@@ -1,6 +1,6 @@
 /**
- * Spec-clean NCPDP **Telecommunication vD.0** claim generation — `B1` (billing), `B2` (reversal), and
- * `B3` (rebill) — built through `@cosyte/ncpdp`'s `buildTelecomRequest` + `serializeTelecom` so the
+ * Spec-clean NCPDP **Telecommunication vD.0** claim generation: `B1` (billing), `B2` (reversal), and
+ * `B3` (rebill), built through `@cosyte/ncpdp`'s `buildTelecomRequest` + `serializeTelecom` so the
  * fixed Transaction Header, the FS/GS/RS framing, and every field are the parser's own conservative
  * emit. Every field id below is a real 2-character NCPDP field identifier, and every
  * value at a PHI-bearing locus is drawn from the synthetic-safety providers via {@link ./identity}: the
@@ -27,12 +27,12 @@ import { EXAMPLE_DRUGS, DAW_CODES } from "./example-codes.js";
 /** The Telecom transaction codes `synth` generates. */
 export type TelecomTransactionCode = "B1" | "B2" | "B3";
 
-/** A synthetic routing BIN (an ISO/IIN routing number — not patient identity, kept clearly synthetic). */
+/** A synthetic routing BIN (an ISO/IIN routing number, not patient identity, kept clearly synthetic). */
 const SYNTHETIC_BIN = "999999";
 
 /** Options for the Telecom generators. */
 export interface GenerateTelecomOptions {
-  /** The seed (deterministic — same seed yields a byte-identical transaction). */
+  /** The seed (deterministic: same seed yields a byte-identical transaction). */
   readonly seed: number;
 }
 
@@ -74,7 +74,7 @@ function field(id: string, value: string): TelecomFieldInput {
   return { id, value };
 }
 
-/** The Patient segment (01) — CA/CB name, C4 DOB, C5 gender, CM address, CQ phone, CY patient id. */
+/** The Patient segment (01): CA/CB name, C4 DOB, C5 gender, CM address, CQ phone, CY patient id. */
 function patientSegment(rng: Rng): TelecomSegmentInput {
   const p = ncpdpPatient(rng);
   return {
@@ -91,7 +91,7 @@ function patientSegment(rng: Rng): TelecomSegmentInput {
   };
 }
 
-/** The Insurance segment (04) — C2 cardholder id, C1 group, C3 person code, CC/CD cardholder name. */
+/** The Insurance segment (04): C2 cardholder id, C1 group, C3 person code, CC/CD cardholder name. */
 function insuranceSegment(rng: Rng): TelecomSegmentInput {
   const c = ncpdpCardholder(rng);
   return {
@@ -106,7 +106,7 @@ function insuranceSegment(rng: Rng): TelecomSegmentInput {
   };
 }
 
-/** The Prescriber segment (03) — DB prescriber id (NPI), EZ qualifier (`01` = NPI). */
+/** The Prescriber segment (03): DB prescriber id (NPI), EZ qualifier (`01` = NPI). */
 function prescriberSegment(rng: Rng): TelecomSegmentInput {
   const dr = ncpdpPrescriber(rng);
   return {
@@ -115,7 +115,7 @@ function prescriberSegment(rng: Rng): TelecomSegmentInput {
   };
 }
 
-/** The Claim segment (07) — Rx ref, product (NDC), quantity, days supply, DAW. `minimal` for a reversal. */
+/** The Claim segment (07): Rx ref, product (NDC), quantity, days supply, DAW. `minimal` for a reversal. */
 function claimSegment(rng: Rng, minimal: boolean): TelecomSegmentInput {
   const drug = rng.pick(EXAMPLE_DRUGS);
   const rxRef = `RX${rng.digits(7)}`;

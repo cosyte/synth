@@ -1,19 +1,19 @@
 /**
- * `@cosyte/synth/astm` — the ASTM generation surface, exposed as its own subpath so importing the
+ * `@cosyte/synth/astm`: the ASTM generation surface, exposed as its own subpath so importing the
  * package root does **not** pull `@cosyte/astm`. This is the **lazy, per-format** boundary: a consumer
  * who only needs ASTM fixtures imports `@cosyte/synth/astm`; one who needs only the core primitives
  * never loads a parser.
- * `@cosyte/astm` is an **optional peer dependency** — present only for this subpath.
+ * `@cosyte/astm` is an **optional peer dependency**, present only for this subpath.
  *
  * This subpath ships spec-clean generation of the E1394 record report and its E1381 framed twin, each
  * built through `@cosyte/astm`'s own emit surface:
  *
  * - **Records (E1394):** `generateAstmResult` (`H`/`P`/`O`/`R`…/`C`/`L`) and `generateAstmOrder`
- *   (`H`/`P`/`O`/`L`) via `buildAstmMessage` — each round-tripping through `parseAstmRecords` with zero
+ *   (`H`/`P`/`O`/`L`) via `buildAstmMessage`, each round-tripping through `parseAstmRecords` with zero
  *   warnings and byte-stable, and carrying a `P` record whose name / DOB / practice+lab IDs are all
  *   synthetic-by-construction. The practice- and laboratory-assigned patient IDs are
  *   minted independently, so they stay **distinct**.
- * - **Framing (E1381):** `generateAstmResultFramed` via `composeAstmFrames` — the modulo-256 checksum
+ * - **Framing (E1381):** `generateAstmResultFramed` via `composeAstmFrames`, the modulo-256 checksum
  *   and the `0`–`7` frame number are **computed by the parser, never faked**, and the bytes round-trip
  *   through `parseFramedAstm` with zero frame **and** record warnings.
  *
@@ -61,10 +61,10 @@ export {
   type AstmQuirkCorpusOptions,
 } from "./quirk.js";
 
-/** Every ASTM message kind {@link astmCorpus} generates — the label used as the corpus `kind`. */
+/** Every ASTM message kind {@link astmCorpus} generates: the label used as the corpus `kind`. */
 export type AstmCorpusKind = "Result" | "Order";
 
-/** Every kind {@link astmCorpus} accepts, and the default mix — a result report and an order. */
+/** Every kind {@link astmCorpus} accepts, and the default mix: a result report and an order. */
 const ALL_KINDS: readonly AstmCorpusKind[] = Object.freeze(["Result", "Order"]);
 const DEFAULT_MIX = ALL_KINDS;
 
@@ -99,7 +99,7 @@ export interface AstmCorpusOptions {
  * ```ts
  * import { astmCorpus } from "@cosyte/synth/astm";
  * const corpus = astmCorpus({ seed: 42 });
- * corpus.artifacts.every((a) => a.warnings.length === 0); // true — spec-clean
+ * corpus.artifacts.every((a) => a.warnings.length === 0); // true, spec-clean
  * ```
  */
 export function astmCorpus(options: AstmCorpusOptions): Corpus {

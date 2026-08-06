@@ -1,0 +1,10 @@
+# The vendored parser tarballs are third-party archives. Declaring them keeps git
+# from ever treating them as text, and it is the declaration `scripts/check-no-emdash.sh`
+# partitions on: a compressed stream can hold the em dash's UTF-8 bytes by coincidence
+# (`vendor/cosyte-hl7-0.0.0.tgz` does), and there is no edit that removes a byte from
+# someone else's DEFLATE stream.
+#
+# THIS FILE IS NOT A SILENCER. The em-dash gate refuses any `binary` declaration outside
+# `vendor/`, so widening the exclusion means editing that script deliberately rather than
+# adding a line here. Tracked FILENAMES are scanned whatever this file says.
+vendor/*.tgz binary

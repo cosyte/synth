@@ -1,6 +1,6 @@
 /**
- * Spec-clean HIPAA 005010 **837** claim generation — Professional (`build837P`, TR3 005010X222A2),
- * Institutional (`build837I`, X223A3), and Dental (`build837D`, X224A2) — built through
+ * Spec-clean HIPAA 005010 **837** claim generation: Professional (`build837P`, TR3 005010X222A2),
+ * Institutional (`build837I`, X223A3), and Dental (`build837D`, X224A2), built through
  * `@cosyte/x12`'s domain builders so the ISA/GS/ST…SE/GE/IEA envelope, the computed HL spine, and
  * every segment are the parser's own conservative emit. Every subscriber, patient,
  * provider, and payer identifier is drawn from the synthetic-safety providers via {@link ./identity};
@@ -56,7 +56,7 @@ const CLAIM_837_VARIANTS: readonly Claim837Variant[] = Object.freeze(["P", "I", 
 
 /** Options for {@link generate837}. */
 export interface Generate837Options {
-  /** The seed (deterministic — same seed yields a byte-identical interchange). */
+  /** The seed (deterministic: same seed yields a byte-identical interchange). */
   readonly seed: number;
 }
 
@@ -220,7 +220,7 @@ function specOf(rng: Rng, variant: Claim837Variant): Build837Spec {
     claims: [
       {
         ...claim,
-        // Rendering provider (Loop 2310B, NM1 fields round-trip) — a person with an invalid-Luhn NPI.
+        // Rendering provider (Loop 2310B, NM1 fields round-trip), a person with an invalid-Luhn NPI.
         providers: [
           {
             entityIdentifierCode: "82",
@@ -248,7 +248,7 @@ function specOf(rng: Rng, variant: Claim837Variant): Build837Spec {
         state: org.address.state,
         postalCode: org.address.zip,
       },
-      // Provider tax id as a never-issued (900-range) SSN at REF*SY — provably synthetic (roadmap §4.1).
+      // Provider tax id as a never-issued (900-range) SSN at REF*SY, provably synthetic (roadmap §4.1).
       references: [{ qualifier: "SY", value: org.taxIdSsn }],
     },
     subscribers: [subscriber],

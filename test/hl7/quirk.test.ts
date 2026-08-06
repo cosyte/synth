@@ -1,7 +1,7 @@
 /**
  * HL7 v2 **quirk generation** tests (roadmap §Phase 7). The headline is the **intended-warning
  * contract**: every quirk fixture, bare-parsed by `@cosyte/hl7`, produces **exactly** the intended
- * warning code — and where a public built-in profile claims the deviation, the profiled parse suppresses
+ * warning code, and where a public built-in profile claims the deviation, the profiled parse suppresses
  * it. Plus seed-determinism, the fail-closed `SYNTH_UNSUPPORTED_QUIRK`, and that a quirk never disturbs
  * the synthetic-by-construction identity (it only appends a structural segment).
  */
@@ -72,7 +72,7 @@ describe("HL7 intended-warning contract (mandatory)", () => {
     expect(rt.withProfile?.warnings).toEqual([]);
   });
 
-  it("the `unknown-escape` quirk is a bare quirk — HL7 v2 has no re-badge, so no profile verdict", () => {
+  it("the `unknown-escape` quirk is a bare quirk: HL7 v2 has no re-badge, so no profile verdict", () => {
     const rt = hl7QuirkRoundTrip(generateHl7Quirk({ seed: 1, quirk: "unknown-escape" }));
     expect(rt.withProfile).toBeUndefined();
     expect(rt.intendedWarningHeld).toBe(true);
@@ -97,7 +97,7 @@ describe("HL7 quirk seed-determinism (mandatory)", () => {
   });
 });
 
-describe("HL7 quirk synthetic-safety (mandatory) — the quirk only adds structure", () => {
+describe("HL7 quirk synthetic-safety (mandatory): the quirk only adds structure", () => {
   it("the quirked message is the spec-clean message plus one appended structural segment", () => {
     fc.assert(
       fc.property(seed(), fc.constantFrom(...QUIRKS), (s, quirk) => {
@@ -114,7 +114,7 @@ describe("HL7 quirk synthetic-safety (mandatory) — the quirk only adds structu
 describe("HL7 quirk fail-closed", () => {
   it("an unsupported quirk throws SYNTH_UNSUPPORTED_QUIRK", () => {
     try {
-      // @ts-expect-error — deliberately unsupported name
+      // @ts-expect-error, deliberately unsupported name
       generateHl7Quirk({ seed: 1, quirk: "made-up" });
       expect.unreachable();
     } catch (err) {

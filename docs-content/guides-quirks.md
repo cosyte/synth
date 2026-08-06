@@ -7,25 +7,25 @@ sidebar_position: 8
 # Generate vendor-quirk fixtures
 
 Spec-clean fixtures prove a parser reads a _correct_ message. The harder, more valuable test is whether
-a parser tolerates the **realistic vendor deviations** real-world traffic carries — and surfaces exactly
+a parser tolerates the **realistic vendor deviations** real-world traffic carries, and surfaces exactly
 the right diagnostic when it does. That is what quirk mode generates.
 
 The load-bearing idea: **the quirk vocabulary _is_ the parsers' own profile systems.** A `synth` quirk
 deviates the _structure_ of an otherwise spec-clean message so it round-trips through the parser to
-**exactly one intended, stable warning code** — the tolerance the corresponding parser profile
+**exactly one intended, stable warning code**, the tolerance the corresponding parser profile
 (`hl7.defineProfile`, `ccda.defineCcdaProfile`, `astm.defineAstmProfile`) encodes. This is the
-**intended-warning contract**: a quirk fixture is never a fiction — it exercises a documented, coded
+**intended-warning contract**: a quirk fixture is never a fiction, it exercises a documented, coded
 leniency, and where a built-in **public** parser profile claims the deviation, the quirk round-trips
 cleanly under it (suppressed, or re-badged to `PROFILE_QUIRK_APPLIED`).
 
-Every quirk changes the message _shape_, never the _provenance_ of the data — so a quirk fixture is still
+Every quirk changes the message _shape_, never the _provenance_ of the data, so a quirk fixture is still
 **synthetic-by-construction** and passes the same synthetic-safety gate.
 
-Three formats ship quirks: **HL7 v2**, **C-CDA**, and **ASTM** — the parsers with the
+Three formats ship quirks: **HL7 v2**, **C-CDA**, and **ASTM**, the parsers with the
 richest profile systems. A quirk a format's profile system does not support fails closed with a stable
 `SYNTH_UNSUPPORTED_QUIRK` diagnostic, never a silently-wrong fixture.
 
-## HL7 v2 — a vendor Z-segment
+## HL7 v2: a vendor Z-segment
 
 A site-defined `Z`-segment is the canonical HL7 v2 quirk. A receiver with no profile flags it
 `UNKNOWN_SEGMENT`; a `defineProfile` that declares the segment (here `@cosyte/hl7`'s public `visage`
@@ -40,7 +40,7 @@ rt.intendedWarningHeld; // => true
 rt.withProfile?.tolerated; // => true
 ```
 
-## C-CDA — a deprecated LOINC code
+## C-CDA: a deprecated LOINC code
 
 C-CDA profiles **re-badge** a tolerated deviation to the value-free `PROFILE_QUIRK_APPLIED` marker. A
 deprecated result LOINC round-trips to `DEPRECATED_LOINC`, and `@cosyte/ccda`'s public `smartScorecard`
@@ -55,7 +55,7 @@ rt.withProfile?.warnings; // => ["PROFILE_QUIRK_APPLIED"]
 rt.withProfile?.tolerated; // => true
 ```
 
-## ASTM — a non-standard escape
+## ASTM: a non-standard escape
 
 An ASTM `&Z&` escape body round-trips to `ASTM_UNKNOWN_ESCAPE_SEQUENCE`, and `@cosyte/astm`'s public
 `referenceCorpus` profile (grounded in the redistributable kxepal/python-astm + senaite OSS corpus)
@@ -71,7 +71,7 @@ rt.withProfile?.tolerated; // => true
 
 ## Unsupported quirks fail closed
 
-A quirk the format's profile system does not support is a fatal `SYNTH_UNSUPPORTED_QUIRK` — never a
+A quirk the format's profile system does not support is a fatal `SYNTH_UNSUPPORTED_QUIRK`, never a
 silent no-op and never a fabricated quirk with a made-up warning:
 
 ```ts runnable
@@ -87,14 +87,14 @@ code; // => "SYNTH_UNSUPPORTED_QUIRK"
 ```
 
 Branch on `err.code`, never on `err.message`. The message is a fixed entry in the frozen
-`SYNTH_FATAL_MESSAGES` table and does **not** name the quirk you asked for — `SynthError` takes a code
+`SYNTH_FATAL_MESSAGES` table and does **not** name the quirk you asked for: `SynthError` takes a code
 and no value parameter, so nothing you pass can reach the thrown object. To see what a format accepts,
 read its registry directly: `Object.keys(HL7_QUIRKS)`, `Object.keys(CCDA_QUIRKS)`,
 `Object.keys(ASTM_QUIRKS)`.
 
 ## A reproducible quirk corpus
 
-Each format ships a quirk corpus that cycles every built-in quirk, seed-tagged and self-describing — its
+Each format ships a quirk corpus that cycles every built-in quirk, seed-tagged and self-describing: its
 manifest lists the applied quirks:
 
 ```ts runnable
@@ -106,7 +106,7 @@ const corpus = ccdaQuirkCorpus({ seed: 42 });
 
 ## Grounding: public-only, never a private corpus
 
-Every shipped quirk is grounded in a **publicly-documented** deviation or a parser's **public** profile
-— a published IG, a vendor interface spec, or a redistributable OSS corpus. A quirk that would need a
+Every shipped quirk is grounded in a **publicly-documented** deviation or a parser's **public** profile:
+a published IG, a vendor interface spec, or a redistributable OSS corpus. A quirk that would need a
 **private, vendor-attributed corpus** to ground is **not shipped**. Quirk recipes for FHIR, X12, and
 NCPDP are deferred.

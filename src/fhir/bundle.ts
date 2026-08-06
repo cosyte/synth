@@ -1,5 +1,5 @@
 /**
- * Synthetic FHIR R4 **`Bundle`** generation — a self-contained `collection`,
+ * Synthetic FHIR R4 **`Bundle`** generation: a self-contained `collection`,
  * `transaction`, or `document` Bundle assembling a synthetic US Core `Patient` and its full clinical
  * spine (`Condition`, lab + vital-sign `Observation`s, `MedicationRequest`, `Encounter`,
  * `Immunization`, `AllergyIntolerance`, `Procedure`, `DiagnosticReport`), wired by `urn:uuid:`
@@ -54,7 +54,7 @@ function resourceTypeOf(resource: FhirComplex): string {
   return rt !== undefined && rt.value.kind === "primitive" ? String(rt.value.value) : "Resource";
 }
 
-/** A minimal synthetic `Organization` (author/custodian) — no PHI, name is clearly synthetic. */
+/** A minimal synthetic `Organization` (author/custodian), no PHI, name is clearly synthetic. */
 function buildOrganization(rng: Rng): FhirComplex {
   const id = safe.identifier(rng, "AN");
   return complex([
@@ -75,7 +75,7 @@ function buildOrganization(rng: Rng): FhirComplex {
   ]);
 }
 
-/** One assembled spine member — its stable in-bundle `urn:uuid:` fullUrl and its resource model. */
+/** One assembled spine member: its stable in-bundle `urn:uuid:` fullUrl and its resource model. */
 interface SpineEntry {
   readonly fullUrl: string;
   readonly resource: FhirComplex;
@@ -92,7 +92,7 @@ interface Spine {
   readonly entries: readonly SpineEntry[];
 }
 
-/** Build the shared clinical spine — every reference wired to an in-bundle `urn:uuid:` fullUrl. */
+/** Build the shared clinical spine: every reference wired to an in-bundle `urn:uuid:` fullUrl. */
 function buildSpine(rng: Rng): Spine {
   const patientUrl = `urn:uuid:${safe.uuid(rng)}`;
   const orgUrl = `urn:uuid:${safe.uuid(rng)}`;
@@ -285,7 +285,7 @@ const ALL_KINDS: readonly FhirResourceKind[] = Object.freeze([
   "DocumentBundle",
 ]);
 
-/** The default corpus mix — the full US Core clinical spine plus a collection Bundle. */
+/** The default corpus mix: the full US Core clinical spine plus a collection Bundle. */
 const DEFAULT_MIX: readonly FhirResourceKind[] = Object.freeze([
   "USCorePatient",
   "Condition",
@@ -347,7 +347,7 @@ export interface FhirCorpusOptions {
  * resource is generated from a distinct sub-seed derived from the corpus seed and round-tripped through
  * `@cosyte/fhir`; the per-artifact `warnings` record the validator's non-informational findings (empty
  * ⇒ spec-clean, no US Core profiles supplied). Pass US Core `StructureDefinition`s to a per-resource
- * {@link roundTrip} call to additionally assert profile conformance (BYO — none is bundled).
+ * {@link roundTrip} call to additionally assert profile conformance (BYO, none is bundled).
  *
  * @param options - Seed, count, and the resource mix. See {@link FhirCorpusOptions}.
  * @returns A deep-frozen {@link Corpus}.
@@ -365,7 +365,7 @@ export function fhirCorpus(options: FhirCorpusOptions): Corpus {
   const artifacts = Array.from({ length: count }, (_unused, i) => {
     const kind = kinds[i % kinds.length] ?? "USCorePatient";
     const rt = roundTrip(generateKind(kind, seedStream.nextUint32()));
-    // The artifact records the findings that break spec-cleanliness — validator **errors** (empty ⇒
+    // The artifact records the findings that break spec-cleanliness: validator **errors** (empty ⇒
     // spec-clean). Advisory warnings a legal resource may carry (e.g. `REFERENCE_UNRESOLVED` on a
     // collection Bundle's external reference, or the base `dom-6` narrative best-practice) are not
     // spec-cleanliness violations and are excluded here; a caller wanting the full picture calls

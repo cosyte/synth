@@ -1,12 +1,12 @@
 /**
  * A tiny, curated, **license-clean** pool of example codes for filling coded fields in generated FHIR
  * resources (`Observation.code`, `Condition.code`, `MedicationRequest.medication[x]`, and the OMB
- * race/ethnicity categories). These are **public code facts** — codes drawn from the published FHIR R4
- * and US Core specification examples — not copyrighted terminology tables: `@cosyte/synth` bundles
+ * race/ethnicity categories). These are **public code facts**: codes drawn from the published FHIR R4
+ * and US Core specification examples, not copyrighted terminology tables: `@cosyte/synth` bundles
  * **no** SNOMED/LOINC/RxNorm content. The pool exists only so a
  * generated resource is *structurally* realistic; a consumer who needs their own codes supplies them.
  *
- * Nothing here is PHI — codes and their display text are not patient identifiers. The synthetic-safety
+ * Nothing here is PHI: codes and their display text are not patient identifiers. The synthetic-safety
  * invariant governs identity fields (name/DOB/identifier/telecom/address), which come from `../safe`.
  *
  * @module
@@ -24,7 +24,7 @@ export interface CodeConcept {
 
 /**
  * A quantitative observation concept: a LOINC code plus the UCUM unit and a plausible synthetic value
- * range the seeded generator draws within. The range implies **no** real measurement — it only keeps a
+ * range the seeded generator draws within. The range implies **no** real measurement: it only keeps a
  * generated result inside a structurally-sane band.
  */
 export interface QuantConcept extends CodeConcept {
@@ -94,7 +94,7 @@ export const EXAMPLE_LAB_OBSERVATIONS: readonly QuantConcept[] = Object.freeze([
 
 /**
  * LOINC vital-sign example codes (for a US Core Vital Signs `Observation`). Public LOINC identifiers
- * with their required UCUM units and synthetic value bands. Simple single-value vitals only —
+ * with their required UCUM units and synthetic value bands. Simple single-value vitals only:
  * multi-component vitals (e.g. blood-pressure panel `85354-9`) are not generated.
  */
 export const EXAMPLE_VITAL_SIGNS: readonly QuantConcept[] = Object.freeze([
@@ -190,7 +190,7 @@ export const EXAMPLE_MEDICATIONS: readonly CodeConcept[] = Object.freeze([
 ]);
 
 /**
- * OMB race categories (US Core `us-core-race` `ombCategory`) — the five OMB categories, public code
+ * OMB race categories (US Core `us-core-race` `ombCategory`): the five OMB categories, public code
  * facts from the CDC Race &amp; Ethnicity code system (`urn:oid:2.16.840.1.113883.6.238`).
  */
 export const EXAMPLE_RACE_CATEGORIES: readonly CodeConcept[] = Object.freeze([
@@ -214,7 +214,7 @@ export const EXAMPLE_RACE_CATEGORIES: readonly CodeConcept[] = Object.freeze([
 ]);
 
 /**
- * OMB ethnicity categories (US Core `us-core-ethnicity` `ombCategory`) — the two OMB categories, public
+ * OMB ethnicity categories (US Core `us-core-ethnicity` `ombCategory`): the two OMB categories, public
  * code facts from the CDC Race &amp; Ethnicity code system.
  */
 export const EXAMPLE_ETHNICITY_CATEGORIES: readonly CodeConcept[] = Object.freeze([
@@ -280,7 +280,7 @@ export const EXAMPLE_ALLERGY_MANIFESTATIONS: readonly CodeConcept[] = Object.fre
 
 /**
  * SNOMED CT procedure example codes (for a US Core `Procedure.code`). Public SNOMED identifiers used as
- * structural fillers — **not** CPT (which is never bundled).
+ * structural fillers, **not** CPT (which is never bundled).
  */
 export const EXAMPLE_PROCEDURES: readonly CodeConcept[] = Object.freeze([
   Object.freeze({
