@@ -1,21 +1,21 @@
 /**
  * The reserved / never-collide identifier facts that make a `@cosyte/synth` value **provably
- * synthetic** — the ground truth behind the synthetic-safety invariant.
+ * synthetic**: the ground truth behind the synthetic-safety invariant.
  *
  * These are **facts**, not copyrighted prose: authoritative ranges published by SSA, NANPA, and the
  * IETF that are guaranteed never to denote a real person or a real routable resource. Every provider
- * draws only from these; the predicates here are the executable half of the CI synthetic-safety gate —
+ * draws only from these; the predicates here are the executable half of the CI synthetic-safety gate:
  * they let a test assert that no emitted value falls **outside** a reserved source.
  *
  * Sources:
- * - **SSN** — SSA never issues area numbers `000`, `666`, or `900–999`; the `987-65-4320…4329` block
+ * - **SSN**, SSA never issues area numbers `000`, `666`, or `900–999`; the `987-65-4320…4329` block
  *   is SSA's explicitly-reserved advertising range. (ssa.gov)
- * - **Phone** — NANP reserves `555-0100…555-0199` as the fictional/non-working line range. (nanpa.com)
- * - **Email/domain** — RFC 2606 / RFC 6761 reserved: `example.com`/`.net`/`.org` and the `.example`,
+ * - **Phone**, NANP reserves `555-0100…555-0199` as the fictional/non-working line range. (nanpa.com)
+ * - **Email/domain**, RFC 2606 / RFC 6761 reserved: `example.com`/`.net`/`.org` and the `.example`,
  *   `.test`, `.invalid`, `.localhost` TLDs.
- * - **IP** — RFC 5737 IPv4 TEST-NET-1/2/3 (`192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`) and
+ * - **IP**, RFC 5737 IPv4 TEST-NET-1/2/3 (`192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`) and
  *   RFC 3849 IPv6 documentation prefix `2001:db8::/32`.
- * - **NPI** — a real National Provider Identifier is a 10-digit number whose last digit is a Luhn
+ * - **NPI**, a real National Provider Identifier is a 10-digit number whose last digit is a Luhn
  *   check digit computed over the `80840` prefix + the 9-digit base (CMS NPI check-digit rule, ISO
  *   7812). A number whose check digit is **wrong** therefore cannot be a NPPES-issued NPI. `synth`
  *   emits NPIs with a deliberately-invalid check digit, so no generated NPI can collide with a real
@@ -27,7 +27,7 @@
 /**
  * The synthetic **assigning authority** `@cosyte/synth` mints MRNs / account / member identifiers
  * under. There is **no** reserved MRN range (an MRN is unique only within its assigning-authority /
- * OID namespace), so — a documented design decision — every synthetic identifier
+ * OID namespace), so, as a documented design decision, every synthetic identifier
  * is scoped to a namespace that clearly cannot be a real facility's: a `SYNTH`-labelled authority whose
  * OID lives under HL7's designated **example** root `2.16.840.1.113883.19`. A value under this AA can
  * never collide with a real record because the *namespace itself* is synthetic.
@@ -35,7 +35,7 @@
 export const SYNTHETIC_ASSIGNING_AUTHORITY = Object.freeze({
   /** The human-readable assigning-authority namespace id (HL7 HD.1). */
   namespaceId: "COSYTE-SYNTH",
-  /** The universal id — an OID under HL7's example arc `2.16.840.1.113883.19` (HD.2). */
+  /** The universal id, an OID under HL7's example arc `2.16.840.1.113883.19` (HD.2). */
   universalId: "2.16.840.1.113883.19.999",
   /** The universal id type (HD.3). */
   universalIdType: "ISO",
@@ -60,7 +60,7 @@ export const DOC_V6_PREFIX = "2001:db8";
 
 /**
  * The `80840` prefix prepended to a 10-digit NPI before the Luhn check (the CMS NPI check-digit
- * rule — `80840` is the ISO 7812 issuer identifier for the US health-application namespace). A real
+ * rule: `80840` is the ISO 7812 issuer identifier for the US health-application namespace). A real
  * NPI satisfies `luhn("80840" + npi) ≡ 0 (mod 10)`.
  */
 export const NPI_LUHN_PREFIX = "80840";
@@ -94,7 +94,7 @@ export function luhnMod10(digits: string): number {
 }
 
 /**
- * The correct NPI check digit for a 9-digit base — the value that makes `80840` + base + check pass
+ * The correct NPI check digit for a 9-digit base: the value that makes `80840` + base + check pass
  * the Luhn check.
  *
  * @param base9 - The 9-digit NPI base (positions 1–9).
@@ -102,7 +102,7 @@ export function luhnMod10(digits: string): number {
  * @example
  * ```ts
  * import { npiCheckDigit } from "@cosyte/synth";
- * npiCheckDigit("123456789"); // 3 — so 1234567893 is a Luhn-valid NPI shape
+ * npiCheckDigit("123456789"); // 3, so 1234567893 is a Luhn-valid NPI shape
  * ```
  */
 export function npiCheckDigit(base9: string): number {
@@ -116,7 +116,7 @@ export function npiCheckDigit(base9: string): number {
  * from. A real DEA number is `<registrant-type><last-name-initial>` + 7 digits; the first letter is the
  * registrant type (A/B/F/G/M/P/R/X are the widely-published values; the second letter is the
  * registrant's last-name initial). These letters are a **fact** about the number's shape, not
- * copyrighted prose — they only shape the value; the synthetic guarantee is the deliberately-**invalid
+ * copyrighted prose: they only shape the value; the synthetic guarantee is the deliberately-**invalid
  * checksum** (see {@link dea} / {@link isSyntheticDea}).
  */
 export const DEA_REGISTRANT_TYPES: readonly string[] = Object.freeze([
@@ -155,7 +155,7 @@ export function deaCheckDigit(base6: string): number {
 }
 
 /**
- * Whether a DEA number (`XX` + 7 digits, case-insensitive) is **provably synthetic** — its check digit
+ * Whether a DEA number (`XX` + 7 digits, case-insensitive) is **provably synthetic**: its check digit
  * (the 7th digit) does **not** match the published DEA checksum, so it cannot be a validly-issued DEA
  * registration. A checksum-valid DEA number (which *could* denote a real prescriber) returns `false`; a
  * value that is not the DEA shape returns `false`.
@@ -165,7 +165,7 @@ export function deaCheckDigit(base6: string): number {
  * @example
  * ```ts
  * import { isSyntheticDea } from "@cosyte/synth";
- * isSyntheticDea("AF1234561"); // depends on the base — true when the 7th digit is wrong
+ * isSyntheticDea("AF1234561"); // depends on the base: true when the 7th digit is wrong
  * ```
  */
 export function isSyntheticDea(value: string): boolean {
@@ -177,7 +177,7 @@ export function isSyntheticDea(value: string): boolean {
 }
 
 /**
- * Whether a 10-digit NPI is **provably synthetic** — i.e. its check digit is invalid, so it cannot be
+ * Whether a 10-digit NPI is **provably synthetic**, i.e. its check digit is invalid, so it cannot be
  * a NPPES-issued NPI. A Luhn-valid 10-digit NPI (which *could* denote a real registered provider)
  * returns `false`; a non-10-digit value returns `false` (not an NPI shape).
  *
@@ -186,8 +186,8 @@ export function isSyntheticDea(value: string): boolean {
  * @example
  * ```ts
  * import { isSyntheticNpi } from "@cosyte/synth";
- * isSyntheticNpi("1234567894"); // true  — invalid check digit (valid would be 1234567893)
- * isSyntheticNpi("1234567893"); // false — Luhn-valid, could be a real NPI
+ * isSyntheticNpi("1234567894"); // true: invalid check digit (valid would be 1234567893)
+ * isSyntheticNpi("1234567893"); // false: Luhn-valid, could be a real NPI
  * ```
  */
 export function isSyntheticNpi(value: string): boolean {
@@ -198,7 +198,7 @@ export function isSyntheticNpi(value: string): boolean {
 
 /**
  * Whether a `ddd-dd-dddd` (or `ddddddddd`) SSN string is drawn from an SSA never-issued / reserved
- * space — area `000`, `666`, or `900–999`. A real, issuable SSN returns `false`.
+ * space: area `000`, `666`, or `900–999`. A real, issuable SSN returns `false`.
  *
  * @param value - The candidate SSN (dashes optional).
  * @returns `true` when the SSN is provably synthetic.

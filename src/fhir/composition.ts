@@ -1,5 +1,5 @@
 /**
- * Synthetic FHIR R4 **`Composition`** generation — the mandatory first resource of a `document` Bundle
+ * Synthetic FHIR R4 **`Composition`** generation: the mandatory first resource of a `document` Bundle
  * (FHIR invariant `bdl-11`), built through `@cosyte/fhir`.
  * A Composition is a base-R4 resource (US Core 6.1.0 defines no Composition profile), so it is grounded
  * against base FHIR R4; every reference it carries (`subject`, `author`, `custodian`, section `entry`s)
@@ -37,7 +37,7 @@ export interface BuildCompositionInput {
   readonly sections: readonly CompositionSection[];
 }
 
-/** One `Composition.section` — title, LOINC code, and its `entry` references (satisfies `cmp-1`). */
+/** One `Composition.section`: title, LOINC code, and its `entry` references (satisfies `cmp-1`). */
 function section(sec: CompositionSection): FhirComplex {
   return complex([
     prop("title", str(sec.title)),

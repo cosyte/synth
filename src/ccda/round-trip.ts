@@ -1,12 +1,12 @@
 /**
- * The **round-trip-through-the-parser harness** for C-CDA — the headline gate for the synthetic-fixture
- * generator. A generated document is "spec-clean" only if `@cosyte/ccda` — not
- * `@cosyte/synth`'s own opinion — reads it back cleanly. This harness serializes a generated document,
+ * The **round-trip-through-the-parser harness** for C-CDA: the headline gate for the synthetic-fixture
+ * generator. A generated document is "spec-clean" only if `@cosyte/ccda`, not
+ * `@cosyte/synth`'s own opinion, reads it back cleanly. This harness serializes a generated document,
  * parses it straight back through `parseCcda`, and reports what the parser found, so a false
  * "spec-clean" claim cannot hide.
  *
  * `@cosyte/ccda`'s `buildCcda` is round-trip-by-construction (it emits through the same DOM the parser
- * reads), so a clean build carries zero warnings — but this harness re-verifies that *independently*,
+ * reads), so a clean build carries zero warnings, but this harness re-verifies that *independently*,
  * against the parser, because the parser is the judge.
  *
  * @module

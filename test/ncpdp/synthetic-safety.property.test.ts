@@ -1,5 +1,5 @@
 /**
- * The **synthetic-safety property** for NCPDP (roadmap §4, §6 — mandatory, and the invariant most
+ * The **synthetic-safety property** for NCPDP (roadmap §4, §6: mandatory, and the invariant most
  * attacked here because SCRIPT + Telecom carry patient **and** prescriber identity, including the DEA
  * that X12 did not have). For arbitrary seeds and every transaction, no value at a PHI-bearing locus may
  * escape the reserved/synthetic sources:

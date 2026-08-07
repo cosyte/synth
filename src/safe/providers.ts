@@ -1,11 +1,11 @@
 /**
- * The synthetic-safety provider layer — every identifier, contact point, name, and date
+ * The synthetic-safety provider layer: every identifier, contact point, name, and date
  * `@cosyte/synth` emits is minted here, and **only** from a guaranteed-non-colliding source. There is no code
  * path that returns a value not drawn from a reserved range or the
  * shipped fake-name pool. This is the inverse of a parser's liberality: the generator is *closed-world*
  * on its data sources, so no output *can* be real or plausibly-real PHI.
  *
- * All providers are pure functions of an explicit {@link ../rng/rng.Rng} — same seed, same values.
+ * All providers are pure functions of an explicit {@link ../rng/rng.Rng}, same seed, same values.
  *
  * @module
  */
@@ -36,7 +36,7 @@ export interface SyntheticName {
   readonly family: string;
 }
 
-/** A synthetic postal address — synthetic street + city, a fixed non-real ZIP. */
+/** A synthetic postal address: synthetic street + city, a fixed non-real ZIP. */
 export interface SyntheticAddress {
   /** A clearly-fake street line. */
   readonly street: string;
@@ -50,7 +50,7 @@ export interface SyntheticAddress {
 
 /** A synthetic identifier scoped to the synthetic assigning authority. */
 export interface SyntheticIdentifier {
-  /** The identifier value (digits) — unique only within the synthetic namespace. */
+  /** The identifier value (digits): unique only within the synthetic namespace. */
   readonly value: string;
   /** HL7 identifier type code (`MR` = medical record, `AN` = account, `MB` = member). */
   readonly typeCode: "MR" | "AN" | "MB";
@@ -64,7 +64,7 @@ export interface SyntheticIdentifier {
 export type SsnBlock = "never-issued" | "advertising";
 
 /**
- * A **synthetic SSN** — dashed `AAA-GG-SSSS`. Default draws the SSA never-issued area space
+ * A **synthetic SSN**: dashed `AAA-GG-SSSS`. Default draws the SSA never-issued area space
  * (`900–999`); `block: "advertising"` draws SSA's reserved advertising block (`987-65-4320…4329`).
  * A value from this function can never be a real SSN.
  *
@@ -89,7 +89,7 @@ export function ssn(rng: Rng, block: SsnBlock = "never-issued"): string {
 }
 
 /**
- * A **synthetic phone** in the NANP reserved fictional block — `(AAA) 555-01NN`. The reserved
+ * A **synthetic phone** in the NANP reserved fictional block: `(AAA) 555-01NN`. The reserved
  * guarantee is the `555-01NN` tail (exchange 555, line 0100–0199); the area code is any NANP-valid
  * `NXX`. Can never be a working number.
  *
@@ -123,7 +123,7 @@ export function name(rng: Rng): SyntheticName {
 }
 
 /**
- * A **synthetic email** at an RFC 2606 / 6761 reserved domain — `<slug>@example.com`.
+ * A **synthetic email** at an RFC 2606 / 6761 reserved domain: `<slug>@example.com`.
  *
  * @param rng - The seeded generator.
  * @param person - Optional name to derive the local-part slug from; otherwise a random slug is used.
@@ -141,7 +141,7 @@ export function email(rng: Rng, person?: SyntheticName): string {
 }
 
 /**
- * A **synthetic IPv4** in an RFC 5737 TEST-NET block — never routable.
+ * A **synthetic IPv4** in an RFC 5737 TEST-NET block, never routable.
  *
  * @param rng - The seeded generator.
  * @returns A TEST-NET IPv4 address string.
@@ -156,7 +156,7 @@ export function ipv4(rng: Rng): string {
 }
 
 /**
- * A **synthetic IPv6** in the RFC 3849 documentation prefix `2001:db8::/32` — never routable.
+ * A **synthetic IPv6** in the RFC 3849 documentation prefix `2001:db8::/32`, never routable.
  *
  * @param rng - The seeded generator.
  * @returns A documentation-prefix IPv6 address string.
@@ -173,7 +173,7 @@ export function ipv6(rng: Rng): string {
 
 /**
  * A **deterministic UUIDv4-shaped** surrogate key from the seeded generator. Because it is seeded (not
- * from `node:crypto`, which is not reproducible), the cryptographic non-collision argument is weaker —
+ * from `node:crypto`, which is not reproducible), the cryptographic non-collision argument is weaker,
  * acceptable because the identifier namespace is synthetic anyway, and noted honestly.
  *
  * @param rng - The seeded generator.
@@ -194,7 +194,7 @@ export function uuid(rng: Rng): string {
 }
 
 /**
- * A **synthetic NPI** — a 10-digit National Provider Identifier with a **deliberately-invalid Luhn
+ * A **synthetic NPI**: a 10-digit National Provider Identifier with a **deliberately-invalid Luhn
  * check digit**, so it can never be a NPPES-issued NPI (a real NPI must satisfy the `80840`-prefixed
  * Luhn check). The 9-digit base is drawn from the seeded generator; the check digit is
  * set to `(correct + 1) mod 10`, guaranteeing the full value fails validation.
@@ -204,7 +204,7 @@ export function uuid(rng: Rng): string {
  * @example
  * ```ts
  * import { createRng, npi, isSyntheticNpi } from "@cosyte/synth";
- * isSyntheticNpi(npi(createRng(1))); // true — invalid check digit by construction
+ * isSyntheticNpi(npi(createRng(1))); // true: invalid check digit by construction
  * ```
  */
 export function npi(rng: Rng): string {
@@ -214,13 +214,13 @@ export function npi(rng: Rng): string {
 }
 
 /**
- * A **synthetic DEA number** — `<registrant-type><initial>` + 7 digits with a **deliberately-invalid
+ * A **synthetic DEA number**: `<registrant-type><initial>` + 7 digits with a **deliberately-invalid
  * checksum**, so it can never be a validly-issued DEA registration (a real DEA number's 7th digit
  * satisfies the published DEA checksum). The first letter is a registrant-type letter, the
  * second is derived from `person` (its family initial) when supplied so the number reads plausibly; the
  * 6-digit base is seeded and the check digit is set to `(correct + 1) mod 10`, guaranteeing the value
  * fails validation. NCPDP carries prescriber DEA, and this is the identity locus a refuter attacks
- * hardest, so — like {@link npi} — non-collision is a construction-level guarantee, not a heuristic.
+ * hardest, so, like {@link npi}, non-collision is a construction-level guarantee, not a heuristic.
  *
  * @param rng - The seeded generator.
  * @param person - Optional name whose family initial becomes the DEA's second letter.
@@ -228,7 +228,7 @@ export function npi(rng: Rng): string {
  * @example
  * ```ts
  * import { createRng, dea, isSyntheticDea } from "@cosyte/synth";
- * isSyntheticDea(dea(createRng(1))); // true — invalid checksum by construction
+ * isSyntheticDea(dea(createRng(1))); // true: invalid checksum by construction
  * ```
  */
 export function dea(rng: Rng, person?: SyntheticName): string {
@@ -267,7 +267,7 @@ export function identifier(
 }
 
 /**
- * A **synthetic address** — a fake street + city, a reserved non-real ZIP (`00000`). A real state
+ * A **synthetic address**: a fake street + city, a reserved non-real ZIP (`00000`). A real state
  * abbreviation may appear (structural only) but is never combined with a real street + name + DOB.
  *
  * @param rng - The seeded generator.
@@ -310,7 +310,7 @@ export function dateYmd(rng: Rng, minYear = 1930, maxYear = 2010): string {
   return `${String(year).padStart(4, "0")}${String(month).padStart(2, "0")}${String(day).padStart(2, "0")}`;
 }
 
-/** US state abbreviations — structural only (see {@link address}). */
+/** US state abbreviations: structural only (see {@link address}). */
 const US_STATES: readonly string[] = Object.freeze([
   "AL",
   "AK",

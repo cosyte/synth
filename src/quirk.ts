@@ -2,9 +2,9 @@
  * The **quirk core**. Where the spec-clean generators prove
  * *synthetic-by-construction* through each parser's own builder, the quirk layer proves the mirror
  * property: a **deliberately off-spec** fixture round-trips to **exactly the intended parser warning
- * code(s)** — no more, no fewer. The quirk vocabulary **is the parsers' own profile systems**
+ * code(s)**, no more, no fewer. The quirk vocabulary **is the parsers' own profile systems**
  * (`hl7.defineProfile`, `ccda.defineCcdaProfile`, `astm.defineAstmProfile`): a quirk exercises exactly
- * the tolerance the corresponding parser profile encodes, so a quirk fixture is never a fiction — it
+ * the tolerance the corresponding parser profile encodes, so a quirk fixture is never a fiction, it
  * targets a documented, coded leniency (the **intended-warning contract**).
  *
  * This module is the **format-agnostic** part: the descriptor a quirk carries, the artifact a quirk
@@ -19,27 +19,27 @@ import { SYNTH_FATAL_CODES, SynthError } from "./codes.js";
 import type { SynthProfile } from "./profile.js";
 
 /**
- * How the parser's matching profile treats a quirk once it is active — the three shapes the parsers'
+ * How the parser's matching profile treats a quirk once it is active: the three shapes the parsers'
  * profile systems actually exhibit (verified firsthand against each parser):
  *
- * - `"suppressed"` — the profile makes the warning **disappear** (HL7 v2: a `defineProfile`
+ * - `"suppressed"`, the profile makes the warning **disappear** (HL7 v2: a `defineProfile`
  *   `customSegments` claim suppresses `UNKNOWN_SEGMENT` for a declared Z-segment).
- * - `"rebadged"` — the profile **downgrades** the warning to the value-free `PROFILE_QUIRK_APPLIED`
+ * - `"rebadged"`, the profile **downgrades** the warning to the value-free `PROFILE_QUIRK_APPLIED`
  *   marker with `expected: true` (C-CDA `defineCcdaProfile` / ASTM `defineAstmProfile`
  *   `profileQuirkApplied`).
- * - `"bare"` — no shipped profile tolerates it; the quirk targets a real coded leniency a consumer can
+ * - `"bare"`, no shipped profile tolerates it; the quirk targets a real coded leniency a consumer can
  *   tolerate via their own `defineProfile`/`defineAstmProfile`, but no built-in re-badges it.
  */
 export type QuirkProfileDisposition = "suppressed" | "rebadged" | "bare";
 
 /**
  * The stable, value-free re-badge code the C-CDA and ASTM parsers emit when a profile tolerates a
- * quirk. HL7 v2 has no equivalent (it suppresses instead — see {@link QuirkProfileDisposition}).
+ * quirk. HL7 v2 has no equivalent (it suppresses instead: see {@link QuirkProfileDisposition}).
  */
 export const PROFILE_QUIRK_APPLIED = "PROFILE_QUIRK_APPLIED";
 
 /**
- * A public, grounded description of one vendor quirk — the metadata that binds a quirk recipe to a real
+ * A public, grounded description of one vendor quirk: the metadata that binds a quirk recipe to a real
  * parser warning code and a **publicly-groundable** deviation (cited-public, never a private
  * vendor corpus).
  */
@@ -49,12 +49,12 @@ export interface QuirkDescriptor {
   /** The format this quirk applies to. */
   readonly format: SynthFormat;
   /**
-   * The **exact** parser warning code(s) a bare parse (no profile) surfaces for this quirk — the
+   * The **exact** parser warning code(s) a bare parse (no profile) surfaces for this quirk, the
    * intended-warning contract. A quirk that produces any other code, or none, is a generation bug.
    */
   readonly intendedWarnings: readonly string[];
   /**
-   * The **public** grounding for this quirk — the spec clause or the parser's public profile that
+   * The **public** grounding for this quirk, the spec clause or the parser's public profile that
    * documents the tolerance. Never a private vendor-attributed corpus.
    */
   readonly grounding: string;
@@ -64,7 +64,7 @@ export interface QuirkDescriptor {
   readonly disposition: QuirkProfileDisposition;
 }
 
-/** One generated quirk artifact — the off-spec wire text plus the contract it is meant to satisfy. */
+/** One generated quirk artifact: the off-spec wire text plus the contract it is meant to satisfy. */
 export interface QuirkArtifact {
   /** The format this artifact belongs to. */
   readonly format: SynthFormat;
@@ -102,7 +102,7 @@ export interface QuirkRoundTripResult {
   /** The exact code(s) the quirk is meant to produce. */
   readonly intendedWarnings: readonly string[];
   /**
-   * `true` iff the bare parse produced **exactly** the intended code(s) — the intended-warning contract.
+   * `true` iff the bare parse produced **exactly** the intended code(s), the intended-warning contract.
    */
   readonly intendedWarningHeld: boolean;
   /** The verdict under the tolerating profile, when a built-in public one exists. */
@@ -110,7 +110,7 @@ export interface QuirkRoundTripResult {
 }
 
 /**
- * Exact multiset (order-independent) equality of two code lists — the intended-warning comparison.
+ * Exact multiset (order-independent) equality of two code lists: the intended-warning comparison.
  *
  * @param a - The first code list.
  * @param b - The second code list.
@@ -136,12 +136,12 @@ export function sameCodeSet(a: readonly string[], b: readonly string[]): boolean
 
 /**
  * Resolve a requested quirk name against a format's registry, or **fail closed**. A quirk the format's
- * profile system does not support is a fatal `SYNTH_UNSUPPORTED_QUIRK` — never a silent no-op and never
+ * profile system does not support is a fatal `SYNTH_UNSUPPORTED_QUIRK`, never a silent no-op and never
  * a fabricated quirk with a made-up warning.
  *
  * The refusal names neither the request nor the registry. `registry`, `format` and `name` are all
  * caller-supplied, and a diagnostic that quotes its input is a diagnostic that can be made to carry
- * anything the caller was holding — which for a fixture generator wired into someone else's pipeline
+ * anything the caller was holding, which for a fixture generator wired into someone else's pipeline
  * is not a hypothetical. Branch on `err.code`; the supported set is the registry you passed
  * (`HL7_QUIRKS`, `CCDA_QUIRKS`, `ASTM_QUIRKS`), which you can enumerate directly.
  *
@@ -182,7 +182,7 @@ export function resolveQuirk(
  * @example
  * ```ts
  * import { profileTolerated } from "@cosyte/synth";
- * profileTolerated("suppressed", ["UNKNOWN_SEGMENT"], []); // true — the profile suppressed it
+ * profileTolerated("suppressed", ["UNKNOWN_SEGMENT"], []); // true: the profile suppressed it
  * ```
  */
 export function profileTolerated(
@@ -204,15 +204,15 @@ export function profileTolerated(
 /**
  * Assert a freshly-generated quirk artifact **actually** round-trips to its intended warning(s), or
  * **fail closed**. This is the generator's self-check on the intended-warning contract: a
- * fixture whose bare parse does not produce exactly the declared code(s) is a *mislabeled* fixture — a
- * golden file that lies about the parser verdict it anchors — and must never be emitted. It is a
+ * fixture whose bare parse does not produce exactly the declared code(s) is a *mislabeled* fixture, a
+ * golden file that lies about the parser verdict it anchors, and must never be emitted. It is a
  * stronger guard than "the transform changed some bytes": a transform can mutate the wrong element (a
  * template a given document type does not key its warning on) and still change bytes while producing no
  * warning. Every format's `generate*Quirk` calls this after transforming, so the contract is enforced at
  * generation time, not merely at round-trip time.
  *
- * It no longer takes the quirk name. That parameter existed for one reason — to be interpolated into
- * the refusal — and a parameter whose only job is to reach a message is the exact shape this package
+ * It no longer takes the quirk name. That parameter existed for one reason, to be interpolated into
+ * the refusal, and a parameter whose only job is to reach a message is the exact shape this package
  * is removing, so it is gone rather than merely unused. The refusal names neither code list either;
  * both are caller-supplied, and the caller reads the comparison back off the arguments it holds.
  *

@@ -1,5 +1,5 @@
 /**
- * Unit tests for the C-CDA generators' option branches and read-back — that a generated document is not
+ * Unit tests for the C-CDA generators' option branches and read-back: that a generated document is not
  * only spec-clean but carries the intended synthetic content, read through `@cosyte/ccda`'s own
  * accessors (the parser is the judge of what the builder actually emitted).
  */
@@ -75,7 +75,7 @@ describe("C-CDA generator read-back", () => {
 
 describe("C-CDA round-trip harness surfaces parser warnings faithfully", () => {
   it("a document with an explicit-unknown smoking status round-trips to exactly that warning", () => {
-    // Build a document whose Social History carries an *omitted* smoking-status value — the parser
+    // Build a document whose Social History carries an *omitted* smoking-status value: the parser
     // reads it back as an explicit unknown and flags `SMOKING_STATUS_UNKNOWN`. The synth roundTrip
     // harness must report that warning (proving it does not launder a real parser warning to green).
     const doc = buildCcda({
@@ -86,7 +86,7 @@ describe("C-CDA round-trip harness surfaces parser warnings faithfully", () => {
     const rt = roundTrip(doc);
     expect(rt.warnings).toContain("SMOKING_STATUS_UNKNOWN");
     expect(rt.specClean).toBe(false);
-    // Byte-stability is independent of warnings — a warned document still re-serializes identically.
+    // Byte-stability is independent of warnings, a warned document still re-serializes identically.
     expect(rt.byteStable).toBe(true);
   });
 });

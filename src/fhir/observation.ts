@@ -1,8 +1,8 @@
 /**
- * Synthetic FHIR R4 **`Observation`** generation — US Core Laboratory Result and US Core Vital Signs. Built
+ * Synthetic FHIR R4 **`Observation`** generation: US Core Laboratory Result and US Core Vital Signs. Built
  * through `@cosyte/fhir`; `code` and the measured `valueQuantity` come from
  * the license-clean LOINC/UCUM example pool, `subject` from a supplied or derived Patient reference.
- * The measured value is drawn from the seeded generator within a structurally-sane band — it implies no
+ * The measured value is drawn from the seeded generator within a structurally-sane band: it implies no
  * real measurement.
  *
  * @module
@@ -46,7 +46,7 @@ function drawValue(rng: Rng, concept: QuantConcept): string {
   return raw.toFixed(concept.decimals);
 }
 
-/** A UCUM `valueQuantity` for a measured concept — `value` (decimal), `unit`, UCUM `system` + `code`. */
+/** A UCUM `valueQuantity` for a measured concept: `value` (decimal), `unit`, UCUM `system` + `code`. */
 function valueQuantity(rng: Rng, concept: QuantConcept): FhirComplex {
   return complex([
     prop("value", dec(drawValue(rng, concept))),

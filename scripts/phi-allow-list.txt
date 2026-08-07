@@ -1,10 +1,10 @@
 # scripts/phi-allow-list.txt
 #
-# PHI-scan allow-list — the positive declaration that a fixture's identifiers
+# PHI-scan allow-list: the positive declaration that a fixture's identifiers
 # are synthetic. `scripts/phi-scan.ts` reads this file; any realistic-PHI-shaped
 # token NOT covered here is a hit. Byte-strict wire formats cannot carry an
 # inline `# synthetic: true` header (the header segment must be the first bytes),
-# so this allow-list is the synthetic-fixture declaration mechanism — the same
+# so this allow-list is the synthetic-fixture declaration mechanism, the same
 # approach every sibling `@cosyte/*` parser uses.
 #
 # Format: `<TAG> <value>` per line. `#` comments and blank lines are ignored.
@@ -19,13 +19,13 @@
 # SCRIPT + Telecom, ASTM P-6). EMAILDOMAIN and EMAIL feed the email floor. DOB and
 # ID are loaded but consumed by nothing: no arm value-gates a DOB (a seeded
 # synthetic DOB is indistinguishable from a real one, and there is no reserved DOB
-# range), and the id arms check a SHAPE — SSA never-issued range, synthetic
-# assigning authority, a failing NPI Luhn or DEA checksum — rather than a declared
+# range), and the id arms check a SHAPE, SSA never-issued range, synthetic
+# assigning authority, a failing NPI Luhn or DEA checksum, rather than a declared
 # literal, because a generator mints ids per seed and a literal list would never
 # keep up. Both tags are kept so a future rule has a declared source to read.
 #
 # To add a new synthetic fixture: reuse the tokens below, or append new ones here
-# and commit. Adding a token is a reviewed, intentional act — never silent.
+# and commit. Adding a token is a reviewed, intentional act, never silent.
 
 # --- Reserved / test email domains (RFC 2606 / 6761) ---
 EMAILDOMAIN example.com
@@ -35,7 +35,7 @@ EMAILDOMAIN example.test
 
 # --- Exact addresses cleared one at a time ---
 #
-# The scan covers all of `test/`, which includes `test/us-core-profiles/` — the
+# The scan covers all of `test/`, which includes `test/us-core-profiles/`: the
 # real, HL7-published US Core 6.1.0 StructureDefinitions this repo vendors so US
 # Core conformance is validated against the normative artifact rather than a
 # paraphrase. Each one carries its publisher's work-group contact in
@@ -53,12 +53,12 @@ EMAILDOMAIN example.test
 # Narrowest declaration that covers the finding.
 EMAIL cgp@lists.HL7.org
 
-# --- Synthetic person-name tokens (example — extend for your fixtures) ---
+# --- Synthetic person-name tokens (example: extend for your fixtures) ---
 # NAME DOE
 # NAME JOHN
 #
 # The shipped clearly-fake name pool (src/safe/names-pool.ts). Every PID-5 name token in a generated
-# HL7 fixture must appear here — the structured HL7 detector in scripts/phi-scan.ts flags any name
+# HL7 fixture must appear here: the structured HL7 detector in scripts/phi-scan.ts flags any name
 # token not positively declared synthetic. Keep this in sync with the pool.
 NAME TESTINA
 NAME FIXTURA
@@ -122,13 +122,13 @@ NAME GENFIELD
 # WHAT THIS COSTS, stated so a reviewer prices it rather than skims it: a NAME entry is
 # global, so a `<given>Al</given>` or a PID-5 `Provider` now passes ANYWHERE in the repo.
 # `Provider` is a role word no person is named, so that is close to free. `Al` is a real
-# nickname, and declaring it is a genuine if small weakening — accepted because a
+# nickname, and declaring it is a genuine if small weakening: accepted because a
 # 2-character token carries almost no identifying information, which is the same judgment
 # the de-identifier under test already encodes by dropping it.
 NAME AL
 NAME PROVIDER
 
-# --- Synthetic dates of birth (example — normalize to your detector's format) ---
+# --- Synthetic dates of birth (example: normalize to your detector's format) ---
 # DOB 19800115
 
 # --- Synthetic ids: SSN / MRN / member-id shapes (example) ---

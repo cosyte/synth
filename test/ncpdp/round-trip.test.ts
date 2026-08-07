@@ -92,7 +92,7 @@ describe("NCPDP identity building blocks", () => {
 
   it("ships a license-clean example-drug pool with example (non-real) NDCs", () => {
     expect(EXAMPLE_DRUGS.length).toBeGreaterThan(0);
-    // Every NDC uses the invented `00000` labeler prefix — transparently an example, never a real NDC.
+    // Every NDC uses the invented `00000` labeler prefix: transparently an example, never a real NDC.
     expect(EXAMPLE_DRUGS.every((d) => /^00000\d{6}$/.test(d.ndc))).toBe(true);
   });
 });

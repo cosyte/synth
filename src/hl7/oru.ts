@@ -19,7 +19,7 @@ import { EXAMPLE_LAB_OBSERVATIONS, EXAMPLE_ORDER_SERVICES } from "./example-code
 
 /** Options for {@link generateOru}. */
 export interface GenerateOruOptions {
-  /** The seed — the same seed yields a byte-identical message. Defaults to `0`. */
+  /** The seed: the same seed yields a byte-identical message. Defaults to `0`. */
   readonly seed?: number;
 }
 

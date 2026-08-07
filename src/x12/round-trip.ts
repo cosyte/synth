@@ -1,7 +1,7 @@
 /**
- * The **round-trip-through-the-parser harness** for X12 — the headline gate for the synthetic-fixture
- * generator. A generated interchange is "spec-clean" only if `@cosyte/x12` — not
- * `@cosyte/synth`'s own opinion — reads it back cleanly. This harness serializes a built interchange,
+ * The **round-trip-through-the-parser harness** for X12: the headline gate for the synthetic-fixture
+ * generator. A generated interchange is "spec-clean" only if `@cosyte/x12`, not
+ * `@cosyte/synth`'s own opinion, reads it back cleanly. This harness serializes a built interchange,
  * parses it straight back through `parseX12`, and reports what the parser found, so a false
  * "spec-clean" claim cannot hide.
  *

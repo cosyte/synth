@@ -1,12 +1,12 @@
 /**
- * `@cosyte/synth/hl7` — the HL7 v2 generation surface, exposed as its own subpath so importing the
+ * `@cosyte/synth/hl7`: the HL7 v2 generation surface, exposed as its own subpath so importing the
  * package root does **not** pull `@cosyte/hl7`. This is the **lazy, per-format** boundary: a consumer
  * who only needs HL7 fixtures imports `@cosyte/synth/hl7`; one who needs only the core primitives
  * never loads a parser.
- * `@cosyte/hl7` is an **optional peer dependency** — present only for this subpath.
+ * `@cosyte/hl7` is an **optional peer dependency**, present only for this subpath.
  *
  * The HL7 v2 message set is complete: `ADT` (A01/A04/A08), `ORU^R01`, `ORM^O01`, `SIU^S12`, and
- * `VXU^V04` — each built through `@cosyte/hl7`'s `buildMessage` and round-tripping with zero warnings.
+ * `VXU^V04`, each built through `@cosyte/hl7`'s `buildMessage` and round-tripping with zero warnings.
  *
  * @module
  */
@@ -58,7 +58,7 @@ export {
 } from "./quirk.js";
 
 /**
- * Every HL7 v2 message kind this subpath generates — the `MSH-9` label used as the corpus `kind`. `ADT`
+ * Every HL7 v2 message kind this subpath generates: the `MSH-9` label used as the corpus `kind`. `ADT`
  * carries its trigger; the other families have a single generated trigger each.
  */
 export type Hl7MessageKind =
@@ -70,7 +70,7 @@ export type Hl7MessageKind =
   | "SIU^S12"
   | "VXU^V04";
 
-/** Every kind {@link hl7Corpus} accepts, and the default mix — one of every family. */
+/** Every kind {@link hl7Corpus} accepts, and the default mix: one of every family. */
 const ALL_KINDS: readonly Hl7MessageKind[] = Object.freeze([
   "ADT^A01",
   "ADT^A04",
@@ -147,7 +147,7 @@ export interface Hl7CorpusOptions {
  * ```ts
  * import { hl7Corpus } from "@cosyte/synth/hl7";
  * const corpus = hl7Corpus({ seed: 42, count: 7 });
- * corpus.artifacts.every((a) => a.warnings.length === 0); // true — spec-clean
+ * corpus.artifacts.every((a) => a.warnings.length === 0); // true, spec-clean
  * ```
  */
 export function hl7Corpus(options: Hl7CorpusOptions): Corpus {

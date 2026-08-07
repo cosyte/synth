@@ -6,7 +6,7 @@
  * round-trips through `@cosyte/x12` with zero warnings.
  *
  * **Note (coverage tracks the builder):** `@cosyte/x12` ships a **271** builder but no
- * **270** (request) builder — the 270 is only *read* (as the echoed trace on the 271). Per the
+ * **270** (request) builder, the 270 is only *read* (as the echoed trace on the 271). Per the
  * through-the-builder discipline (never hand-write bytes around a missing builder), `synth` generates
  * the 271 and **defers 270** until `@cosyte/x12` grows a `build270` (noted in the README + CHANGELOG).
  *
@@ -30,7 +30,7 @@ import { SERVICE_TYPE_CODES } from "./example-codes.js";
 
 /** Options for {@link generate271}. */
 export interface Generate271Options {
-  /** The seed (deterministic — same seed yields a byte-identical interchange). */
+  /** The seed (deterministic: same seed yields a byte-identical interchange). */
   readonly seed: number;
 }
 

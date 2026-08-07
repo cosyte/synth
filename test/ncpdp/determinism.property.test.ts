@@ -1,8 +1,8 @@
 /**
- * The **seed-determinism property** for NCPDP (roadmap §5, §6 — mandatory). A seed, and only the seed,
+ * The **seed-determinism property** for NCPDP (roadmap §5, §6: mandatory). A seed, and only the seed,
  * determines the output: generating twice yields byte-identical SCRIPT XML / Telecom wire, for every
  * generator and the corpus. Every message id, timestamp, date, and identifier is drawn from the seeded
- * PRNG, never wall-clock or ambient entropy — the property that makes `synth` a reproducible fixture
+ * PRNG, never wall-clock or ambient entropy: the property that makes `synth` a reproducible fixture
  * source. (`buildNewRx`/`buildTelecomRequest` do not inject any clock; SCRIPT `SentTime` is seeded.)
  */
 

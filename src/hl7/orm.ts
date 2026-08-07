@@ -18,14 +18,14 @@ import { EXAMPLE_ORDER_SERVICES } from "./example-codes.js";
 
 /** Options for {@link generateOrm}. */
 export interface GenerateOrmOptions {
-  /** The seed — the same seed yields a byte-identical message. Defaults to `0`. */
+  /** The seed: the same seed yields a byte-identical message. Defaults to `0`. */
   readonly seed?: number;
 }
 
 /**
  * Generate a spec-clean `ORM^O01` {@link Hl7Message} through `@cosyte/hl7`. Deterministic in `seed`.
  *
- * Layout: MSH, `PID` (synthetic identity), `ORC` (common order — control `NW`, new order), and a
+ * Layout: MSH, `PID` (synthetic identity), `ORC` (common order, control `NW`, new order), and a
  * matching `OBR` (order detail). The `ORC` satisfies the parser's `ORM^O01` structure net, so the
  * message re-parses with **zero warnings** (proven by {@link ./round-trip}).
  *

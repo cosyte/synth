@@ -1,11 +1,11 @@
 /**
  * The **diagnostic-surface gate**: no consumer-controlled position `@cosyte/synth` accepts may echo
- * into anything a consumer will log — a thrown value, its `message`, its `stack`, or a structural
+ * into anything a consumer will log, a thrown value, its `message`, its `stack`, or a structural
  * identifier this package puts on one of its own models.
  *
  * `synth` is a *generator*, so the values flowing through its diagnostics are synthetic by
  * construction and nobody's PHI is in a `synth` diagnostic today. That is not what this suite is for.
- * It exists because the guarantee was **incidental** — every fatal was built by interpolating the
+ * It exists because the guarantee was **incidental**: every fatal was built by interpolating the
  * caller's value into a template string, and the only thing keeping PHI out was that the caller
  * happened to be passing a quirk name. A guarantee that depends on who calls you is a sentence, not a
  * mechanism. This suite makes it structural: the messages come from a frozen registry and the error
@@ -22,7 +22,7 @@
  *    structural identifiers `synth` **derives**: an artifact `kind`, the manifest's per-kind keys and
  *    quirk set, a quirk descriptor's name and tolerating-profile name, and every warning **code** a
  *    round-trip harness reports. Those must come from a closed set, because a downstream package
- *    building its own diagnostics will interpolate them — the `hl7`/`deid` layering lesson.
+ *    building its own diagnostics will interpolate them: the `hl7`/`deid` layering lesson.
  *    It does **not** return the caller's own labels that a model is merely asked to carry back
  *    (`SynthProfile.name`, the `givenNames`/`familyNames` pools, and the `kind`/`content` of an
  *    `Artifact` a caller hands straight to `makeCorpus`), for the same reason a parser's model sweep
@@ -33,7 +33,7 @@
  *    each one plants its marker in a position that now fails closed before any model exists, so the
  *    runner returns from its sweep without ever calling `getModelIdentifiers`. That is the *result* of
  *    the fix, not an oversight in the table, and it is stated here rather than left for a reader to
- *    infer coverage that is not there — an earlier draft of this file left it unsaid and a refuter
+ *    infer coverage that is not there: an earlier draft of this file left it unsaid and a refuter
  *    was right to call it the audit's own "green over unreachable space" reproduced inside the fix
  *    for it. What carries the model half instead is the closed-set assertion further down, which runs
  *    the three identifier helpers over real corpora and real quirk round-trips and checks that every
@@ -42,7 +42,7 @@
  *    were derived rather than passed through.
  *
  * 4. **`src/deid/**` has no slot, and the reason is a boundary, not an absence of positions.** It has
- *    three unresolved selectors of its own — `x12DeidLoop({ variant })` and
+ *    three unresolved selectors of its own: `x12DeidLoop({ variant })` and
  *    `ncpdpTelecomDeidLoop({ transaction })` fall out of a switch as an uncoded `TypeError`, and
  *    `ccdaDeidLoop({ documentType })` is a two-way ternary that silently generates a Referral Note for
  *    anything but `"ccd"`. None of those echo a caller value into a message, so none is a leak; all
@@ -137,7 +137,7 @@ import { assertNoDiagnosticPhiLeak, type DiagnosticSlot } from "@cosyte/test-uti
 /**
  * `synth`'s diagnostics are bare, stable codes: a round-trip harness reports `warnings: string[]`, and
  * a fatal is a {@link SynthError} carrying `.code`. The runner reads `.code` off each diagnostic and
- * sweeps every rendering, so a collection is normalised to that shape — and the *absence* of a
+ * sweeps every rendering, so a collection is normalised to that shape, and the *absence* of a
  * `message` field here is the point being proven, not an omission.
  */
 interface SynthDiagnostic {
@@ -160,7 +160,7 @@ const codes = (warnings: readonly string[]): SynthDiagnostic[] =>
 
 const NO_RESULT: ProbeResult = { diagnostics: [], identifiers: [] };
 
-/** Structural identifiers derived onto a {@link Corpus} — manifest keys, quirk set, kinds, codes. */
+/** Structural identifiers derived onto a {@link Corpus}: manifest keys, quirk set, kinds, codes. */
 const corpusIdentifiers = (corpus: Corpus): string[] => [
   ...corpus.manifest.formats,
   ...Object.keys(corpus.manifest.counts),
@@ -168,7 +168,7 @@ const corpusIdentifiers = (corpus: Corpus): string[] => [
   ...corpus.artifacts.flatMap((a) => [a.format, a.kind, ...a.warnings]),
 ];
 
-/** Structural identifiers on a {@link QuirkArtifact} — `content` is the artifact itself, not an identifier. */
+/** Structural identifiers on a {@link QuirkArtifact}: `content` is the artifact itself, not an identifier. */
 const quirkArtifactIdentifiers = (artifact: QuirkArtifact): string[] => [
   artifact.format,
   artifact.quirk,
@@ -216,7 +216,7 @@ const UNSUPPORTED_KIND = SYNTH_FATAL_CODES.SYNTH_UNSUPPORTED_KIND;
  * the tail of a quirk list a `count` never reaches, after the selectors had been called "generalised,
  * not patched". The lesson is not that the third claim of completeness would be true. What the suite
  * proves is that **these** positions hold; what protects the ones nobody has thought of is the
- * mechanism, not the table — `SynthError` has no value parameter, and, everywhere except the
+ * mechanism, not the table: `SynthError` has no value parameter, and, everywhere except the
  * `src/deid/**` loops in note 4 of this file's header, `resolveKind`/`resolveMix` are the only way a
  * selector is read.
  * That exception is real and is why this sentence is bounded rather than absolute: those three
@@ -617,7 +617,7 @@ export const SLOTS: readonly DiagnosticSlot<Probe>[] = [
   // ---- artifact.content: the layering check -----------------------------------------------
   // These three do **not** throw. They are the reason the table is not just a list of fatals:
   // a consumer's own bytes go out to a sibling parser and the verdict comes back, and what
-  // `synth` keeps of that verdict must be **codes only** — never the parser's message, never a
+  // `synth` keeps of that verdict must be **codes only**, never the parser's message, never a
   // snippet. Each artifact is spec-shaped enough to parse, with the marker spliced into a free
   // -text field, so the intended warning still fires and the reduction is genuinely exercised.
   {
@@ -664,7 +664,7 @@ export const SLOTS: readonly DiagnosticSlot<Probe>[] = [
   },
 ];
 
-describe("diagnostic surface — no consumer-controlled input reaches a diagnostic", () => {
+describe("diagnostic surface, no consumer-controlled input reaches a diagnostic", () => {
   it("puts no consumer-controlled input on any diagnostic or derived identifier", () => {
     assertNoDiagnosticPhiLeak<Probe, ProbeResult>({
       slots: SLOTS,
@@ -714,7 +714,7 @@ function spliceIntoAstmComment(records: string, marker: string): string {
  * `String(w.code)`, drop everything else) never runs on that path, so a slot there would assert
  * something about `@cosyte/astm` and `@cosyte/ncpdp` rather than about this package. What is in scope
  * is that `synth` adds nothing of its own to what it re-throws, and that the re-thrown fatal stays
- * branchable on a code — which is what this asserts, against the builds this repo vendors.
+ * branchable on a code, which is what this asserts, against the builds this repo vendors.
  */
 describe("the raw-text harnesses re-throw a sibling fatal, adding nothing", () => {
   const marker = "ZqPhI7xK".repeat(64);

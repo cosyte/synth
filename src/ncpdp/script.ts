@@ -1,13 +1,13 @@
 /**
- * Spec-clean NCPDP **SCRIPT** (XML ePrescribing) generation — `NewRx`, `RxRenewalRequest`, and
- * `RxChangeRequest` — built through `@cosyte/ncpdp`'s own emit surface so the XML is spec-clean by the
+ * Spec-clean NCPDP **SCRIPT** (XML ePrescribing) generation: `NewRx`, `RxRenewalRequest`, and
+ * `RxChangeRequest`, built through `@cosyte/ncpdp`'s own emit surface so the XML is spec-clean by the
  * same mechanism that makes the parser's serializer spec-clean:
  *
  * - **NewRx** is built through the validated `buildNewRx` builder (it refuses a NewRx with no
  *   medication description) and serialized by `serializeScript`.
  * - **RxRenewalRequest / RxChangeRequest** have no dedicated builder in `@cosyte/ncpdp` (its builders
- *   cover NewRx + the Status/Error/Verify responses), so — exactly as the X12 generator constructs a
- *   typed model and lets `serializeX12` emit it — these are built as the parser's **public, typed
+ *   cover NewRx + the Status/Error/Verify responses), so, exactly as the X12 generator constructs a
+ *   typed model and lets `serializeX12` emit it, these are built as the parser's **public, typed
  *   `ScriptMessage` model** (the same immutable model `buildNewRx` returns) and serialized by
  *   `serializeScript`. No byte is hand-written; the round-trip harness ({@link ./round-trip.scriptRoundTrip})
  *   re-parses every message through `parseScript` and asserts **zero warnings**, so spec-cleanliness is
@@ -49,7 +49,7 @@ const SCRIPT_VERSION = "2017071";
 
 /** Options for the SCRIPT generators. */
 export interface GenerateScriptOptions {
-  /** The seed (deterministic — same seed yields a byte-identical message). */
+  /** The seed (deterministic: same seed yields a byte-identical message). */
   readonly seed: number;
 }
 
@@ -72,7 +72,7 @@ function pharmacyModel(rng: Rng): Pharmacy {
   };
 }
 
-/** Build the typed `Prescriber` model — NPI invalid-Luhn, DEA invalid-checksum. */
+/** Build the typed `Prescriber` model: NPI invalid-Luhn, DEA invalid-checksum. */
 function prescriberModel(rng: Rng): Prescriber {
   const dr = ncpdpPrescriber(rng);
   return {

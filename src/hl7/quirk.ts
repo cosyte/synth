@@ -1,20 +1,20 @@
 /**
  * HL7 v2 **vendor-quirk generation**. A quirk deviates the
  * *structure* of an otherwise spec-clean message so it round-trips through `@cosyte/hl7` to **exactly**
- * one intended, stable warning code — the tolerance a `defineProfile` profile encodes. The deviation is
+ * one intended, stable warning code: the tolerance a `defineProfile` profile encodes. The deviation is
  * applied **post-serialize**.
  *
  * Two publicly-groundable quirks ship (cited-public, never a private vendor corpus):
  *
  * - **`unknown-zsegment`** → `UNKNOWN_SEGMENT`. HL7 v2.x §2.5 permits site-defined `Z`-segments; a
  *   receiver with no profile flags them. `@cosyte/hl7`'s public imaging/PACS profiles (`visage`,
- *   `philips`, `va` — each grounded in a downloadable vendor/federal interface spec) declare `ZDS`, so a
+ *   `philips`, `va`: each grounded in a downloadable vendor/federal interface spec) declare `ZDS`, so a
  *   `defineProfile` that claims the segment **suppresses** the warning.
- * - **`unknown-escape`** → `UNKNOWN_ESCAPE_SEQUENCE`. HL7 v2.x §2.7 escaping — a locally-defined
+ * - **`unknown-escape`** → `UNKNOWN_ESCAPE_SEQUENCE`. HL7 v2.x §2.7 escaping: a locally-defined
  *   `\Z..\` escape is preserved verbatim and flagged. HL7 v2 has no re-badge mechanism, so this is a
  *   `"bare"` quirk (no built-in profile downgrades it).
  *
- * A quirk **never** introduces a real-looking value — it changes the message *shape*, never the
+ * A quirk **never** introduces a real-looking value: it changes the message *shape*, never the
  * *provenance* of the data, so the synthetic-safety gate still runs and stays zero.
  *
  * @module
@@ -57,7 +57,7 @@ export type Hl7QuirkKind =
   | "VXU^V04";
 
 /**
- * The HL7 v2 quirk registry — each recipe bound to the exact `@cosyte/hl7` warning code it targets and
+ * The HL7 v2 quirk registry: each recipe bound to the exact `@cosyte/hl7` warning code it targets and
  * its public grounding.
  */
 export const HL7_QUIRKS: Readonly<Record<Hl7QuirkName, QuirkDescriptor>> = Object.freeze({
@@ -76,7 +76,7 @@ export const HL7_QUIRKS: Readonly<Record<Hl7QuirkName, QuirkDescriptor>> = Objec
     format: "hl7v2",
     intendedWarnings: Object.freeze(["UNKNOWN_ESCAPE_SEQUENCE"]),
     grounding:
-      "HL7 v2.x §2.7 escaping — a locally-defined \\Z..\\ escape is preserved verbatim and flagged. " +
+      "HL7 v2.x §2.7 escaping: a locally-defined \\Z..\\ escape is preserved verbatim and flagged. " +
       "HL7 v2 has no profile re-badge, so no built-in profile downgrades it.",
     disposition: "bare",
   }),
@@ -92,7 +92,7 @@ function segmentsOf(wire: string): string[] {
   return wire.split(/\r\n|\r|\n/).filter((s) => s.length > 0);
 }
 
-/** The post-serialize transform for each quirk — a pure, deterministic function of the spec-clean wire. */
+/** The post-serialize transform for each quirk: a pure, deterministic function of the spec-clean wire. */
 function applyQuirk(quirk: Hl7QuirkName, wire: string): string {
   const segments = segmentsOf(wire);
   switch (quirk) {
@@ -100,14 +100,14 @@ function applyQuirk(quirk: Hl7QuirkName, wire: string): string {
       // A site-defined Z-segment carrying only clearly-synthetic, structural tokens (no PHI locus).
       return [...segments, "ZDS|1|SYNTHETIC-Z-SEGMENT^COSYTE-SYNTH"].join("\r");
     case "unknown-escape":
-      // An NTE comment whose body carries a locally-defined \Zff\ escape — preserved verbatim on parse.
+      // An NTE comment whose body carries a locally-defined \Zff\ escape, preserved verbatim on parse.
       return [...segments, "NTE|1||\\Zff\\"].join("\r");
   }
 }
 
 /** Options for {@link generateHl7Quirk}. */
 export interface GenerateHl7QuirkOptions {
-  /** The seed — the same seed + quirk yields a byte-identical message. Defaults to `0`. */
+  /** The seed: the same seed + quirk yields a byte-identical message. Defaults to `0`. */
   readonly seed?: number;
   /** The quirk to inject. Required. */
   readonly quirk: Hl7QuirkName;
@@ -151,13 +151,13 @@ function baseMessage(kind: Hl7QuirkKind, seed: number): Hl7Message {
  * requested vendor deviation injected post-serialize. Deterministic in `seed` + `quirk` + `kind`.
  *
  * @param options - Seed, quirk, and base kind. See {@link GenerateHl7QuirkOptions}.
- * @returns The {@link QuirkArtifact} — its `content` round-trips to `intendedWarnings` exactly.
+ * @returns The {@link QuirkArtifact}: its `content` round-trips to `intendedWarnings` exactly.
  * @throws SynthError `SYNTH_UNSUPPORTED_QUIRK` if `quirk` is not a supported HL7 quirk.
  * @example
  * ```ts
  * import { generateHl7Quirk, hl7QuirkRoundTrip } from "@cosyte/synth/hl7";
  * const artifact = generateHl7Quirk({ seed: 1, quirk: "unknown-zsegment" });
- * hl7QuirkRoundTrip(artifact).intendedWarningHeld; // true — exactly UNKNOWN_SEGMENT
+ * hl7QuirkRoundTrip(artifact).intendedWarningHeld; // true, exactly UNKNOWN_SEGMENT
  * ```
  */
 export function generateHl7Quirk(options: GenerateHl7QuirkOptions): QuirkArtifact {
@@ -165,7 +165,7 @@ export function generateHl7Quirk(options: GenerateHl7QuirkOptions): QuirkArtifac
   const kind = resolveKind(ALL_QUIRK_KINDS, options.kind ?? "ORU^R01");
   const descriptor = resolveQuirk(HL7_QUIRKS, "hl7v2", options.quirk);
   const content = applyQuirk(options.quirk, baseMessage(kind, seed).toString());
-  // Self-check the intended-warning contract at generation time — never emit a mislabeled fixture.
+  // Self-check the intended-warning contract at generation time, never emit a mislabeled fixture.
   assertIntendedWarnings(
     descriptor.intendedWarnings,
     parseHL7(content).warnings.map((w) => String(w.code)),
@@ -181,8 +181,8 @@ export function generateHl7Quirk(options: GenerateHl7QuirkOptions): QuirkArtifac
 
 /**
  * Round-trip an HL7 v2 quirk artifact through `@cosyte/hl7` and report the intended-warning verdict: a bare
- * parse must produce **exactly** the intended code(s), and — when a built-in public
- * profile tolerates the quirk — the profiled parse must suppress it.
+ * parse must produce **exactly** the intended code(s), and, when a built-in public
+ * profile tolerates the quirk, the profiled parse must suppress it.
  *
  * @param artifact - The quirk artifact (from {@link generateHl7Quirk}).
  * @returns The {@link QuirkRoundTripResult}.
@@ -190,7 +190,7 @@ export function generateHl7Quirk(options: GenerateHl7QuirkOptions): QuirkArtifac
  * ```ts
  * import { generateHl7Quirk, hl7QuirkRoundTrip } from "@cosyte/synth/hl7";
  * const rt = hl7QuirkRoundTrip(generateHl7Quirk({ seed: 1, quirk: "unknown-zsegment" }));
- * rt.withProfile?.tolerated; // true — the `visage` profile suppresses UNKNOWN_SEGMENT
+ * rt.withProfile?.tolerated; // true, the `visage` profile suppresses UNKNOWN_SEGMENT
  * ```
  */
 export function hl7QuirkRoundTrip(artifact: QuirkArtifact): QuirkRoundTripResult {
@@ -247,8 +247,8 @@ const ALL_HL7_QUIRKS: readonly Hl7QuirkName[] = Object.freeze(
 
 /**
  * Build a reproducible {@link Corpus} of HL7 v2 quirk artifacts. Each artifact's `warnings` record the
- * parser's verdict — the intended code(s) for its quirk (not empty: a quirk corpus is deliberately
- * off-spec) — and the manifest lists the applied quirk names.
+ * parser's verdict: the intended code(s) for its quirk (not empty: a quirk corpus is deliberately
+ * off-spec), and the manifest lists the applied quirk names.
  *
  * @param options - Seed, count, and the quirk selection. See {@link Hl7QuirkCorpusOptions}.
  * @returns A deep-frozen {@link Corpus}.
@@ -288,7 +288,7 @@ export function hl7QuirkCorpus(options: Hl7QuirkCorpusOptions): Corpus {
 }
 
 /**
- * A ready-made {@link SynthProfile} that requests every built-in HL7 quirk — a convenience for wiring
+ * A ready-made {@link SynthProfile} that requests every built-in HL7 quirk: a convenience for wiring
  * `defineSynthProfile`'s quirk list to the parser's real tolerance.
  *
  * @example

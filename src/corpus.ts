@@ -1,9 +1,9 @@
 /**
- * The `Corpus` abstraction — a seed plus a self-describing manifest of what was generated, so a
+ * The `Corpus` abstraction: a seed plus a self-describing manifest of what was generated, so a
  * fixture set is itself reproducible and regenerable. A downstream repo pins a seed
  * and gets a stable fixture set that regenerates identically.
  *
- * Generated artifacts and the `Corpus` are **deep-frozen** — this is where the archetype's immutability
+ * Generated artifacts and the `Corpus` are **deep-frozen**: this is where the archetype's immutability
  * invariant lives in a generator: a consumer cannot mutate a shared fixture out from under
  * another test.
  *
@@ -14,7 +14,7 @@
 export type SynthFormat = "hl7v2" | "fhir" | "ccda" | "x12" | "ncpdp" | "astm";
 
 /**
- * One generated artifact — the serialized wire text plus the metadata needed to reproduce and check
+ * One generated artifact: the serialized wire text plus the metadata needed to reproduce and check
  * it. `warnings` records what the artifact's own parser reported on the round-trip (zero for a
  * spec-clean artifact).
  */
@@ -41,7 +41,7 @@ export interface CorpusManifest {
 
 /** A reproducible, self-describing set of generated artifacts. */
 export interface Corpus {
-  /** The seed the corpus was generated from — regenerating from it yields byte-identical artifacts. */
+  /** The seed the corpus was generated from: regenerating from it yields byte-identical artifacts. */
   readonly seed: number;
   /** The manifest describing what was generated. */
   readonly manifest: CorpusManifest;

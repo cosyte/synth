@@ -52,7 +52,7 @@ export function resolveKind<T extends string>(allowed: readonly T[], requested: 
  * It substitutes the default **only** when the caller supplied nothing, which is exactly what the
  * `??` it replaced did. An empty array is a supplied mix and is returned as one. An earlier version
  * of this function also treated `[]` as "nothing supplied", on the stated grounds that it matched the
- * previous behaviour; it did not — `??` fires on `undefined` and never on `[]` — and it changed the
+ * previous behaviour; it did not: `??` fires on `undefined` and never on `[]`, and it changed the
  * result of six published entry points, turning an explicit empty selection into "generate one of
  * everything". A convenience that fails open is not a convenience.
  *

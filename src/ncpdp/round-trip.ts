@@ -1,7 +1,7 @@
 /**
- * The **round-trip-through-the-parser harness** for NCPDP — the headline gate for the synthetic-fixture
+ * The **round-trip-through-the-parser harness** for NCPDP: the headline gate for the synthetic-fixture
  * generator. A generated SCRIPT XML or Telecom claim is "spec-clean" only if
- * `@cosyte/ncpdp` — not `@cosyte/synth`'s own opinion — reads it back cleanly. Each harness parses the
+ * `@cosyte/ncpdp`, not `@cosyte/synth`'s own opinion, reads it back cleanly. Each harness parses the
  * generated wire text straight back through the parser and reports what it found, so a false
  * "spec-clean" claim cannot hide.
  *

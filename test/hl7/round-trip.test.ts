@@ -23,7 +23,7 @@ const ALL_KINDS: readonly Hl7MessageKind[] = [
   "VXU^V04",
 ];
 
-describe("HL7 v2 ADT generation — the round-trip harness proof", () => {
+describe("HL7 v2 ADT generation: the round-trip harness proof", () => {
   it("every trigger round-trips through @cosyte/hl7 with zero warnings", () => {
     for (const trigger of TRIGGERS) {
       for (let seed = 0; seed < 200; seed += 1) {
@@ -59,7 +59,7 @@ describe("HL7 v2 ADT generation — the round-trip harness proof", () => {
     }
   });
 
-  it("is deterministic — same seed yields byte-identical output", () => {
+  it("is deterministic: same seed yields byte-identical output", () => {
     const a = generateAdt({ seed: 999, trigger: "A08" }).toString();
     const b = generateAdt({ seed: 999, trigger: "A08" }).toString();
     expect(a).toBe(b);
@@ -74,7 +74,7 @@ describe("HL7 v2 ADT generation — the round-trip harness proof", () => {
       expect(artifact.warnings).toEqual([]);
       expect(artifact.format).toBe("hl7v2");
     }
-    // The default mix is one of every Phase 2 family, cycled — 14 messages = 2 of each.
+    // The default mix is one of every Phase 2 family, cycled, 14 messages = 2 of each.
     expect(c1.manifest.counts).toEqual({
       "ADT^A01": 2,
       "ADT^A04": 2,
@@ -140,7 +140,7 @@ describe("HL7 v2 ADT generation — the round-trip harness proof", () => {
     expect(vxu).toContain("\rPID|1||");
   });
 
-  it("every family is deterministic — same seed yields byte-identical output", () => {
+  it("every family is deterministic: same seed yields byte-identical output", () => {
     for (const kind of ALL_KINDS) {
       expect(generateHl7(kind, 555).toString()).toBe(generateHl7(kind, 555).toString());
     }
@@ -157,7 +157,7 @@ describe("HL7 v2 ADT generation — the round-trip harness proof", () => {
 
   it("roundTrip surfaces the parser's warning codes on a non-spec-clean message", async () => {
     // An ADT with no PV1 (visit group) is a deliberately-incomplete message: the parser reports the
-    // missing group. This exercises the harness's warning-mapping path — the first head of the
+    // missing group. This exercises the harness's warning-mapping path: the first head of the
     // two-headed hazard (a false spec-clean claim would be caught here).
     const { buildMessage } = await import("@cosyte/hl7");
     const incomplete = buildMessage({

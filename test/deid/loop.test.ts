@@ -1,11 +1,11 @@
 /**
- * The **`@cosyte/deid` pairing loop** (roadmap §Phase 8) — the closed-loop co-validation harness.
+ * The **`@cosyte/deid` pairing loop** (roadmap §Phase 8): the closed-loop co-validation harness.
  *
  * These tests exercise the loop end to end across every covered format and assert its three contracts:
  * the **removal** side (no planted synthetic PHI sentinel survives de-identification), the **over-scrub**
  * side (no clinical value is lost), and **seed-determinism** (a seed fixes the verdict). Two further
  * groups prove the parts the `conformance-refuter` cares about: **non-vacuity** (the loop genuinely
- * fails when a sentinel survives — proven by tampering) and the **synthetic-safety** of the sentinels
+ * fails when a sentinel survives, proven by tampering) and the **synthetic-safety** of the sentinels
  * themselves (every planted token is drawn from a guaranteed-non-colliding source, never realistic).
  */
 
@@ -42,7 +42,7 @@ import {
 
 const SEEDS = [0, 1, 42, 999, 2024, 123456] as const;
 
-/** Every loop run across every format/variant, for a given seed — the corpus these tests assert over. */
+/** Every loop run across every format/variant, for a given seed: the corpus these tests assert over. */
 function allRuns(seed: number): DeidLoopResult[] {
   return [
     hl7DeidLoop({ seed, kind: "ORU^R01" }),
@@ -59,7 +59,7 @@ function allRuns(seed: number): DeidLoopResult[] {
   ];
 }
 
-describe("the deid pairing loop — removal + over-scrub, every covered format", () => {
+describe("the deid pairing loop: removal + over-scrub, every covered format", () => {
   for (const seed of SEEDS) {
     it(`every artifact passes: no sentinel survives, no clinical value is scrubbed (seed ${seed})`, () => {
       for (const r of allRuns(seed)) {
@@ -96,12 +96,12 @@ describe("the deid pairing loop — removal + over-scrub, every covered format",
   it("the removal policy needs no key context and is the removal-oriented one", () => {
     const policy = deidLoopPolicy();
     expect(policy.name).toBe(DEID_LOOP_POLICY_NAME);
-    // A run completes without throwing DEID_NO_KEY — i.e. no keyed transform is reached.
+    // A run completes without throwing DEID_NO_KEY, i.e. no keyed transform is reached.
     expect(() => hl7DeidLoop({ seed: 5 })).not.toThrow();
   });
 });
 
-describe("the deid pairing loop — seed-determinism", () => {
+describe("the deid pairing loop: seed-determinism", () => {
   it("the same seed yields the byte-identical spec-clean artifact, de-identified output, and sentinels", () => {
     fc.assert(
       fc.property(fc.integer({ min: 0, max: 2 ** 31 - 1 }), (seed) => {
@@ -127,9 +127,9 @@ describe("the deid pairing loop — seed-determinism", () => {
   });
 });
 
-describe("the deid pairing loop — non-vacuity (it genuinely detects a surviving sentinel)", () => {
+describe("the deid pairing loop: non-vacuity (it genuinely detects a surviving sentinel)", () => {
   it("the sweep finds every planted sentinel in the ORIGINAL (pre-de-id) artifact", () => {
-    // If de-id did nothing, every sentinel is present — proving the sweep detects presence, so a clean
+    // If de-id did nothing, every sentinel is present: proving the sweep detects presence, so a clean
     // run's empty survivor set is a real result, not a sweep that can never match.
     for (const r of allRuns(42)) {
       const survivorsIfUntouched = sweepSurvivors(r.original, r.planted);
@@ -198,7 +198,7 @@ describe("the deid pairing loop — non-vacuity (it genuinely detects a survivin
   });
 });
 
-describe("the deid pairing loop — synthetic-safety of the planted sentinels", () => {
+describe("the deid pairing loop: synthetic-safety of the planted sentinels", () => {
   const POOL_WORDS: ReadonlySet<string> = new Set(
     [
       ...SYNTHETIC_GIVEN_NAMES,
@@ -229,13 +229,13 @@ describe("the deid pairing loop — synthetic-safety of the planted sentinels", 
         // A purely-numeric identifier (MRN/member) minted under the synthetic assigning authority.
         // Guard the one real-looking shape a bare number could take: a 9-digit run is an SSN shape and
         // must be a never-issued synthetic SSN. Anything else is an institution-local id under a
-        // synthetic namespace (never an SSN — SSNs are always emitted 9-digit).
+        // synthetic namespace (never an SSN: SSNs are always emitted 9-digit).
         if (token.length === 9) {
           expect(isSyntheticSsn(token), `${token} 9-digit id`).toBe(true);
         }
         expect(token.length, `${token} numeric id length`).toBeGreaterThanOrEqual(6);
       } else if (SYNTHETIC_ID_PREFIX.test(token)) {
-        // A synthetic-assigning-authority id (member/group/account) — clearly-synthetic prefix.
+        // A synthetic-assigning-authority id (member/group/account): clearly-synthetic prefix.
         expect(true).toBe(true);
       } else {
         // Alphabetic: every word must come from the shipped clearly-fake name/place pools.
@@ -245,7 +245,7 @@ describe("the deid pairing loop — synthetic-safety of the planted sentinels", 
   });
 });
 
-describe("the deid pairing loop — the sentinel/clinical primitives", () => {
+describe("the deid pairing loop: the sentinel/clinical primitives", () => {
   it("identifierSentinels: scopes to identifier loci, requires literal presence, de-dupes", () => {
     const original = "NAME=Examplewood~Mocktavia PHONE=555-0142 CODE=ok";
     const loci: GenericLocus[] = [
@@ -295,7 +295,7 @@ describe("the deid pairing loop — the sentinel/clinical primitives", () => {
   });
 });
 
-describe("the deid pairing loop — coverage summary & honest scope", () => {
+describe("the deid pairing loop: coverage summary & honest scope", () => {
   it("summarizes coverage per format with zero survivors and zero over-scrub", () => {
     const results = SEEDS.flatMap((seed) => allRuns(seed));
     const summary = summarizeDeidCoverage(results);

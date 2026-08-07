@@ -1,7 +1,7 @@
 /**
  * The **round-trip-through-the-parser gate** for FHIR (roadmap §6). Every generated resource, fed back
  * into `@cosyte/fhir` (serialize → parse → validate(strict) → serialize), validates with **zero errors**
- * and re-serializes **byte-identically** — spec-clean by the parser's own judgment, not `@cosyte/synth`'s
+ * and re-serializes **byte-identically**: spec-clean by the parser's own judgment, not `@cosyte/synth`'s
  * opinion. Also a golden-fixture regression: the committed fixtures under `test/fixtures/fhir/` must
  * regenerate byte-for-byte from their seeds (the reproducibility contract, roadmap §5).
  */
@@ -49,7 +49,7 @@ const GENERATORS: Record<string, () => ReturnType<typeof generatePatient>> = {
   "bundle-document": () => generateBundle({ seed: 8, type: "document" }),
 };
 
-describe("FHIR round-trip — spec-clean by construction (zero errors, byte-stable)", () => {
+describe("FHIR round-trip: spec-clean by construction (zero errors, byte-stable)", () => {
   for (const [label, make] of Object.entries(GENERATORS)) {
     it(`${label} round-trips through @cosyte/fhir with zero errors and byte-stable`, () => {
       const rt = roundTrip(make());

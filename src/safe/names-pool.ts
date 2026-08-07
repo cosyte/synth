@@ -1,10 +1,10 @@
 /**
- * The shipped **clearly-fake name pool** — `@cosyte/synth`'s own license-clean synthetic data.
+ * The shipped **clearly-fake name pool**: `@cosyte/synth`'s own license-clean synthetic data.
  *
  * Deliberately **not** a `faker`-style realistic-name corpus (which could match a real person at a real
- * address — the exact hazard the synthetic-safety invariant forbids). Every token is
+ * address: the exact hazard the synthetic-safety invariant forbids). Every token is
  * an obviously-invented, fixture-flavoured word: a reader can tell at a glance it names no one. The pool
- * is small on purpose — structural coverage, not demographic realism, is the goal.
+ * is small on purpose: structural coverage, not demographic realism, is the goal.
  *
  * `# synthetic: true`
  *

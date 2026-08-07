@@ -3,7 +3,7 @@
 This file logs every `--allow-fixture <path>` bypass invocation of
 `scripts/phi-scan.ts`. The scanner refuses to honor a `--allow-fixture <path>`
 flag UNLESS this file contains a `### <path>` subsection referencing the same
-path. The committed log is intentionally annoying — it discourages bypass and
+path. The committed log is intentionally annoying: it discourages bypass and
 creates an audit trail. Prefer extending `scripts/phi-allow-list.txt` (a
 token-level, reviewed declaration) over a whole-file bypass, which silences
 _every_ check for that file.
@@ -11,7 +11,7 @@ _every_ check for that file.
 > **An override is the blunt instrument, and the argument-driven routes to a silent
 > pass are closed.** A `--allow-fixture` path is purely _subtractive_: it can only
 > remove a file the scan already enumerated, so it can never become the scan itself,
-> and an entry here that matches no scanned file is an **error**, not a no-op — a
+> and an entry here that matches no scanned file is an **error**, not a no-op, a
 > stale bypass fails loudly instead of drifting. Both summary lines carry the number
 > of files scanned, so an `OK` is never read without its denominator.
 >
@@ -24,22 +24,22 @@ _every_ check for that file.
 > **One read failure is tolerated, and it is bounded on purpose.** All-mode lists
 > `src/`, `test/` and `scripts/` and then reads each file, so a file created and
 > deleted inside that window used to refuse the whole sweep. It is now reported on
-> stderr as skipped instead — but only when the walk enumerated it itself, git does
+> stderr as skipped instead, but only when the walk enumerated it itself, git does
 > not track it, and the failure is `ENOENT`. A tracked file, any other failure, a
 > file that is back on disk when the sweep ends, and a `git` that cannot say what is
 > tracked all still refuse, and all-mode refuses outright if it observed no files at
-> all. The denominator counts files actually read, so a skip shrinks it — though it
+> all. The denominator counts files actually read, so a skip shrinks it, though it
 > shrinks against a total nobody saw, so **the stderr line is the signal, not the
 > number**.
 >
 > **The residual, recorded rather than closed:** the post-sweep re-check is keyed on
 > the path the walk enumerated, not on content, so an untracked file _renamed_ inside
-> the window goes unread under a clean report. It is bounded — committing it means
+> the window goes unread under a clean report. It is bounded: committing it means
 > `git add`, after which it is tracked and untolerable, and the pre-commit gate reads
 > the index either way. Closing it in general needs a content-addressed sweep;
 > re-enumerating the scan roots afterwards would close the in-roots half more cheaply
 > at the cost of a second walk and a new way to refuse. Both are a design trade for a
-> later slice — neither is a wider bound, and neither is impossible.
+> later slice: neither is a wider bound, and neither is impossible.
 >
 > `pnpm phi-scan` is a **floor, not the whole gate**. The executable proof that
 > nothing this package emits can be real or plausibly-real PHI is the property

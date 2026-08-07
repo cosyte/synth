@@ -1,5 +1,5 @@
 /**
- * The **seed-determinism property** (roadmap §5, §6 — mandatory). A seed, and only the seed,
+ * The **seed-determinism property** (roadmap §5, §6: mandatory). A seed, and only the seed,
  * determines the output: for an arbitrary seed, generating twice yields byte-identical artifacts, on
  * any machine, any run. This is the property the parsers', `transform`'s, and `deid`'s regression
  * suites depend on.

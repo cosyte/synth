@@ -9,7 +9,7 @@ const artifact = (kind: string): Artifact => ({
   warnings: [],
 });
 
-describe("makeCorpus — reproducible, self-describing, deep-frozen", () => {
+describe("makeCorpus: reproducible, self-describing, deep-frozen", () => {
   it("derives per-kind counts and the format set", () => {
     const corpus = makeCorpus(42, [artifact("ADT^A01"), artifact("ADT^A01"), artifact("ADT^A04")]);
     expect(corpus.seed).toBe(42);

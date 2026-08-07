@@ -1,5 +1,5 @@
 /**
- * Synthetic identity for ASTM (E1394 / CLSI LIS02) messages — every value `synth` puts into a `P`
+ * Synthetic identity for ASTM (E1394 / CLSI LIS02) messages: every value `synth` puts into a `P`
  * (patient) record, an `O` (order) accession, or the `H` header is minted here, and **only** from the
  * synthetic-safety providers. ASTM's PHI-dense locus is the **`P` record**: it carries the
  * patient **name** (`Last^First^Middle`), **birthdate**, **sex**, and the **practice-assigned** and
@@ -41,7 +41,7 @@ const SYNTHETIC_ANALYZERS: readonly string[] = Object.freeze([
   "FIXTURE-HEMA^ModelH^1",
 ]);
 
-/** A synthetic ASTM patient — every field drawn from `../safe`. */
+/** A synthetic ASTM patient: every field drawn from `../safe`. */
 export interface AstmPatient {
   /** Name from the shipped fake-name pool, plus a fictional middle initial. */
   readonly person: SyntheticName;
@@ -49,23 +49,23 @@ export interface AstmPatient {
   readonly middle: string;
   /** Birthdate `YYYYMMDD`, from the seeded generator (no real event implied). */
   readonly birthDate: string;
-  /** Sex code, emitted verbatim (`M` / `F` — structural, never defaulted by the builder). */
+  /** Sex code, emitted verbatim (`M` / `F`, structural, never defaulted by the builder). */
   readonly sex: "M" | "F";
-  /** Practice-assigned patient ID — synthetic-AA scoped (`PRA`-prefixed). Distinct from the lab ID. */
+  /** Practice-assigned patient ID, synthetic-AA scoped (`PRA`-prefixed). Distinct from the lab ID. */
   readonly practiceAssignedId: string;
-  /** Laboratory-assigned patient ID — synthetic-AA scoped (`LAB`-prefixed). Distinct from the practice ID. */
+  /** Laboratory-assigned patient ID, synthetic-AA scoped (`LAB`-prefixed). Distinct from the practice ID. */
   readonly laboratoryAssignedId: string;
 }
 
-/** A synthetic ASTM order identity — the specimen / accession id and priority. */
+/** A synthetic ASTM order identity: the specimen / accession id and priority. */
 export interface AstmOrder {
-  /** Specimen / accession id — synthetic-AA scoped (`ACC`-prefixed). */
+  /** Specimen / accession id: synthetic-AA scoped (`ACC`-prefixed). */
   readonly specimenId: string;
   /** Priority code, emitted verbatim (`R` routine, `S` stat). */
   readonly priority: "R" | "S";
 }
 
-/** A synthetic ASTM header identity — the sender and analyzer strings for the `H` record. */
+/** A synthetic ASTM header identity: the sender and analyzer strings for the `H` record. */
 export interface AstmHeaderIdentity {
   /** The sending system id (clearly synthetic). */
   readonly sender: string;
@@ -98,7 +98,7 @@ export function astmPatient(rng: Rng): AstmPatient {
 }
 
 /**
- * Mint a synthetic order identity for an `O` record — a synthetic-AA-scoped accession id and a priority.
+ * Mint a synthetic order identity for an `O` record: a synthetic-AA-scoped accession id and a priority.
  *
  * @param rng - The seeded generator.
  * @returns A synthetic {@link AstmOrder}.
@@ -116,7 +116,7 @@ export function astmOrder(rng: Rng): AstmOrder {
 }
 
 /**
- * Mint a synthetic header identity for the `H` record — a clearly-synthetic sender and analyzer.
+ * Mint a synthetic header identity for the `H` record: a clearly-synthetic sender and analyzer.
  *
  * @param rng - The seeded generator.
  * @returns A synthetic {@link AstmHeaderIdentity}.

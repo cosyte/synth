@@ -1,5 +1,5 @@
 /**
- * The `safe` namespace — the single entry point for every synthetic-by-construction value provider.
+ * The `safe` namespace: the single entry point for every synthetic-by-construction value provider.
  *
  * Grouped under one object so a consumer reads `safe.ssn(rng)` / `safe.phone(rng)` and it is
  * self-evident that the value is drawn from a guaranteed-non-colliding synthetic source.
@@ -30,7 +30,7 @@ export * from "./names-pool.js";
 
 /**
  * The synthetic-safety provider namespace. Every function draws only from a reserved range or the
- * shipped fake-name pool — no value it returns can be real or plausibly-real PHI.
+ * shipped fake-name pool, no value it returns can be real or plausibly-real PHI.
  *
  * @example
  * ```ts

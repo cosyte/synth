@@ -1,23 +1,23 @@
 /**
  * The **consolidated conformance property suite** (roadmap §6, §Phase 9). Every one of the six
- * spec-clean format generators is driven through the **same three mandatory properties** — so no format
+ * spec-clean format generators is driven through the **same three mandatory properties**, so no format
  * can silently ship without one, and a new format added later fails this suite until it satisfies all
  * three:
  *
- *   1. **round-trip** — every generated artifact round-trips through its own parser with **zero
+ *   1. **round-trip**: every generated artifact round-trips through its own parser with **zero
  *      warnings** (spec-clean by construction, judged by the parser, not by `synth`);
- *   2. **seed-determinism** — the same seed yields byte-identical artifacts, twice;
- *   3. **synthetic-safety** — no emitted value escapes the reserved / synthetic sources (the inverse of
- *      `deid`'s leak test — must be ZERO).
+ *   2. **seed-determinism**: the same seed yields byte-identical artifacts, twice;
+ *   3. **synthetic-safety**: no emitted value escapes the reserved / synthetic sources (the inverse of
+ *      `deid`'s leak test, must be ZERO).
  *
  * Plus the **intended-warning** property for the three quirk formats (HL7 v2 / C-CDA / ASTM): a quirk
  * corpus is deliberately off-spec, so every quirk artifact must carry a **non-empty** intended-warning
  * set (a quirk that produced no coded deviation is a vacuous quirk) while synthetic-safety **still**
- * holds over the quirk output (a quirk changes structure, never provenance — roadmap §7).
+ * holds over the quirk output (a quirk changes structure, never provenance, roadmap §7).
  *
  * Non-vacuity is asserted directly: the format registry is proved to cover every {@link SynthFormat},
  * every corpus is proved non-empty with non-trivial content, and the per-format synthetic-safety loci
- * are checked, on the *parsed* wire value, by each format's own structured suite —
+ * are checked, on the *parsed* wire value, by each format's own structured suite,
  * `test/<fmt>/synthetic-safety.property.test.ts` for FHIR/C-CDA/X12/NCPDP/ASTM and
  * `test/hl7/round-trip.test.ts` for HL7 v2. This file is the cross-cutting union that guarantees
  * uniform round-trip + seed-determinism coverage plus a conservative synthetic-safety text floor.
@@ -46,10 +46,10 @@ const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 }
 const count = (): fc.Arbitrary<number> => fc.integer({ min: 1, max: 4 });
 
 /**
- * This is the cross-format **union** suite — its value is uniform coverage (every format exercised
+ * This is the cross-format **union** suite: its value is uniform coverage (every format exercised
  * through every mandatory property), not a high case count (each format's own
  * `test/<fmt>/*.property.test.ts` carries the deep sweeps). `synth` generation through a full parser
- * builder + round-trip is heavy per case — C-CDA XML and FHIR validation especially — so the heavy
+ * builder + round-trip is heavy per case: C-CDA XML and FHIR validation especially, so the heavy
  * formats run fewer cases and every property test carries an explicit long timeout.
  */
 const RUNS_FOR = (format: string): number => (format === "ccda" || format === "fhir" ? 25 : 100);
@@ -68,7 +68,7 @@ const SPEC_CLEAN: ReadonlyArray<readonly [SynthFormat, CorpusFactory]> = [
   ["astm", astmCorpus],
 ];
 
-/** Every format the `Corpus` model knows about — the registry must cover all of them (non-vacuity). */
+/** Every format the `Corpus` model knows about: the registry must cover all of them (non-vacuity). */
 const ALL_FORMATS: readonly SynthFormat[] = ["hl7v2", "fhir", "ccda", "x12", "ncpdp", "astm"];
 
 /**
@@ -90,8 +90,8 @@ function realDataHits(content: string): string[] {
   return hits;
 }
 
-describe("consolidated property suite — every format satisfies the three mandatory properties", () => {
-  it("the registry covers every SynthFormat (non-vacuity — no format is silently skipped)", () => {
+describe("consolidated property suite: every format satisfies the three mandatory properties", () => {
+  it("the registry covers every SynthFormat (non-vacuity, no format is silently skipped)", () => {
     const covered = new Set(SPEC_CLEAN.map(([fmt]) => fmt));
     for (const fmt of ALL_FORMATS) expect(covered.has(fmt), `format ${fmt} untested`).toBe(true);
     expect(covered.size).toBe(ALL_FORMATS.length);
@@ -153,7 +153,7 @@ describe("consolidated property suite — every format satisfies the three manda
   }
 });
 
-describe("intended-warning property — quirk corpora are non-vacuous and stay synthetic-safe", () => {
+describe("intended-warning property: quirk corpora are non-vacuous and stay synthetic-safe", () => {
   const QUIRK: ReadonlyArray<readonly [string, CorpusFactory]> = [
     ["hl7v2", hl7QuirkCorpus],
     ["ccda", ccdaQuirkCorpus],
@@ -168,14 +168,14 @@ describe("intended-warning property — quirk corpora are non-vacuous and stay s
           fc.property(seed(), count(), (s, n) => {
             const corpus = makeQuirkCorpus({ seed: s, count: n });
             expect(corpus.artifacts.length).toBeGreaterThan(0);
-            // The manifest records the quirks it injected — a spec-clean-only run would be empty.
+            // The manifest records the quirks it injected, a spec-clean-only run would be empty.
             expect(corpus.manifest.quirks.length).toBeGreaterThan(0);
             for (const artifact of corpus.artifacts) {
               // A quirk is deliberately off-spec: it MUST produce at least one coded deviation, else
               // the "quirk" is a vacuous no-op. (Exact intended-warning match is gated per-format in
               // test/<fmt>/quirk.test.ts against the real parser.)
               expect(artifact.warnings.length, `${format}/${artifact.kind}`).toBeGreaterThan(0);
-              // Deviating structure never introduces a real-looking value — safety still holds.
+              // Deviating structure never introduces a real-looking value: safety still holds.
               expect(realDataHits(artifact.content), `${format}/${artifact.kind}`).toEqual([]);
             }
           }),

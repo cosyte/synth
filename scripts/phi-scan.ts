@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * `@cosyte/synth` PHI scanner — the CI / pre-commit half of the PHI commit-gate.
+ * `@cosyte/synth` PHI scanner: the CI / pre-commit half of the PHI commit-gate.
  *
  * Pure Node. Zero runtime deps (the scanner does NOT import this package's own
  * generators or a sibling parser: a safety gate must be independent of the code
@@ -10,7 +10,7 @@
  * real PHI, so a developer cannot commit a real-looking fixture by accident.
  *
  * THIS IS A FLOOR, NOT THE GATE. The executable proof that nothing this package
- * emits can be real or plausibly-real PHI is the property layer — the
+ * emits can be real or plausibly-real PHI is the property layer: the
  * `synthetic-safety.property.test.ts` suites and `test/phi/`, selected by the
  * `include` glob in `vitest.config.ts` and gated by `scripts/check-test-selection.ts`.
  * This scanner is the commit-time backstop under those: it sweeps committed text
@@ -30,7 +30,7 @@
  * and there is no reserved DOB range to check against.
  *
  * The mechanism for declaring genuinely-synthetic identifiers is the allow-list
- * (`scripts/phi-allow-list.txt`) — a positive declaration that a fixture's
+ * (`scripts/phi-allow-list.txt`), a positive declaration that a fixture's
  * identifiers are fake. Byte-strict formats cannot carry an inline
  * `# synthetic: true` header, so the allow-list is the proven substitute (the
  * same approach every sibling uses). A whole-file bypass needs
@@ -73,7 +73,7 @@
  * THE OBSERVATION RULE IS PER-ROOT, NOT GLOBAL: all-mode refuses unless EVERY
  * member of `SCAN_ROOTS` yielded at least one file that was actually read.
  * ITS GRANULARITY IS THE DECLARED ROOT AND NOTHING FINER, which is a real bound
- * and not a slogan — see the limits list below for what that leaves open, each
+ * and not a slogan, see the limits list below for what that leaves open, each
  * entry with the reading that produced it. The rule, its cause and its
  * measurement live at the end of `main()`; the limits live below.
  *
@@ -90,17 +90,17 @@
  * THE EXTENSION GATES ARE GONE. Every structured arm now keys off the BYTES. It
  * used to be that three of the seven returned early unless the path ended `.xml`
  * (`scanCcda`, `scanNcpdpScript`) or `.json` (`scanFhir`), so a byte-identical
- * payload was refused as `probe.xml` and passed as `probe.ts` — a gap that was
+ * payload was refused as `probe.xml` and passed as `probe.ts`: a gap that was
  * measured, pinned by a characterization test, and left open, because
  * content-sniffing XML/JSON out of arbitrary TypeScript is its own job. Each arm
  * now admits a target by its extension OR by what the bytes say. C-CDA and SCRIPT
  * key off the formats' own required discriminators (a CDA root/namespace, a SCRIPT
- * `<Message>` envelope) and FHIR's TEXTUAL route off `resourceType` — never a guess
+ * `<Message>` envelope) and FHIR's TEXTUAL route off `resourceType`, never a guess
  * at "looks XML-ish", so a file has to CLAIM to be the format before the NEW CONTENT
  * ROUTES read its identity loci. That is not a precondition on the gate as a whole,
  * and saying so was wrong twice: an `.xml` path still reaches the C-CDA arm on its
  * EXTENSION with no marker at all, and FHIR's STRUCTURAL route still runs whenever
- * `JSON.parse` succeeds with no `resourceType` check — both exactly as before. See
+ * `JSON.parse` succeeds with no `resourceType` check, both exactly as before. See
  * each arm.
  *
  * THE CHANGE IS PURELY ADDITIVE, AND IT COST THREE REVIEW PASSES TO GET THERE. No
@@ -111,7 +111,7 @@
  * That is a deliberate retreat. Widening the arms made this scanner's own test
  * suite one of its targets, and that suite necessarily writes name elements. The
  * first three attempts answered it by teaching the SCANNER to skip template
- * placeholders — and on a PHI detector a skip rule has to be exactly right, which
+ * placeholders, and on a PHI detector a skip rule has to be exactly right, which
  * it twice was not: it silenced `Anderson ...`, then `${"Anderson"}`, then spliced
  * `{{Anderson ${s}}` across two constructs the source never nested. Each remedy
  * bought one more evasion shape, which is the signature of a rule that does not
@@ -124,12 +124,12 @@
  * and the denominator counts the files that WERE listed, so it still reads
  * plausible. The gaps we KNOW of:
  *
- *   - MARKER ADMISSION IS FILE-SCOPED, NOT OBJECT-SCOPED — the cost of the change
+ *   - MARKER ADMISSION IS FILE-SCOPED, NOT OBJECT-SCOPED, the cost of the change
  *     above, and the one most likely to mislead now. Once a file states
  *     `resourceType` (or carries a CDA root), EVERY `family:` / `<given>` in it is
  *     read, whether or not it belongs to that resource. Scoping to the enclosing
  *     object needs a real JavaScript parser, which this scanner deliberately does
- *     not have. The remedy for a false positive is the allow-list — the same
+ *     not have. The remedy for a false positive is the allow-list: the same
  *     positive declaration the rest of the gate asks for.
  *   - The C-CDA name/telecom sweep is DOCUMENT-WIDE, not `recordTarget`-scoped. It
  *     always was; until 2026-08-02 it mislabelled every hit as `recordTarget/…`
@@ -157,18 +157,18 @@
  *   - ITS GRANULARITY IS THE DECLARED ROOT, NOT A SUB-TREE, so an absent
  *     directory INSIDE a root is still unobserved under a plausible denominator.
  *     `mv test/fixtures ..` then `pnpm phi-scan` returns
- *     `OK — no hits (128 file(s) scanned)` and exit 0 with 46 files unread — the
+ *     `OK, no hits (128 file(s) scanned)` and exit 0 with 46 files unread, the
  *     same shape as the defect the per-root rule closed, one level down. Do NOT
  *     read the rule as "the scanner can no longer report a clean sweep over a
  *     directory it never opened"; it is a whole SCAN ROOT that can no longer go
- *     UNOPENED — and not "unobserved", because bullet 3 below is a whole scan
+ *     UNOPENED, and not "unobserved", because bullet 3 below is a whole scan
  *     root going unobserved at exit 0. A DANGLING `test/fixtures` does refuse
  *     (exit 2), but through the non-regular-entry rule, not this one. Closing the
  *     sub-tree case needs a floor derived from what git tracks under each root,
  *     which is a second moving part and a separate decision.
  *   - A ROOT THAT IS A REGULAR FILE, or a link to one, throws `ENOTDIR` out of
- *     `walk()` past the `InvocationError`-only catch, so node exits **1** — the
- *     code this contract reserves for "hits found" — rather than refusing with 2.
+ *     `walk()` past the `InvocationError`-only catch, so node exits **1**: the
+ *     code this contract reserves for "hits found", rather than refusing with 2.
  *     Measured by replacing `test` with a regular file. Fail-closed in every
  *     caller, since all of them test for non-zero, so it is not a false green;
  *     but the per-root rule is not what handles it, and the sentence above does
@@ -176,14 +176,14 @@
  *     further down this file.
  *   - A ROOT THAT IS ITSELF A SYMLINK IS FOLLOWED, including to ANOTHER ROOT, and
  *     the rule is then satisfied by that other root's bytes: `rm -rf test && ln -s
- *     src test` returns `OK — no hits (144 file(s) scanned)` and exit 0 with the
+ *     src test` returns `OK, no hits (144 file(s) scanned)` and exit 0 with the
  *     98-file test corpus absent from disk, because `normalizePath` is purely
  *     lexical (`resolve`/`relative`, never `realpath`) so `src/` is read twice and
  *     attributed once to each prefix. "A root yielded a file" is not "that root's
  *     corpus was observed". Adversarial rather than accidental, and the existing
  *     residual note under NON-REGULAR ENTRIES says such a root is followed.
  *   - IT IS A FLOOR OF ONE. A root reduced from 98 files to 1 returns
- *     `OK — no hits (77 file(s) scanned)` and exit 0. The rule asks whether a root
+ *     `OK, no hits (77 file(s) scanned)` and exit 0. The rule asks whether a root
  *     was observed at all, never whether it was observed in full.
  *
  * THAT IS NOT A CLOSED LIST, and in `ncpdp` saying
@@ -208,20 +208,20 @@ const OVERRIDE_LOG_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
 // The scan roots, as repo-relative prefixes. ONE list, used by BOTH "all" mode
 // (which walks them) and "--staged" mode (which filters the staged set by them),
 // so this is the single place the ROOTS narrow. It is not the only thing that
-// narrows a scan — see the honest-limits list in the header for the others.
+// narrows a scan: see the honest-limits list in the header for the others.
 //
 // `test/` is walked WHOLE. It used to stop at `test/fixtures/`, which left every
 // test outside `fixtures/` invisible to the gate, and this repo builds messages as
 // inline string literals in exactly those files (measured on the widening: 114
 // in-scope files became 170). `scripts/` is walked for the same reason: it is
 // tracked, hand-written text that can carry a real address or email as easily as a
-// fixture can. `src/` keeps the same conservative pass it always had — JSDoc
+// fixture can. `src/` keeps the same conservative pass it always had: JSDoc
 // `@example` snippets are compiled into `dist/*.d.ts` and must not carry real PHI.
 //
 // WHAT THE WIDENED ROOTS BUY IS NOW THE WHOLE GATE, which it was not when they
 // were widened. Over a `.ts` file the roots originally delivered the format-agnostic
-// floor (dashed SSN, non-declared email) plus the four CONTENT-gated arms — HL7 v2,
-// X12, ASTM and NCPDP Telecom — and NOTHING from the three arms that gated on the
+// floor (dashed SSN, non-declared email) plus the four CONTENT-gated arms: HL7 v2,
+// X12, ASTM and NCPDP Telecom, and NOTHING from the three arms that gated on the
 // file extension, so a C-CDA `recordTarget` or a FHIR `HumanName` written as an
 // inline literal in a TypeScript test was enumerated and then not structurally read.
 // That was recorded as a known gap rather than fixed in passing, on the grounds that
@@ -230,7 +230,7 @@ const OVERRIDE_LOG_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
 // of a roots change. It was then done AS that separate job: no arm decides from the
 // path alone any more. What each arm keys off differs and is stated at the arm rather
 // than counted here, because a count was written here once and was wrong in both
-// directions — C-CDA still admits any `.xml` with no marker at all, and FHIR's textual
+// directions: C-CDA still admits any `.xml` with no marker at all, and FHIR's textual
 // route IS marker-gated while its structural route is not. The false-positive surface
 // was measured over this repo rather than argued about.
 //
@@ -240,7 +240,7 @@ const OVERRIDE_LOG_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
 // just made visible for the first time (`test/deid/loop.test.ts`) and are now declared
 // in the allow-list. Two were name elements in this scanner's own test fixtures, which
 // the suite now assembles at run time so they are not written in its source at all. So
-// it was NOT "four placeholders, none a name" — half of it was names, and finding them
+// it was NOT "four placeholders, none a name": half of it was names, and finding them
 // was the point of the change.
 const SCAN_ROOTS: readonly string[] = ["src", "test", "scripts"];
 
@@ -254,7 +254,7 @@ const SCAN_ROOTS: readonly string[] = ["src", "test", "scripts"];
  * ONE DEFINITION IS NOT THE SAME AS ONE ANSWER, so do not read the above as a claim that
  * scope and coverage can never disagree. This returns the FIRST match, which is exactly
  * right while `SCAN_ROOTS` are disjoint (they are: `src`, `test`, `scripts`) and wrong the
- * moment one nests inside another — scope wants ANY match, coverage wants EVERY match. With
+ * moment one nests inside another, scope wants ANY match, coverage wants EVERY match. With
  * the OUTER root listed first, the inner one is never attributed and all-mode refuses
  * forever; listed inner-first it happens to work, which is worse, because then the ordering
  * is load-bearing and nothing says so. Fail-closed either way, and not hypothetical
@@ -267,7 +267,7 @@ function rootOf(rel: string): string | undefined {
 
 /**
  * Whether a repo-relative path sits under a scan root. THE ROOT HALF OF SCOPE, SPLIT
- * OUT FROM THE `.md` EXEMPTION ON PURPOSE — the two halves are not interchangeable,
+ * OUT FROM THE `.md` EXEMPTION ON PURPOSE: the two halves are not interchangeable,
  * and treating them as one predicate is what made the staged route disagree with the
  * walk about a link named `.md`. See "NON-REGULAR ENTRIES" below.
  */
@@ -281,8 +281,8 @@ function inScanRoot(rel: string): boolean {
  * and allow-list both do).
  *
  * That judgement is about a file whose BYTES the scan could have read. It is NOT the
- * predicate for deciding whether an entry is scannable at all — a link's name is no
- * evidence about what is on the other side of it — so the non-regular check on each
+ * predicate for deciding whether an entry is scannable at all: a link's name is no
+ * evidence about what is on the other side of it, so the non-regular check on each
  * route keys on {@link inScanRoot} alone.
  */
 function isScannable(rel: string): boolean {
@@ -303,7 +303,7 @@ interface Hit {
 
 interface AllowList {
   /**
-   * Uppercase synthetic person-name tokens — the shipped fake-name pool. Consumed
+   * Uppercase synthetic person-name tokens: the shipped fake-name pool. Consumed
    * by every structured name detector (HL7 PID-5, FHIR `HumanName`, C-CDA
    * `recordTarget`, X12 NM1/PER, NCPDP SCRIPT + Telecom, ASTM `P`-6).
    */
@@ -391,7 +391,7 @@ function parseArgs(argv: string[]): Args {
   // broader scan, and never a scan target on its own. It must NOT seed the
   // positional path set: doing so made `--allow-fixture X` (with no positional
   // path) flip the mode to "paths", build the target set `[X]`, subtract `X`, and
-  // scan NOTHING while printing `OK — no hits` and exiting 0. The mode is decided
+  // scan NOTHING while printing `OK, no hits` and exiting 0. The mode is decided
   // by `--staged` and positional paths alone; `--allow-fixture X` on its own now
   // means "scan everything in scope EXCEPT X", which is what it always read as.
   let mode: Args["mode"];
@@ -526,7 +526,7 @@ interface Target {
    * never enumerated here. Its own suite is: `test/scripts/phi-scan.test.ts` seeds
    * untracked violators at `scripts/zz-phi-scan-seed-scripts.xml`,
    * `test/scripts/zz-phi-scan-seed-outside.xml` and
-   * `test/fixtures/zz-phi-scan-seed-fixtures.xml` — all three inside `SCAN_ROOTS` —
+   * `test/fixtures/zz-phi-scan-seed-fixtures.xml`, all three inside `SCAN_ROOTS`,
    * and removes them in a `finally`. Sweeping this checkout in all-mode while that
    * suite runs refused 8 of 165 sweeps with exit 2 on those paths.
    *
@@ -549,21 +549,21 @@ interface Target {
    * untracked, so committing it means `git add`, after which it is tracked and
    * untolerable, and pre-commit reads the index either way.
    *
-   * TWO WAYS TO CLOSE IT, AND NEITHER IS A WIDER BOUND — stated as the trade it is
+   * TWO WAYS TO CLOSE IT, AND NEITHER IS A WIDER BOUND, stated as the trade it is
    * rather than as an impossibility, because saying "this needs a content-addressed
    * sweep" alone reads as the latter and a refuter called that out. A
    * content-addressed sweep closes it in general. A cheaper one closes the in-roots
    * half: RE-ENUMERATE `SCAN_ROOTS` after the sweep and refuse if an in-scope file
-   * exists that was never read. That is not free — it walks the tree twice and it
+   * exists that was never read. That is not free: it walks the tree twice and it
    * refuses on any unrelated file that arrives mid-sweep, which is the flake this
-   * defect is about — so it is a trade a later slice should weigh, not an oversight
+   * defect is about, so it is a trade a later slice should weigh, not an oversight
    * here.
    */
   tolerateVanish?: boolean;
 }
 
 // ---------------------------------------------------------------------------
-// NON-REGULAR ENTRIES — the authoritative statement of the rule. Every other
+// NON-REGULAR ENTRIES: the authoritative statement of the rule. Every other
 // surface that mentions it (this file's header, CHANGELOG, the changeset) points
 // HERE and does not restate it, because a guard described in four places drifts in
 // three of them.
@@ -582,14 +582,14 @@ interface Target {
 //
 // MEASURED ON THIS PACKAGE'S BASE (`026e432`), with a name-bearing synthetic C-CDA
 // `recordTarget` held outside the scan roots and a link to it under `src/`: all-mode
-// reported `OK — no hits (1 file(s) scanned)` and exit 0, where the same bytes as a
+// reported `OK, no hits (1 file(s) scanned)` and exit 0, where the same bytes as a
 // regular file under `src/` reported 2 hits and exit 1. Staging that link, and
 // separately replacing a TRACKED regular file with it (git status `T`), each reported
-// `OK — no hits (1 file(s) scanned)` and exit 0 over a mode-`120000` blob.
+// `OK, no hits (1 file(s) scanned)` and exit 0 over a mode-`120000` blob.
 //
 // THE STAGED HALF OF THIS PACKAGE HAD ALREADY WON THE ARGUMENT A SIBLING LOST, AND
 // THAT IS WHY THE REMEDY HERE IS SMALLER THAN IT LOOKS ELSEWHERE. The status filter
-// below is `--diff-filter=d` — an EXCLUSION — so `T` was already enumerated here; the
+// below is `--diff-filter=d`: an EXCLUSION, so `T` was already enumerated here; the
 // sibling this remedy comes from used an `AM` allow-list and had to admit `T` first.
 // What was missing here was not the record, it was the MODE: `--name-only` does not
 // carry one, so nothing downstream could tell a blob from a link. Hence `--raw`.
@@ -602,8 +602,8 @@ interface Target {
 // clean.
 //
 // "IN SCOPE" IS EACH ROUTE'S OWN EXISTING BOUNDARY, NOT A NEW ONE. The walk still
-// drops a gitignored entry — the same rule that already drops a gitignored file, so a
-// link does not get a second, stricter boundary of its own — and `--staged` still
+// drops a gitignored entry: the same rule that already drops a gitignored file, so a
+// link does not get a second, stricter boundary of its own, and `--staged` still
 // reads only the index. This narrows what those scopes ADMIT; it does not widen the
 // scopes.
 //
@@ -612,16 +612,16 @@ interface Target {
 // quotes violator values; a link merely NAMED `.md` is not, because its name is no
 // evidence at all about what is on the other side. So the two halves of the old
 // single scope predicate are now separate: `inScanRoot` decides whether an entry is
-// the scan's business, and `isScannable` — which is `inScanRoot` plus the `.md`
-// exemption — decides whether a REGULAR FILE's bytes get read. Every non-regular
+// the scan's business, and `isScannable`, which is `inScanRoot` plus the `.md`
+// exemption, decides whether a REGULAR FILE's bytes get read. Every non-regular
 // check keys on the first. The first version of this slice keyed the staged route on
 // the second and asserted the rule anyway: a `.md`-named link refused in all-mode and
-// returned `OK — no hits (0 file(s) scanned)` exit 0 when staged, with `.md` the sole
+// returned `OK, no hits (0 file(s) scanned)` exit 0 when staged, with `.md` the sole
 // discriminator. That is why the split is here and not inlined at one call site.
 //
 // A REFUSAL NAMES THE ENTRY'S OWN REPO-RELATIVE PATH AND AN ENGINE-OWNED TOKEN FOR
 // ITS KIND. IT NEVER REPORTS THE LINK TARGET, which is text off the working tree and
-// can itself carry PHI — a target path of the shape `../<surname>-<given>-<dob>.txt`
+// can itself carry PHI: a target path of the shape `../<surname>-<given>-<dob>.txt`
 // is the whole reason. The shape is written out rather than an example, because a
 // diagnostic ABOUT a PHI leak is itself a PHI surface, and that applies to the prose
 // explaining it too.
@@ -638,12 +638,12 @@ interface Target {
 // duration of one `pnpm build` followed by one `pnpm test`, ran 824 sweeps and saw a
 // non-regular entry in 0 of them. At rest the same `find` returns 0, and
 // `git ls-files -s` reports no entry outside modes `100644`/`100755`. So this rule
-// refuses nothing this package's own tooling or suite produces — which is what makes
+// refuses nothing this package's own tooling or suite produces, which is what makes
 // refusing affordable here, and is a claim to RE-MEASURE rather than inherit if the
 // roots or the suite's seeding ever move.
 //
 // TWO RESIDUALS, DISCLOSED RATHER THAN CLOSED. `buildTargetsForPaths` still resolves
-// an operator-named positional path through `statSync`, which FOLLOWS a link — that
+// an operator-named positional path through `statSync`, which FOLLOWS a link: that
 // is left alone deliberately: every non-regular resolution still refuses there, and
 // the one case that gets through (a link to a regular file) reads that file's real
 // bytes, so it can only ever produce MORE hits, never fewer. And the three roots in
@@ -692,7 +692,7 @@ function walk(dir: string, out: string[], unscannable: Unscannable[]): void {
       // Deliberately NOT subject to `isScannable`'s `.md` exemption. That exemption
       // is a judgement about a file whose bytes the walk could have read; see the
       // section comment above. The ROOT half of `isScannable` is satisfied
-      // structurally — `walk` is only ever entered at a member of `SCAN_ROOTS`.
+      // structurally: `walk` is only ever entered at a member of `SCAN_ROOTS`.
       unscannable.push({ path: normalizePath(full), kind: direntKind(e) });
     }
   }
@@ -717,7 +717,7 @@ function gitIgnored(paths: string[]): Set<string> {
   const ignored = new Set<string>();
   if (paths.length === 0) return ignored;
   try {
-    // SECURITY: array-form execFileSync, no shell. Default (Buffer) encoding —
+    // SECURITY: array-form execFileSync, no shell. Default (Buffer) encoding:
     // `encoding: "buffer"` with `input` is rejected by Node.
     const out = execFileSync("git", ["check-ignore", "--stdin", "-z"], {
       input: paths.map(normalizePath).join("\0"),
@@ -727,7 +727,7 @@ function gitIgnored(paths: string[]): Set<string> {
       if (p.length > 0) ignored.add(p);
     }
   } catch {
-    // `git check-ignore` exits 1 when nothing matches — treat as none ignored.
+    // `git check-ignore` exits 1 when nothing matches, treat as none ignored.
   }
   return ignored;
 }
@@ -740,7 +740,7 @@ function gitIgnored(paths: string[]): Set<string> {
  * An EMPTY answer counts as no answer for the same reason. `git ls-files` exits 0
  * with no output for a repo whose index is empty or has been removed (a CORRUPT
  * index exits 128 and is already caught by the `catch`), and an empty set would
- * make EVERY file untracked — the one state in which the tracked-file bound
+ * make EVERY file untracked: the one state in which the tracked-file bound
  * silently stops existing. This repo always tracks files, so there is no
  * legitimate empty case here.
  *
@@ -820,7 +820,7 @@ function gitModeKind(mode: string): string {
 }
 
 /**
- * `:<srcmode> <dstmode> <srcsha> <dstsha> <status>` — the info half of a `--raw -z`
+ * `:<srcmode> <dstmode> <srcsha> <dstsha> <status>`, the info half of a `--raw -z`
  * record. The shas are ABBREVIATED by default (measured: 7 hex chars), so the length
  * is not pinned. The status may carry a numeric similarity score (`R100`), which
  * `--no-renames` prevents but the pattern still admits rather than desyncing over.
@@ -860,14 +860,14 @@ function buildTargetsForStaged(): Target[] {
     // the info half of a record costs a fixed 32 bytes plus its NUL. Measured over 200
     // staged paths in a throwaway repo: 70.5 bytes/record under `--raw` against 37.5
     // under `--name-only`, so the ceiling falls from roughly 27,900 staged paths to
-    // roughly 14,800. It fails CLOSED — an over-long answer throws `ENOBUFS`, lands in
+    // roughly 14,800. It fails CLOSED: an over-long answer throws `ENOBUFS`, lands in
     // the `catch` below, and refuses (exit 2).
     //
     // THE HEADROOM IS RE-DERIVED HERE RATHER THAN COPIED OFF `gitTracked()`, whose
     // "three orders of magnitude" is its own measurement and does not describe this
     // one. Every path this repo tracks is 6,657 bytes, and the widest plausible staged
     // set is all of them, so the worst case is that total plus 33 bytes per record:
-    // about 13,900 bytes against 1,048,576, i.e. roughly 75x of headroom — ample, and
+    // about 13,900 bytes against 1,048,576, i.e. roughly 75x of headroom: ample, and
     // under two orders of magnitude. The halving is recorded because the next repo to
     // take this change may not have even that.
     listBuf = execFileSync(
@@ -923,8 +923,8 @@ function buildTargetsForStaged(): Target[] {
     // IS its target path, while a gitlink and an unmerged path have no regular blob at
     // stage 0 at all. Saying "hands back its target path" for all of them was wrong on
     // a real merge conflict, where the mode reads `000000`.
-    "`git show :<path>` does not answer with file content for such an entry — for a symbolic link " +
-      "it hands back the target path, and otherwise there is no regular blob at stage 0 to read — " +
+    "`git show :<path>` does not answer with file content for such an entry, for a symbolic link " +
+      "it hands back the target path, and otherwise there is no regular blob at stage 0 to read, " +
       "so scanning it would prove nothing about what it stands for.",
     "Unstage it, or replace it with a regular file.",
   );
@@ -943,11 +943,11 @@ function buildTargetsForStaged(): Target[] {
 }
 
 // ---------------------------------------------------------------------------
-// Cross-cutting shape checks — the format-agnostic FLOOR
+// Cross-cutting shape checks: the format-agnostic FLOOR
 // ---------------------------------------------------------------------------
 
 /**
- * Whether a 9-digit SSN (dashes optional) is drawn from an SSA never-issued / reserved space — area
+ * Whether a 9-digit SSN (dashes optional) is drawn from an SSA never-issued / reserved space: area
  * `000`, `666`, or `900–999`. This is the one place a *synthetic-data generator's* PHI gate must
  * differ from a parser's: `synth` legitimately emits `900-xx-xxxx` never-issued SSNs and the
  * `987-65-432x` advertising block, and those are *proof of synthetic*, not PHI. A real, issuable SSN
@@ -961,7 +961,7 @@ function isSyntheticSsn(value: string): boolean {
 }
 
 function scanCommonShapes(path: string, content: string, allow: AllowList, hits: Hit[]): void {
-  // Dashed SSN anywhere — a hit UNLESS it is a provably-synthetic never-issued/reserved SSN.
+  // Dashed SSN anywhere, a hit UNLESS it is a provably-synthetic never-issued/reserved SSN.
   for (const m of content.matchAll(/\b\d{3}-\d{2}-\d{4}\b/g)) {
     if (isSyntheticSsn(m[0])) continue;
     hits.push({ path, segment: "(ssn)", value: m[0], reason: "dashed SSN pattern" });
@@ -981,7 +981,7 @@ function scanCommonShapes(path: string, content: string, allow: AllowList, hits:
 // ---------------------------------------------------------------------------
 
 /**
- * Scan one target. Returns whether the target was OBSERVED — i.e. whether its
+ * Scan one target. Returns whether the target was OBSERVED, i.e. whether its
  * bytes were actually read. `false` is returned for exactly one case, the
  * tolerated TOCTOU vanish documented on `Target.tolerateVanish`; every other read
  * failure still refuses the whole scan.
@@ -1007,22 +1007,22 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): boolean {
 
   // Structured, field-level detection for the format synth actually generates in Phase 1: HL7 v2.
   // A generated fixture is swept at its real PHI loci (PID name / SSN / phone) and every value must be
-  // provably synthetic — the executable, format-aware half of the synthetic-safety gate (roadmap §4.4).
+  // provably synthetic, the executable, format-aware half of the synthetic-safety gate (roadmap §4.4).
   scanHl7(target.path, text, allow, hits);
 
-  // FHIR R4 / US Core (Phase 3). A generated resource (or Bundle) is swept at its real PHI loci —
-  // HumanName (`family`/`given`) and ContactPoint (`telecom` phone) — against the synthetic sources.
+  // FHIR R4 / US Core (Phase 3). A generated resource (or Bundle) is swept at its real PHI loci:
+  // HumanName (`family`/`given`) and ContactPoint (`telecom` phone), against the synthetic sources.
   // Whole-file JSON is walked structurally; anything else that declares a `resourceType` is read
   // textually. A target doing neither falls straight through.
   scanFhir(target.path, text, allow, hits);
 
-  // C-CDA R2.1 (Phase 4 / SYNTH-5). A generated document is swept at its real PHI loci — every
-  // `name` (`given` / `family`) and any `telecom` phone, document-wide — against the synthetic sources
+  // C-CDA R2.1 (Phase 4 / SYNTH-5). A generated document is swept at its real PHI loci: every
+  // `name` (`given` / `family`) and any `telecom` phone, document-wide, against the synthetic sources
   // (roadmap §4.4). Admitted by an `.xml` path or a CDA marker; anything else falls straight through.
   scanCcda(target.path, text, allow, hits);
 
-  // X12 EDI (Phase 5 / SYNTH-6). A generated 837 / 835 / 271 is swept at its real PHI loci — NM1 person
-  // names + member ids + provider NPIs, PER contact names + phones, and REF*SY provider SSNs — against
+  // X12 EDI (Phase 5 / SYNTH-6). A generated 837 / 835 / 271 is swept at its real PHI loci: NM1 person
+  // names + member ids + provider NPIs, PER contact names + phones, and REF*SY provider SSNs, against
   // the synthetic sources (roadmap §4.4). The X12 identity invariant is the hardest-attacked: a member
   // id must be synthetic-AA-scoped, an XX-qualified NPI must fail the NPI Luhn check (so it can never be
   // a real NPI), and a REF*SY SSN must be in the SSA never-issued range. Non-X12 targets (no ISA header)
@@ -1032,26 +1032,26 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): boolean {
   // NCPDP (Phase 6 / SYNTH-7). Two structurally unrelated standards under one brand, each swept at its
   // real PHI loci against the synthetic sources (roadmap §4.4):
   //   - SCRIPT (XML): patient + prescriber <FirstName>/<LastName>/<MiddleName> must be declared
-  //     synthetic; a <NPI> must fail the NPI Luhn check; a <DEANumber> must fail the DEA checksum — so
+  //     synthetic; a <NPI> must fail the NPI Luhn check; a <DEANumber> must fail the DEA checksum, so
   //     neither prescriber id can denote a real provider.
-  //   - Telecom (FS/GS/RS-framed): keyed off the 2-char field ids — CA/CB/CC/CD (name), CQ (phone),
-  //     CY (patient id) / C2 (cardholder id) — plus the prescriber DB (NPI) Luhn check. Keying off the
+  //   - Telecom (FS/GS/RS-framed): keyed off the 2-char field ids, CA/CB/CC/CD (name), CQ (phone),
+  //     CY (patient id) / C2 (cardholder id), plus the prescriber DB (NPI) Luhn check. Keying off the
   //     globally-unique field id (not the enclosing segment) is bypass-resistant.
   // Non-NCPDP targets fall straight through.
   scanNcpdpScript(target.path, text, allow, hits);
   scanNcpdpTelecom(target.path, text, allow, hits);
 
   // ASTM E1394 / E1381 (Phase 6 / SYNTH-8). A generated H/P/O/R/C/L record stream (or its E1381-framed
-  // twin) is swept at its real PHI locus — the `P` (patient) record — against the synthetic sources
+  // twin) is swept at its real PHI locus, the `P` (patient) record, against the synthetic sources
   // (roadmap §4.4): every name component (field 6, `Last^First^Middle`) must be declared synthetic, and
   // the practice-assigned (field 3) and laboratory-assigned (field 4) patient ids must be recognized as
   // synthetic-AA-scoped. The detector tolerates a leading frame prefix (`<STX><FN>`), so a framed
-  // fixture is swept identically to a bare record stream. DOB (field 8) is intentionally not value-gated
-  // — a synthetic DOB is seeded and indistinguishable from a real one, and there is no reserved DOB
+  // fixture is swept identically to a bare record stream. DOB (field 8) is intentionally not value-gated:
+  // a synthetic DOB is seeded and indistinguishable from a real one, and there is no reserved DOB
   // range (roadmap §4.3), matching every other synth arm. Non-ASTM targets fall straight through.
   scanAstm(target.path, text, allow, hits);
 
-  // The bytes were read, so the target was observed — whatever any individual arm
+  // The bytes were read, so the target was observed: whatever any individual arm
   // decided to do with them.
   return true;
 }
@@ -1059,7 +1059,7 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): boolean {
 /**
  * Whether an ASTM `P`-record patient id (practice- or laboratory-assigned) is a recognized synthetic
  * shape: minted under the synthetic assigning authority (the `PRA` / `LAB` / `ACC` / `MBR`-prefixed
- * forms `synth` emits — roadmap §4.1, there is no reserved patient-id range for ASTM, so the *namespace*
+ * forms `synth` emits, roadmap §4.1, there is no reserved patient-id range for ASTM, so the *namespace*
  * is the guarantee). A short all-digit id under the synthetic AA is acceptable; a 9-digit SSN-shaped
  * value must instead be in the SSA never-issued range.
  */
@@ -1073,7 +1073,7 @@ function isSyntheticAstmId(id: string): boolean {
 }
 
 /**
- * ASTM structured PHI detection. Over an ASTM record stream — bare (E1394) or framed (E1381) — locates
+ * ASTM structured PHI detection. Over an ASTM record stream, bare (E1394) or framed (E1381), locates
  * each `P` (patient) record and checks its identity loci: every name-component token (len ≥ 2) in field
  * 6 must be a declared-synthetic name, and the practice-assigned (field 3) and laboratory-assigned
  * (field 4) patient ids must be synthetic-AA-scoped. The P-record matcher tolerates an optional leading
@@ -1090,7 +1090,7 @@ function scanAstm(path: string, text: string, allow: AllowList, hits: Hit[]): vo
     const fields = `P|${m[1] ?? ""}`.split("|");
     const field = (n: number): string => fields[n - 1] ?? "";
 
-    // Field 6 — patient name (`Last^First^Middle`). Each multi-char component must be declared synthetic.
+    // Field 6: patient name (`Last^First^Middle`). Each multi-char component must be declared synthetic.
     for (const token of field(6).split("^")) {
       const t = token.trim();
       if (t.length < 2) continue; // a single-char middle initial is structurally non-identifying.
@@ -1099,7 +1099,7 @@ function scanAstm(path: string, text: string, allow: AllowList, hits: Hit[]): vo
       }
     }
 
-    // Fields 3 + 4 — practice- and laboratory-assigned patient ids. Both must be synthetic-AA-scoped.
+    // Fields 3 + 4: practice- and laboratory-assigned patient ids. Both must be synthetic-AA-scoped.
     for (const [fieldNo, label] of [
       [3, "P-3 (practice id)"],
       [4, "P-4 (lab id)"],
@@ -1118,10 +1118,10 @@ function scanAstm(path: string, text: string, allow: AllowList, hits: Hit[]): vo
 }
 
 /**
- * Whether a DEA number (`XX` + 7 digits) is **provably synthetic** — its 7th digit fails the published
+ * Whether a DEA number (`XX` + 7 digits) is **provably synthetic**: its 7th digit fails the published
  * DEA checksum `(d1+d3+d5) + 2·(d2+d4+d6)`, so it can never be a validly-issued DEA registration. A
  * checksum-valid DEA (which *could* be a real prescriber) is a hit. Mirrors
- * `src/safe/reserved.ts#isSyntheticDea` — kept inline because the scanner is a zero-import Node script.
+ * `src/safe/reserved.ts#isSyntheticDea`, kept inline because the scanner is a zero-import Node script.
  */
 function isSyntheticDea(value: string): boolean {
   const compact = value.replace(/[\s-]/g, "").toUpperCase();
@@ -1137,7 +1137,7 @@ function isSyntheticDea(value: string): boolean {
 
 /**
  * Whether an NCPDP member / cardholder / patient id is a recognized synthetic shape: minted under the
- * synthetic assigning authority (the `MBR`-prefixed form `synth` emits — roadmap §4.1, there is no
+ * synthetic assigning authority (the `MBR`-prefixed form `synth` emits; roadmap §4.1, there is no
  * reserved id range so the *namespace* is the guarantee). A 9-digit SSN-shaped value must instead be in
  * the SSA never-issued range.
  */
@@ -1165,12 +1165,12 @@ function isSyntheticNcpdpId(id: string): boolean {
  * BE PRECISE ABOUT WHAT LANDS IN THAT SET, because an earlier draft called it "by construction, a
  * SCRIPT message" and THIS REPO REFUTES THAT: `test/scripts/phi-scan.test.ts` is admitted here. It is
  * a TypeScript test that happens to contain a `<Message>` envelope and a `<Patient>` element inside a
- * fixture string. Reading it is correct — a `<LastName>` spelled out there would be a real hit — but
+ * fixture string. Reading it is correct: a `<LastName>` spelled out there would be a real hit, but
  * it is a source file, not a SCRIPT message, and the marker set cannot tell the difference. That is
  * the same file-scoped admission cost the header lists, reached by a different arm.
  */
 function scanNcpdpScript(path: string, text: string, allow: AllowList, hits: Hit[]): void {
-  // SCRIPT markers — a <Message> root and a SCRIPT transaction/party element. Avoids running on C-CDA.
+  // SCRIPT markers, a <Message> root and a SCRIPT transaction/party element. Avoids running on C-CDA.
   if (
     !/<Message\b/.test(text) ||
     !/<(NewRx|RxRenewalRequest|RxChangeRequest|Prescriber|Patient)\b/.test(text)
@@ -1196,7 +1196,7 @@ function scanNcpdpScript(path: string, text: string, allow: AllowList, hits: Hit
         path,
         segment: "<NPI>",
         value,
-        reason: "NPI passes the Luhn check — could be a real NPI",
+        reason: "NPI passes the Luhn check, could be a real NPI",
       });
     }
   }
@@ -1207,7 +1207,7 @@ function scanNcpdpScript(path: string, text: string, allow: AllowList, hits: Hit
         path,
         segment: "<DEANumber>",
         value,
-        reason: "DEA passes the checksum — could be a real DEA registration",
+        reason: "DEA passes the checksum, could be a real DEA registration",
       });
     }
   }
@@ -1226,11 +1226,11 @@ const TELECOM_PHI_FIELDS: Readonly<Record<string, "name" | "phone" | "id">> = {
 
 /**
  * Telecom (FS/GS/RS-framed) structured PHI detection. Tokenizes on the union of the three NCPDP
- * separators — each token is a `<2-char field id><value>` pair — and checks the identity-bearing field
+ * separators (each token is a `<2-char field id><value>` pair), and checks the identity-bearing field
  * ids against the synthetic sources: names (CA/CB/CC/CD) must be declared synthetic, phones (CQ) must
  * carry the reserved 555-01xx tail, ids (CY/C2) must be synthetic-AA-scoped, and any prescriber id (DB)
  * that is a 10-digit NPI must fail the Luhn check. A non-Telecom target (no control chars) falls
- * straight through. DOB (C4) is not value-gated — a synthetic DOB is seeded and indistinguishable from
+ * straight through. DOB (C4) is not value-gated: a synthetic DOB is seeded and indistinguishable from
  * a real one, and there is no reserved DOB range (roadmap §4.3), matching every other synth arm.
  */
 function scanNcpdpTelecom(path: string, text: string, allow: AllowList, hits: Hit[]): void {
@@ -1245,7 +1245,7 @@ function scanNcpdpTelecom(path: string, text: string, allow: AllowList, hits: Hi
           path,
           segment: "DB",
           value,
-          reason: "prescriber NPI passes the Luhn check — could be real",
+          reason: "prescriber NPI passes the Luhn check, could be real",
         });
       }
       continue;
@@ -1275,7 +1275,7 @@ function scanNcpdpTelecom(path: string, text: string, allow: AllowList, hits: Hi
   }
 }
 
-/** Whether a byte string is an X12 interchange — starts with `ISA` and is at least a full ISA wide. */
+/** Whether a byte string is an X12 interchange: starts with `ISA` and is at least a full ISA wide. */
 function isX12(text: string): boolean {
   const t = text.replace(/^\uFEFF/, "");
   return t.startsWith("ISA") && t.length >= 106;
@@ -1302,9 +1302,9 @@ function x12NameTokens(value: string): string[] {
 }
 
 /**
- * Whether a 10-digit NPI is **provably synthetic** — its check digit fails the CMS NPI Luhn check
+ * Whether a 10-digit NPI is **provably synthetic**: its check digit fails the CMS NPI Luhn check
  * (`80840` prefix), so it can never be a NPPES-issued NPI. A Luhn-valid NPI (which *could* be a real
- * registered provider) is a hit. Mirrors `src/safe/reserved.ts#isSyntheticNpi` — kept inline because
+ * registered provider) is a hit. Mirrors `src/safe/reserved.ts#isSyntheticNpi`, kept inline because
  * the scanner is a standalone, zero-import Node script.
  */
 function isSyntheticNpi(value: string): boolean {
@@ -1328,7 +1328,7 @@ function isSyntheticNpi(value: string): boolean {
 
 /**
  * Whether an X12 member/cardholder id is a recognized synthetic shape: minted under the synthetic
- * assigning authority (the `MBR`-prefixed or all-digit forms `synth` emits — roadmap §4.1, there is no
+ * assigning authority (the `MBR`-prefixed or all-digit forms `synth` emits; roadmap §4.1, there is no
  * reserved member-id range so the *namespace* is the guarantee).
  */
 function isSyntheticMemberId(id: string): boolean {
@@ -1342,14 +1342,14 @@ function isSyntheticMemberId(id: string): boolean {
  * X12 structured PHI detection. Over an X12 interchange, checks the identity-bearing loci against the
  * synthetic sources:
  *
- * - **NM1** — a person entity (`NM1-02 = 1`): every name token (NM1-03/04/05) must be declared
+ * - **NM1**, a person entity (`NM1-02 = 1`): every name token (NM1-03/04/05) must be declared
  *   synthetic; a member id (`NM1-08 = MI`) must be a synthetic shape; an SSN qualifier (`NM1-08 = 34`)
  *   must never appear. Any entity: a 10-digit NPI (`NM1-08 = XX`) must fail the NPI Luhn check.
- * - **PER** — contact name (PER-02) tokens must be declared synthetic; comm numbers (PER-04/06/08) must
+ * - **PER**, contact name (PER-02) tokens must be declared synthetic; comm numbers (PER-04/06/08) must
  *   carry the reserved `555` fake-exchange convention.
- * - **REF** — a provider SSN (`REF-01 = SY`, 9 digits) must be in the SSA never-issued range.
+ * - **REF**, a provider SSN (`REF-01 = SY`, 9 digits) must be in the SSA never-issued range.
  *
- * A non-X12 target falls straight through. Dates of birth (DMG) are intentionally NOT value-gated —
+ * A non-X12 target falls straight through. Dates of birth (DMG) are intentionally NOT value-gated:
  * a synthetic DOB is seeded and structurally indistinguishable from a real one, and (like the HL7 /
  * FHIR / C-CDA arms) there is no reserved DOB range to check against; the synthetic guarantee for a DOB
  * is that it is drawn from the seeded generator, not a value pattern (roadmap §4.3).
@@ -1398,7 +1398,7 @@ function scanX12(path: string, text: string, allow: AllowList, hits: Hit[]): voi
           path,
           segment: "NM1",
           value: idValue,
-          reason: "NPI passes the Luhn check — could be a real NPI",
+          reason: "NPI passes the Luhn check, could be a real NPI",
         });
       }
     } else if (id === "PER") {
@@ -1448,23 +1448,23 @@ function scanX12(path: string, text: string, allow: AllowList, hits: Hit[]): voi
 }
 
 // ---------------------------------------------------------------------------
-// Format markers — what admits a target to a STRUCTURED arm
+// Format markers: what admits a target to a STRUCTURED arm
 //
 // Four arms (HL7 v2, X12, ASTM, NCPDP Telecom) always keyed off the bytes: an
 // `MSH`, an `ISA`, an `H|\^&`, an FS/GS/RS control char. Three keyed off the FILE
 // EXTENSION instead, so byte-identical content was refused as `probe.xml` and
-// passed as `probe.ts` — measured, and pinned as a known gap rather than fixed,
+// passed as `probe.ts`, measured, and pinned as a known gap rather than fixed,
 // because content-sniffing XML/JSON out of arbitrary TypeScript is its own job
 // with its own false-positive surface.
 //
 // This is that job. Each of the three now admits a target by EITHER its extension
 // (unchanged, so nothing previously admitted is refused admission now) OR a format
 // marker in the bytes. The markers below are the formats' own required
-// discriminators — a CDA root/namespace, a SCRIPT `<Message>` envelope, FHIR's
-// `resourceType` — not a guess at "looks XML-ish". That is what keeps the CONTENT
+// discriminators: a CDA root/namespace, a SCRIPT `<Message>` envelope, FHIR's
+// `resourceType`, not a guess at "looks XML-ish". That is what keeps the CONTENT
 // route from crying wolf over ordinary source.
 //
-// DO NOT READ THAT AS "NOTHING IS EXAMINED WITHOUT A MARKER" — an earlier draft said
+// DO NOT READ THAT AS "NOTHING IS EXAMINED WITHOUT A MARKER": an earlier draft said
 // so here and it is false on two routes that predate this change and are unaltered by
 // it. An `.xml` path is admitted to the C-CDA arm on its EXTENSION, with no marker at
 // all, so a bare name fragment in a `.xml` file is read exactly as it always was. And
@@ -1482,7 +1482,7 @@ function hasExtension(path: string, ext: string): boolean {
 /**
  * Whether the bytes declare themselves a CDA document: the `ClinicalDocument` root, the HL7 v3
  * namespace, or a `recordTarget` (the element the patient identity actually hangs off). Namespace
- * prefixes are tolerated HERE, deliberately — the marker only decides whether to LOOK, so being
+ * prefixes are tolerated HERE, deliberately: the marker only decides whether to LOOK, so being
  * liberal costs nothing. The name loci below are NOT prefix-tolerant, which is a separate
  * pre-existing limit and is listed in the header rather than quietly widened here.
  */
@@ -1500,26 +1500,26 @@ function hasCdaMarker(text: string): boolean {
  * `<telecom value="tel:…">` phone must carry the reserved `555-01xx` tail. Dashed SSNs and non-test
  * emails are already covered by {@link scanCommonShapes}.
  *
- * ADMITTED BY EITHER ROUTE — a `.xml` path, OR {@link hasCdaMarker} over the bytes. The second route
+ * ADMITTED BY EITHER ROUTE: a `.xml` path, OR {@link hasCdaMarker} over the bytes. The second route
  * is what reaches a document written as an inline literal in a `.ts` test; the first is kept so the
- * widening is provably ADDITIVE (an `.xml` fixture carrying loci but no `<ClinicalDocument>` root — a
- * fragment — is examined exactly as it always was). A target admitted by neither falls through.
+ * widening is provably ADDITIVE (an `.xml` fixture carrying loci but no `<ClinicalDocument>` root, a
+ * fragment, is examined exactly as it always was). A target admitted by neither falls through.
  */
 function scanCcda(path: string, text: string, allow: AllowList, hits: Hit[]): void {
   if (!hasExtension(path, ".xml") && !hasCdaMarker(text)) return;
 
   // Name tokens: the text content of each `given` and `family` element. Each must be declared
-  // synthetic. (Written as prose rather than as a sample element on purpose — this file is inside the
+  // synthetic. (Written as prose rather than as a sample element on purpose: this file is inside the
   // corpus it sweeps, and a comment that forges a name element is a hit against the scanner itself.)
   //
   // THE LABEL NAMES THE ELEMENT, NOT `recordTarget`, and that is a correction. This regex has always
-  // been DOCUMENT-WIDE — it never scoped to `<recordTarget>` — while every hit it raised was reported
+  // been DOCUMENT-WIDE: it never scoped to `<recordTarget>`, while every hit it raised was reported
   // as `recordTarget/given`. A name in `<author>`, `<informant>` or a participant therefore came back
   // labelled with a location it was not in. Nothing had noticed because the only targets the arm could
   // reach were `.xml` fixtures that are recordTarget-heavy; the first `.ts` document it reached under
   // the widened gate produced exactly that mislabel, on an `<author>` name.
   //
-  // The document-wide sweep is KEPT — a clinician's or informant's name in a committed fixture is as
+  // The document-wide sweep is KEPT: a clinician's or informant's name in a committed fixture is as
   // real as a patient's, and narrowing a PHI gate as a side effect of relabelling it would be the same
   // quiet trade this change exists to undo. Only the claim about WHERE the hit sits is withdrawn.
   for (const m of text.matchAll(/<(given|family)(?:\s[^>]*)?>([^<]+)<\/\1>/g)) {
@@ -1535,7 +1535,7 @@ function scanCcda(path: string, text: string, allow: AllowList, hits: Hit[]): vo
     }
   }
 
-  // Telecom phone — <telecom value="tel:+1..."/>. A phone-shaped value must be reserved 555-01xx.
+  // Telecom phone: <telecom value="tel:+1..."/>. A phone-shaped value must be reserved 555-01xx.
   // Document-wide for the same reason, and labelled for the same reason.
   for (const m of text.matchAll(/<telecom\b[^>]*\bvalue="tel:([^"]+)"/g)) {
     const value = m[1] ?? "";
@@ -1558,7 +1558,7 @@ function scanCcda(path: string, text: string, allow: AllowList, hits: Hit[]): vo
  * covered by {@link scanCommonShapes}.
  *
  * TWO ROUTES, and the split is on the BYTES rather than the path. If the whole target parses as JSON
- * it is walked structurally — that is the pass that always existed, minus its `.json` extension gate,
+ * it is walked structurally: that is the pass that always existed, minus its `.json` extension gate,
  * because `JSON.parse` succeeding IS the discriminator and a stricter one than the file's name. If it
  * does not parse, {@link scanFhirEmbedded} takes it: a resource inline in a TypeScript test is not
  * JSON (unquoted keys, trailing commas, interpolation) and no amount of extension-checking would have
@@ -1641,10 +1641,10 @@ const FHIR_PHONE_VALUE_FIRST =
   /"?value"?\s*:\s*["']([^"']*)["']\s*,\s*"?system"?\s*:\s*["']phone["']/g;
 
 /**
- * FHIR detection for a resource written INLINE in a file that is not itself JSON — the shape a
+ * FHIR detection for a resource written INLINE in a file that is not itself JSON: the shape a
  * TypeScript test uses, and the shape the `.json` extension gate could never reach. Aims at the same
- * two identity loci as the structural pass — `HumanName` (`family` / `given`) and a phone
- * `ContactPoint` — but does NOT reach them equally, and the two routes are mutually exclusive, so
+ * two identity loci as the structural pass: `HumanName` (`family` / `given`) and a phone
+ * `ContactPoint`, but does NOT reach them equally, and the two routes are mutually exclusive, so
  * whichever one a target takes is the only one it gets. This route reads a regex over text, not an
  * object graph: it misses a `system`/`value` pair with a key between them, and a value written as a
  * backtick template literal rather than a quoted string. Each is pinned by a test.
@@ -1657,7 +1657,7 @@ const FHIR_PHONE_VALUE_FIRST =
  * THE RESIDUAL FALSE-POSITIVE SHAPE, STATED RATHER THAN HIDDEN: admission is FILE-scoped, not
  * object-scoped. A file that declares a `resourceType` anywhere and, elsewhere, writes an undeclared
  * `family: "…"` that is not part of any resource is a hit. Scoping to the enclosing object needs a
- * real JavaScript parser — a dependency this scanner deliberately does not have (it must not share a
+ * real JavaScript parser: a dependency this scanner deliberately does not have (it must not share a
  * bug with the code it guards). The trade is accepted because in THIS repo every person-name is
  * supposed to be drawn from the shipped fake-name pool, so the remedy for a false positive is the
  * allow-list: the same positive declaration the rest of the gate already asks for.
@@ -1682,14 +1682,14 @@ function scanFhirEmbedded(path: string, text: string, allow: AllowList, hits: Hi
     }
   }
 
-  // A phone ContactPoint, in either ADJACENT key order — `system` then `value`, or `value` then
+  // A phone ContactPoint, in either ADJACENT key order: `system` then `value`, or `value` then
   // `system`. Object key order is not significant in JSON, so a hand-written literal picks whichever
   // reads better, and both are read.
   //
   // ADJACENCY IS A REAL LIMIT, NOT A ROUNDING ERROR: `{ system: "phone", use: "home", value: … }` is
   // valid, common FHIR and is MISSED here, because a key between the two breaks both regexes. The
   // structural route catches it; this textual one does not. Closing it properly means parsing the
-  // object, which is the JavaScript parser this scanner deliberately does not have — so it is stated
+  // object, which is the JavaScript parser this scanner deliberately does not have, so it is stated
   // here and pinned by a test rather than described as parity with the structural pass.
   for (const re of [FHIR_PHONE_SYSTEM_FIRST, FHIR_PHONE_VALUE_FIRST]) {
     for (const m of text.matchAll(re)) {
@@ -1714,8 +1714,8 @@ function isSyntheticPhone(value: string): boolean {
 
 /**
  * HL7 v2 structured PID detection. Locates each `PID` segment, derives the field/component delimiters
- * from the message's own `MSH`, and checks the PHI-bearing loci — PID-5 (name), PID-13 (phone), PID-19
- * (SSN) — against the synthetic sources. A name token not on the allow-list, a real-area SSN, or a
+ * from the message's own `MSH`, and checks the PHI-bearing loci: PID-5 (name), PID-13 (phone), PID-19
+ * (SSN), against the synthetic sources. A name token not on the allow-list, a real-area SSN, or a
  * non-reserved phone is a hard hit. Non-HL7 targets fall straight through (no `MSH`).
  */
 function scanHl7(path: string, text: string, allow: AllowList, hits: Hit[]): void {
@@ -1730,7 +1730,7 @@ function scanHl7(path: string, text: string, allow: AllowList, hits: Hit[]): voi
     const fields = seg.split(fieldSep);
     const at = (n: number): string => fields[n] ?? ""; // fields[n] is HL7 field n (0 = "PID").
 
-    // PID-5 — patient name (XPN). Each component token must be a declared-synthetic name.
+    // PID-5: patient name (XPN). Each component token must be a declared-synthetic name.
     for (const token of at(5).split(compSep)) {
       const t = token.trim();
       if (t.length === 0) continue;
@@ -1739,13 +1739,13 @@ function scanHl7(path: string, text: string, allow: AllowList, hits: Hit[]): voi
       }
     }
 
-    // PID-19 — SSN. Any SSN-shaped value must be from a never-issued/reserved area.
+    // PID-19: SSN. Any SSN-shaped value must be from a never-issued/reserved area.
     const ssnValue = at(19).trim();
     if (/^\d{9}$/.test(ssnValue.replace(/\D/g, "")) && !isSyntheticSsn(ssnValue)) {
       hits.push({ path, segment: "PID-19", value: ssnValue, reason: "SSN not in synthetic range" });
     }
 
-    // PID-13 — phone (XTN). A phone-shaped value must carry the reserved 555-01xx tail.
+    // PID-13: phone (XTN). A phone-shaped value must carry the reserved 555-01xx tail.
     const phoneValue = at(13).trim();
     if (/\d{7,}/.test(phoneValue.replace(/\D/g, "")) && !isSyntheticPhone(phoneValue)) {
       hits.push({
@@ -1768,7 +1768,7 @@ function report(hits: Hit[], scanned: number): void {
   // per-hit detail lines below do not repeat it.
   const denom = `${String(scanned)} file(s) scanned`;
   if (hits.length === 0) {
-    process.stdout.write(`[phi-scan] OK — no hits (${denom})\n`);
+    process.stdout.write(`[phi-scan] OK, no hits (${denom})\n`);
     return;
   }
   const byPath = new Map<string, Hit[]>();
@@ -1798,7 +1798,7 @@ function report(hits: Hit[], scanned: number): void {
 
 /**
  * Refuse any invocation that would scan nothing, or whose overrides subtract
- * nothing. This is the rule that keeps `OK — no hits` honest: without it, an
+ * nothing. This is the rule that keeps `OK, no hits` honest: without it, an
  * emptied target set is indistinguishable from a clean corpus, and the gate
  * reports success for a scan it never performed.
  *
@@ -1981,7 +1981,7 @@ function main(): number {
     }
   }
 
-  // The denominator counts files READ, not files listed — a tolerated skip must
+  // The denominator counts files READ, not files listed: a tolerated skip must
   // shrink the number the `OK` is an `OK` over, never pad it.
   report(hits, observed);
   return hits.length === 0 ? 0 : 1;

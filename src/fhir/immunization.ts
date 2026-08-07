@@ -1,5 +1,5 @@
 /**
- * Synthetic FHIR R4 **`Immunization`** generation — a US Core Immunization. Built through `@cosyte/fhir`;
+ * Synthetic FHIR R4 **`Immunization`** generation: a US Core Immunization. Built through `@cosyte/fhir`;
  * `vaccineCode` comes from the license-clean CVX example
  * pool, `patient` from a supplied or derived synthetic Patient reference. The required elements
  * (`status`, `vaccineCode`, `patient`, `occurrenceDateTime`) are always present.

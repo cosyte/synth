@@ -23,15 +23,15 @@ import {
 } from "../src/index.js";
 
 // `scripts/phi-scan.ts` walks all of `test/`, so this suite sits inside the corpus
-// the PHI gate guards. The three values below are deliberately NON-synthetic — they
-// are what the predicates under test must REJECT — so they cannot be declared in
+// the PHI gate guards. The three values below are deliberately NON-synthetic: they
+// are what the predicates under test must REJECT, so they cannot be declared in
 // `scripts/phi-allow-list.txt` without defeating the assertions that use them.
 // Assembling them from parts keeps the literal out of the file while leaving the
 // value the predicate sees identical.
 const digits = (...parts: string[]): string => parts.join("");
 const addr = (user: string, ...domain: string[]): string => `${user}@${domain.join(".")}`;
 
-describe("synthetic-safety providers — every value is provably synthetic", () => {
+describe("synthetic-safety providers: every value is provably synthetic", () => {
   it("ssn draws the SSA never-issued area space (900-999)", () => {
     for (let seed = 0; seed < 500; seed += 1) {
       const value = ssn(createRng(seed));

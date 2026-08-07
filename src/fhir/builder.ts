@@ -1,8 +1,8 @@
 /**
- * Shared FHIR model-construction helpers — the small vocabulary every resource generator uses
+ * Shared FHIR model-construction helpers: the small vocabulary every resource generator uses
  * to build **through `@cosyte/fhir`'s own model constructors** (`complex` / `list` / `primitive` /
  * `decimal`). A generated resource is a `FhirComplex` tree assembled here and serialized by
- * `@cosyte/fhir`'s conservative writer, so it is **spec-clean by construction** — the same mechanism
+ * `@cosyte/fhir`'s conservative writer, so it is **spec-clean by construction**: the same mechanism
  * that makes the parser's emit side spec-clean. Nothing here hand-writes JSON
  * bytes.
  *
@@ -27,7 +27,7 @@ import {
 
 import { SYSTEM } from "./us-core.js";
 
-/** A named FHIR property (`{ name, value }`) — the shape `complex` consumes. */
+/** A named FHIR property (`{ name, value }`): the shape `complex` consumes. */
 export type Prop = { readonly name: string; readonly value: FhirNode };
 
 /**
@@ -146,11 +146,11 @@ export function reference(ref: string): FhirComplex {
 
 /**
  * A generated `Narrative` (`text`) with `status: "generated"` and an XHTML `div` carrying only
- * synthetic text — satisfies the base `dom-6` best-practice constraint so a generated resource is
+ * synthetic text, satisfies the base `dom-6` best-practice constraint so a generated resource is
  * robust as well as valid. The `div` is XHTML-namespaced and carries no markup beyond a paragraph, so
  * it round-trips byte-for-byte through `@cosyte/fhir`'s codec.
  *
- * @param text - The plain synthetic summary text (no PHI — it is composed from synthetic values).
+ * @param text - The plain synthetic summary text (no PHI: it is composed from synthetic values).
  * @returns A `Narrative` `FhirComplex`.
  * @example
  * ```ts
@@ -183,9 +183,9 @@ export function meta(profiles: readonly string[]): FhirComplex {
   return complex([prop("profile", list(profiles.map((p) => str(p))))]);
 }
 
-/** A synthetic FHIR patient identity — every field drawn from `../safe`. */
+/** A synthetic FHIR patient identity: every field drawn from `../safe`. */
 export interface FhirPatientIdentity {
-  /** A synthetic resource `id` (a seeded UUID) — never a real record key. */
+  /** A synthetic resource `id` (a seeded UUID), never a real record key. */
   readonly id: string;
   /** Name from the shipped fake-name pool. */
   readonly person: SyntheticName;
@@ -220,7 +220,7 @@ export function toFhirDate(ymd: string): string {
 
 /**
  * Mint a complete synthetic {@link FhirPatientIdentity}. Every value comes from a synthetic-safety
- * provider — no code path here can return a real or plausibly-real identifier. The draw
+ * provider, no code path here can return a real or plausibly-real identifier. The draw
  * order is fixed (id → name → MRN → DOB → gender → address → phone → email) so the same seed yields the
  * same identity.
  *
@@ -245,7 +245,7 @@ export function fhirPatientIdentity(rng: Rng): FhirPatientIdentity {
 }
 
 /**
- * The US Core Patient `identifier` element for a synthetic MRN — `type` (`MR`), the synthetic
+ * The US Core Patient `identifier` element for a synthetic MRN: `type` (`MR`), the synthetic
  * assigning-authority OID as `system`, and the synthetic value. Satisfies US Core Patient's required
  * `identifier.system` + `identifier.value`.
  *

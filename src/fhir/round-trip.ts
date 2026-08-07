@@ -1,13 +1,13 @@
 /**
- * The **round-trip-through-the-parser harness** for FHIR — the headline gate for the synthetic-fixture
- * generator. A generated resource is "spec-clean" only if `@cosyte/fhir` — not
- * `@cosyte/synth`'s own opinion — reads it back, validates it, and re-serializes it byte-identically.
+ * The **round-trip-through-the-parser harness** for FHIR: the headline gate for the synthetic-fixture
+ * generator. A generated resource is "spec-clean" only if `@cosyte/fhir`, not
+ * `@cosyte/synth`'s own opinion, reads it back, validates it, and re-serializes it byte-identically.
  * This harness serializes a generated resource, parses it back, validates it (optionally against
  * supplied US Core / vendor `StructureDefinition`s), and re-serializes, reporting what the parser found
  * so a false "spec-clean" claim cannot hide.
  *
  * `@cosyte/synth` bundles **no** profile content: to validate US Core conformance, a caller supplies
- * the `StructureDefinition`s via {@link RoundTripOptions.profiles} — exactly the content-free posture of
+ * the `StructureDefinition`s via {@link RoundTripOptions.profiles}, exactly the content-free posture of
  * `@cosyte/fhir.validateResource({ profiles })`.
  *
  * @module
@@ -19,7 +19,7 @@ import type { FhirComplex, StructureDefinition } from "@cosyte/fhir";
 /** Options for {@link roundTrip}. */
 export interface RoundTripOptions {
   /**
-   * US Core / vendor profiles (`StructureDefinition`s) to validate against. **None is bundled** — a
+   * US Core / vendor profiles (`StructureDefinition`s) to validate against. **None is bundled**: a
    * caller supplies them (BYO), matching `@cosyte/fhir`'s content-free posture.
    */
   readonly profiles?: readonly StructureDefinition[];
@@ -32,7 +32,7 @@ export interface RoundTripResult {
   /**
    * The validation issue codes at `error`/`fatal` severity (empty ⇒ valid). `information`/`warning`
    * findings (e.g. `MUST_SUPPORT_ABSENT`, `INVARIANT_UNCHECKED`, base `dom-6`) are advisory and are
-   * excluded here — they never make a resource invalid.
+   * excluded here: they never make a resource invalid.
    */
   readonly errors: readonly string[];
   /** All non-informational issue codes (errors **and** warnings), for the `Corpus` artifact record. */

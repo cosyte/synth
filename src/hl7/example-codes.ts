@@ -1,12 +1,12 @@
 /**
  * A tiny, curated, **license-clean** pool of example codes used to fill coded fields in generated HL7
  * messages (`OBR`/`OBX` observations, `ORC`/`OBR` orders, `RXA` vaccines). These are **public code
- * facts** — the spec examples' own values — not copyrighted terminology tables: `@cosyte/synth` bundles
+ * facts** (the spec examples' own values), not copyrighted terminology tables: `@cosyte/synth` bundles
  * **no** SNOMED/CPT/LOINC/RxNorm content. The pool exists only so a generated message is *structurally*
  * realistic; a consumer who
  * needs their own codes supplies them.
  *
- * Nothing here is PHI — codes and their display text are not identifiers. The synthetic-safety
+ * Nothing here is PHI: codes and their display text are not identifiers. The synthetic-safety
  * invariant governs identity fields (name/DOB/SSN/MRN/phone/address), which come from `../safe`.
  *
  * @module

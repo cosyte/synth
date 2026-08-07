@@ -1,19 +1,19 @@
 /**
- * Tests for scripts/attw.mjs — the wrapper that makes the `attw` publish gate
+ * Tests for scripts/attw.mjs: the wrapper that makes the `attw` publish gate
  * report its own failure.
  *
  * WHAT THESE PIN, AND WHY EACH ONE IS HERE:
  *
  *  1. THE UPSTREAM BEHAVIOUR THE WRAPPER EXISTS FOR. `attw` prints "This package
  *     does not contain types." and exits **0**. If a future `attw` upgrade fixes
- *     that exit code or rewords the sentence, this test reds — which is the point.
+ *     that exit code or rewords the sentence, this test reds, which is the point.
  *     A guard that silently stops matching is worse than no guard, and this is the
  *     one net in `attw.mjs` that depends on a string.
  *  2. That the wrapper turns that exit 0 into a failure.
  *  3. That the preflight catches a declared-but-missing artifact, which is the
  *     shape the false green takes here (a `dist/` removed, or not yet written,
  *     underneath the gate).
- *  4. THAT THE PREFLIGHT DESCENDS INTO SUBPATH EXPORTS — and, in the same test,
+ *  4. THAT THE PREFLIGHT DESCENDS INTO SUBPATH EXPORTS, and, in the same test,
  *     THE LIMIT OF WHAT THAT BUYS. This package publishes EIGHT subpaths; the repo
  *     the wrapper was ported from publishes one, so the subpath case is pinned
  *     rather than assumed from the root case. But bare attw is NOT silent on a
@@ -26,13 +26,13 @@
  *     one: every declaration MISSING claims exit 0; some surviving claims exit 1;
  *     a declaration present but ZERO-BYTE claims no exit code at all, because such
  *     a file still resolves and can type the package while declaring nothing. Each
- *     asserts what the message must NOT say as well as what it must — that is the
+ *     asserts what the message must NOT say as well as what it must: that is the
  *     half whose absence let two wrong conditions ship.
  *  5. A NEGATIVE CONTROL. On a package whose tarball really does carry types, the
  *     wrapper is transparent: same exit status as `attw` itself, and green. A gate
  *     that only ever fails is not a gate, and a false red here would cost every
  *     later run an hour.
- *  6. THE GATE'S MOST BASIC OBLIGATION — that a real `attw` failure still fails.
+ *  6. THE GATE'S MOST BASIC OBLIGATION: that a real `attw` failure still fails.
  *     Without this, every other test here would pass on a wrapper that swallowed
  *     attw's own exit status, because net 2 reds the untyped fixture regardless.
  *  7. THAT `--profile node16` SURVIVES THE PORT. It is this package's graded
@@ -41,16 +41,16 @@
  *     else in this file. Pinned by an observable difference in attw's own output.
  *  8. THAT THE PACKAGE SCRIPT ACTUALLY INVOKES THE WRAPPER. Every case above runs
  *     `scripts/attw.mjs` by path, so all of them stay green on a repo whose `attw`
- *     script was reverted to the bare CLI — a gate that is present, tested, and not
+ *     script was reverted to the bare CLI: a gate that is present, tested, and not
  *     in the loop. `verify.sh` and the CI ladder check that an `attw` script
  *     EXISTS, not what it runs.
- *  9. THE ALLOW-LIST that keeps net 2 readable, in BOTH directions — that the
+ *  9. THE ALLOW-LIST that keeps net 2 readable, in BOTH directions: that the
  *     blinding routes are refused, and that the allow-listed ones still get
  *     through, in both spellings of `--profile`. An allow-list is a real way to
  *     build a gate that refuses everything, so the second half is not optional.
  *     Each blinding route was measured against this repo's pinned binary, WITH
  *     `--profile node16` present, to make the untyped sentence unreadable and hand
- *     back exit 0 — the exact false green this file exists to close. `-fjson` is
+ *     back exit 0: the exact false green this file exists to close. `-fjson` is
  *     in that table because the DENY-list this was ported with let it through:
  *     `arg.split("=")[0]` is token equality, not option-name matching.
  *
@@ -68,7 +68,7 @@
  * KNOWN LIMIT block in `scripts/attw.mjs`. A test here would pin behaviour the
  * slice did not change.
  *
- * The fixtures are minimal throwaway packages in a temp dir — nothing about this
+ * The fixtures are minimal throwaway packages in a temp dir: nothing about this
  * repo's own build, so the test does not need one and cannot race one. `attw` is
  * invoked with `--no-definitely-typed` so the runs stay offline; the wrapper
  * allow-lists and forwards that argument, which is what makes that possible.
@@ -117,11 +117,11 @@ let root: string;
 let typesNotPacked: string;
 /** A package whose `package.json` points at a `dist/` that was never built. */
 let noBuild: string;
-/** A well-formed dual ESM/CJS package — the negative control. */
+/** A well-formed dual ESM/CJS package, the negative control. */
 let wellFormed: string;
 /** A package with a real attw problem: `require` resolves to ESM. */
 let attwFails: string;
-/** Declarations present, JS entry point missing — attw itself is green on this. */
+/** Declarations present, JS entry point missing, attw itself is green on this. */
 let jsMissing: string;
 /** Root entry complete; a SUBPATH export's declaration is the only thing missing. */
 let subpathMissing: string;
@@ -250,7 +250,7 @@ beforeAll(() => {
 
   // Same manifest, but the ROOT declarations are present and zero-byte rather than
   // absent. Every declared declaration is then in the preflight's `broken` set,
-  // while attw still finds types — the shape that broke the second version of the
+  // while attw still finds types: the shape that broke the second version of the
   // counterfactual condition.
   emptyDeclaration = join(root, "empty-declaration");
   writePkg(
@@ -331,7 +331,7 @@ describe("scripts/attw.mjs", () => {
       // MEASURED, AND IT REFUTED THE FIRST DRAFT OF THIS TEST, WHICH ASSERTED bare
       // attw was green here. It is NOT. With the root entry's declarations intact,
       // `analysis.types` is truthy, getExitCode() runs past its early return, and
-      // the subpath's absent declarations ARE enumerated — as UntypedResolution,
+      // the subpath's absent declarations ARE enumerated, as UntypedResolution,
       // exit 1. So a PARTIAL loss of declarations is attw's own catch, not ours.
       //
       // That scopes the false green precisely: it needs EVERY entry point to be
@@ -342,7 +342,7 @@ describe("scripts/attw.mjs", () => {
       expect(bare.out).not.toContain(UNTYPED);
       expect(bare.code).not.toBe(0);
 
-      // What the preflight adds here is not a caught false green — it is an earlier
+      // What the preflight adds here is not a caught false green: it is an earlier
       // and specific failure that NAMES the missing files. attw's own message says
       // a resolution was untyped; it does not tell you which artifact to rebuild.
       const r = runWrapper(subpathMissing);
@@ -383,7 +383,7 @@ describe("scripts/attw.mjs", () => {
     () => {
       // THE SECOND WAY THIS CONDITION WAS GOT WRONG, AND IT IS NOT GUESSABLE FROM
       // THE CODE. The preflight counts `empty` as broken, but a zero-byte .d.ts
-      // still RESOLVES — it types the package while declaring nothing, so
+      // still RESOLVES: it types the package while declaring nothing, so
       // `analysis.types` is truthy and getExitCode() does not take its early
       // return. Keying the exit-0 claim on "every declared declaration is broken"
       // therefore lied on exactly this shape, and a refuter measured it.
@@ -464,7 +464,7 @@ describe("scripts/attw.mjs", () => {
 
 describe("the gate is actually wired to the wrapper", () => {
   // Everything above invokes scripts/attw.mjs by path, so all of it stays green on
-  // a repo whose `attw` script was reverted to the bare CLI — the gate would be
+  // a repo whose `attw` script was reverted to the bare CLI: the gate would be
   // present, tested, and not in the loop. verify.sh and the CI ladder check that an
   // `attw` script EXISTS, not what it runs. This is the assertion that closes that.
   it("runs scripts/attw.mjs from the package script, with the node16 profile", () => {
@@ -485,7 +485,7 @@ describe("the allow-list that keeps the post-check readable", () => {
   //
   // `-fjson` AND `-Pq` ARE THE REASON THIS IS AN ALLOW-LIST. The ported deny-list
   // compared `arg.split("=")[0]`, which is token equality rather than option-name
-  // matching, and commander accepts a value fused to a short flag — so `-fjson` was
+  // matching, and commander accepts a value fused to a short flag, so `-fjson` was
   // neither `-f` nor `--format`, passed straight through, and restored the exact
   // false green. A refuter measured it. Enumerating spellings buys one more per
   // round, so the guard forwards a closed set instead of refusing an open one.
@@ -511,7 +511,7 @@ describe("the allow-list that keeps the post-check readable", () => {
     () => {
       // The allow-list must not be a wall. `--profile` takes a value, so the guard
       // has to consume the separated form's next argument rather than reading it as
-      // an option — a real way to turn this into a gate that refuses everything.
+      // an option: a real way to turn this into a gate that refuses everything.
       for (const profile of [["--profile", "node16"], ["--profile=node16"]]) {
         const r = runWrapper(wellFormed, [...profile, "--no-definitely-typed"]);
         expect(r.code).toBe(0);
@@ -540,7 +540,7 @@ describe("the allow-list that keeps the post-check readable", () => {
           ".attw.json": JSON.stringify({ quiet: true }),
         },
       );
-      // Bare attw takes the config and goes silent — exit 0 over an untyped pack.
+      // Bare attw takes the config and goes silent, exit 0 over an untyped pack.
       const bare = runAttw(dir);
       expect(bare.code).toBe(0);
       expect(bare.out).not.toContain(UNTYPED);

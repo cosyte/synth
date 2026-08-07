@@ -1,6 +1,6 @@
 name: Fuzz
 
-# Nightly extended seed-sweep fuzz of the generator (roadmap §6 — the inverted fuzz: `synth` feeds
+# Nightly extended seed-sweep fuzz of the generator (roadmap §6, the inverted fuzz: `synth` feeds
 # fuzzing more than it is fuzzed). The same property suite runs in every CI at a lower case count; this
 # job scales it up (SYNTH_FUZZ_RUNS) so a rare degenerate seed/count/format combination gets more
 # chances to surface off the PR critical path. Self-contained by design: fuzzing is an extra, scheduled
@@ -22,7 +22,7 @@ jobs:
   fuzz:
     runs-on: ubuntu-latest
     # Each case does real generation + round-trip through a parser builder, so the nightly count is
-    # lower than a byte-level parser fuzz — still ~24x the in-CI default across the full format sweep.
+    # lower than a byte-level parser fuzz, still ~24x the in-CI default across the full format sweep.
     env:
       SYNTH_FUZZ_RUNS: "6000"
     steps:

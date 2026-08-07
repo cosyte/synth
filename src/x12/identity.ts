@@ -1,20 +1,20 @@
 /**
- * Synthetic identity for X12 healthcare transactions — every subscriber, patient, provider, and payer
+ * Synthetic identity for X12 healthcare transactions: every subscriber, patient, provider, and payer
  * identifier `synth` puts into an 837 / 835 / 271 is minted here, and **only** from the
  * synthetic-safety providers. X12 is uniquely identity-dense: a claim carries subscriber
- * *and* patient names, member ids, provider NPIs, a provider tax id, dates of birth, and addresses —
+ * *and* patient names, member ids, provider NPIs, a provider tax id, dates of birth, and addresses,
  * across two HL loops. The synthetic-by-construction invariant is therefore attacked hardest here, so
  * every locus below has a construction-level guarantee, not a heuristic:
  *
- * - **member id** — minted under the synthetic assigning authority (no reserved range exists; the
+ * - **member id**: minted under the synthetic assigning authority (no reserved range exists; the
  *   *namespace* is the guarantee).
- * - **NPI** — a deliberately **invalid Luhn** check digit, so it can never be a NPPES-issued NPI
+ * - **NPI**: a deliberately **invalid Luhn** check digit, so it can never be a NPPES-issued NPI
  *   ({@link ../safe/reserved.isSyntheticNpi}).
- * - **provider tax id** — emitted as an SSN (REF*SY) in the SSA **never-issued** 900-range, so it can
- *   never be a real, issuable SSN (900–999 is never assigned as an SSN — the universal synthetic-safe
+ * - **provider tax id**: emitted as an SSN (REF*SY) in the SSA **never-issued** 900-range, so it can
+ *   never be a real, issuable SSN (900–999 is never assigned as an SSN, the universal synthetic-safe
  *   SSN convention).
- * - **name** — the shipped clearly-fake pool; **DOB / dates** — the seeded generator (no real event
- *   implied); **address** — synthetic street + reserved ZIP.
+ * - **name**: the shipped clearly-fake pool; **DOB / dates**: the seeded generator (no real event
+ *   implied); **address**: synthetic street + reserved ZIP.
  *
  * @module
  */
@@ -22,7 +22,7 @@
 import type { Rng } from "../rng/rng.js";
 import { safe, type SyntheticName, type SyntheticAddress } from "../safe/index.js";
 
-/** Synthetic trading-partner (submitter / receiver / payer id) codes — never real assigned ids. */
+/** Synthetic trading-partner (submitter / receiver / payer id) codes, never real assigned ids. */
 const SYNTHETIC_ORG_NAMES: readonly string[] = Object.freeze([
   "SYNTH BILLING GROUP",
   "FIXTURE CLINIC INC",
@@ -32,7 +32,7 @@ const SYNTHETIC_ORG_NAMES: readonly string[] = Object.freeze([
   "PROTOTYPE PHYSICIANS LLC",
 ]);
 
-/** Synthetic payer names — clearly fictional carriers. */
+/** Synthetic payer names: clearly fictional carriers. */
 const SYNTHETIC_PAYER_NAMES: readonly string[] = Object.freeze([
   "SYNTHCARE HEALTH PLAN",
   "FIXTURE MUTUAL INSURANCE",
@@ -41,7 +41,7 @@ const SYNTHETIC_PAYER_NAMES: readonly string[] = Object.freeze([
   "MOCK NATIONAL INSURER",
 ]);
 
-/** A synthetic person (subscriber / patient / rendering provider) — all fields from `../safe`. */
+/** A synthetic person (subscriber / patient / rendering provider): all fields from `../safe`. */
 export interface X12Person {
   /** Name from the shipped fake-name pool. */
   readonly person: SyntheticName;
@@ -55,19 +55,19 @@ export interface X12Person {
   readonly address: SyntheticAddress;
 }
 
-/** A synthetic billing organization — org name + invalid-Luhn NPI + never-issued-SSN tax id. */
+/** A synthetic billing organization: org name + invalid-Luhn NPI + never-issued-SSN tax id. */
 export interface X12Organization {
   /** A clearly-fictional organization name. */
   readonly name: string;
   /** A 10-digit NPI with a deliberately-invalid Luhn check digit (never a real NPI). */
   readonly npi: string;
-  /** The provider tax id as a never-issued (900-range) SSN — emitted at REF*SY. */
+  /** The provider tax id as a never-issued (900-range) SSN, emitted at REF*SY. */
   readonly taxIdSsn: string;
   /** Synthetic postal address. */
   readonly address: SyntheticAddress;
 }
 
-/** A synthetic payer — name + a synthetic payer id (PI). */
+/** A synthetic payer: name + a synthetic payer id (PI). */
 export interface X12Payer {
   /** A clearly-fictional payer name. */
   readonly name: string;
@@ -106,7 +106,7 @@ export function x12Person(rng: Rng): X12Person {
 }
 
 /**
- * Mint a synthetic billing organization — org name, an invalid-Luhn NPI, a never-issued-SSN tax id,
+ * Mint a synthetic billing organization: org name, an invalid-Luhn NPI, a never-issued-SSN tax id,
  * and an address.
  *
  * @param rng - The seeded generator.
@@ -127,7 +127,7 @@ export function x12Organization(rng: Rng): X12Organization {
 }
 
 /**
- * Mint a synthetic rendering/service provider **person** — a person name plus an invalid-Luhn NPI.
+ * Mint a synthetic rendering/service provider **person**: a person name plus an invalid-Luhn NPI.
  *
  * @param rng - The seeded generator.
  * @returns The provider name and NPI.
@@ -148,7 +148,7 @@ export function x12ProviderPerson(rng: Rng): {
 }
 
 /**
- * Mint a synthetic payer — a fictional name and a synthetic payer id.
+ * Mint a synthetic payer: a fictional name and a synthetic payer id.
  *
  * @param rng - The seeded generator.
  * @returns A synthetic {@link X12Payer}.

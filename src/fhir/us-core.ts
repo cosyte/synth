@@ -1,16 +1,16 @@
 /**
- * US Core + base-FHIR **canonical URLs and code-system identifiers** — the facts `@cosyte/synth` needs
+ * US Core + base-FHIR **canonical URLs and code-system identifiers**: the facts `@cosyte/synth` needs
  * to emit US-Core-conformant resources, and nothing more.
  *
- * **Content-free, exactly like `@cosyte/fhir`.** These are *identifiers* — canonical URLs and code
- * `system` URIs — not the copyrighted terminology tables or the profile `StructureDefinition` content
+ * **Content-free, exactly like `@cosyte/fhir`.** These are *identifiers*: canonical URLs and code
+ * `system` URIs, not the copyrighted terminology tables or the profile `StructureDefinition` content
  * they name. `@cosyte/synth` bundles **no** US Core IG: a consumer who wants to *validate* generated
  * output against US Core supplies the `StructureDefinition`s themselves (BYO), exactly as
  * `@cosyte/fhir.validateResource({ profiles })` requires. What is encoded here is only which canonical
- * URL a resource's `meta.profile` claims and which `system` a coding carries — public facts.
+ * URL a resource's `meta.profile` claims and which `system` a coding carries: public facts.
  *
  * The URLs target **US Core 6.1.0** (the USCDI v3 / ONC HTI-1 §170.315(g)(10) anchor, FHIR R4 4.0.1),
- * grounded firsthand against the published IG (`hl7.org/fhir/us/core/STU6.1`) — the same version the
+ * grounded firsthand against the published IG (`hl7.org/fhir/us/core/STU6.1`): the same version the
  * test corpus validates against.
  *
  * @module
@@ -54,7 +54,7 @@ export const US_CORE_BIRTHSEX_EXTENSION =
 
 /**
  * The code-system `system` URIs the generators reference. Public identity URIs (HL7-published),
- * never the code-system *content* — no SNOMED/LOINC/RxNorm table is bundled.
+ * never the code-system *content*, no SNOMED/LOINC/RxNorm table is bundled.
  */
 export const SYSTEM = Object.freeze({
   /** FHIR `administrative-gender` (`Patient.gender`). */
@@ -71,23 +71,23 @@ export const SYSTEM = Object.freeze({
   IDENTIFIER_TYPE: "http://terminology.hl7.org/CodeSystem/v2-0203",
   /** OMB race & ethnicity category system (US Core race/ethnicity `ombCategory`). */
   OMB_RACE_ETHNICITY: "urn:oid:2.16.840.1.113883.6.238",
-  /** LOINC — `Observation.code` (lab + vital-signs). */
+  /** LOINC, `Observation.code` (lab + vital-signs). */
   LOINC: "http://loinc.org",
-  /** SNOMED CT — `Condition.code`. */
+  /** SNOMED CT, `Condition.code`. */
   SNOMED: "http://snomed.info/sct",
-  /** RxNorm — `MedicationRequest.medicationCodeableConcept` + an allergen substance. */
+  /** RxNorm, `MedicationRequest.medicationCodeableConcept` + an allergen substance. */
   RXNORM: "http://www.nlm.nih.gov/research/umls/rxnorm",
-  /** UCUM — `Quantity.system` for units of measure. */
+  /** UCUM, `Quantity.system` for units of measure. */
   UCUM: "http://unitsofmeasure.org",
-  /** CVX (CDC vaccine administered) — `Immunization.vaccineCode`. */
+  /** CVX (CDC vaccine administered), `Immunization.vaccineCode`. */
   CVX: "http://hl7.org/fhir/sid/cvx",
-  /** HL7 v3 `ActCode` — `Encounter.class`. */
+  /** HL7 v3 `ActCode`, `Encounter.class`. */
   V3_ACT_CODE: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
-  /** HL7 v2 `0074` diagnostic-service-section — `DiagnosticReport.category` (`LAB`). */
+  /** HL7 v2 `0074` diagnostic-service-section, `DiagnosticReport.category` (`LAB`). */
   DIAGNOSTIC_SERVICE_SECTION: "http://terminology.hl7.org/CodeSystem/v2-0074",
-  /** HL7 Terminology `allergyintolerance-clinical` — `AllergyIntolerance.clinicalStatus`. */
+  /** HL7 Terminology `allergyintolerance-clinical`, `AllergyIntolerance.clinicalStatus`. */
   ALLERGY_CLINICAL: "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
-  /** HL7 Terminology `allergyintolerance-verification` — `AllergyIntolerance.verificationStatus`. */
+  /** HL7 Terminology `allergyintolerance-verification`, `AllergyIntolerance.verificationStatus`. */
   ALLERGY_VERIFICATION: "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
 } as const);
 

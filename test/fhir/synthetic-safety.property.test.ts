@@ -1,12 +1,12 @@
 /**
- * The **synthetic-safety gate** for FHIR (roadmap §4.4, §6 — mandatory, must be ZERO). For arbitrary
- * seeds and every Phase-3 resource, **no emitted value falls outside a reserved / synthetic source** —
+ * The **synthetic-safety gate** for FHIR (roadmap §4.4, §6: mandatory, must be ZERO). For arbitrary
+ * seeds and every Phase-3 resource, **no emitted value falls outside a reserved / synthetic source**,
  * so no generated resource can carry real or plausibly-real PHI (roadmap §4.5, the synthetic-safety
  * breach head the refuter attacks).
  *
  * Two sweeps: a **raw cross-cutting sweep** (no issuable-area dashed SSN, no non-reserved email, anywhere
  * in the serialized JSON) and a **structured sweep** that walks the resource model at every identity
- * locus — `HumanName` (names from the shipped pool), phone `ContactPoint` (reserved `555-01xx`), email
+ * locus, `HumanName` (names from the shipped pool), phone `ContactPoint` (reserved `555-01xx`), email
  * `ContactPoint` (`example.*`), `Patient.identifier` (synthetic assigning-authority OID), and the
  * reserved non-real ZIP.
  */
@@ -65,7 +65,7 @@ function structuredHits(json: unknown): string[] {
     if (node === null || typeof node !== "object") return;
     const obj = node as Record<string, unknown>;
 
-    // HumanName — every family/given token must be from the shipped pool.
+    // HumanName: every family/given token must be from the shipped pool.
     if ("family" in obj && typeof obj["family"] === "string" && !NAME_POOL.has(obj["family"])) {
       hits.push(`family:${obj["family"]}`);
     }
@@ -74,7 +74,7 @@ function structuredHits(json: unknown): string[] {
         if (typeof g === "string" && !NAME_POOL.has(g)) hits.push(`given:${g}`);
       }
     }
-    // ContactPoint — phone reserved, email reserved.
+    // ContactPoint, phone reserved, email reserved.
     if (
       obj["system"] === "phone" &&
       typeof obj["value"] === "string" &&
@@ -108,7 +108,7 @@ function structuredHits(json: unknown): string[] {
 // because a safety check that cries wolf is the one people learn to re-run rather than read.
 //
 // A ceiling and not a smaller `numRuns`: the case count IS the strength of a synthetic-safety sweep.
-describe("synthetic-safety gate — generated FHIR output (must be ZERO)", () => {
+describe("synthetic-safety gate, generated FHIR output (must be ZERO)", () => {
   it("no resource leaks a real-data SSN or non-reserved email shape", () => {
     fc.assert(
       fc.property(seed(), (s) => {
@@ -143,7 +143,7 @@ describe("synthetic-safety gate — generated FHIR output (must be ZERO)", () =>
           identifier: { system: string }[];
         };
         expect(structuredHits(json)).toEqual([]);
-        // The MRN lives under the synthetic assigning-authority OID — never a real facility namespace.
+        // The MRN lives under the synthetic assigning-authority OID, never a real facility namespace.
         expect(json.identifier[0]?.system).toBe(SYNTH_OID);
       }),
       { numRuns: 250 },

@@ -1,7 +1,7 @@
 /**
  * The **round-trip-through-the-parser gate** for C-CDA (roadmap §6). Every generated document, fed back
  * into `@cosyte/ccda` (serialize → parse → serialize), re-parses with **zero warnings** and
- * re-serializes **byte-identically** — spec-clean by the parser's own judgment, not `@cosyte/synth`'s
+ * re-serializes **byte-identically**: spec-clean by the parser's own judgment, not `@cosyte/synth`'s
  * opinion. Also a golden-fixture regression: the committed fixtures under `test/fixtures/ccda/` must
  * regenerate byte-for-byte from their seeds (the reproducibility contract, roadmap §5).
  */
@@ -23,7 +23,7 @@ const GENERATORS: Record<string, () => CcdaDocument> = {
   "referral-note": () => generateReferralNote({ seed: 5002 }),
 };
 
-describe("C-CDA round-trip — spec-clean by construction (zero warnings, byte-stable)", () => {
+describe("C-CDA round-trip: spec-clean by construction (zero warnings, byte-stable)", () => {
   for (const [label, make] of Object.entries(GENERATORS)) {
     it(`${label} round-trips through @cosyte/ccda with zero warnings and byte-stable`, () => {
       const rt = roundTrip(make());

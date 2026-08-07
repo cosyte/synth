@@ -2,7 +2,7 @@
  * ASTM E1394 **vendor-quirk generation**. A quirk deviates the
  * *structure* of an otherwise spec-clean record report (built through `@cosyte/astm`'s
  * `buildAstmMessage`) so it round-trips through `parseAstmRecords` to **exactly** one intended, stable
- * warning code — a code in the parser's `defineAstmProfile` tolerable set. Where a built-in public
+ * warning code: a code in the parser's `defineAstmProfile` tolerable set. Where a built-in public
  * profile tolerates the quirk, the warning is **re-badged** to the value-free `PROFILE_QUIRK_APPLIED`
  * marker (`expected: true`), exactly as the parser's `profileQuirkApplied` does.
  *
@@ -13,11 +13,11 @@
  *   `referenceCorpus` profile (the redistributable kxepal/python-astm + senaite OSS corpus), which
  *   re-badges it.
  * - **`unknown-record-type`** → `ASTM_RECORD_UNKNOWN_TYPE`. A record's leading type letter is changed to
- *   a site-defined `Z` — a real ASTM tolerance (the parser's tolerable set includes this code), but no
+ *   a site-defined `Z`: a real ASTM tolerance (the parser's tolerable set includes this code), but no
  *   built-in profile tolerates it, so it is a `"bare"` quirk (a consumer authors a `defineAstmProfile`
  *   to re-badge it).
  *
- * A quirk **never** introduces a real-looking value — it changes an escape body or a record type letter,
+ * A quirk **never** introduces a real-looking value: it changes an escape body or a record type letter,
  * never a P-record identity locus, so the synthetic-safety gate still runs and stays zero.
  *
  * @module
@@ -47,7 +47,7 @@ import { resolveKind } from "../select.js";
 export type AstmQuirkName = "unknown-escape" | "unknown-record-type";
 
 /**
- * Both shipped ASTM quirks are **result-report** deviations — `unknown-escape` targets an `R` record's
+ * Both shipped ASTM quirks are **result-report** deviations: `unknown-escape` targets an `R` record's
  * units field and `unknown-record-type` a `C` (comment) record, neither of which an *order* report
  * carries. So the quirk base is always a result report (`generateAstmResult`).
  */
@@ -56,7 +56,7 @@ export type AstmQuirkKind = "Result";
 /** Every value {@link AstmQuirkKind} admits. Erased at run time, so it is resolved, not trusted. */
 const ALL_QUIRK_KINDS: readonly AstmQuirkKind[] = Object.freeze(["Result"]);
 
-/** The ASTM quirk registry — each recipe bound to the exact `@cosyte/astm` warning code it targets. */
+/** The ASTM quirk registry: each recipe bound to the exact `@cosyte/astm` warning code it targets. */
 export const ASTM_QUIRKS: Readonly<Record<AstmQuirkName, QuirkDescriptor>> = Object.freeze({
   "unknown-escape": Object.freeze({
     name: "unknown-escape",
@@ -74,7 +74,7 @@ export const ASTM_QUIRKS: Readonly<Record<AstmQuirkName, QuirkDescriptor>> = Obj
     intendedWarnings: Object.freeze(["ASTM_RECORD_UNKNOWN_TYPE"]),
     grounding:
       "ASTM E1394 permits manufacturer/site-defined record types; a Z record is surfaced as unsupported. " +
-      "A tolerable code (in the parser's defineAstmProfile allow-list) — a consumer authors a profile to " +
+      "A tolerable code (in the parser's defineAstmProfile allow-list): a consumer authors a profile to " +
       "re-badge it; no built-in public profile does.",
     disposition: "bare",
   }),
@@ -88,7 +88,7 @@ function toleratingProfile(quirk: AstmQuirkName): AstmProfile | undefined {
 /** The E1394 record separator. */
 const CR = "\r";
 
-/** The post-serialize transform for each quirk — a pure, deterministic function of the clean record stream. */
+/** The post-serialize transform for each quirk: a pure, deterministic function of the clean record stream. */
 function applyQuirk(quirk: AstmQuirkName, records: string): string {
   const lines = records.split(CR);
   switch (quirk) {
@@ -124,7 +124,7 @@ function applyQuirk(quirk: AstmQuirkName, records: string): string {
 
 /** Options for {@link generateAstmQuirk}. */
 export interface GenerateAstmQuirkOptions {
-  /** The seed — the same seed + quirk yields a byte-identical record stream. Defaults to `0`. */
+  /** The seed: the same seed + quirk yields a byte-identical record stream. Defaults to `0`. */
   readonly seed?: number;
   /** The quirk to inject. Required. */
   readonly quirk: AstmQuirkName;
@@ -137,14 +137,14 @@ export interface GenerateAstmQuirkOptions {
  * the requested vendor deviation injected post-serialize. Deterministic in `seed` + `quirk` + `kind`.
  *
  * @param options - Seed, quirk, and base kind. See {@link GenerateAstmQuirkOptions}.
- * @returns The {@link QuirkArtifact} — its `content` round-trips to `intendedWarnings` exactly.
+ * @returns The {@link QuirkArtifact}: its `content` round-trips to `intendedWarnings` exactly.
  * @throws SynthError `SYNTH_UNSUPPORTED_QUIRK` if `quirk` is not a supported ASTM quirk.
  * @throws Error if the base report does not contain the structural anchor the quirk targets.
  * @example
  * ```ts
  * import { generateAstmQuirk, astmQuirkRoundTrip } from "@cosyte/synth/astm";
  * const rt = astmQuirkRoundTrip(generateAstmQuirk({ seed: 1, quirk: "unknown-escape" }));
- * rt.withProfile?.tolerated; // true — `referenceCorpus` re-badges ASTM_UNKNOWN_ESCAPE_SEQUENCE
+ * rt.withProfile?.tolerated; // true, `referenceCorpus` re-badges ASTM_UNKNOWN_ESCAPE_SEQUENCE
  * ```
  */
 export function generateAstmQuirk(options: GenerateAstmQuirkOptions): QuirkArtifact {
@@ -156,7 +156,7 @@ export function generateAstmQuirk(options: GenerateAstmQuirkOptions): QuirkArtif
   if (content === clean) {
     throw new SynthError(SYNTH_FATAL_CODES.SYNTH_QUIRK_ANCHOR_ABSENT);
   }
-  // Self-check the intended-warning contract at generation time — never emit a mislabeled fixture.
+  // Self-check the intended-warning contract at generation time, never emit a mislabeled fixture.
   assertIntendedWarnings(
     descriptor.intendedWarnings,
     parseAstmRecords(content).warnings.map((w) => String(w.code)),
@@ -172,8 +172,8 @@ export function generateAstmQuirk(options: GenerateAstmQuirkOptions): QuirkArtif
 
 /**
  * Round-trip an ASTM quirk artifact through `@cosyte/astm` and report the intended-warning verdict: a bare
- * parse must produce **exactly** the intended code, and — when a built-in public
- * profile tolerates the quirk — the profiled parse must re-badge it to `PROFILE_QUIRK_APPLIED`.
+ * parse must produce **exactly** the intended code, and, when a built-in public
+ * profile tolerates the quirk, the profiled parse must re-badge it to `PROFILE_QUIRK_APPLIED`.
  *
  * @param artifact - The quirk artifact (from {@link generateAstmQuirk}).
  * @returns The {@link QuirkRoundTripResult}.

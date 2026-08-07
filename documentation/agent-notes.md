@@ -1,4 +1,4 @@
-# Agent notes — @cosyte/synth
+# Agent notes: @cosyte/synth
 
 The long-form record behind `CLAUDE.md`: the shipped-phase history, the per-incident narratives,
 and the full rationale behind every trap that `CLAUDE.md` states in one line. Each compressed rule
@@ -7,19 +7,19 @@ up there names the section down here that carries its evidence.
 **This file exists because `CLAUDE.md` is always-read and this is not** (meta-repo ADR 0023,
 amendment 2026-08-04). Everything below was **relocated verbatim**, not rewritten or summarised. If
 you refute something here, correct it *here* and keep the one-line rule in `CLAUDE.md` pointing at
-it. The standing rule is **relocate, never delete** — every paragraph below cost a defect to learn.
+it. The standing rule is **relocate, never delete**: every paragraph below cost a defect to learn.
 
-## Status — the shipped roadmap, in full
+## Status: the shipped roadmap, in full
 
 ### Shipped phases, release hardening, and the generator core
 
-- **Phases 1–9 shipped (SYNTH-1 … SYNTH-11) — the roadmap is complete.** Pre-alpha `0.0.x`, and
+- **Phases 1–9 shipped (SYNTH-1 … SYNTH-11): the roadmap is complete.** Pre-alpha `0.0.x`, and
   **published to npm** (verify with `npm view @cosyte/synth version`; this line deliberately does not
   name the number, which is stale by construction on the next release). The repo is **already public**
   (`gh repo view cosyte/synth --json visibility`), so neither founder gate is still pending: flipping a
   repo public remains a non-waived act as **policy**, but it is not an outstanding item of **state**
   here, and `npm publish` is covered by the standing waiver. **Publish state and visibility are
-  independent, so never infer one from the other, in either direction.** **SYNTH-11 (Phase 9, release hardening)** added no runtime API — it is the
+  independent, so never infer one from the other, in either direction.** **SYNTH-11 (Phase 9, release hardening)** added no runtime API: it is the
   release-readiness layer: a **consolidated conformance property suite**
   (`test/property/all-formats.property.test.ts`) driving every spec-clean format generator through the
   same three mandatory properties (round-trip · seed-determinism · synthetic-safety) with an
@@ -35,7 +35,7 @@ it. The standing rule is **relocate, never delete** — every paragraph below co
   900-range SSN, invalid-Luhn NPI, invalid-checksum DEA, `555-01xx`, `example.*`, TEST-NET, synthetic-AA
   MRN; structural-not-clinical / not-Synthea; the deferred surfaces). The
   generator core is in place: the seeded PRNG (`createRng`, `src/rng/`), the synthetic-safety providers
-  (`src/safe/` — incl. `safe.npi`, a deliberately-invalid-Luhn NPI + `isSyntheticNpi`, and `safe.dea`, a
+  (`src/safe/`, incl. `safe.npi`, a deliberately-invalid-Luhn NPI + `isSyntheticNpi`, and `safe.dea`, a
   deliberately-invalid-checksum DEA + `isSyntheticDea`/`deaCheckDigit`), the `Corpus` abstraction,
   `defineSynthProfile`, the `SYNTH_FATAL_CODES`/`SynthError`. All six formats are wired:
 
@@ -47,18 +47,18 @@ it. The standing rule is **relocate, never delete** — every paragraph below co
 
 ### FHIR R4 / US Core (SYNTH-3 + SYNTH-4)
 
-  - **FHIR R4 / US Core (SYNTH-3 + SYNTH-4)** at the `@cosyte/synth/fhir` subpath — the full US Core
+  - **FHIR R4 / US Core (SYNTH-3 + SYNTH-4)** at the `@cosyte/synth/fhir` subpath: the full US Core
     clinical set: `generatePatient` (base + `profile:"us-core"`), `generateCondition`,
     `generateObservationLab`, `generateVitalSign`, `generateMedicationRequest`, `generateEncounter`,
     `generateDiagnosticReport`, `generateImmunization`, `generateAllergyIntolerance`,
     `generateProcedure`, `generateBundle` (collection + transaction + `document`), `buildComposition`,
     `fhirCorpus`, and the FHIR `roundTrip` harness. Built through `@cosyte/fhir`'s model constructors +
     serializer (spec-clean by construction); US Core conformance is validated firsthand against the
-    **real US Core 6.1.0 profiles** committed under `test/us-core-profiles/` (BYO — no IG bundled).
+    **real US Core 6.1.0 profiles** committed under `test/us-core-profiles/` (BYO, no IG bundled).
 
 ### C-CDA R2.1 (SYNTH-5)
 
-  - **C-CDA R2.1 (SYNTH-5)** at the `@cosyte/synth/ccda` subpath — `generateCcd` (Continuity of Care
+  - **C-CDA R2.1 (SYNTH-5)** at the `@cosyte/synth/ccda` subpath: `generateCcd` (Continuity of Care
     Document), `generateReferralNote`, the generic `generateCcda({ documentType })`, `ccdaCorpus`,
     `ccdaPatientIdentity`, and the C-CDA `roundTrip` harness. Built through `@cosyte/ccda`'s `buildCcda`
     (spec-clean by construction), so each document round-trips through `parseCcda` with zero warnings.
@@ -70,7 +70,7 @@ it. The standing rule is **relocate, never delete** — every paragraph below co
 
 ### X12 005010 (SYNTH-6)
 
-  - **X12 005010 (SYNTH-6)** at the `@cosyte/synth/x12` subpath — `generate837P`/`generate837I`/
+  - **X12 005010 (SYNTH-6)** at the `@cosyte/synth/x12` subpath: `generate837P`/`generate837I`/
     `generate837D` (claims), `generate835` (remittance, balance-checked by construction), `generate271`
     (eligibility), the shared `generate837(variant, …)`, `x12Corpus`, the `x12*` identity minters, the
     `dec`/`money` helpers, and the X12 `roundTrip` harness. Built through `@cosyte/x12`'s domain builders
@@ -83,23 +83,23 @@ it. The standing rule is **relocate, never delete** — every paragraph below co
 
 ### NCPDP (SYNTH-7)
 
-  - **NCPDP (SYNTH-7)** at the `@cosyte/synth/ncpdp` subpath — **SCRIPT** ePrescribing (`generateNewRx`
+  - **NCPDP (SYNTH-7)** at the `@cosyte/synth/ncpdp` subpath: **SCRIPT** ePrescribing (`generateNewRx`
     via the validated `buildNewRx`; `generateRxRenewalRequest`/`generateRxChangeRequest` via
-    `@cosyte/ncpdp`'s public typed `ScriptMessage` model + `serializeScript` — the X12 typed-model→
+    `@cosyte/ncpdp`'s public typed `ScriptMessage` model + `serializeScript`: the X12 typed-model→
     serializer pattern, never hand-written bytes) and **Telecom** vD.0 claims (`generateB1`/`generateB2`/
     `generateB3` via `buildTelecomRequest` + `serializeTelecom`), plus `generateTelecom`, `ncpdpCorpus`,
     the `scriptRoundTrip`/`telecomRoundTrip` harnesses, the `ncpdp*` identity minters, and a
-    license-clean `EXAMPLE_DRUGS` pool (invented `00000`-labeler NDCs — no NCPDP prose bundled). Each
+    license-clean `EXAMPLE_DRUGS` pool (invented `00000`-labeler NDCs, no NCPDP prose bundled). Each
     message round-trips through `@cosyte/ncpdp` with zero warnings, byte-stable. The identity invariant
     adds the **prescriber DEA** (invalid checksum, `safe.dea`) alongside the NPI (invalid Luhn);
     patient/cardholder ids are synthetic-AA scoped (`MBR`-prefixed). The `phi-scan` gains an NCPDP arm
-    (SCRIPT `<NPI>`/`<DEANumber>`/name tags; Telecom field-id-keyed CA/CB/CC/CD/CQ/CY/C2/DB — a
+    (SCRIPT `<NPI>`/`<DEANumber>`/name tags; Telecom field-id-keyed CA/CB/CC/CD/CQ/CY/C2/DB: a
     Luhn-valid NPI or checksum-valid DEA is a hard hit). **Deferred: SCRIPT lifecycle _responses_
     (track the parser's builder surface).** Quirk mode is Phase 7.
 
 ### ASTM (SYNTH-8)
 
-  - **ASTM (SYNTH-8)** at the `@cosyte/synth/astm` subpath — E1394 record reports (`generateAstmResult`
+  - **ASTM (SYNTH-8)** at the `@cosyte/synth/astm` subpath: E1394 record reports (`generateAstmResult`
     = `H`/`P`/`O`/`R`…/`C`/`L`; `generateAstmOrder` = `H`/`P`/`O`/`L`) built through `@cosyte/astm`'s
     `buildAstmMessage`, and the E1381-**framed** twin (`generateAstmResultFramed`) via `composeAstmFrames`
     (the modulo-256 checksum + `0`–`7` frame numbers are the parser's own, never faked), plus `astmCorpus`,
@@ -114,7 +114,7 @@ it. The standing rule is **relocate, never delete** — every paragraph below co
 
 ### Vendor-quirk mode (SYNTH-9, Phase 7)
 
-  - **Vendor-quirk mode (SYNTH-9, Phase 7)** — the differentiator. Profile-driven off-spec fixtures for the
+  - **Vendor-quirk mode (SYNTH-9, Phase 7)**: the differentiator. Profile-driven off-spec fixtures for the
     three richest profile systems (**HL7 v2, C-CDA, ASTM**) at the `@cosyte/synth/{hl7,ccda,astm}` subpaths:
     `generate{Hl7,Ccda,Astm}Quirk` + `{hl7,ccda,astm}QuirkRoundTrip` + `{hl7,ccda,astm}QuirkCorpus`, plus the
     format-agnostic core in `src/quirk.ts` (`QuirkDescriptor`/`QuirkArtifact`/`QuirkRoundTripResult`,
@@ -126,13 +126,13 @@ it. The standing rule is **relocate, never delete** — every paragraph below co
     `DEPRECATED_LOINC` + `deprecated-code-system`→`DEPRECATED_CODE_SYSTEM` (`smartScorecard`), each re-badged
     to `PROFILE_QUIRK_APPLIED`; ASTM `unknown-escape`→`ASTM_UNKNOWN_ESCAPE_SEQUENCE` (`referenceCorpus`
     re-badge) + `unknown-record-type`→`ASTM_RECORD_UNKNOWN_TYPE`. An unsupported quirk is a fatal
-    `SYNTH_UNSUPPORTED_QUIRK`; synthetic-safety still holds (a quirk deviates structure, never provenance —
+    `SYNTH_UNSUPPORTED_QUIRK`; synthetic-safety still holds (a quirk deviates structure, never provenance:
     the `phi-scan` gate stays zero over quirk output). All quirks are **publicly grounded** (ADR 0018);
     quirk recipes for **FHIR/X12/NCPDP are deferred**, as is any quirk needing a private vendor corpus.
 
 ### The `@cosyte/deid` pairing loop (SYNTH-10, Phase 8)
 
-  - **The `@cosyte/deid` pairing loop (SYNTH-10, Phase 8)** — a deterministic, seeded **closed-loop
+  - **The `@cosyte/deid` pairing loop (SYNTH-10, Phase 8)**: a deterministic, seeded **closed-loop
     co-validation harness** at the `@cosyte/synth/deid` subpath: **generate → plant tagged synthetic PHI
     sentinels at the patient loci → de-identify via `@cosyte/deid` → verify every sentinel is gone**
     (a surviving sentinel is a hard failure) **and** the clinical payload survives (the over-scrub guard).
@@ -141,14 +141,14 @@ it. The standing rule is **relocate, never delete** — every paragraph below co
     so **no key context** is needed and the loop is a pure function of the seed), and the testable
     primitives `identifierSentinels`/`recordTargetSentinels`/`sweepSurvivors`/`clinicalRetention`. The
     removal check is **locus-scoped and collision-proof**: sentinels come from the patient PHI loci
-    (deid's own extractors for HL7/FHIR/X12/NCPDP; a `<recordTarget>` scan for C-CDA — deid's C-CDA
+    (deid's own extractors for HL7/FHIR/X12/NCPDP; a `<recordTarget>` scan for C-CDA, deid's C-CDA
     extractor needs a DOM), decomposed to literal distinctive synthetic tokens, and the sweep reads only
-    the de-identified values remaining **at those former PHI loci** — so provider/organization identity a
+    the de-identified values remaining **at those former PHI loci**, so provider/organization identity a
     de-identifier legitimately retains (drawn from the same synthetic pools) never reads as a false
     survivor. It is a **co-validation harness, not an independent audit** of deid; `blocked` counts as
     removed; it **consumes the shipped generators unchanged**. **Deferred:** NCPDP **SCRIPT** / **ASTM** /
-    **DICOM** pairing (no `@cosyte/deid` adapter, or not generated — `DEID_LOOP_SKIPPED` names each), and
-    optional **Synthea** clinical-content ingestion (roadmap §Phase 8 — a documented future concern).
+    **DICOM** pairing (no `@cosyte/deid` adapter, or not generated, `DEID_LOOP_SKIPPED` names each), and
+    optional **Synthea** clinical-content ingestion (roadmap §Phase 8, a documented future concern).
 
 ### Optional peer deps and how to refresh a vendored tarball
 
@@ -264,7 +264,7 @@ Things that silently detach or hollow out a required check:
   noticing, in the repo whose own guidance says at length that a carried-over number is the recurring
   failure here: `test/scripts/attw-gate.test.ts` landed without moving them, and
   `test/scripts/sync-version.test.ts` was caught only by a refuter re-running the gate. **The gate
-  reads TRACKED files, so a brand-new test file moves nothing until it is `git add`ed** — run the
+  reads TRACKED files, so a brand-new test file moves nothing until it is `git add`ed**: run the
   gate after staging, not before. The command is `pnpm check:test-selection`, and it prints all
   three counts on every run. **These routes are closed; that is not the claim that the selection cannot be
   collapsed**, and writing it up as the latter is the recurring mistake in this ecosystem. What it
@@ -310,7 +310,7 @@ Finally, the part no test can tell you: **nothing inside this repository can obs
 ruleset.** Delete it and every test still passes, every gate still prints OK, and this file still says
 `main` is protected. A ruleset makes a red check block a merge; it does not make the check correct.
 
-## Engineering Guardrails — the rationales
+## Engineering Guardrails: the rationales
 
 ### No diagnostic takes a value parameter
 
@@ -356,7 +356,7 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
 
 - **▶ `attw` SAYS "does not contain types" AND EXITS 0, SO THE `attw` SCRIPT IS A WRAPPER, NOT THE
   BARE CLI.** `getExitCode.js` in `@arethetypeswrong/cli@0.18.4` opens with
-  `if (!analysis.types) return 0` — an untyped package is a legitimate npm package, so "no types at
+  `if (!analysis.types) return 0`: an untyped package is a legitimate npm package, so "no types at
   all" is a description, not a problem, and the problem list is never consulted. No `--profile`,
   `--ignore-rules` or config setting reaches that early return. For a package that ships types it
   means the declarations were **not in the tarball**, which is a broken publish reported as a pass.
@@ -364,7 +364,7 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
   `rm -rf dist && pnpm attw` and `find dist -name '*.d.*ts' -delete && pnpm attw` printed the
   sentence and exited 0 under the old `attw --pack . --profile node16`.
   **The race only supplies the condition.** `tsup` emits JS in one pass and declarations in a later
-  one, so every build here has a window where `dist/` holds `.mjs`/`.cjs` and no `.d.ts` — measured
+  one, so every build here has a window where `dist/` holds `.mjs`/`.cjs` and no `.d.ts`, measured
   at **6.4 s, 8.6 s and 7.4 s on three consecutive clean builds**, against a whole build of roughly
   11 s. It is wide because this package emits declarations for eight entry points. A concurrent
   build or `clean` in the same working tree lands `attw` in it. So the answer is **not** a lock, a
@@ -373,22 +373,22 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
 
 ### The false green needs EVERY entry point untyped at once
 
-  **▶ AND THE FALSE GREEN NEEDS EVERY ENTRY POINT UNTYPED AT ONCE — "attw misses subpaths" IS THE
+  **▶ AND THE FALSE GREEN NEEDS EVERY ENTRY POINT UNTYPED AT ONCE: "attw misses subpaths" IS THE
   PLAUSIBLE, WRONG STORY, AND IT WAS ASSERTED AND REFUTED INSIDE THIS SLICE.** With the root entry
   intact and one subpath's declarations missing, bare `attw` reports `UntypedResolution` and
   **exits 1**, because `analysis.types` is truthy and `getExitCode()` runs past the early return. A
-  **partial** loss is attw's own catch. Do not restore the wider claim — **and note that the first
+  **partial** loss is attw's own catch. Do not restore the wider claim, **and note that the first
   version of this slice forbade it in this paragraph while restoring it IN CODE twenty lines away.**
   The preflight's counterfactual was keyed on `broken.some(isDeclaration)`, i.e. ANY missing
   declaration, so a partial loss red-flagged correctly and then printed "attw would have … EXITED 0",
-  which is false — and false inside the very build window this gate exists for, because `tsup` writes
+  which is false, and false inside the very build window this gate exists for, because `tsup` writes
   eight entry points' declarations in sequence. A refuter measured it.
 
 ### The first correction was also wrong, in the same direction
 
   **THE FIRST CORRECTION WAS ALSO WRONG, IN THE SAME DIRECTION, AND THE SECOND REFUTER PASS CAUGHT
   IT. DO NOT RE-DERIVE THIS CONDITION FROM THE SHAPE OF THE CODE.** It was re-keyed on "every declared
-  declaration is in `broken`" — still false, because the preflight counts **empty** as broken and **a
+  declaration is in `broken`", still false, because the preflight counts **empty** as broken and **a
   zero-byte `.d.ts` STILL RESOLVES**. It types the package while declaring nothing, so
   `analysis.types` is truthy and the early return is not taken. Measured: root declarations zero-byte
   plus a subpath's missing → attw exit **1** with `UntypedResolution`; **all** declarations zero-byte
@@ -398,15 +398,15 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
 
 ### "Missing" is a proxy, not the key (a known limit)
 
-  **▶ AND "MISSING" IS A PROXY, NOT THE KEY — A THIRD REFUTER PASS CAUGHT THAT SENTENCE TOO. THIS IS
+  **▶ AND "MISSING" IS A PROXY, NOT THE KEY: A THIRD REFUTER PASS CAUGHT THAT SENTENCE TOO. THIS IS
   A KNOWN LIMIT, FILED RATHER THAN FIXED.** `analysis.types` comes from `containsTypes()` in
-  `@arethetypeswrong/core`'s `createPackage.js`: `listFiles(directory).some(ts.hasTSFileExtension)` —
+  `@arethetypeswrong/core`'s `createPackage.js`: `listFiles(directory).some(ts.hasTSFileExtension)`,
   **any** declaration file in the **packed tarball**, not the set `exports` declares. This package's
   `dist/` carries undeclared chunk declarations (`example-codes-*.d.ts`, `providers-*.d.ts`,
   `quirk-*.d.cts`) and `files` packs all of `dist`, so with every **declared** declaration missing and
   one chunk still packed, attw finds types and exits 1 while the exit-0 arm claims otherwise. Measured;
   it **predates this guard and is unchanged by it** (byte-identical output three commits back), which
-  is why it was not taken inside the slice. Closing it means the preflight reading the tarball — a
+  is why it was not taken inside the slice. Closing it means the preflight reading the tarball: a
   second moving part, for a wrong _explanation_ of a correct red. **If you take it up, weaken the
   sentence; do not add a fifth arm.**
   A gate that reds correctly and then explains itself with a falsehood teaches the next reader the
@@ -414,11 +414,11 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
 
 ### The two nets in `scripts/attw.mjs`
 
-  `scripts/attw.mjs` carries **two nets, and they catch different things** — a preflight that every
+  `scripts/attw.mjs` carries **two nets, and they catch different things**: a preflight that every
   relative path `package.json` promises (`main`, `module`, `types`, `typings`, every string leaf of
   `exports`, across all eight subpaths) exists and is non-empty, which catches the window and _names
   the missing file_ where attw's message names none; and a post-check on attw's untyped sentence,
-  which catches what the preflight structurally cannot — declarations present on disk but excluded
+  which catches what the preflight structurally cannot: declarations present on disk but excluded
   from the tarball by `files`/`.npmignore`. **No instance of that second case is on record here.**
   `test/scripts/attw-gate.test.ts` pins both nets against the real binary, including the upstream
   exit-0 itself, so an `attw` upgrade that reworks the wording or fixes the exit code reds the suite
@@ -433,28 +433,28 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
   against the pinned binary **with `--profile node16` present**, each making the sentence unreadable
   while attw still exited 0: `--quiet`, `-q`, `--format json`, `-f json`, `--format=json`, and a
   `.attw.json` setting `quiet` or `format` (`readConfig()` applies it after argv). The ported
-  deny-list refused a set of spellings via `arg.split("=")[0]` — **token equality, not option-name
-  matching** — and commander accepts a value fused to a short flag, so **`-fjson` is neither `-f` nor
+  deny-list refused a set of spellings via `arg.split("=")[0]`: **token equality, not option-name
+  matching**, and commander accepts a value fused to a short flag, so **`-fjson` is neither `-f` nor
   `--format`**, walked through, and handed back exit 0 with the sentence gone. The empty-transcript
   net backstops a `-q` cluster and **structurally cannot backstop `-f`**, because JSON output is not
-  empty. **Do not answer this with a seventh spelling** — that is the failure mode
+  empty. **Do not answer this with a seventh spelling**: that is the failure mode
   `scripts/check-test-selection.ts` documents at length for a different guard here. The guard is
   total instead: `--profile` and `--no-definitely-typed` are forwarded and everything else is
   refused, including options that would blind nothing, since "harmless" is not a judgement this
   script can make from an option name. `--config-path` falls out for free. Widening the set is a
-  deliberate one-line edit. **The `.attw.json` refusal stays separate** — it is not an argument, and
+  deliberate one-line edit. **The `.attw.json` refusal stays separate**: it is not an argument, and
   no argument guard of any shape can reach a config applied after argv.
 
 ### The vendored tarballs are not part of the `attw` story
 
   **The seven `file:vendor/*.tgz` devDeps are NOT part of this.** `files` is `dist` plus three doc
   files, so `npm pack` emits no `vendor/` and no `node_modules/`, and attw does not resolve bare
-  external specifiers at all — measured on a fixture whose only declaration imports a package that
+  external specifiers at all, measured on a fixture whose only declaration imports a package that
   exists nowhere, which attw calls "No problems found". A **stale** vendored tarball can make this
   gate neither red nor green. A **missing** one is a different thing and this sentence does not cover
   it: `pnpm install`/`build` fail first, and the gate then reds at the preflight or at `could not run`.
 
-## Standing disciplines — the rationales
+## Standing disciplines: the rationales
 
 ### The changelog is generated by the release
 
@@ -464,7 +464,7 @@ over. `CHANGELOG.md` is in `package.json#files`, so every tarball shipped a chan
 version headings at all** and a preamble promising that a first pre-alpha release "will ship" the
 API surface listed under it. That promise was already in the future tense in the very tarball that
 fulfilled it, and it stayed in the future tense through every release after. **The flag was the fix,
-not the prose** — correcting the sentence by hand leaves the mechanism that wrote it.
+not the prose**: correcting the sentence by hand leaves the mechanism that wrote it.
 
 Four things about the file's shape, each of which cost a sibling a refuter pass:
 
@@ -484,14 +484,14 @@ Four things about the file's shape, each of which cost a sibling a refuter pass:
   changelog**. A release that publishes with an unchanged changelog is that failure, **not** a
   reverted flag.
 
-**The Prettier pass is ON here, and it is DERIVED, never copied from a sibling — the value goes
+**The Prettier pass is ON here, and it is DERIVED, never copied from a sibling: the value goes
 wrong in both directions.** The discriminator is this repo's own markdown-formatting scope: there is
 **no `.prettierignore` at all** and `format:check` globs `"*.{json,md,yml}"`, so `CHANGELOG.md` is
 inside the formatting gate and its archived history is already Prettier-canonical. Measured both
 arms: ON leaves the archived history **byte identical** through a real `changeset version`, so it
 costs nothing; OFF makes the tool's own output non-canonical (it writes `## <version>` and
 `### Patch Changes` on adjacent lines). **One sibling sentence is FALSE here and is not repeated:**
-"every Version PR opens red" — this repo's `version` script also runs `prettier --write` over
+"every Version PR opens red", this repo's `version` script also runs `prettier --write` over
 `CHANGELOG.md` one link after `changeset version`, where a sibling's covers only `package.json` and
 `src/index.ts`, so OFF would neither red the Version PR nor keep Prettier away from the archive. It
 would only leave the tool's output failing the gate covering the file it wrote, buying nothing. A
@@ -501,7 +501,7 @@ starts rewriting already-published text.
 Gated by `test/scripts/changelog-generation.test.ts`, which runs the **real** `changeset version`
 against the real changelog and real config in throwaway **git** repos rather than a string fixture:
 **9 of its 15 cases are red on the parent** (measured, not recalled). The git history is
-load-bearing — the default generator prefixes each entry with the short sha of the commit that added
+load-bearing: the default generator prefixes each entry with the short sha of the commit that added
 the changeset, so a tree without history exercises a line shape no release writes.
 
 ### No internal project bookkeeping on a public surface
@@ -534,7 +534,7 @@ the changeset, so a tree without history exercises a line shape no release write
    than anywhere else: these literals are not commentary about the software, they are **the bytes it
    emits**. `//` and plain `/* */` comments are **not gated** and identifiers are **welcome** in them,
    because **the convention says source comments are a place identifiers belong**. That is the whole
-   reason. **Do not justify this boundary from what reaches `dist/`** — two attempts to, in a sibling
+   reason. **Do not justify this boundary from what reaches `dist/`**: two attempts to, in a sibling
    repo, were both false and both caught by a refuter. Measured here: `dist` is `files[0]`, there is no
    `.npmignore`, the emitted bundles carry `//` comments verbatim (17 lines each in
    `dist/index.mjs` and `dist/index.cjs`), and the sixteen `dist/**/*.map` carry the full text of 66 of
@@ -551,3 +551,133 @@ the changeset, so a tree without history exercises a line shape no release write
    lines above the export that ships it; rewording would have left a falsehood standing in cleaner
    clothes. What the gate cannot do is read `dist/` itself: `dist/` is untracked build output, so this
    is a gate on the source of the published text, not on the published text.
+
+### No em dash, anywhere
+
+Founder directive 2026-07-24, `knowledgebase/06-brand/voice-and-tone.md`: "No em dashes. Ever."
+It names commit messages explicitly. `scripts/check-no-emdash.sh` is what enforces it here, ported
+from `astm`'s copy (the reference form, carrying the interposed-grep fix and the visibility probe
+that the older `hl7` copy lacks). Landed 2026-08-06 with the content sweep in the same change:
+**1,167 occurrences out of 1,296, across 135 of the 223 tracked files**, including
+`package.json`'s published npm `description` and fourteen `docs-content/` pages that publish to
+docs.cosyte.com. **Fourteen, not fifteen, and the off-by-one is worth naming because it was in the
+first draft of this sentence, the changeset and the gate header at once**: `docs-content/` holds
+fifteen tracked entries, and one of them (`sidebars.json`) is the Docusaurus sidebar config, not a
+page. The number that grounds it is the doc-id list in that file, which names exactly fourteen, and
+the sweep changed exactly fourteen `.md` files. Count pages, never directory entries.
+
+**The census was taken by reading bytes in Python, not with `grep`.** In these containers `grep` is
+a shell function forcing `-G --ignore-files -I`, and under `xargs` it is bypassed for
+`/usr/bin/grep`, which in an empty locale fails with exit 2 and prints nothing for
+`-P '\x{2014}'`. Piped to `wc -l` that reads as a clean tree. **Every count in this section came
+from `open(path,'rb').read().count()`.** Measured at the same time and worth keeping: **zero**
+entity, numeric-entity, URL or backslash-u forms anywhere in the tree. The pattern still carries all
+six arms, because the reference sweep in `claude-containers` found the gate caught what the hand
+sweep missed precisely through a `package.json` holding the named HTML entity rather than the
+character. Only `scripts/check-no-emdash.sh` spells the encoded forms out, and it is the one file
+excluded from its own pattern scan for that reason.
+
+**Three things diverge from `astm`'s copy, all forced by this repo's own tree.**
+
+1. **The binary partition exists at all.** `astm` tracks no binaries; this repo tracks seven vendored
+   `.tgz` archives, and `vendor/cosyte-hl7-0.0.0.tgz` holds `E2 80 94` by coincidence inside its
+   DEFLATE stream. A scan-everything form reds on it forever, with no edit that fixes it. Same defect
+   `cli` recorded.
+2. **The partition is a DECLARATION (`git check-attr binary` + `.gitattributes`), never a NUL test
+   and never `grep -I`.** This is the half that matters.
+   `test/property/seed-sweep.fuzz.property.test.ts` is a genuine UTF-8 TypeScript source carrying a
+   literal NUL (a hostile-bytes fuzz corpus) **and it held 14 em dashes on the base commit of this
+   sweep**. A NUL-partitioning scan excludes a prose-bearing source file in silence and reports green
+   over all 14. **Do not "simplify" the partition back to a NUL or `-I` test.** The declaration is
+   itself bounded: the gate **refuses any `binary` declaration outside `vendor/`**, so widening the
+   exclusion means editing the script deliberately rather than adding a line to a dotfile. Tracked
+   FILENAMES are scanned whatever the declaration says.
+3. **`CHANGELOG.md` is scanned ABOVE its archive boundary only**, not excluded.
+   `## Released before this file was generated` is the line. Above it is generated output, which is
+   in scope because a changeset summary becomes a published release body **and** a line in the
+   tarball's changelog. Below it is the hand-maintained history: **dated ship-log entries that were
+   true when written, corrected above the record rather than edited**, and this repo's own rule is
+   blunter still (do not hand-edit `CHANGELOG.md`). The 128 occurrences below the boundary are
+   deliberate survivors. **It fails closed: remove the boundary heading and the whole file comes back
+   into scope and reds.** The forward control point is `.changeset/*.md`, which the tracked-file scan
+   covers in full.
+
+**The job is deliberately NOT a required context, and the reason is not that it is weak.** It scans
+the PR title, body and commit messages, and Dependabot composes a PR body by pasting the
+dependency's **upstream release notes** into it, em dashes included. Requiring it blocks a dependency
+bump on prose nobody here wrote and nobody here can edit without rewriting the PR by hand. That is
+the same refusal this ecosystem already made for a CI `pnpm audit`: a gate that fails on someone
+else's clock stops being a signal and becomes a tax. `website` exempts its own
+`no-emdash-messages` context for exactly this. **Do not answer it with `if: github.actor !=
+'dependabot[bot]'` on a required context** either: that leaves the check permanently PENDING on
+those PRs, which is worse than red because nothing says why. The tracked-file half is what protects
+the published surface, and nothing Dependabot does can put an em dash in a tracked file here.
+
+**Two corrections a refuter made to that paragraph, and a third this session made to the first
+correction.** First, **`website`'s precedent is a MESSAGES-ONLY context, so its tracked-file half
+stays required and this one's does not**: `synth` bundles both halves into one job, so the exemption
+un-requires the tracked-file half too.
+
+**NOTHING BUYS THAT HALF BACK, AND THE FIRST ATTEMPT TO SAY OTHERWISE WAS FALSE.** The remediation
+initially claimed `ci / verify` covers it by running `pnpm check:no-emdash`. It does not.
+`cosyte/.github`'s reusable `ci.yml` runs a **fixed** ladder (typecheck, lint, format:check,
+phi-scan, test, coverage, build, attw, dual ESM/CJS smoke) and **no arbitrary repo script**, which is
+the same fact the "why a separate workflow" block already states two paragraphs above. So the
+tracked-file half is a **visible red, not a merge blocker**, and that is the accepted cost. **Replacing
+one false sentence with another is the specific failure this repo keeps re-learning: check the
+reusable workflow's step list before attributing coverage to it.** The fix is to split this job in
+two (a requirable tracked-file job, an exempt messages job), which is `website`'s shape and how
+`no-internal-refs` is already required here; it is deferred only because a context may not be
+required before its workflow has completed on `main`.
+
+Second, **"nothing Dependabot can do dirties a tracked file" was literally false** (`package.json`
+and `pnpm-lock.yaml` are its whole job). The true sentence is narrower: it writes version specifiers
+and lockfile records, never prose, so it cannot introduce the character. The upstream release notes
+it pastes reach the PR body and nothing else.
+
+**The PR-text half is the half no local hook can cover, and two slices elsewhere have lost a review
+pass to it.** A NEW file is untracked, so a scan of the index does not see it, and no local hook sees
+a PR title or body at all. Check your own before you push.
+
+**Traps paid for by the sweep itself, in this repo:**
+
+- **A paired aside spanning two lines is invisible to a single-line detector.** Eleven of them here
+  (`round-trip.ts` in five subpaths, `limitations.md`'s selector list, `attw.mjs`'s preflight
+  enumeration, the C-CDA/FHIR identity-field lists). The mechanical rule turned the CLOSING dash into
+  a colon and produced `X: aside: is drawn from ...`. **Find them by asking which dashes are followed
+  by a finite verb**, then convert those to parentheses or a comma pair by hand.
+- **A dash inside a clause that ALREADY carried a colon must become a comma, and twenty of them did
+  not on the first pass.** Distinct from the paired-aside trap above: both dashes are on one line,
+  the detector sees nothing wrong, and the result is a well-formed line carrying two colons
+  (`Unit tests for the quirk core (src/quirk.ts): the machinery: exact comparison, ...`), which reads
+  as though the second colon governs. Twelve were rewritten to a comma or a period on the second
+  pass, including four `docs-content/` pages and the `README.md` sample. The other eight are sound
+  because the two colons are in different sentences or one is inside parentheses or a code sample.
+  **Find them by counting colons per line with backticked spans and URLs stripped, on the ADDED side
+  of the diff, and comparing the count against the line it replaced.** A `src/safe/reserved.ts`
+  source list showed the second-order version: one uniform dash separator became commas on two
+  entries and colons on two others, so the list stopped being uniform as well as stacking a colon.
+- **A PARALLEL LIST MUST END ON ONE SEPARATOR, and six here did not until a refuter pass.** The
+  per-hit rule ("whatever the sentence wants") is right per sentence and wrong per list: applied
+  entry by entry to a bullet list whose items were uniform em dashes at base, it lands a colon on
+  one sibling and a comma on the next, and the list stops reading as a list. Six were mixed
+  (`guides-overview.md`, `guides-x12.md`, `guides-ncpdp.md`, `src/x12/identity.ts`,
+  `src/ncpdp/identity.ts`, `all-formats.property.test.ts`), and two of those are the **synthetic-safety
+  posture lists that ship into `dist/*.d.ts`**, so a consumer reads them in IntelliSense. All six were
+  normalised to `**label**: explanation`. **After sweeping, re-read every list as a list.**
+- **The sweep can leave a markdown table ragged, and `format:check` does not cover `docs-content/`.**
+  A colon is one character narrower than the dash plus its spaces, so three rows of
+  `limitations.md`'s safety-floor table fell out of column alignment while `verify.sh` stayed green:
+  the format globs are `src/**/*.{ts,md}`, `test/**/*.ts`, `scripts/**/*.{ts,mjs}` and `*.{json,md,yml}`,
+  and `docs-content/` is in none of them. **Run `prettier --list-different "docs-content/**/*.md"` by
+  hand after a sweep**, and do not read a green `verify` as covering those pages.
+- **A dash that opens a wrapped comment line eats nothing to its left**, so the replacement lands
+  against the comment leader (` *, at 6.4 s`). Four here. Grep for a punctuation mark directly after
+  `*`, `//` or `#` at the head of a line.
+- **A heading's anchor changes with its punctuation.** The `## Status` heading above slugged to
+  `status--the-shipped-roadmap-in-full` while it carried a dash: the character drops out and the
+  space either side of it survives, so the slug held TWO hyphens. With a colon it holds one, and
+  `CLAUDE.md` cited the old anchor. **Re-resolve every `notes#` pointer after touching a heading.**
+- **`test/scripts/phi-scan.test.ts` asserts by regex on `scripts/phi-scan.ts`'s own `OK, no hits`
+  output string, twice.** Both sides are in scope, so a rule applied uniformly keeps them agreeing;
+  a hand edit to one and not the other reds the suite.

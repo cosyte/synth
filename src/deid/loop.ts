@@ -1,12 +1,12 @@
 /**
- * The format-agnostic core of the **`@cosyte/deid` pairing loop** — a **closed-loop
+ * The format-agnostic core of the **`@cosyte/deid` pairing loop**: a **closed-loop
  * co-validation harness** for the `synth` ⇄ `deid` pair.
  *
  * The loop's shape is: **generate a spec-clean synthetic artifact → enumerate the distinctive synthetic
  * PHI sentinels `@cosyte/synth` planted at its patient loci → run it through `@cosyte/deid` → verify
  * every planted sentinel is gone from the de-identified output** (a surviving sentinel is a hard
  * failure), **and that the non-PHI clinical content survived** (the over-scrub guard). It is
- * deterministic and seeded, and it does **not** change what the generators emit — it consumes their
+ * deterministic and seeded, and it does **not** change what the generators emit: it consumes their
  * output.
  *
  * **Honesty line (governs the whole module).** This is a **co-validation harness**, not an independent
@@ -14,7 +14,7 @@
  * that the synthetic PHI `synth` plants at the patient loci is removed by `deid`, and that `deid` does
  * not over-scrub `synth`'s clinical payload. A sentinel that `deid` **blocks** rather than redacts still
  * passes the removal check (blocked = gone from the wire). Formats where `@cosyte/deid` ships no adapter
- * (NCPDP **SCRIPT**, **ASTM**) — and DICOM, which `synth` does not generate — are **skipped and named**
+ * (NCPDP **SCRIPT**, **ASTM**), and DICOM, which `synth` does not generate, are **skipped and named**
  * (see `DEID_LOOP_SKIPPED` in `./index`), never silently.
  *
  * This module holds only the pure, parser-free pieces (the policy, the sentinel model, the sweep, the
@@ -32,7 +32,7 @@ import {
 } from "@cosyte/deid";
 
 /**
- * The set of cosyte formats the loop covers — every format for which **both** `@cosyte/synth` generates
+ * The set of cosyte formats the loop covers: every format for which **both** `@cosyte/synth` generates
  * and `@cosyte/deid` ships an adapter.
  */
 export type DeidLoopFormat = "hl7" | "fhir" | "ccda" | "x12" | "ncpdp-telecom";
@@ -40,9 +40,9 @@ export type DeidLoopFormat = "hl7" | "fhir" | "ccda" | "x12" | "ncpdp-telecom";
 /**
  * A single **planted sentinel**: one distinctive, synthetic-by-construction PHI token that
  * `@cosyte/synth` placed at a patient locus of a generated artifact, tracked so the loop can prove
- * `@cosyte/deid` removed it. The token is always drawn from a synthetic-safety provider —
+ * `@cosyte/deid` removed it. The token is always drawn from a synthetic-safety provider:
  * a fake-name-pool name, a `900`-range SSN, a `555-01xx` phone, a synthetic-assigning-authority
- * identifier — so a sentinel can never be, or collide with, a real person's PHI.
+ * identifier, so a sentinel can never be, or collide with, a real person's PHI.
  *
  * @example
  * ```ts
@@ -50,9 +50,9 @@ export type DeidLoopFormat = "hl7" | "fhir" | "ccda" | "x12" | "ncpdp-telecom";
  * ```
  */
 export interface DeidSentinel {
-  /** The exact synthetic token planted at the locus — a literal substring of the spec-clean artifact. */
+  /** The exact synthetic token planted at the locus, a literal substring of the spec-clean artifact. */
   readonly token: string;
-  /** Where it lives — a format-neutral path (e.g. `"PID-5"`, `"recordTarget"`, `"NM1[0]-3"`). */
+  /** Where it lives, a format-neutral path (e.g. `"PID-5"`, `"recordTarget"`, `"NM1[0]-3"`). */
   readonly locus: string;
   /** The Safe Harbor category `@cosyte/deid` assigned to the locus, when known. */
   readonly category?: string;
@@ -77,15 +77,15 @@ export interface DeidLoopResult {
   readonly format: DeidLoopFormat;
   /** The concrete artifact label (e.g. `"ORU^R01"`, `"837P"`, `"CCD"`). */
   readonly artifact: string;
-  /** The seed — the same seed yields the same artifact and the same verdict. */
+  /** The seed, the same seed yields the same artifact and the same verdict. */
   readonly seed: number;
   /** Every distinctive synthetic PHI sentinel `synth` planted at a patient locus of the artifact. */
   readonly planted: readonly DeidSentinel[];
-  /** Planted sentinels still present in the de-identified output — **must be empty**. */
+  /** Planted sentinels still present in the de-identified output, **must be empty**. */
   readonly survivors: readonly DeidSentinel[];
   /** The non-PHI clinical code tokens probed for over-scrub (present in the spec-clean artifact). */
   readonly clinicalProbed: readonly string[];
-  /** Probed clinical tokens missing after de-identification (over-scrub) — **must be empty**. */
+  /** Probed clinical tokens missing after de-identification (over-scrub), **must be empty**. */
   readonly clinicalScrubbed: readonly string[];
   /** The spec-clean serialized artifact (before de-identification). */
   readonly original: string;
@@ -113,7 +113,7 @@ export const DEID_LOOP_POLICY_NAME = "synth-deid-loop-removal";
  *
  * Two reasons this is the right policy for a co-validation loop: (1) it needs **no key context**, so the
  * loop is a pure function of the seed (the default Safe Harbor policy pseudonymizes those three
- * categories, which requires the consumer's HMAC key); and (2) it makes the removal contract crisp —
+ * categories, which requires the consumer's HMAC key); and (2) it makes the removal contract crisp,
  * every PHI locus is **removed or generalized away**, never replaced by a surrogate that a naive sweep
  * might mistake for a survivor. `pseudonymize` also removes the original value, so this is a stricter,
  * not weaker, check.
@@ -138,7 +138,7 @@ export function deidLoopPolicy(): DeidPolicy {
 }
 
 /**
- * Tokens that are structural labels or generic address words rather than distinctive PHI — dropped when
+ * Tokens that are structural labels or generic address words rather than distinctive PHI: dropped when
  * decomposing a composite locus value so a sentinel is always a *distinctive* synthetic token. (A
  * de-identifier keeps `state`, so a generic street suffix at a redacted address locus could otherwise
  * read as a false survivor.)
@@ -188,8 +188,8 @@ function tokenize(value: string): readonly string[] {
 }
 
 /**
- * Whether a candidate token is a *distinctive* sentinel: long enough, not a structural stopword, and —
- * for a pure-digit run — at least five digits (so a 4-digit street number that a de-identifier removes
+ * Whether a candidate token is a *distinctive* sentinel: long enough, not a structural stopword, and,
+ * for a pure-digit run, at least five digits (so a 4-digit street number that a de-identifier removes
  * but that could coincide with a retained value is not treated as a sentinel).
  *
  * @internal
@@ -206,7 +206,7 @@ function isDistinctive(token: string): boolean {
  * identifier loci, decomposed to **literal** tokens of the spec-clean artifact.
  *
  * The loci come from `@cosyte/deid`'s own per-format extractor (`extractHl7Loci` / `extractFhirLoci` /
- * `extractX12Loci` / `extractTelecomLoci`), which locates PHI **structurally** — so provider and
+ * `extractX12Loci` / `extractTelecomLoci`), which locates PHI **structurally**, so provider and
  * organization names, which a de-identifier legitimately retains, are never extracted and never become
  * false sentinels. Only `identifier`-kind loci are used (names, SSNs, phones, emails, member/account
  * ids); dates (generalized to a year, not removed) and ZIPs (generalized to three digits) are handled by
@@ -217,7 +217,7 @@ function isDistinctive(token: string): boolean {
  *
  * @param loci - The located candidate values from a `@cosyte/deid` extractor.
  * @param original - The spec-clean serialized artifact the loci were extracted from.
- * @returns The distinctive, literal, synthetic PHI sentinels — de-duplicated by token.
+ * @returns The distinctive, literal, synthetic PHI sentinels, de-duplicated by token.
  * @example
  * ```ts
  * import { extractHl7Loci } from "@cosyte/deid/hl7";
@@ -249,7 +249,7 @@ export function identifierSentinels(
 
 /**
  * Enumerate the patient sentinels of a **C-CDA** document by reading the `<recordTarget>` element of the
- * serialized XML — the patient participation. Scoping to `recordTarget` (rather than `author` /
+ * serialized XML: the patient participation. Scoping to `recordTarget` (rather than `author` /
  * `custodian`, which carry provider identity a de-identifier retains) is what keeps the sentinels
  * patient-PHI only. Used for C-CDA because `@cosyte/deid`'s C-CDA extractor operates on a raw DOM, which
  * this zero-dependency module does not construct.
@@ -283,7 +283,7 @@ export function recordTargetSentinels(xml: string): readonly DeidSentinel[] {
 }
 
 /**
- * Sweep the **PHI-locus residue** of a de-identified artifact for **surviving** planted sentinels — the
+ * Sweep the **PHI-locus residue** of a de-identified artifact for **surviving** planted sentinels: the
  * heart of the removal check. A sentinel survives if its exact token still appears in the values that
  * remain at the (former) PHI loci after de-identification; a non-empty result is a **hard failure** (real
  * PHI-shaped data leaked through de-identification).
@@ -292,15 +292,15 @@ export function recordTargetSentinels(xml: string): readonly DeidSentinel[] {
  * provider/organization names, addresses, and phones from the same synthetic pools, and a de-identifier
  * legitimately **retains** provider identity. So the same synthetic token can sit at both a patient locus
  * (removed) and a provider locus (retained); a whole-document sweep would read the retained provider copy
- * as a false survivor. Sweeping only the residue at the loci that were PHI — re-read from the
- * de-identifier's own output — is locus-scoped and collision-proof: a token still present *there* is a
+ * as a false survivor. Sweeping only the residue at the loci that were PHI, re-read from the
+ * de-identifier's own output, is locus-scoped and collision-proof: a token still present *there* is a
  * genuine leak. It remains independent of the de-identifier's manifest: it reads the actual serialized
  * output, so a de-identifier that locates a locus but fails to strip it is still caught.
  *
  * @param phiResidue - The de-identified values that remain at the former PHI loci (for the model formats,
  *   the re-extracted identifier-locus values joined; for C-CDA, the de-identified `<recordTarget>` block).
  * @param sentinels - The sentinels planted in the corresponding spec-clean artifact.
- * @returns The subset of `sentinels` still present in `phiResidue` — empty on a clean pass.
+ * @returns The subset of `sentinels` still present in `phiResidue`, empty on a clean pass.
  * @example
  * ```ts
  * sweepSurvivors(deidPhiResidue, planted); // => []  (all removed)
@@ -321,8 +321,8 @@ export function sweepSurvivors(
  * is not a structured-content loss).
  *
  * Only **distinctive** codes (four or more characters) are probed: a short 2–3 digit code (e.g. a CVX
- * vaccine code) can appear by coincidence *inside* a PHI value a de-identifier removes — a timestamp, an
- * SSN — and would read as a false over-scrub. Distinctive codes (LOINC `4548-4`, SNOMED `44054006`,
+ * vaccine code) can appear by coincidence *inside* a PHI value a de-identifier removes: a timestamp, an
+ * SSN, and would read as a false over-scrub. Distinctive codes (LOINC `4548-4`, SNOMED `44054006`,
  * 11-digit NDCs, CPT `99213`) do not collide this way. An artifact whose clinical codes are all short
  * simply yields an empty probe (the guard is skipped, never falsely tripped).
  *
@@ -330,7 +330,7 @@ export function sweepSurvivors(
  * @param deidentified - The serialized de-identified artifact.
  * @param clinicalCodes - Candidate structured clinical code tokens (e.g. LOINC/ICD/NDC from the example
  *   pools) to probe.
- * @returns `{ probed, scrubbed }` — the distinctive codes present before, and the subset absent after.
+ * @returns `{ probed, scrubbed }`: the distinctive codes present before, and the subset absent after.
  * @example
  * ```ts
  * const { probed, scrubbed } = clinicalRetention(before, after, ["4548-4", "44054006"]);
@@ -349,7 +349,7 @@ export function clinicalRetention(
 
 /**
  * Assemble a {@link DeidLoopResult} from the planted sentinels, the de-identified output, and the
- * clinical probe — computing the `pass` verdict (sentinels planted, none survived, nothing over-scrubbed).
+ * clinical probe: computing the `pass` verdict (sentinels planted, none survived, nothing over-scrubbed).
  *
  * @param parts - The pieces gathered by a per-format loop.
  * @returns The immutable verdict.
@@ -369,7 +369,7 @@ export function assembleVerdict(parts: {
   readonly original: string;
   readonly deidentified: string;
   /**
-   * The de-identified values that remain at the former PHI loci — what the survivor sweep reads (see
+   * The de-identified values that remain at the former PHI loci, what the survivor sweep reads (see
    * {@link sweepSurvivors}). Defaults to `deidentified` when omitted (a whole-document sweep), but the
    * per-format loops supply the locus-scoped residue so provider/organization identity a de-identifier
    * legitimately retains never reads as a false survivor.

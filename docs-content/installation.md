@@ -16,7 +16,7 @@ either module system without configuration.
 ## Prerequisites
 
 - **Node.js >= 22** (the whole `@cosyte/*` suite targets ES2023 / Node 22+).
-- A package manager — `pnpm`, `npm`, or `yarn`.
+- A package manager: `pnpm`, `npm`, or `yarn`.
 
 ## Install
 
@@ -26,7 +26,7 @@ npm install @cosyte/synth @cosyte/hl7
 
 `@cosyte/hl7` is an **optional peer dependency**, needed only for the `@cosyte/synth/hl7` subpath
 (HL7 v2 generation). Each format is a lazily-loaded subpath, so importing the package **core**
-(`@cosyte/synth`) never pulls a parser — a consumer who only needs the seeded PRNG and the safe
+(`@cosyte/synth`) never pulls a parser: a consumer who only needs the seeded PRNG and the safe
 providers installs nothing extra.
 
 ## Smoke test

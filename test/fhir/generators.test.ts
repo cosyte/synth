@@ -1,5 +1,5 @@
 /**
- * Unit tests for the FHIR generators' option branches — the non-default paths (base vs US Core,
+ * Unit tests for the FHIR generators' option branches: the non-default paths (base vs US Core,
  * custom subject/requester, the full corpus mix) the property/round-trip suites do not exercise.
  */
 

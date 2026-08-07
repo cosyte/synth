@@ -6,8 +6,8 @@ sidebar_position: 1
 
 # @cosyte/synth
 
-Generate **deterministic, seedable synthetic healthcare fixtures** — spec-clean HL7 v2, FHIR R4 /
-US Core, C-CDA, X12, NCPDP and ASTM — without hand-writing a byte of the wire format, and **without
+Generate **deterministic, seedable synthetic healthcare fixtures** (spec-clean HL7 v2, FHIR R4 /
+US Core, C-CDA, X12, NCPDP and ASTM) without hand-writing a byte of the wire format, and **without
 any chance the "patient" you just generated is a real person**.
 
 `@cosyte/synth` is a **consumer** of the cosyte parsers, not a parser. It builds each artifact **through
@@ -15,7 +15,7 @@ the parser's own builder/serializer** (so the output is spec-clean by constructi
 identifier, name, date, phone, and address from a **guaranteed-non-colliding synthetic source** (SSA
 never-issued SSNs, NANP `555-01xx` phones, `example.*` domains, TEST-NET IPs, a synthetic assigning
 authority for MRNs, and a shipped clearly-fake name pool). It is a **format/conformance generator, not a
-clinical simulator** — it does not model disease progression (that is Synthea).
+clinical simulator**: it does not model disease progression (that is Synthea).
 
 > **Status:** pre-alpha (`0.0.x`), published to npm. The version shown on the npm package page is the
 > one that is live; this page never repeats it.
@@ -26,7 +26,7 @@ clinical simulator** — it does not model disease progression (that is Synthea)
 npm install @cosyte/synth @cosyte/hl7
 ```
 
-`@cosyte/hl7` is an **optional peer dependency** — install it only if you use the `@cosyte/synth/hl7`
+`@cosyte/hl7` is an **optional peer dependency**: install it only if you use the `@cosyte/synth/hl7`
 subpath. The package core (PRNG + safe providers) has **zero third-party runtime dependencies**.
 
 ## Generate a spec-clean message
@@ -37,7 +37,7 @@ import { generateAdt, roundTrip } from "@cosyte/synth/hl7";
 // Same seed → byte-identical message, on any machine, any run.
 const message = generateAdt({ seed: 12345, trigger: "A01" });
 
-// It round-trips through @cosyte/hl7 with zero warnings — spec-clean by construction.
+// It round-trips through @cosyte/hl7 with zero warnings: spec-clean by construction.
 roundTrip(message).specClean; // => true
 ```
 
@@ -47,5 +47,5 @@ synthetic assigning authority.
 
 ## Next
 
-- [Quickstart](./quickstart) — the core primitives and the HL7 corpus.
-- [Core Concepts](./concepts-archetype) — synthetic-by-construction, determinism, the round-trip gate.
+- [Quickstart](./quickstart): the core primitives and the HL7 corpus.
+- [Core Concepts](./concepts-archetype): synthetic-by-construction, determinism, the round-trip gate.

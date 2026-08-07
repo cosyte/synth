@@ -10,7 +10,7 @@ import {
   type Sfc32State,
 } from "../src/index.js";
 
-describe("createRng — the reproducibility contract", () => {
+describe("createRng: the reproducibility contract", () => {
   it("same seed yields an identical sequence", () => {
     const a = createRng(12345);
     const b = createRng(12345);

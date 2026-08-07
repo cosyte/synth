@@ -1,7 +1,7 @@
 /**
  * C-CDA **vendor-quirk generation**. A quirk deviates the
  * *structure* of an otherwise spec-clean document (built through `@cosyte/ccda`'s `buildCcda`) so it
- * round-trips through `parseCcda` to **exactly** one intended, stable warning code — the tolerance a
+ * round-trips through `parseCcda` to **exactly** one intended, stable warning code: the tolerance a
  * `defineCcdaProfile` profile encodes. With the matching built-in profile active, that warning is
  * **re-badged** to the value-free `PROFILE_QUIRK_APPLIED` marker (`expected: true`, `toleratedCode` = the
  * original), exactly as the parser's `profileQuirkApplied` does.
@@ -10,14 +10,14 @@
  * publicly grounded and re-badged by a built-in public profile:
  *
  * - **`template-extension-absent`** → `TEMPLATE_EXTENSION_ABSENT` (profile `legacyR11`). The R2.1
- *   `@extension="2015-08-01"` version stamp is dropped from the document-type templateId — a legacy
+ *   `@extension="2015-08-01"` version stamp is dropped from the document-type templateId: a legacy
  *   R1.1-era document shape.
  * - **`deprecated-loinc`** → `DEPRECATED_LOINC` (profile `smartScorecard`). A result/vital observation
  *   LOINC code is swapped to a known-deprecated LOINC (`41909-3`).
  * - **`deprecated-code-system`** → `DEPRECATED_CODE_SYSTEM` (profile `smartScorecard`). A problem
  *   observation's value is swapped to a deprecated code system (ICD-9-CM `2.16.840.1.113883.6.103`).
  *
- * A quirk **never** introduces a real-looking value — it changes a template stamp or a code, never a PHI
+ * A quirk **never** introduces a real-looking value: it changes a template stamp or a code, never a PHI
  * locus, so the synthetic-safety gate still runs and stays zero.
  *
  * @module
@@ -48,7 +48,7 @@ export type CcdaQuirkName =
   | "deprecated-loinc"
   | "deprecated-code-system";
 
-/** The C-CDA quirk registry — each recipe bound to the exact `@cosyte/ccda` warning code it targets. */
+/** The C-CDA quirk registry: each recipe bound to the exact `@cosyte/ccda` warning code it targets. */
 export const CCDA_QUIRKS: Readonly<Record<CcdaQuirkName, QuirkDescriptor>> = Object.freeze({
   "template-extension-absent": Object.freeze({
     name: "template-extension-absent",
@@ -90,7 +90,7 @@ function toleratingProfile(quirk: CcdaQuirkName): CcdaProfile {
 }
 
 /**
- * The document-type templateId roots whose R2.1 `@extension` stamp the `legacyR11` quirk drops — the
+ * The document-type templateId roots whose R2.1 `@extension` stamp the `legacyR11` quirk drops: the
  * US Realm Header (`…22.1.1`) **and** every document-type template `buildCcda` emits: CCD (`…22.1.2`)
  * and Referral Note (`…22.1.14`). The parser keys `TEMPLATE_EXTENSION_ABSENT` on the **document-type**
  * template, so this must cover each generable document type; dropping a root a given document does not
@@ -104,20 +104,20 @@ const DOC_TEMPLATE_ROOTS = [
 
 /**
  * Match the first Result-Observation (template `…22.4.2`) or Vital-Sign-Observation (`…22.4.27`) LOINC
- * `<code>` — its code value is the capture between groups 1 and 2. Structural, so it is seed-robust (it
+ * `<code>`: its code value is the capture between groups 1 and 2. Structural, so it is seed-robust (it
  * never depends on which example LOINC a given seed drew).
  */
 const RESULT_OR_VITAL_LOINC =
   /(<templateId root="2\.16\.840\.1\.113883\.10\.20\.22\.4\.(?:2|27)"[^>]*\/>(?:(?!<templateId)[\s\S])*?<code code=")[^"]+(" codeSystem="2\.16\.840\.1\.113883\.6\.1")/;
 
-/** Match the first Problem-Observation (`…22.4.4`) SNOMED CD `<value>` — code + codeSystem are captured. */
+/** Match the first Problem-Observation (`…22.4.4`) SNOMED CD `<value>`: code + codeSystem are captured. */
 const PROBLEM_VALUE_SNOMED =
   /(<templateId root="2\.16\.840\.1\.113883\.10\.20\.22\.4\.4"[\s\S]*?<value code=")[^"]+(" codeSystem=")2\.16\.840\.1\.113883\.6\.96("[^>]*xsi:type="CD"\/>)/;
 
-/** A known-deprecated LOINC (BMI, superseded by 39156-5) — the `deprecated-loinc` target. */
+/** A known-deprecated LOINC (BMI, superseded by 39156-5): the `deprecated-loinc` target. */
 const DEPRECATED_LOINC_CODE = "41909-3";
 
-/** The post-serialize XML transform for each quirk — a pure, deterministic function of the clean XML. */
+/** The post-serialize XML transform for each quirk: a pure, deterministic function of the clean XML. */
 function applyQuirk(quirk: CcdaQuirkName, xml: string): string {
   switch (quirk) {
     case "template-extension-absent": {
@@ -140,7 +140,7 @@ function applyQuirk(quirk: CcdaQuirkName, xml: string): string {
 
 /**
  * Apply a C-CDA quirk transform to a spec-clean document, or **fail closed**. Refuses to return a
- * document that does not carry the intended deviation (a quirk whose structural anchor is absent) —
+ * document that does not carry the intended deviation (a quirk whose structural anchor is absent):
  * a fixture that silently lost its quirk would test the wrong thing.
  *
  * @param quirk - The quirk to inject.
@@ -167,7 +167,7 @@ export function injectCcdaQuirk(quirk: CcdaQuirkName, cleanXml: string): string 
 
 /** Options for {@link generateCcdaQuirk}. */
 export interface GenerateCcdaQuirkOptions {
-  /** The seed — the same seed + quirk yields a byte-identical document. Defaults to `0`. */
+  /** The seed: the same seed + quirk yields a byte-identical document. Defaults to `0`. */
   readonly seed?: number;
   /** The quirk to inject. Required. */
   readonly quirk: CcdaQuirkName;
@@ -181,14 +181,14 @@ export interface GenerateCcdaQuirkOptions {
  * `quirk` + `documentType`.
  *
  * @param options - Seed, quirk, and base document type. See {@link GenerateCcdaQuirkOptions}.
- * @returns The {@link QuirkArtifact} — its `content` round-trips to `intendedWarnings` exactly.
+ * @returns The {@link QuirkArtifact}: its `content` round-trips to `intendedWarnings` exactly.
  * @throws SynthError `SYNTH_UNSUPPORTED_QUIRK` if `quirk` is not a supported C-CDA quirk.
  * @throws Error if the base document does not contain the structural anchor the quirk targets.
  * @example
  * ```ts
  * import { generateCcdaQuirk, ccdaQuirkRoundTrip } from "@cosyte/synth/ccda";
  * const rt = ccdaQuirkRoundTrip(generateCcdaQuirk({ seed: 1, quirk: "deprecated-loinc" }));
- * rt.withProfile?.tolerated; // true — `smartScorecard` re-badges DEPRECATED_LOINC
+ * rt.withProfile?.tolerated; // true, `smartScorecard` re-badges DEPRECATED_LOINC
  * ```
  */
 export function generateCcdaQuirk(options: GenerateCcdaQuirkOptions): QuirkArtifact {
@@ -198,7 +198,7 @@ export function generateCcdaQuirk(options: GenerateCcdaQuirkOptions): QuirkArtif
   const clean = serializeCcda(generateCcda({ seed, documentType }));
   const content = injectCcdaQuirk(options.quirk, clean);
   // Self-check the intended-warning contract at generation time: never emit a mislabeled fixture (a
-  // transform can change bytes on the wrong template and still produce no warning — e.g. a document
+  // transform can change bytes on the wrong template and still produce no warning, e.g. a document
   // type whose document-type root is not in DOC_TEMPLATE_ROOTS).
   assertIntendedWarnings(
     descriptor.intendedWarnings,

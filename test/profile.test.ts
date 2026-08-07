@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { defineSynthProfile, SynthError, SYNTH_FATAL_CODES } from "../src/index.js";
 
-describe("defineSynthProfile — the growth-loop skeleton", () => {
+describe("defineSynthProfile: the growth-loop skeleton", () => {
   it("returns a frozen profile with defaulted quirks", () => {
     const p = defineSynthProfile({ name: "acme-hospital" });
     expect(p.name).toBe("acme-hospital");

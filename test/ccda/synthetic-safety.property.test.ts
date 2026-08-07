@@ -1,11 +1,11 @@
 /**
- * The **synthetic-safety gate** for C-CDA (roadmap §4.4, §6 — mandatory, must be ZERO). For arbitrary
- * seeds and both document types, **no emitted value falls outside a reserved / synthetic source** — so
+ * The **synthetic-safety gate** for C-CDA (roadmap §4.4, §6: mandatory, must be ZERO). For arbitrary
+ * seeds and both document types, **no emitted value falls outside a reserved / synthetic source**, so
  * no generated document can carry real or plausibly-real PHI (roadmap §4.5, the synthetic-safety breach
  * head the refuter attacks).
  *
  * Two sweeps: a **raw cross-cutting sweep** (no issuable-area dashed SSN, no non-reserved email, anywhere
- * in the serialized XML) and a **structured sweep** over the C-CDA identity loci — the recordTarget
+ * in the serialized XML) and a **structured sweep** over the C-CDA identity loci, the recordTarget
  * patient `name` (`<given>` / `<family>` from the shipped pool), any `telecom` phone (reserved
  * `555-01xx`), and the patientRole MRN `id` (scoped to the synthetic assigning-authority OID, never a
  * real facility namespace).
@@ -45,12 +45,12 @@ function realDataHits(content: string): string[] {
 /** Structured sweep over a serialized C-CDA document; pushes a hit for any non-synthetic identity value. */
 function structuredHits(xml: string): string[] {
   const hits: string[] = [];
-  // Patient name tokens — every <given>/<family> must be from the shipped pool.
+  // Patient name tokens, every <given>/<family> must be from the shipped pool.
   for (const m of xml.matchAll(/<(given|family)(?:\s[^>]*)?>([^<]+)<\/\1>/g)) {
     const token = (m[2] ?? "").trim();
     if (token.length > 0 && !NAME_POOL.has(token)) hits.push(`${m[1] ?? "name"}:${token}`);
   }
-  // Telecom phone — a tel: value must carry the reserved 555-01xx tail.
+  // Telecom phone, a tel: value must carry the reserved 555-01xx tail.
   for (const m of xml.matchAll(/<telecom\b[^>]*\bvalue="tel:([^"]+)"/g)) {
     const value = m[1] ?? "";
     if (/\d{7,}/.test(value.replace(/\D/g, "")) && !isSyntheticPhone(value)) {
@@ -61,9 +61,9 @@ function structuredHits(xml: string): string[] {
 }
 
 // `buildCcda` parses XML through @xmldom/xmldom on every build, so a C-CDA build is materially heavier
-// than a FHIR/HL7 one — these sweeps are sized (and given a generous per-test timeout) so the gate stays
+// than a FHIR/HL7 one: these sweeps are sized (and given a generous per-test timeout) so the gate stays
 // meaningful without timing out under v8 coverage instrumentation.
-describe("synthetic-safety gate — generated C-CDA output (must be ZERO)", () => {
+describe("synthetic-safety gate, generated C-CDA output (must be ZERO)", () => {
   it("no document leaks a real-data SSN or non-reserved email shape", () => {
     fc.assert(
       fc.property(seed(), (s) => {
@@ -81,7 +81,7 @@ describe("synthetic-safety gate — generated C-CDA output (must be ZERO)", () =
         for (const doc of [generateCcd({ seed: s }), generateReferralNote({ seed: s })]) {
           const xml = serializeCcda(doc);
           expect(structuredHits(xml)).toEqual([]);
-          // The MRN lives under the synthetic assigning-authority OID — never a real facility namespace.
+          // The MRN lives under the synthetic assigning-authority OID, never a real facility namespace.
           const patientId = /<patientRole><id root="([^"]+)"/.exec(xml);
           expect(patientId?.[1]).toBe(SYNTH_OID);
         }

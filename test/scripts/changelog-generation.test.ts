@@ -53,7 +53,7 @@
  *     case 5 would pass on a config change that did nothing.
  *  8. THE PRETTIER PASS IS LEFT ON HERE, AND THAT IS DERIVED FROM THIS REPO RATHER THAN
  *     COPIED FROM A SIBLING. Changesets runs the document it writes through Prettier unless
- *     `"prettier": false` turns the pass off, and the right answer differs per repo — a
+ *     `"prettier": false` turns the pass off, and the right answer differs per repo, a
  *     sibling whose `.prettierignore` lists `*.md` needs it OFF, because leaving it on there
  *     rewrites already-published text on every release. THE DISCRIMINATOR IS THE REPO'S OWN
  *     MARKDOWN-FORMATTING SCOPE. This repo has NO `.prettierignore` at all and its
@@ -61,8 +61,8 @@
  *     formatting gate and its archived history is already Prettier-canonical. Both arms are
  *     measured below. ON: the archived history comes through a real release BYTE IDENTICAL,
  *     so the pass costs nothing. OFF: the generator's raw output is not Prettier-canonical
- *     even for the simplest possible summary — it writes `## <version>` and
- *     `### Patch Changes` on adjacent lines with no blank line between them — so the tool's
+ *     even for the simplest possible summary, it writes `## <version>` and
+ *     `### Patch Changes` on adjacent lines with no blank line between them, so the tool's
  *     own output stops satisfying the gate that covers the file it wrote.
  *
  *     ONE SENTENCE A SIBLING CARRIES IS FALSE HERE AND IS DELIBERATELY NOT REPEATED. A
@@ -75,8 +75,8 @@
  *     not be red. The measured consequence here is narrower and is what case 8's control
  *     asserts: what `changeset version` itself writes stops being what this repo's formatting
  *     gate accepts. That second link also means turning the pass off does NOT keep Prettier
- *     away from the archived history — the same document is reformatted one command later
- *     either way — so OFF buys nothing here and costs the correctness of the tool's own
+ *     away from the archived history: the same document is reformatted one command later
+ *     either way, so OFF buys nothing here and costs the correctness of the tool's own
  *     output. The `version` script is asserted below so this reasoning cannot silently go
  *     stale under it.
  *  9. THE SHAPE RULE, and the negative control that explains it. Changesets prepends a
@@ -260,7 +260,7 @@ function runVersion(opts: {
   // WRITE to any git config, and it pins the two settings that would otherwise decide what the
   // commit does. It is not independent of global git config in general, and `core.hooksPath` is
   // the one that matters, because a global value points the temp repo's `commit` at hooks this
-  // suite never meant to run — and this repo really does install one (`simple-git-hooks` runs
+  // suite never meant to run, and this repo really does install one (`simple-git-hooks` runs
   // `pnpm phi-scan --staged` at pre-commit).
   const git = (...args: string[]): void => {
     const g = spawnSync(
@@ -305,12 +305,12 @@ function runVersion(opts: {
  * It is neither sound nor complete against CommonMark, and both directions were reproduced rather
  * than assumed. MISSED: a single leading space (` ## [Unreleased]`), a Setext underline
  * (`[Unreleased]` then `---`), a tab after the `#` run (`##\t[Unreleased]`), and an empty heading
- * (`##`, no trailing space) — CommonMark §4.2 allows spaces, tabs or end of line after the run.
+ * (`##`, no trailing space), CommonMark §4.2 allows spaces, tabs or end of line after the run.
  * OVER-INCLUDED: a `# ` line inside a fenced code block, which this filter counts and CommonMark
  * does not.
  *
- * That bound is fine here because of what this file actually compares — the column-0 ATX lines a
- * release writes and the archived history carries — and because the misses are covered elsewhere
+ * That bound is fine here because of what this file actually compares, the column-0 ATX lines a
+ * release writes and the archived history carries, and because the misses are covered elsewhere
  * rather than by a wider regex. This repo's Prettier config normalises the leading space, the
  * Setext underline and the tab back into this shape, and `format:check` covers `CHANGELOG.md`, so
  * a hand-edited `[Unreleased]` in any of those forms reds the committed-canonicality case above
@@ -417,13 +417,13 @@ describe("changelog generation is on", () => {
 
   it("re-canonicalises CHANGELOG.md later in the same version chain, unlike the three repos this came from", () => {
     // Pinned because the OFF arm's consequence is DIFFERENT here, and the difference is this
-    // line. In `hl7`, `mllp` and `ccda` — the three that landed this change first, measured — the
+    // line. In `hl7`, `mllp` and `ccda` (the three that landed this change first, measured) the
     // chain formats only `package.json` and `src/index.ts` after `changeset version`. That is a
     // claim about those three, NOT about the suite: `astm`, `deid`, `terminology` and `transform`
     // all format `CHANGELOG.md` in their own chain, and `dicom`'s covers `src/version.ts`.
     //
     // NOR does it say `"prettier": false` reds a Version PR anywhere in general. That needs a
-    // SECOND premise — that the repo's format gate covers `CHANGELOG.md` at all — and `mllp`, the
+    // SECOND premise: that the repo's format gate covers `CHANGELOG.md` at all, and `mllp`, the
     // one sibling that really sets `"prettier": false`, fails it: its `.prettierignore` lists
     // `*.md`, so its Version PR would not be red either, and that is exactly why it needs the
     // opposite value. Here the second pass covers `CHANGELOG.md` one command later, which is why
@@ -598,8 +598,8 @@ describe("the shape that makes generated output land correctly", () => {
       // WHAT THIS DOES NOT CLAIM, because it is false here: that the Version PR would open red.
       // This repo's `version` script runs `prettier --write` over `CHANGELOG.md` one link after
       // `changeset version` (pinned above), so the document would be re-canonicalised before the
-      // PR was pushed. The measured cost of OFF is exactly what is asserted here — the tool's own
-      // output stops satisfying the gate that covers the file it wrote — and the archive is byte
+      // PR was pushed. The measured cost of OFF is exactly what is asserted here: the tool's own
+      // output stops satisfying the gate that covers the file it wrote, and the archive is byte
       // identical in BOTH arms, so nothing is bought in exchange.
       const off = runVersion({ changelogBody: changelog, configOverrides: { prettier: false } });
 

@@ -1,5 +1,5 @@
 /**
- * `defineSynthProfile` — the growth-loop hook for site/vendor fixture recipes. A profile bundles the
+ * `defineSynthProfile`: the growth-loop hook for site/vendor fixture recipes. A profile bundles the
  * value pools and the quirk recipe a fixture set should use, authored through the same public API as
  * the built-ins: a validated, frozen `SynthProfile` carrying a name, optional value overrides, and the
  * quirk names a format's quirk corpus should apply.
@@ -13,7 +13,7 @@ import { SYNTH_FATAL_CODES, SynthError } from "./codes.js";
 export interface SynthProfileSpec {
   /** A stable, human-readable profile name (e.g. `"acme-hospital"`). Required, non-empty. */
   readonly name: string;
-  /** Optional given-name pool override (clearly-synthetic names only — see the safety invariant). */
+  /** Optional given-name pool override (clearly-synthetic names only, see the safety invariant). */
   readonly givenNames?: readonly string[];
   /** Optional family-name pool override (clearly-synthetic names only). */
   readonly familyNames?: readonly string[];

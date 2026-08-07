@@ -1,7 +1,7 @@
 /**
- * The **synthetic-safety gate** (roadmap §4.4, §6 — mandatory, must be ZERO). This is the executable
+ * The **synthetic-safety gate** (roadmap §4.4, §6: mandatory, must be ZERO). This is the executable
  * proof of the #1 invariant: for arbitrary seeds and the wired format, **no emitted value falls outside
- * a reserved / synthetic source** — so no generated value can be real or plausibly-real PHI. It is the
+ * a reserved / synthetic source**, so no generated value can be real or plausibly-real PHI. It is the
  * inverse of `deid`'s leak test: where `deid` proves real PHI is gone, this proves plausibly-real PHI
  * was never generated.
  *
@@ -52,26 +52,26 @@ function realDataHits(content: string): string[] {
   return hits;
 }
 
-describe("synthetic-safety gate — generated HL7 output (must be ZERO)", () => {
+describe("synthetic-safety gate, generated HL7 output (must be ZERO)", () => {
   it("every PHI-bearing PID locus is provably synthetic", () => {
     fc.assert(
       fc.property(seed(), fc.constantFrom(...(["A01", "A04", "A08"] as const)), (s, trigger) => {
         const content = generateAdt({ seed: s, trigger }).toString();
         const msg = parseHL7(content);
 
-        // PID-19 SSN — never-issued area only.
+        // PID-19 SSN, never-issued area only.
         const ssnValue = msg.get("PID.19") ?? "";
         expect(isSyntheticSsn(ssnValue), `SSN ${ssnValue}`).toBe(true);
 
-        // PID-13 phone — reserved 555-01xx block only.
+        // PID-13 phone: reserved 555-01xx block only.
         const phoneValue = msg.get("PID.13") ?? "";
         expect(isSyntheticPhone(phoneValue), `phone ${phoneValue}`).toBe(true);
 
-        // PID-5 name — drawn only from the shipped fake-name pool.
+        // PID-5 name: drawn only from the shipped fake-name pool.
         expect(SYNTHETIC_FAMILY_NAMES).toContain(msg.get("PID.5.1"));
         expect(SYNTHETIC_GIVEN_NAMES).toContain(msg.get("PID.5.2"));
 
-        // PID-3 identifier — scoped to the synthetic assigning authority.
+        // PID-3 identifier, scoped to the synthetic assigning authority.
         expect(msg.get("PID.3.4")).toBe(SYNTHETIC_ASSIGNING_AUTHORITY.namespaceId);
 
         // Address ZIP is the reserved non-real 00000.
@@ -98,7 +98,7 @@ describe("synthetic-safety gate — generated HL7 output (must be ZERO)", () => 
         // The whole-message cross-cutting sweep: no dashed real SSN, no non-reserved email, anywhere.
         expect(realDataHits(content)).toEqual([]);
 
-        // Every family carries a PID — its identity loci must all be synthetic-by-construction.
+        // Every family carries a PID: its identity loci must all be synthetic-by-construction.
         const msg = parseHL7(content);
         expect(isSyntheticSsn(msg.get("PID.19") ?? ""), `${kind} SSN`).toBe(true);
         expect(isSyntheticPhone(msg.get("PID.13") ?? ""), `${kind} phone`).toBe(true);
@@ -112,7 +112,7 @@ describe("synthetic-safety gate — generated HL7 output (must be ZERO)", () => 
   });
 });
 
-describe("synthetic-safety gate — provider-level (must be ZERO)", () => {
+describe("synthetic-safety gate: provider-level (must be ZERO)", () => {
   it("no primitive value escapes its reserved / synthetic source", () => {
     fc.assert(
       fc.property(seed(), (s) => {

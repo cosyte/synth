@@ -1,13 +1,13 @@
 /**
- * `@cosyte/synth/x12` — the X12 EDI generation surface, exposed as its own subpath so importing the
+ * `@cosyte/synth/x12`: the X12 EDI generation surface, exposed as its own subpath so importing the
  * package root does **not** pull `@cosyte/x12`. This is the **lazy, per-format** boundary: a consumer
  * who only needs X12 fixtures imports `@cosyte/synth/x12`; one who needs only the core primitives
  * never loads a parser.
- * `@cosyte/x12` is an **optional peer dependency** — present only for this subpath.
+ * `@cosyte/x12` is an **optional peer dependency**, present only for this subpath.
  *
  * This subpath ships spec-clean HIPAA 005010 generation via `@cosyte/x12`'s domain
  * builders: **837P/I/D** claims (`generate837P`/`generate837I`/`generate837D`), the **835** remittance
- * (`generate835`), and the **271** eligibility response (`generate271`) — each built through the
+ * (`generate835`), and the **271** eligibility response (`generate271`), each built through the
  * parser's own builder so the ISA/GS/ST…SE/GE/IEA envelope and every segment are spec-clean by
  * construction, each round-tripping through `@cosyte/x12` with zero warnings, and each drawing every
  * subscriber/patient/provider identifier from the synthetic-safety providers.
@@ -67,10 +67,10 @@ export {
   type X12ExampleCode,
 } from "./example-codes.js";
 
-/** Every X12 transaction kind {@link x12Corpus} generates — the label used as the corpus `kind`. */
+/** Every X12 transaction kind {@link x12Corpus} generates: the label used as the corpus `kind`. */
 export type X12CorpusKind = "837P" | "837I" | "837D" | "835" | "271";
 
-/** Every kind {@link x12Corpus} accepts, and the default mix — one of each shipped transaction. */
+/** Every kind {@link x12Corpus} accepts, and the default mix: one of each shipped transaction. */
 const ALL_KINDS: readonly X12CorpusKind[] = Object.freeze(["837P", "837I", "837D", "835", "271"]);
 const DEFAULT_MIX = ALL_KINDS;
 
@@ -111,7 +111,7 @@ function generateKind(kind: X12CorpusKind, seed: number): ReturnType<typeof roun
  * ```ts
  * import { x12Corpus } from "@cosyte/synth/x12";
  * const corpus = x12Corpus({ seed: 42 });
- * corpus.artifacts.every((a) => a.warnings.length === 0); // true — spec-clean
+ * corpus.artifacts.every((a) => a.warnings.length === 0); // true, spec-clean
  * ```
  */
 export function x12Corpus(options: X12CorpusOptions): Corpus {

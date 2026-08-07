@@ -1,5 +1,5 @@
 /**
- * The **seed-determinism property** for FHIR (roadmap §5, §6 — mandatory). A seed, and only the seed,
+ * The **seed-determinism property** for FHIR (roadmap §5, §6: mandatory). A seed, and only the seed,
  * determines the output: generating twice yields byte-identical serialized resources, every generator,
  * every Bundle shape, and the corpus.
  */

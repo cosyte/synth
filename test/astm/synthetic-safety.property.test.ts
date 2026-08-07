@@ -1,5 +1,5 @@
 /**
- * The **synthetic-safety property** for ASTM (roadmap §4, §6 — mandatory) plus the **spec-clean
+ * The **synthetic-safety property** for ASTM (roadmap §4, §6: mandatory) plus the **spec-clean
  * round-trip** property (roadmap §4.5, the two-headed hazard). For arbitrary seeds and every message,
  * no value at the `P` (patient) record's PHI-bearing loci may escape the reserved/synthetic sources:
  *
@@ -9,7 +9,7 @@
  *   synthetic-AA-scoped (`PRA` / `LAB`-prefixed) and stay **distinct**.
  *
  * And the first head of the hazard: every generated message (bare and framed) round-trips through
- * `@cosyte/astm` **spec-clean** — zero warnings and byte-stable — so a "spec-clean" claim can never
+ * `@cosyte/astm` **spec-clean**, zero warnings and byte-stable, so a "spec-clean" claim can never
  * hide an unintended warning. This is the executable proof of synthetic-by-construction: the same
  * structured checks the `phi-scan` ASTM arm runs (roadmap §4.4).
  */
@@ -46,13 +46,13 @@ function assertAstmSynthetic(text: string): void {
   const patients = patientRecords(text);
   expect(patients.length).toBeGreaterThan(0);
   for (const fields of patients) {
-    // Field 6 (index 5) — name components. Every ≥ 2-char token must be in the fake-name pool.
+    // Field 6 (index 5), name components. Every ≥ 2-char token must be in the fake-name pool.
     for (const token of (fields[5] ?? "").split("^")) {
       const t = token.trim();
       if (t.length < 2) continue;
       expect(NAME_POOL.has(t.toUpperCase()), `name ${t} must be in the pool`).toBe(true);
     }
-    // Fields 3 + 4 — practice / lab ids: synthetic-AA-scoped and distinct.
+    // Fields 3 + 4, practice / lab ids: synthetic-AA-scoped and distinct.
     const practice = (fields[2] ?? "").trim();
     const lab = (fields[3] ?? "").trim();
     expect(/^PRA\d+$/.test(practice), `practice id ${practice} synthetic-AA-scoped`).toBe(true);
@@ -85,7 +85,7 @@ describe("ASTM synthetic-safety (mandatory property)", () => {
   });
 });
 
-describe("ASTM spec-clean round-trip (mandatory property — the first head of the hazard)", () => {
+describe("ASTM spec-clean round-trip (mandatory property: the first head of the hazard)", () => {
   it("every generated record message round-trips spec-clean (zero warnings, byte-stable)", () => {
     fc.assert(
       fc.property(seed(), (s) => {

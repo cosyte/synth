@@ -63,7 +63,7 @@ describe("ASTM intended-warning contract (mandatory)", () => {
     expect(rt.withProfile?.warnings).toContain(PROFILE_QUIRK_APPLIED);
   });
 
-  it("the `unknown-record-type` quirk is bare — no built-in profile verdict", () => {
+  it("the `unknown-record-type` quirk is bare, no built-in profile verdict", () => {
     const rt = astmQuirkRoundTrip(generateAstmQuirk({ seed: 1, quirk: "unknown-record-type" }));
     expect(rt.withProfile).toBeUndefined();
     expect(rt.intendedWarningHeld).toBe(true);
@@ -83,14 +83,14 @@ describe("ASTM quirk seed-determinism (mandatory)", () => {
   });
 });
 
-describe("ASTM quirk synthetic-safety — the deviation is an escape/type, never the P record", () => {
+describe("ASTM quirk synthetic-safety: the deviation is an escape/type, never the P record", () => {
   it("the P record (name + practice/lab ids) is byte-identical to the clean report", () => {
     fc.assert(
       fc.property(seed(), fc.constantFrom(...QUIRKS), (s, quirk) => {
         const artifact = generateAstmQuirk({ seed: s, quirk });
         const pRecord = /(?:^|\r)P\|[^\r]*/.exec(artifact.content)?.[0] ?? "";
         expect(pRecord.length).toBeGreaterThan(0);
-        // The quirk never touches a P-record field — no name/id was introduced.
+        // The quirk never touches a P-record field, no name/id was introduced.
         expect(pRecord).not.toMatch(/&Z&/);
       }),
       { numRuns: 40 },
@@ -101,7 +101,7 @@ describe("ASTM quirk synthetic-safety — the deviation is an escape/type, never
 describe("ASTM quirk fail-closed", () => {
   it("an unsupported quirk throws SYNTH_UNSUPPORTED_QUIRK", () => {
     try {
-      // @ts-expect-error — deliberately unsupported name
+      // @ts-expect-error, deliberately unsupported name
       generateAstmQuirk({ seed: 1, quirk: "made-up" });
       expect.unreachable();
     } catch (err) {

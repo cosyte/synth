@@ -1,11 +1,11 @@
 /**
  * Spec-clean HL7 v2 `ADT` generation, built **through `@cosyte/hl7`'s `buildMessage`** so MSH
- * delimiters, segment layout, and escaping are the parser's own conservative emit — spec-clean *by
+ * delimiters, segment layout, and escaping are the parser's own conservative emit: spec-clean *by
  * construction*. Every PHI-bearing field (name, DOB, SSN, MRN,
  * address, phone) is drawn from the synthetic-safety providers (`../safe`), so no value can be real.
  *
  * `ADT^A01/A04/A08` all require the `PID` (patient) + `PV1` (visit) groups the parser's structure net
- * checks for — so a generated message round-trips through `@cosyte/hl7` with **zero warnings**.
+ * checks for, so a generated message round-trips through `@cosyte/hl7` with **zero warnings**.
  *
  * @module
  */
@@ -26,7 +26,7 @@ export type AdtTrigger = "A01" | "A04" | "A08";
 
 /** Options for {@link generateAdt}. */
 export interface GenerateAdtOptions {
-  /** The seed — the same seed yields a byte-identical message. Defaults to `0`. */
+  /** The seed: the same seed yields a byte-identical message. Defaults to `0`. */
   readonly seed?: number;
   /** The ADT trigger event. Defaults to `"A01"`. */
   readonly trigger?: AdtTrigger;
