@@ -53,6 +53,23 @@ EMAILDOMAIN example.test
 # Narrowest declaration that covers the finding.
 EMAIL cgp@lists.HL7.org
 
+# The publisher contact in `package.json`'s `author` field. It became visible the day
+# all-mode stopped stopping at `src/`, `test/` and `scripts/` and started reconciling
+# against everything git tracks: `package.json` had never been opened by either route.
+#
+# It is NAMED here rather than removed, because removing it would delete the evidence
+# that the sweep happened and would strip a real field off the published manifest: it is
+# this company's own published contact address, already on the npm registry page for
+# every `@cosyte/*` package, and it denotes an organization rather than a person
+# receiving care. It is the ONLY email anywhere in the 22 files that widening newly
+# opened (measured 2026-08-08 over the tracked corpus outside the scan roots, markdown
+# and the vendored archives aside), and there is no SSN shape in any of them.
+#
+# Declared as an exact EMAIL rather than `EMAILDOMAIN cosyte.com`, which would clear
+# every address at a live organizational domain, including one a future fixture might
+# carry by mistake. Narrowest declaration that covers the finding.
+EMAIL hello@cosyte.com
+
 # --- Synthetic person-name tokens (example: extend for your fixtures) ---
 # NAME DOE
 # NAME JOHN

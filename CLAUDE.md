@@ -92,6 +92,15 @@ traps a fixture generator gets wrong exactly once.
   retains comes from the same synthetic pools and would read as a false survivor. It **consumes the
   shipped generators unchanged**, and `deidLoopPolicy` needs **no key context**, deliberately, so the
   loop stays a pure function of the seed. `notes#the-cosytedeid-pairing-loop-synth-10-phase-8`.
+- **`pnpm phi-scan` reads MORE than its three roots, and the two modes do NOT share a scope.**
+  All-mode walks `src`/`test`/`scripts` and then reads every other file git tracks; **`--staged`, the
+  pre-commit half, still narrows to the three roots**, because the widening needs a corpus exemption
+  and an exemption on the commit-blocking route is what has subtracted a real detection elsewhere.
+  **Write one as a LITERAL PATH, never as a predicate.** Refreshing a `vendor/*.tgz` means editing
+  `BINARY_EXEMPT_PATHS`. **A scan root of the wrong KIND refuses with 2, derived here, not ported**: a
+  regular-file root exited **1** before (the code reserved for "hits found"), and one symlinked at
+  another root exited **0** over a corpus that was not on disk, because `existsSync` FOLLOWS a link.
+  `notes#the-phi-scan-reads-more-than-its-three-roots`.
 - **Never commit realistic PHI.** A vendor quirk is encoded only when a real de-identified document
   grounds it, never invented.
 
@@ -141,11 +150,9 @@ to the GitHub Actions app: `notes#the-one-ruleset-that-protects-main`.
   **For a synthetic-data generator that is the whole safety story.** Gated by
   `pnpm check:test-selection`. `notes#things-that-silently-detach-or-hollow-out-a-required-check`.
 - **Never replace that gate's exact-match script rule with a parser, and never answer a hole in it
-  with one more spelling**: analysing a shell string is unbounded; this is the half a refuter broke
-  **three times** in `ncpdp`, each time in the remedy for the last. Its four deliberate shapes
-  (resolved selection not globs; exact-match invocations ported verbatim; **derived** subjects under
-  a **deny-list** scope, because the allow-list version was broken by a refuter; and self-test C, the
-  backstop: **do not delete it thinking self-test A covers the derived rules**):
+  with one more spelling**: analysing a shell string is unbounded, and this is the half a refuter
+  broke **three times** in `ncpdp`, each time in the remedy for the last. Its four deliberate shapes,
+  and why **self-test C is NOT covered by self-test A**:
   `notes#the-test-selection-gate-and-its-four-deliberate-shapes`.
 - **READ THE COUNTS OFF THE GATE, NOT OFF PROSE, AND MOVE THEM WHEN YOU ADD A TEST FILE.**
   `pnpm check:test-selection` prints watched / name-only / unwatched every run; they have gone stale
@@ -192,10 +199,9 @@ to the GitHub Actions app: `notes#the-one-ruleset-that-protects-main`.
   surface a runtime `TypeError` or a peer parser's fatal on forwarded input. Harnesses keep
   `String(w.code)`, never a `message` or snippet; `test/phi/diagnostic-surface.test.ts` carries the
   proof. `notes#syntherror-being-the-only-constructor-is-not-the-whole-guarantee`.
-- **Read the meta-repo's `documentation/repos/phi-audit.md` before touching that.** "Warning messages
-  are PHI-free by construction" spread across thirteen repos as prose rather than shared code, and
-  this package used the inherited sentence as a reason to bound nothing. **A new safety sentence is
-  worth nothing without a slot in that table behind it.** `notes#the-phi-free-diagnostics-claim`.
+- **Read the meta-repo's `documentation/repos/phi-audit.md` before touching that.** **A new safety
+  sentence is worth nothing without a slot in that table behind it.**
+  `notes#the-phi-free-diagnostics-claim`.
 - **▶ `attw` SAYS "does not contain types" AND EXITS 0, SO THE `attw` SCRIPT IS A WRAPPER
   (`node scripts/attw.mjs --profile node16`), NOT THE BARE CLI.** For a package that ships types that
   sentence means the declarations were **not in the tarball** (a broken publish reported as a pass),
@@ -203,21 +209,17 @@ to the GitHub Actions app: `notes#the-one-ruleset-that-protects-main`.
   supplies the condition**, so the answer is not a lock, a lease or a build queue: the gate must be
   able to say its own inputs were missing, whatever removed them. `notes#the-attw-false-green-and-why-the-script-is-a-wrapper`.
 - **Do NOT re-derive the exit-0 condition from the shape of the code: three refuter passes corrected
-  it, each in the same direction.** "attw misses subpaths" is the plausible, wrong story: a
-  **partial** loss is attw's own catch (`UntypedResolution`, exit 1); a **zero-byte** `.d.ts` still
-  resolves, so an empty-declaration casualty makes **no exit-code claim at all**; and "missing" is a
-  **proxy, not the key**, since `containsTypes()` reads any declaration in the packed tarball and an
-  undeclared chunk declaration defeats it, a **known limit, filed rather than fixed; if you take it
-  up, weaken the sentence rather than adding a fifth arm.** **A gate that reds correctly and then
-  explains itself with a falsehood teaches the next reader the wrong story**, and this script gets
-  copied to sixteen more manifests. `notes#the-false-green-needs-every-entry-point-untyped-at-once`,
+  it, each in the same direction, and "attw misses subpaths" is the plausible, wrong story.** The
+  residual is a **known limit, filed rather than fixed; if you take it up, weaken the sentence rather
+  than adding a fifth arm.** **A gate that reds correctly and then explains itself with a falsehood
+  teaches the next reader the wrong story**, and this script gets copied to sixteen more manifests.
+  All three corrections, each with its measurement:
+  `notes#the-false-green-needs-every-entry-point-untyped-at-once`,
   `notes#the-first-correction-was-also-wrong-in-the-same-direction`,
   `notes#missing-is-a-proxy-not-the-key-a-known-limit`.
-- **`scripts/attw.mjs` carries two nets that catch different things**: a preflight that every
-  relative path `package.json` promises exists and is non-empty (catches the build window and _names_
-  the missing file), and a post-check on the untyped sentence (catches declarations on disk but
-  excluded from the tarball, which the preflight structurally cannot see).
-  `test/scripts/attw-gate.test.ts` pins both against the real binary plus a negative control.
+- **`scripts/attw.mjs` carries TWO nets that catch different things** (a preflight over the relative
+  paths `package.json` promises, and a post-check on the untyped sentence), both pinned by
+  `test/scripts/attw-gate.test.ts` against the real binary plus a negative control.
   `notes#the-two-nets-in-scriptsattwmjs`.
 - **The post-check reads a string, so the argument guard is an ALLOW-LIST, NOT A DENY-LIST**:
   `--profile` and `--no-definitely-typed` forwarded, everything else refused, "harmless" included. A

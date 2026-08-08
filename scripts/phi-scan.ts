@@ -6,8 +6,10 @@
  * generators or a sibling parser: a safety gate must be independent of the code
  * it guards, so a shared bug cannot blind both). `git` is the only subprocess,
  * always via `execFileSync` with array args (never shell-form). Walks `src/`,
- * `test/` and `scripts/` (see `SCAN_ROOTS`) and REFUSES anything that looks like
- * real PHI, so a developer cannot commit a real-looking fixture by accident.
+ * `test/` and `scripts/` (see `SCAN_ROOTS`), THEN ADDS EVERY OTHER TRACKED FILE
+ * THE WALK DID NOT REACH (see `buildTargetsForTracked`), and REFUSES anything
+ * that looks like real PHI, so a developer cannot commit a real-looking fixture
+ * by accident.
  *
  * THIS IS A FLOOR, NOT THE GATE. The executable proof that nothing this package
  * emits can be real or plausibly-real PHI is the property layer: the
@@ -138,9 +140,31 @@
  *   - The C-CDA name loci are NOT namespace-prefix-tolerant: `<hl7:given>` is not
  *     read, though `hasCdaMarker` does tolerate a prefix when deciding to look.
  *     Pre-existing, and not widened here.
- *   - `.md` is out of scope everywhere, deliberately.
- *   - Anything outside `src/`, `test/` and `scripts/` is out of scope, INCLUDING
- *     every file at the repo root (`vitest.config.ts`, `tsup.config.ts`, …).
+ *   - `.md` is out of scope everywhere, deliberately, AND THAT IS NOW THE LARGER
+ *     HALF OF WHAT ALL-MODE DOES NOT READ, so it is priced rather than repeated:
+ *     20 of the tracked files are markdown, they were read by hand on 2026-08-08
+ *     and carry no SSN shape and no email at all. It stays out because
+ *     `phi-scan-overrides.md` exists to record WHY a value was tolerated, so
+ *     scanning it makes the log that satisfies the gate red the gate. Lifting it
+ *     is a separate decision with its own false-positive surface, and this slice
+ *     deliberately does not take it.
+ *   - THE ROOTS ARE NO LONGER THE WHOLE OF ALL-MODE'S SCOPE. A file outside
+ *     `src/`, `test/` and `scripts/` used to be invisible to BOTH routes: the
+ *     walk never listed it and `--staged` filtered it out, so every workflow, the
+ *     manifest, the lockfile and every root config file was scanned by nothing.
+ *     Measured on the base of this change: 225 tracked files, 176 read, 49 read by
+ *     neither route. All-mode now reconciles against `git ls-files` and reads every
+ *     tracked file the walk did not, which is a UNION with the walk and never a
+ *     replacement of it. What is still in neither route is 20 markdown files (the
+ *     bullet above) and the 7 literal paths in `BINARY_EXEMPT_PATHS`.
+ *   - `--staged` STILL NARROWS TO THE ROOTS, and that asymmetry is deliberate
+ *     rather than an oversight to fix later in the same style. The widening above
+ *     needs a corpus exemption (a compressed archive read as text produces
+ *     nonsense hits, measured: 4 across 3 of the 7 vendored tarballs), and an
+ *     exemption on the commit-blocking route is exactly the shape that has
+ *     subtracted a real detection in a sibling. So the widening is `all`-route
+ *     only, and a repo-root file carrying PHI is caught by CI on the pull request
+ *     rather than by the pre-commit hook. Stated as the trade it is.
  *   - All-mode drops git-ignored files; `--staged` does NOT apply that filter, so
  *     the two modes disagree about a force-added ignored file. BOTH directions are
  *     now exercised by the suite, and neither is changed: all-mode walks the working
@@ -154,37 +178,53 @@
  * taken on this checkout with the rule in place, because a bound asserted without
  * one is the failure this file already keeps a paragraph about:
  *
- *   - ITS GRANULARITY IS THE DECLARED ROOT, NOT A SUB-TREE, so an absent
- *     directory INSIDE a root is still unobserved under a plausible denominator.
- *     `mv test/fixtures ..` then `pnpm phi-scan` returns
- *     `OK, no hits (128 file(s) scanned)` and exit 0 with 46 files unread, the
- *     same shape as the defect the per-root rule closed, one level down. Do NOT
- *     read the rule as "the scanner can no longer report a clean sweep over a
- *     directory it never opened"; it is a whole SCAN ROOT that can no longer go
- *     UNOPENED, and not "unobserved", because bullet 3 below is a whole scan
- *     root going unobserved at exit 0. A DANGLING `test/fixtures` does refuse
- *     (exit 2), but through the non-regular-entry rule, not this one. Closing the
- *     sub-tree case needs a floor derived from what git tracks under each root,
- *     which is a second moving part and a separate decision.
- *   - A ROOT THAT IS A REGULAR FILE, or a link to one, throws `ENOTDIR` out of
- *     `walk()` past the `InvocationError`-only catch, so node exits **1**: the
- *     code this contract reserves for "hits found", rather than refusing with 2.
- *     Measured by replacing `test` with a regular file. Fail-closed in every
- *     caller, since all of them test for non-zero, so it is not a false green;
- *     but the per-root rule is not what handles it, and the sentence above does
- *     not claim otherwise. Same shape as the `loadAllowList` escape already fixed
- *     further down this file.
- *   - A ROOT THAT IS ITSELF A SYMLINK IS FOLLOWED, including to ANOTHER ROOT, and
- *     the rule is then satisfied by that other root's bytes: `rm -rf test && ln -s
- *     src test` returns `OK, no hits (144 file(s) scanned)` and exit 0 with the
- *     98-file test corpus absent from disk, because `normalizePath` is purely
- *     lexical (`resolve`/`relative`, never `realpath`) so `src/` is read twice and
- *     attributed once to each prefix. "A root yielded a file" is not "that root's
- *     corpus was observed". Adversarial rather than accidental, and the existing
- *     residual note under NON-REGULAR ENTRIES says such a root is followed.
- *   - IT IS A FLOOR OF ONE. A root reduced from 98 files to 1 returns
- *     `OK, no hits (77 file(s) scanned)` and exit 0. The rule asks whether a root
- *     was observed at all, never whether it was observed in full.
+ *   - ITS GRANULARITY IS STILL THE DECLARED ROOT, NOT A SUB-TREE. Read that as a
+ *     statement about THIS RULE, never as a statement about the scan: an absent
+ *     directory inside a root, and a root emptied down to one file, are both now
+ *     caught, and NOT by this rule. They are caught by the tracked-file
+ *     reconciliation, which is exactly the "floor derived from what git tracks"
+ *     an earlier draft named as a separate decision and then declined to take.
+ *     Measured both ways on `4c9900f` and on the change that closed them:
+ *     `mv test/fixtures ..` returned `OK, no hits` and exit 0 on the base and
+ *     refuses with 2 now; deleting all but one file under `test/` returned
+ *     `OK, no hits (78 file(s) scanned)` and exit 0 on the base with 98 tracked
+ *     files unread, and refuses with 2 now, naming them.
+ *   - AND THE BOUND ON THAT, WHICH IS WHERE THIS RULE STILL EARNS ITS KEEP: the
+ *     reconciliation only knows about TRACKED files. A root holding nothing but
+ *     UNTRACKED files, or emptied of untracked ones, is invisible to it, and the
+ *     per-root rule is what refuses a root that yielded nothing at all. Neither
+ *     rule subsumes the other, so do not delete one thinking the other covers it.
+ *     A DANGLING `test/fixtures` refuses (exit 2) through the non-regular-entry
+ *     rule, a third mechanism again.
+ *   - TWO OF THE FOUR ARE NOW CLOSED, BY A KIND CHECK ON THE ROOT ITSELF rather
+ *     than by growing the per-root rule, and both readings below were taken on
+ *     `4c9900f`, the base of that change, so the fix is measured against a
+ *     defect that existed rather than one argued for:
+ *       * A ROOT THAT IS A REGULAR FILE threw `ENOTDIR` out of `walk()` past the
+ *         `InvocationError`-only catch, so node exited **1**: the code this
+ *         contract reserves for "hits found". Replacing `test` with a regular
+ *         file returned exit 1 on the base. It now refuses with **2**. Do not
+ *         port an exit code for this state from a sibling: it was 1 HERE, is 2
+ *         in some siblings, and is deliberately 1 in another.
+ *       * A ROOT THAT IS ITSELF A SYMLINK WAS FOLLOWED, including to ANOTHER
+ *         root, and the per-root rule was then satisfied by that other root's
+ *         bytes: `rm -rf test && ln -s src test` returned
+ *         `OK, no hits (145 file(s) scanned)` and exit **0** on the base with the
+ *         99-file test corpus absent from disk, because `normalizePath` is purely
+ *         lexical (`resolve`/`relative`, never `realpath`) so `src/` was read
+ *         twice and attributed once to each prefix. That is a false GREEN, the
+ *         worst state this file has. It now refuses with 2.
+ *     Both are handled by `lstat`ing each root before walking it, NOT by
+ *     `existsSync`: `existsSync` FOLLOWS a link, which is what let a dangling
+ *     root read as merely absent. "A root yielded a file" is still not "that
+ *     root's corpus was observed", which is the next bullet.
+ *   - IT IS A FLOOR OF ONE, AS A RULE, AND THAT HAS NOT CHANGED. It asks whether
+ *     a root was observed at all, never whether it was observed in full. What
+ *     changed is that the state it could not see is now seen by something else,
+ *     per the two bullets above. Do not restate the reconciliation as a property
+ *     of this rule: STAGE the deletions and the files leave the index, the
+ *     reconciliation stops naming them, and this rule is again a floor of one
+ *     over whatever remains.
  *
  * THAT IS NOT A CLOSED LIST, and in `ncpdp` saying
  * otherwise was wrong twice: the staged enumerator turned out to be dropping
@@ -193,7 +233,15 @@
  * the gate itself, and prefer exclusion lists to allow-lists there.
  */
 
-import { readFileSync, statSync, existsSync, readdirSync, type Dirent } from "node:fs";
+import {
+  readFileSync,
+  statSync,
+  lstatSync,
+  existsSync,
+  readdirSync,
+  type Dirent,
+  type Stats,
+} from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join, resolve, relative, sep, isAbsolute } from "node:path";
 
@@ -244,6 +292,50 @@ const OVERRIDE_LOG_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
 // was the point of the change.
 const SCAN_ROOTS: readonly string[] = ["src", "test", "scripts"];
 
+// THE ROOTS ARE NO LONGER THE WHOLE OF ALL-MODE'S SCOPE. After the walk, all-mode
+// reconciles what it listed against `git ls-files` and reads every tracked file the
+// walk did not reach: the manifest, the lockfile, every workflow, every root config
+// file. That is a UNION with the walk, never a replacement of it, and the walk's own
+// scope is untouched: no file the roots delivered before is dropped, and no detector
+// was taught to skip anything.
+//
+// WHY THAT SHAPE RATHER THAN A WIDER ROOT LIST. Adding `.` as a root walks
+// `node_modules/` and `dist/` on every run and then throws the result away through
+// `git check-ignore`. Reconciling against the index asks the question the gate
+// actually has: of the bytes a commit would carry, which ones did nothing open.
+//
+// THESE PATHS ARE READ FROM THE WORKING TREE, NOT FROM THE INDEX, so all-mode keeps
+// one answer to "what is a file's content" across both of its arms. The cost is that
+// a tracked file deleted from the working tree but not yet staged as deleted REFUSES
+// (exit 2) rather than being skipped: staging the deletion removes it from
+// `git ls-files` and the refusal goes away. Fail-closed, and it names the path.
+//
+// EXEMPTIONS ARE LITERAL PATHS, ONE PER LINE, AND THEY REACH `all` MODE ONLY.
+// A compressed archive read as UTF-8 produces name-shaped and email-shaped nonsense:
+// measured on this repo's base, scanning the seven vendored tarballs by path returned
+// 4 hits across 3 of them, none of which stands for anything. They are excluded here
+// rather than by a `.tgz` test, an "is it binary" heuristic or a `git check-attr`
+// query, because a corpus exemption written as a PREDICATE is the shape that has
+// already subtracted a real detection in a sibling repo: a predicate silently grows
+// to cover files nobody enumerated, and a list cannot.
+//
+// REFRESHING A VENDORED TARBALL MEANS EDITING THIS LIST, because the version is in the
+// filename. That is deliberate, and BOTH directions of drift are loud: an unlisted
+// archive is scanned and reds on nonsense hits, and a stale entry reds the test in
+// `test/scripts/phi-scan.test.ts` that reconciles this list against what git DECLARES
+// binary in `.gitattributes`. The reconciliation lives there rather than here because
+// it is a fact about this repo's corpus, not about the scanner: refusing here would
+// make the scanner unusable in any tree that has it and not the seven archives.
+const BINARY_EXEMPT_PATHS: readonly string[] = [
+  "vendor/cosyte-astm-0.0.0.tgz",
+  "vendor/cosyte-ccda-0.0.1.tgz",
+  "vendor/cosyte-deid-0.0.0.tgz",
+  "vendor/cosyte-fhir-0.0.0.tgz",
+  "vendor/cosyte-hl7-0.0.0.tgz",
+  "vendor/cosyte-ncpdp-0.0.1.tgz",
+  "vendor/cosyte-x12-0.0.1.tgz",
+];
+
 /**
  * WHICH scan root a repo-relative path sits under, or `undefined` for none. The single
  * definition of the root-prefix rule: {@link inScanRoot} is the boolean over it, and the
@@ -276,9 +368,18 @@ function inScanRoot(rel: string): boolean {
 }
 
 /**
- * Whether a repo-relative path is in scope AS A FILE TO READ. Markdown is excluded:
- * documentation legitimately quotes violator values (this scanner's own override log
- * and allow-list both do).
+ * Whether a repo-relative path is MARKDOWN, the one content exemption, split out
+ * because the tracked-file arm needs it WITHOUT the root half. Documentation
+ * legitimately quotes violator values: `phi-scan-overrides.md` exists to record why a
+ * value was tolerated, so a scan of it would red the very log that satisfies the gate.
+ */
+function isMarkdown(rel: string): boolean {
+  return rel.toLowerCase().endsWith(".md");
+}
+
+/**
+ * Whether a repo-relative path is in scope AS A FILE THE WALK READS: under a root and
+ * not markdown.
  *
  * That judgement is about a file whose BYTES the scan could have read. It is NOT the
  * predicate for deciding whether an entry is scannable at all: a link's name is no
@@ -286,7 +387,7 @@ function inScanRoot(rel: string): boolean {
  * route keys on {@link inScanRoot} alone.
  */
 function isScannable(rel: string): boolean {
-  if (rel.toLowerCase().endsWith(".md")) return false;
+  if (isMarkdown(rel)) return false;
   return inScanRoot(rel);
 }
 
@@ -642,13 +743,23 @@ interface Target {
 // refusing affordable here, and is a claim to RE-MEASURE rather than inherit if the
 // roots or the suite's seeding ever move.
 //
-// TWO RESIDUALS, DISCLOSED RATHER THAN CLOSED. `buildTargetsForPaths` still resolves
-// an operator-named positional path through `statSync`, which FOLLOWS a link: that
-// is left alone deliberately: every non-regular resolution still refuses there, and
-// the one case that gets through (a link to a regular file) reads that file's real
-// bytes, so it can only ever produce MORE hits, never fewer. And the three roots in
-// `SCAN_ROOTS` are named by this file rather than enumerated, so a root that is
-// itself a link is followed for the same reason.
+// ONE RESIDUAL, DISCLOSED RATHER THAN CLOSED, AND ONE THAT USED TO BE HERE AND IS NOT.
+// `buildTargetsForPaths` still resolves an operator-named positional path through
+// `statSync`, which FOLLOWS a link: that is left alone deliberately, every non-regular
+// resolution still refuses there, and the one case that gets through (a link to a
+// regular file) reads that file's real bytes, so it can only ever produce MORE hits,
+// never fewer.
+//
+// THE SECOND RESIDUAL IS GONE, and the sentence is rewritten rather than deleted so the
+// next reader knows it was real: the three roots in `SCAN_ROOTS` are named by this file
+// rather than enumerated, and a root that was ITSELF a link used to be followed for the
+// same reason, including to another root, which reported a clean exit 0 over a corpus
+// that was not on disk. `buildTargetsForAll` now `lstat`s each root before walking it.
+//
+// AND A THIRD SURFACE THIS RULE NOW REACHES: a tracked path OUTSIDE the roots, which
+// nothing classified before because no walk listed it and `--staged` filtered it out.
+// `buildTargetsForTracked` refuses one whose git mode or whose on-disk kind is not a
+// regular file, using the same two closed-set describers and the same refusal.
 // ---------------------------------------------------------------------------
 
 /**
@@ -673,14 +784,63 @@ function direntKind(e: Dirent): string {
 }
 
 /**
+ * The same closed set over an `lstat` answer rather than a `Dirent`. Used for the two
+ * things a `Dirent` cannot describe: a SCAN ROOT (nothing lists it, `walk` is entered
+ * AT it) and a tracked path the walk never reached.
+ */
+function statKind(st: Stats): string {
+  if (st.isSymbolicLink()) return "a symbolic link";
+  if (st.isDirectory()) return "a directory";
+  if (st.isFIFO()) return "a FIFO";
+  if (st.isSocket()) return "a socket";
+  if (st.isBlockDevice()) return "a block device";
+  if (st.isCharacterDevice()) return "a character device";
+  return "not a regular file";
+}
+
+/**
+ * `lstat` without following, or `undefined` when the path does not exist. Deliberately
+ * NOT `existsSync`, which FOLLOWS a symbolic link and therefore answers false for a
+ * DANGLING one: that is what let a dangling root read as merely absent, and a root
+ * linked at another root read as present and healthy.
+ *
+ * @throws InvocationError for any failure that is not `ENOENT`. A path the scan cannot
+ *   even stat is a scan that failed, not a path that is not there.
+ */
+function lstatOrUndefined(abs: string, rel: string): Stats | undefined {
+  try {
+    return lstatSync(abs);
+  } catch (err) {
+    if (errorCode(err) === "ENOENT") return undefined;
+    throw new InvocationError(
+      `could not stat ${rel}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+/**
  * Enumerate a scan root. `Dirent`'s predicates are lstat answers and are NOT
  * exhaustive: an entry that is neither a directory nor a regular file is collected
  * into `unscannable` rather than dropped, so the caller can refuse instead of
  * reporting clean over it.
+ *
+ * ONLY EVER ENTERED AT A VERIFIED DIRECTORY: the caller `lstat`s each root, and the
+ * recursion below only follows a `Dirent` that lstat says is a directory. So a
+ * `readdirSync` failure here is not "a root that is really a file", it is the tree
+ * moving under the sweep, and it REFUSES rather than escaping as an uncaught throw
+ * that node reports as exit 1, the code this contract reserves for "hits found".
  */
 function walk(dir: string, out: string[], unscannable: Unscannable[]): void {
-  if (!existsSync(dir)) return;
-  for (const e of readdirSync(dir, { withFileTypes: true })) {
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch (err) {
+    throw new InvocationError(
+      `could not list ${normalizePath(dir)}: ${err instanceof Error ? err.message : String(err)}. ` +
+        `Refusing rather than reporting a sweep over a directory it could not read.`,
+    );
+  }
+  for (const e of entries) {
     const full = join(dir, e.name);
     if (e.isDirectory()) {
       walk(full, out, unscannable);
@@ -733,9 +893,13 @@ function gitIgnored(paths: string[]): Set<string> {
 }
 
 /**
- * Every path git tracks, or `null` when git could not answer. `null` switches the
- * `tolerateVanish` tolerance off entirely (fail closed): without the tracked set
- * there is no way to tell a build transient from committed content.
+ * Every path git tracks, mapped to its file MODE, or `null` when git could not answer.
+ *
+ * TWO CALLERS WITH DIFFERENT STAKES. It still switches the `tolerateVanish` tolerance
+ * off (without the tracked set there is no way to tell a build transient from committed
+ * content), and it is now also the SUBJECT of the tracked-file arm, which is why
+ * all-mode REFUSES on `null` rather than carrying on: a silently absent tracked set
+ * would silently subtract that whole arm, which is the defect this file is about.
  *
  * An EMPTY answer counts as no answer for the same reason. `git ls-files` exits 0
  * with no output for a repo whose index is empty or has been removed (a CORRUPT
@@ -744,27 +908,36 @@ function gitIgnored(paths: string[]): Set<string> {
  * silently stops existing. This repo always tracks files, so there is no
  * legitimate empty case here.
  *
- * TWO LIMITS OF THIS FUNCTION, DISCLOSED RATHER THAN CLOSED. Failing closed is safe
- * but SILENT: when this returns `null` the sweep still refuses, and the only line an
- * operator sees is `could not read <path>: ENOENT …`, which names the file rather
- * than the reason the tolerance was switched off. And `execFileSync`'s default 1 MiB
- * `maxBuffer` bounds the answer: a repo whose `git ls-files -z` output exceeds it
- * throws, lands in the `catch`, and the tolerance stops applying with no diagnostic.
- * Measured on this repo: `git ls-files -z | wc -c` is 6,556 bytes, so there is three
- * orders of magnitude of headroom and neither limit is reachable here today. Both
- * fail in the refusing direction, which is why they are recorded and not fixed in
- * this slice.
+ * ONE LIMIT, DISCLOSED RATHER THAN CLOSED. `execFileSync`'s default 1 MiB `maxBuffer`
+ * bounds the answer: a repo whose `git ls-files -s -z` output exceeds it throws and
+ * lands in the `catch`. Measured on this repo: 18,015 bytes against 6,765 for a bare
+ * listing, so `-s` costs 2.7x and leaves roughly 58x of headroom, under two orders of
+ * magnitude. Recorded because the next repo to take this change may have less room.
+ * It fails in the refusing direction.
  */
-function gitTracked(): Set<string> | null {
+function gitTracked(): Map<string, string> | null {
   try {
     // SECURITY: array-form execFileSync, no shell. `-z` is NUL-separated and
     // unquoted, so it matches the walk's forward-slash relative paths exactly.
-    const out = execFileSync("git", ["ls-files", "-z"], {
+    //
+    // `-s` rather than a bare listing, because the MODE is what distinguishes a
+    // tracked regular blob from a tracked symlink or gitlink, and the tracked-file
+    // arm below reads paths nothing else classifies. Record shape is
+    // `<mode> <sha> <stage>\t<path>`, and only the `\t` is positional.
+    const out = execFileSync("git", ["ls-files", "-s", "-z"], {
       stdio: ["ignore", "pipe", "ignore"],
     });
-    const tracked = new Set<string>();
-    for (const p of out.toString("utf8").split("\0")) {
-      if (p.length > 0) tracked.add(p);
+    const tracked = new Map<string, string>();
+    for (const record of out.toString("utf8").split("\0")) {
+      if (record.length === 0) continue;
+      const tab = record.indexOf("\t");
+      const mode = record.slice(0, 6);
+      const path = tab < 0 ? "" : record.slice(tab + 1);
+      // A record this cannot read is NOT skipped: a silently shortened tracked set
+      // narrows the scan below without narrowing the denominator, which is the exact
+      // shape this file exists to refuse.
+      if (path.length === 0 || !/^\d{6}$/.test(mode)) return null;
+      tracked.set(path, mode);
     }
     return tracked.size > 0 ? tracked : null;
   } catch {
@@ -772,10 +945,114 @@ function gitTracked(): Set<string> | null {
   }
 }
 
+/**
+ * Every tracked file the walk did not reach: the reconciliation half of all-mode.
+ *
+ * Its subject is `git ls-files` MINUS what the walk already listed, so it is a union
+ * with the walk and can never shrink it. Markdown stays out ({@link isMarkdown}), and
+ * so do the literal paths in {@link BINARY_EXEMPT_PATHS}.
+ *
+ * TWO WAYS IT REFUSES RATHER THAN QUIETLY READING LESS, because this arm's whole point
+ * is to notice what nothing opened:
+ *   - a tracked path whose git MODE is not a regular blob, or whose on-disk kind is
+ *     not a regular file, refuses exactly as the walk's non-regular rule does;
+ *   - a tracked path ABSENT from the working tree refuses. That is the case a root's
+ *     missing sub-directory used to hide in: the files stay in the index, so they turn
+ *     up here and are named, rather than going unread under a plausible denominator.
+ *
+ * AN INERT EXEMPTION IS NOT ONE OF THEM, AND THAT IS A DELIBERATE PLACEMENT RATHER THAN
+ * AN OMISSION. Refusing here on an exempt path git does not track would couple the
+ * scanner to seven specific archives existing, so it would refuse in any tree that has
+ * the scanner and not the vendored tarballs, which is every throwaway root this suite
+ * builds and any shallow export. The drift is caught where a repo-specific fact belongs,
+ * in `test/scripts/phi-scan.test.ts`, which reconciles the literal list against what git
+ * DECLARES binary and reds if either side moves.
+ *
+ * @param walked - repo-relative paths the walk already yielded, after the ignore filter.
+ * @param tracked - `git ls-files -s` as path to mode.
+ * @returns one target per tracked file the walk did not reach.
+ * @throws InvocationError for each of the two cases above.
+ */
+function buildTargetsForTracked(
+  walked: ReadonlySet<string>,
+  tracked: ReadonlyMap<string, string>,
+): Target[] {
+  const exempt = new Set(BINARY_EXEMPT_PATHS);
+  const candidates = [...tracked.keys()]
+    .filter((rel) => !walked.has(rel) && !exempt.has(rel) && !isMarkdown(rel))
+    .sort();
+
+  const irregular: Unscannable[] = [];
+  const absent: string[] = [];
+  const targets: Target[] = [];
+  for (const rel of candidates) {
+    const mode = tracked.get(rel) ?? "";
+    if (!REGULAR_BLOB_MODES.has(mode)) {
+      irregular.push({ path: rel, kind: gitModeKind(mode) });
+      continue;
+    }
+    const abs = join(REPO_ROOT, rel);
+    const st = lstatOrUndefined(abs, rel);
+    if (st === undefined) {
+      absent.push(rel);
+      continue;
+    }
+    if (!st.isFile()) {
+      irregular.push({ path: rel, kind: statKind(st) });
+      continue;
+    }
+    // NEVER `tolerateVanish`: that tolerance is for an UNTRACKED transient the walk
+    // listed itself, and every path here is tracked by definition.
+    targets.push({ path: rel, read: () => readFileSync(abs), absPath: abs });
+  }
+
+  refuseUnscannable(
+    irregular,
+    "The scan can neither read such an entry nor vouch for what is on the other side of it.",
+    "Remove it, replace it with a regular file, or untrack it.",
+  );
+
+  if (absent.length > 0) {
+    throw new InvocationError(
+      `refusing the scan: ${String(absent.length)} tracked file(s) in scope are absent from the ` +
+        `working tree:\n${absent.map((p) => `  - ${p}`).join("\n")}\n` +
+        `git still carries them, so an OK here would be an OK over bytes nothing read. ` +
+        `Restore them, or stage the deletion so they leave the index too.`,
+    );
+  }
+
+  return targets;
+}
+
 function buildTargetsForAll(): Target[] {
   const files: string[] = [];
   const unscannable: Unscannable[] = [];
-  for (const root of SCAN_ROOTS) walk(join(REPO_ROOT, root), files, unscannable);
+
+  // EACH ROOT IS CLASSIFIED BEFORE IT IS WALKED, and `walk` is entered only at a real
+  // directory. `existsSync` is deliberately not used: it FOLLOWS a link, so a DANGLING
+  // root answered false and read as merely absent, and a root LINKED AT ANOTHER ROOT
+  // answered true and was walked, which let the other root's bytes satisfy the per-root
+  // observation rule while this root's corpus was not on disk at all. Both were measured
+  // on this repo, and the second was a clean exit 0.
+  const rootProblems: Unscannable[] = [];
+  for (const root of SCAN_ROOTS) {
+    const abs = join(REPO_ROOT, root);
+    const st = lstatOrUndefined(abs, root);
+    // An ABSENT root is left to the per-root observation rule in `main`, which already
+    // names it and refuses: two refusals for one state would only disagree over time.
+    if (st === undefined) continue;
+    if (!st.isDirectory()) {
+      rootProblems.push({ path: root, kind: statKind(st) });
+      continue;
+    }
+    walk(abs, files, unscannable);
+  }
+  refuseUnscannable(
+    rootProblems,
+    "A scan root that is not a directory yields no files, and the per-root observation rule " +
+      "cannot tell that apart from a root that is merely absent.",
+    "Restore it as a directory, or change SCAN_ROOTS in scripts/phi-scan.ts.",
+  );
 
   // ONE `git check-ignore` over both lists. An ignored entry is already out of scope
   // for the file route, so applying the same rule to a link keeps a single boundary
@@ -790,14 +1067,35 @@ function buildTargetsForAll(): Target[] {
   );
 
   const tracked = gitTracked();
-  return files
+  if (tracked === null) {
+    // FAIL CLOSED, AND SAY SO. All-mode's scope is now partly defined by the index, so a
+    // git that cannot answer is a sweep that cannot say what it failed to open. The old
+    // behaviour (silently switch the TOCTOU tolerance off) was survivable while the roots
+    // were the whole scope; it is not survivable now.
+    throw new InvocationError(
+      "could not read `git ls-files -s -z`, or it answered with an empty index. All-mode " +
+        "reconciles what it walked against what git tracks, so without that answer it " +
+        "cannot say which tracked files nothing opened. Refusing rather than reporting an " +
+        "OK over an unknown corpus.",
+    );
+  }
+
+  const walkTargets = files
     .filter((abs) => !ignored.has(normalizePath(abs)))
     .map((abs) => ({
       path: normalizePath(abs),
       read: () => readFileSync(abs),
       absPath: abs,
-      tolerateVanish: tracked !== null && !tracked.has(normalizePath(abs)),
+      tolerateVanish: !tracked.has(normalizePath(abs)),
     }));
+
+  // UNION, IN THIS ORDER, AND THE WALK'S SET IS NEVER FILTERED BY THE SECOND ARM. A
+  // tracked file the walk DID reach is already a target; the reconciliation adds the
+  // rest. A tracked file that the ignore filter dropped under a root arrives here too,
+  // which is the one place the two arms overlap in intent: git carries it, so it is
+  // corpus whatever `.gitignore` says.
+  const walkedPaths = new Set(walkTargets.map((t) => t.path));
+  return [...walkTargets, ...buildTargetsForTracked(walkedPaths, tracked)];
 }
 
 function buildTargetsForPaths(paths: string[]): Target[] {

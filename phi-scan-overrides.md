@@ -21,6 +21,17 @@ _every_ check for that file.
 > writing are listed in the header of `scripts/phi-scan.ts`, and that list is not
 > claimed to be complete.
 >
+> **All-mode reads more than the three scan roots.** It walks `src/`, `test/` and
+> `scripts/`, and then reconciles what it walked against `git ls-files` and reads
+> every tracked file the walk did not reach: the manifest, the lockfile, every
+> workflow, every root config file. Before that, 49 of 225 tracked files were read
+> by neither route. What is still read by neither is markdown (documentation quotes
+> violator values, which is what this log does) and the vendored archives, named one
+> literal path at a time in the scanner. **`--staged` still narrows to the three
+> roots**, deliberately: the widening needs a corpus exemption, and an exemption on
+> the commit-blocking route is the shape that has subtracted a real detection
+> elsewhere. So a repo-root file is caught by CI rather than by the pre-commit hook.
+>
 > **One read failure is tolerated, and it is bounded on purpose.** All-mode lists
 > `src/`, `test/` and `scripts/` and then reads each file, so a file created and
 > deleted inside that window used to refuse the whole sweep. It is now reported on

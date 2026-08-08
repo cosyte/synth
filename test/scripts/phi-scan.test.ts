@@ -183,8 +183,13 @@ interface RunResult {
 }
 
 /** Run the scanner with its cwd set to `cwd` (the scanner treats cwd as the repo root). */
-function runScannerIn(cwd: string, args: string[]): RunResult {
-  const r = spawnSync(NODE_BIN, [SCANNER_PATH, ...args], { cwd, encoding: "utf8", shell: false });
+function runScannerIn(cwd: string, args: string[], extraEnv: NodeJS.ProcessEnv = {}): RunResult {
+  const r = spawnSync(NODE_BIN, [SCANNER_PATH, ...args], {
+    cwd,
+    encoding: "utf8",
+    shell: false,
+    env: { ...process.env, ...extraEnv },
+  });
   return { code: r.status ?? -1, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
 }
 
@@ -349,6 +354,13 @@ const SEEDED_ROOT_FILES: readonly string[] = [
  * allow-list (so detection behaves identically to the real thing), an inert file
  * under each remaining scan root (see {@link SEEDED_ROOT_FILES}), plus an override
  * log carrying `entries` under `## Entries`.
+ *
+ * IT IS A REAL GIT REPOSITORY WITH THOSE FOUR FILES COMMITTED, and that is no longer
+ * optional. All-mode reconciles what it walked against `git ls-files` and REFUSES when
+ * git cannot answer, so a throwaway root that is not a repo would refuse every all-mode
+ * test in this file for a reason none of them is about. Committing rather than merely
+ * adding also keeps the index CLEAN, so `git diff --cached` is empty until a test stages
+ * something: the staged-mode tests below depend on that.
  */
 function makeRoot(entries: readonly string[] = []): string {
   const root = mkdtempSync(join(tmpdir(), "phi-scan-root-"));
@@ -366,7 +378,27 @@ function makeRoot(entries: readonly string[] = []): string {
     join(root, "phi-scan-overrides.md"),
     `# throwaway log\n\n## Entries\n\n${entries.map((p) => `### ${p}\n`).join("\n")}`,
   );
+  git(root, ["init", "-q", "-b", "main"]);
+  git(root, ["config", "user.email", "fixture@example.com"]);
+  git(root, ["config", "user.name", "fixture"]);
+  git(root, ["add", "-A"]);
+  git(root, ["commit", "-q", "-m", "base"]);
   return root;
+}
+
+/**
+ * Stage every pending change in `root`, INCLUDING deletions, so `git ls-files` stops
+ * naming files a test has removed from the working tree.
+ *
+ * A TEST HELPER THAT ENCODES A REAL RULE, not a convenience. The tracked-file
+ * reconciliation refuses when git still carries a file nothing read, so "remove a
+ * directory" and "remove a directory and tell git" are now DIFFERENT states with
+ * different exit reasons. A test about the per-root observation rule wants the second;
+ * a test about the reconciliation wants the first. Saying which one it means is the
+ * point.
+ */
+function stageDeletions(root: string): void {
+  git(root, ["add", "-A"]);
 }
 
 /** Write `content` at repo-relative `rel` under `root`, creating parent directories. */
@@ -794,14 +826,188 @@ describe("phi-scan: the scan roots cover src/, test/ and scripts/", () => {
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
   });
 
-  it("leaves paths outside the roots out of scope, in a throwaway root", () => {
-    // Repo-root files (`vitest.config.ts`, `tsup.config.ts`, …) are NOT scanned.
-    // That is a real limit of the enumerator, so it is asserted rather than implied.
+  it("leaves an UNTRACKED path outside the roots out of scope, in a throwaway root", () => {
+    // The WALK's scope is still exactly the three roots, and that is what this pins.
+    // The file is untracked, so the reconciliation below does not reach it either: a
+    // path outside the roots is in scope only once git carries it. The sibling test in
+    // the next block is the same probe, tracked, and it exits 1.
     const r = withRoot([], (root) => {
       put(root, "outside.xml", VIOLATOR);
       return runScannerIn(root, []);
     });
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The tracked-file reconciliation: what the roots did not reach.
+//
+// THIS BLOCK REPLACES A CLAIM, IN THE OPEN. The test above used to read "leaves paths
+// outside the roots out of scope" and asserted a repo-root violator exits 0, with the
+// comment that `vitest.config.ts` and friends are simply not scanned. That was true and
+// it was the defect: on the base of this change, 49 of 225 tracked files were read by
+// NEITHER route, every workflow and every root config file among them, and a staged
+// repo-root file carrying a name, an SSN and an email exited 0 on both.
+//
+// The remedy is a UNION and never a replacement: the walk's own scope is untouched, no
+// detector was taught to skip anything, and the only subtraction anywhere is a list of
+// LITERAL paths for the vendored archives, which a base run never scanned in the first
+// place. The exemption reaches `all` mode only; `--staged` is byte-identical to base.
+// ---------------------------------------------------------------------------
+
+/**
+ * The literal exemption list, read out of the scanner's source. Parsing the source is
+ * the only route: the scanner is a script that runs `process.exit` on import, so there
+ * is nothing to import. The extraction is asserted non-empty before it is used, so a
+ * pattern that stops matching reds instead of vacuously passing.
+ */
+function binaryExemptPaths(): string[] {
+  const src = readFileSync(SCANNER_PATH, "utf8");
+  const block = /const BINARY_EXEMPT_PATHS: readonly string\[\] = \[([\s\S]*?)\];/.exec(src)?.[1];
+  expect(block, "BINARY_EXEMPT_PATHS not found in the scanner source").toBeDefined();
+  return [...(block ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1] ?? "");
+}
+
+describe("phi-scan: all-mode reconciles what it walked against what git tracks", () => {
+  it("catches a violator in a TRACKED file outside every scan root", () => {
+    const r = withRoot([], (root) => {
+      put(root, "outside.xml", VIOLATOR);
+      git(root, ["add", "--", "outside.xml"]);
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(1);
+    expect(r.stderr).toContain("outside.xml");
+  });
+
+  it("catches one in a tracked file the ignore filter drops from the WALK", () => {
+    // The one place the two arms overlap in intent. All-mode drops a gitignored path,
+    // because under a root that means build output. But a path git actually CARRIES is
+    // corpus whatever `.gitignore` says, so the reconciliation picks it back up.
+    const r = withRoot([], (root) => {
+      put(root, ".gitignore", "src/generated/\n");
+      put(root, "src/generated/leak.xml", VIOLATOR);
+      git(root, ["add", "-f", "--", "src/generated/leak.xml"]);
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(1);
+    expect(r.stderr).toContain("src/generated/leak.xml");
+  });
+
+  it("keeps markdown out of scope on the new arm too", () => {
+    const r = withRoot([], (root) => {
+      put(root, "NOTES.md", VIOLATOR);
+      git(root, ["add", "--", "NOTES.md"]);
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("REFUSES a tracked file in scope that is absent from the working tree", () => {
+    const r = withRoot([], (root) => {
+      put(root, "config.json", "{}\n");
+      git(root, ["add", "--", "config.json"]);
+      rmSync(join(root, "config.json"), { force: true });
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).toMatch(/tracked file\(s\) in scope are absent from the working tree/);
+    expect(r.stderr).toContain("config.json");
+  });
+
+  it("REFUSES a tracked entry outside the roots that is not a regular file", () => {
+    // Same rule the walk applies inside a root, reaching a surface nothing classified
+    // before: git stores a symbolic link as its TARGET PATH, so reading it would prove
+    // nothing about what it stands for. The refusal names the entry and its kind, never
+    // the target, which is working-tree text that can itself carry PHI.
+    const r = withRoot([], (root) => {
+      symlinkSync(join(root, "src/zz-root-seed.ts"), join(root, "link.ts"));
+      git(root, ["add", "--", "link.ts"]);
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).toContain("link.ts");
+    expect(r.stderr).toMatch(/a symbolic link/);
+  });
+
+  it("REFUSES all-mode outright when git cannot say what it tracks", () => {
+    // Fail closed and SAY SO. All-mode's scope is now partly the index, so an absent
+    // answer would silently subtract the whole arm, which is the defect this block is
+    // about arriving through the back door.
+    const r = withRoot([], (root) => {
+      rmSync(join(root, ".git"), { recursive: true, force: true });
+      return runScannerIn(root, [], { GIT_CEILING_DIRECTORIES: tmpdir() });
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).toMatch(/could not read `git ls-files/);
+    expect(r.stdout).not.toContain("OK");
+  });
+
+  it("does NOT widen `--staged`, which is byte-identical to the base contract", () => {
+    // THE ONE RULE THIS CLASS HAS PAID AN `INTRODUCED` MAJOR FOR: an exemption must
+    // never reach the commit-blocking route. The widening needs one (a compressed
+    // archive read as text produces nonsense hits), so the widening is `all`-mode only
+    // and the pre-commit half still narrows to the roots. Asserted rather than left as
+    // prose, because the failure it prevents is a detection SUBTRACTED from the route
+    // that blocks a commit.
+    const { inRoot, outside } = withRoot([], (root) => {
+      put(root, "src/staged.xml", VIOLATOR);
+      put(root, "outside.xml", VIOLATOR);
+      git(root, ["add", "--", "src/staged.xml", "outside.xml"]);
+      return { inRoot: runScannerIn(root, ["--staged"]), outside: runScannerIn(root, []) };
+    });
+    // In-root staged detection is unchanged, and non-vacuous: the same corpus in
+    // all-mode finds BOTH files, so the staged result below is a scope difference and
+    // not a detector that stopped working.
+    expect(inRoot.code, `stdout: ${inRoot.stdout}`).toBe(1);
+    expect(inRoot.stderr).toContain("src/staged.xml");
+    expect(inRoot.stderr).not.toContain("outside.xml");
+    expect(outside.code, `stdout: ${outside.stdout}`).toBe(1);
+    expect(outside.stderr).toContain("outside.xml");
+  });
+
+  it("exempts the vendored archives BY LITERAL PATH, and nothing else under vendor/", () => {
+    // A PREDICATE WOULD HAVE COVERED BOTH FILES BELOW. The list covers exactly the one
+    // it names, which is the whole reason it is a list.
+    const exempt = binaryExemptPaths();
+    expect(exempt.length).toBeGreaterThan(0);
+    const r = withRoot([], (root) => {
+      put(root, "vendor/not-exempt.xml", VIOLATOR);
+      git(root, ["add", "--", "vendor/not-exempt.xml"]);
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(1);
+    expect(r.stderr).toContain("vendor/not-exempt.xml");
+  });
+
+  it("keeps the exemption list in step with what git DECLARES binary in this repo", () => {
+    // THE DRIFT TRIPWIRE, and it lives here rather than in the scanner on purpose: the
+    // scanner must stay usable in a tree that has it and not these archives, so an
+    // inert entry cannot refuse a scan. It CAN red a test, because this is a fact about
+    // this repo's corpus. Both directions matter: an archive refreshed to a new version
+    // leaves a stale literal behind (and the new filename unlisted, which reds the scan
+    // on nonsense hits), and a `binary` declaration added elsewhere would exempt
+    // nothing while looking like it does.
+    const declared = spawnSync("git", ["ls-files", "-z"], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      shell: false,
+    });
+    const tracked = (declared.stdout ?? "").split("\0").filter((p) => p.length > 0);
+    expect(tracked.length).toBeGreaterThan(100);
+    const attr = spawnSync("git", ["check-attr", "--stdin", "-z", "binary"], {
+      cwd: REPO_ROOT,
+      input: tracked.join("\0"),
+      encoding: "utf8",
+      shell: false,
+    });
+    // `--stdin -z` answers `<path>\0binary\0<value>\0` per file.
+    const fields = (attr.stdout ?? "").split("\0");
+    const binaries: string[] = [];
+    for (let i = 0; i + 2 < fields.length; i += 3) {
+      if (fields[i + 2] === "set") binaries.push(fields[i] ?? "");
+    }
+    expect(binaries.length, "no file in this repo is declared binary").toBeGreaterThan(0);
+    expect([...binaryExemptPaths()].sort()).toEqual([...binaries].sort());
   });
 });
 
@@ -1063,6 +1269,13 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
       const { starved, control } = withRoot([], (root) => {
         const control = runScannerIn(root, []);
         rmSync(join(root, scanRoot), { recursive: true, force: true });
+        // THE DELETION IS STAGED, AND THAT IS THE ASSERTION'S SUBJECT, not tidiness.
+        // Removing the directory alone now refuses one step EARLIER, in the tracked-file
+        // reconciliation, because git still carries what was removed: a different rule
+        // with a different message, pinned by its own test below. Staging the deletion
+        // takes those files out of the index too, which is the state this rule is the
+        // only thing that catches.
+        stageDeletions(root);
         return { starved: runScannerIn(root, []), control };
       });
       // The control proves the same fixture scans clean with every root populated, so
@@ -1078,32 +1291,17 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
     });
   }
 
-  it("REFUSES a scan root that is a DANGLING SYMLINK, which no other rule sees", () => {
-    // The sharpest case, and the one the global rule was blindest to: the root is not
-    // missing, it is a link the walk silently gives up on. `existsSync` follows it and
-    // answers false, so `walk` returns before `readdirSync`, and the non-regular check
-    // never runs either, because it only ever classifies entries found INSIDE a root.
-    const { linked, control } = withRoot([], (root) => {
-      const control = runScannerIn(root, []);
-      rmSync(join(root, "test"), { recursive: true, force: true });
-      symlinkSync(join(root, "no-such-target"), join(root, "test"));
-      // Not vacuous: the link really is dangling, so nothing is on the other side to
-      // scan and the refusal cannot be an artifact of a resolvable target.
-      expect(existsSync(join(root, "test"))).toBe(false);
-      return { linked: runScannerIn(root, []), control };
-    });
-    expect(control.code, `stderr: ${control.stderr}`).toBe(0);
-    expect(linked.code, `stdout: ${linked.stdout}`).toBe(2);
-    expect(linked.stderr).toMatch(/observed no files under 1 of its 3 scan roots \(test\)/);
-  });
-
   it("REFUSES a root that EXISTS, is readable, and holds only out-of-scope files", () => {
     // A root need not be missing to go unobserved. `.md` is exempt everywhere, so a
     // `test/` holding nothing but markdown enumerates zero files and the sweep learns
     // nothing about it: the same unobserved corpus, with the tree shape untouched.
+    //
+    // The removal is staged for the reason given in the emptied-root case above: this
+    // test is about the per-root rule, so git must not still be carrying the seed.
     const r = withRoot([], (root) => {
       rmSync(join(root, seedUnder("test")), { force: true });
       put(root, "test/notes.md", "# nothing in scope here\n");
+      stageDeletions(root);
       return runScannerIn(root, []);
     });
     expect(r.code, `stdout: ${r.stdout}`).toBe(2);
@@ -1132,6 +1330,7 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
     const r = withRoot([], (root) => {
       rmSync(join(root, "test"), { recursive: true, force: true });
       put(root, "src/leak.xml", VIOLATOR);
+      stageDeletions(root);
       return runScannerIn(root, []);
     });
     expect(r.code, `stdout: ${r.stdout}`).toBe(2);
@@ -1158,28 +1357,55 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
     expect(scannedCount(r)).toBe(1);
   });
 
-  it("CHARACTERIZES the granularity limit: an absent SUB-TREE of a root still exits 0", () => {
-    // A KNOWN LIMIT MADE EXECUTABLE, not an endorsement. The rule's granularity is the
-    // declared root, so a directory removed from INSIDE a root goes unobserved under a
-    // plausible denominator: the same shape as the defect this block closes, one level
-    // down. It is recorded in the scanner's limits list with its reading.
+  it("no longer exits 0 over an absent SUB-TREE, and it is NOT this rule that caught it", () => {
+    // THIS TEST USED TO CHARACTERIZE THE OPPOSITE, AND IT IS REWRITTEN RATHER THAN
+    // DELETED, exactly as its predecessor asked. It read: "an absent SUB-TREE of a root
+    // still exits 0", a known limit made executable, with the instruction that a red here
+    // is a reviewer moment and the entry must move in the scanner's limits list. The gap
+    // is closed, so the assertion is inverted and the limits entry moved with it.
     //
-    // IF THIS REDS, the gate was narrowed and that is a reviewer moment, not a failure:
-    // update this test visibly and move the limits-list entry, exactly as the extension
-    // gate's characterization test was rewritten when its gap was closed. Never quietly
-    // delete it to get green.
-    const { narrowed, control } = withRoot([], (root) => {
+    // WHAT CLOSED IT MATTERS AS MUCH AS THAT IT CLOSED. Not the per-root rule, whose
+    // granularity is still the declared root and nothing finer: the tracked-file
+    // reconciliation, which notices that git still carries a file nothing read. The
+    // second half of this test is what stops the two from being confused: stage the
+    // deletion, git stops carrying it, and the sweep is green again at a smaller
+    // denominator. That is the per-root rule being a floor of one, still.
+    const { narrowed, staged, control } = withRoot([], (root) => {
       put(root, "test/deep/one.ts", "// in scope, under a sub-tree\n");
+      git(root, ["add", "--", "test/deep/one.ts"]);
       const control = runScannerIn(root, []);
       rmSync(join(root, "test/deep"), { recursive: true, force: true });
-      return { narrowed: runScannerIn(root, []), control };
+      const narrowed = runScannerIn(root, []);
+      stageDeletions(root);
+      return { narrowed, staged: runScannerIn(root, []), control };
     });
-    // The control counts the sub-tree file; the narrowed run does not, and still passes,
-    // which is precisely the limit: the denominator moved and the verdict did not.
     expect(control.code, `stderr: ${control.stderr}`).toBe(0);
     expect(scannedCount(control)).toBe(SEEDED_ROOT_FILES.length + 1);
-    expect(narrowed.code, `stderr: ${narrowed.stderr}`).toBe(0);
-    expect(scannedCount(narrowed)).toBe(SEEDED_ROOT_FILES.length);
+
+    expect(narrowed.code, `stdout: ${narrowed.stdout}`).toBe(2);
+    expect(narrowed.stderr).toMatch(/tracked file\(s\) in scope are absent from the working tree/);
+    expect(narrowed.stderr).toContain("test/deep/one.ts");
+    expect(narrowed.stdout).not.toContain("OK");
+
+    expect(staged.code, `stderr: ${staged.stderr}`).toBe(0);
+    expect(scannedCount(staged)).toBe(SEEDED_ROOT_FILES.length);
+  });
+
+  it("is NOT what catches a root of the wrong KIND, which is a separate rule", () => {
+    // Kept inside this block on purpose: a dangling-symlink root used to be THIS rule's
+    // sharpest case, and it is now caught earlier by the root-kind check next door. The
+    // per-root rule still fires for a root that is a real, readable directory yielding
+    // nothing, which the tests above pin. Do not delete either thinking the other covers
+    // it: they see different states and print different reasons.
+    const r = withRoot([], (root) => {
+      rmSync(join(root, "test"), { recursive: true, force: true });
+      symlinkSync(join(root, "no-such-target"), join(root, "test"));
+      expect(existsSync(join(root, "test"))).toBe(false);
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).not.toMatch(/observed no files under/);
+    expect(r.stderr).toMatch(/a symbolic link/);
   });
 
   it("is NON-VACUOUS on this checkout: every declared root really does carry a corpus", () => {
@@ -1198,18 +1424,94 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
 });
 
 // ---------------------------------------------------------------------------
+// A SCAN ROOT OF THE WRONG KIND. Two states measured on this package's base
+// (`4c9900f`), both of which the per-root observation rule structurally could not
+// see, because `walk` is entered AT a root and only ever classifies entries INSIDE
+// one:
+//
+//   * `test` replaced by a REGULAR FILE threw `ENOTDIR` out of `walk()` past the
+//     `InvocationError`-only catch, so node exited **1**: the code this contract
+//     reserves for "hits found". Fail-closed in every caller, since all of them test
+//     for non-zero, but wrong, and NOT an exit code to port from a sibling.
+//   * `test` replaced by a SYMLINK TO `src` returned `OK, no hits (145 file(s)
+//     scanned)` and exit **0**, with the 99-file test corpus not on disk at all:
+//     `normalizePath` is purely lexical, so `src/` was read twice and attributed once
+//     to each prefix, and the per-root rule was satisfied by the other root's bytes.
+//     A false GREEN, the worst state this scanner has.
+//
+// Both are now `lstat`ed before the walk. `existsSync` is what made this hard to see:
+// it FOLLOWS a link, so a dangling root answered false and read as merely absent while
+// a root linked at another root answered true and was walked.
+// ---------------------------------------------------------------------------
+
+describe("phi-scan: a scan root that is not a directory refuses the scan", () => {
+  it("REFUSES a root that is a REGULAR FILE, with 2 and not the `hits found` 1", () => {
+    const r = withRoot([], (root) => {
+      rmSync(join(root, "test"), { recursive: true, force: true });
+      writeFileSync(join(root, "test"), "not a directory\n");
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}\nstderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toMatch(/scan root/);
+    expect(r.stderr).toContain("test");
+  });
+
+  it("REFUSES a root that is a SYMLINK TO ANOTHER ROOT, which used to exit 0", () => {
+    const { linked, control } = withRoot([], (root) => {
+      const control = runScannerIn(root, []);
+      rmSync(join(root, "test"), { recursive: true, force: true });
+      symlinkSync(join(root, "src"), join(root, "test"));
+      // NOT VACUOUS: the link resolves, so the base really did walk it and really did
+      // report a clean sweep. The refusal is about provenance, not reachability.
+      expect(existsSync(join(root, "test"))).toBe(true);
+      return { linked: runScannerIn(root, []), control };
+    });
+    expect(control.code, `stderr: ${control.stderr}`).toBe(0);
+    expect(linked.code, `stdout: ${linked.stdout}`).toBe(2);
+    expect(linked.stdout).not.toContain("OK");
+    expect(linked.stderr).toMatch(/a symbolic link/);
+  });
+
+  it("names the root and its KIND, and never what a link points at", () => {
+    // A diagnostic about a PHI leak is itself a PHI surface: a target path of the shape
+    // `../<surname>-<given>-<dob>` is the whole reason the kind is an engine-owned token
+    // and the target is never printed.
+    const r = withRoot([], (root) => {
+      rmSync(join(root, "test"), { recursive: true, force: true });
+      symlinkSync(join(root, `zz-${FAMILY}-${GIVEN}-target`), join(root, "test"));
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).toMatch(/a symbolic link/);
+    expect(r.stderr).not.toContain(FAMILY);
+    expect(r.stderr).not.toContain(GIVEN);
+  });
+
+  it("leaves an ABSENT root to the per-root rule, so one state gets one reason", () => {
+    const r = withRoot([], (root) => {
+      rmSync(join(root, "test"), { recursive: true, force: true });
+      stageDeletions(root);
+      return runScannerIn(root, []);
+    });
+    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+    expect(r.stderr).toMatch(/observed no files under 1 of its 3 scan roots \(test\)/);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // --staged enumeration
 // ---------------------------------------------------------------------------
 
-/** A throwaway git repo with the scanner's two support files committed. */
+/**
+ * A throwaway git repo with the scanner's support files committed.
+ *
+ * {@link makeRoot} now does all of this: every throwaway root is a git repo with a base
+ * commit, because all-mode refuses without an index to reconcile against. This name is
+ * kept because the staged-mode tests below read better for it, and because "this test
+ * needs git" is worth saying at the call site even when every root has it.
+ */
 function gitRoot(): string {
-  const root = makeRoot();
-  git(root, ["init", "-q", "-b", "main"]);
-  git(root, ["config", "user.email", "fixture@example.com"]);
-  git(root, ["config", "user.name", "fixture"]);
-  git(root, ["add", "--", "scripts/phi-allow-list.txt", "phi-scan-overrides.md"]);
-  git(root, ["commit", "-q", "-m", "base"]);
-  return root;
+  return makeRoot();
 }
 
 function withGitRoot<T>(fn: (root: string) => T): T {
@@ -1707,12 +2009,12 @@ function withToctouRoot<T>(
   const root = makeRoot();
   const shims: string[] = [];
   try {
-    if (opts.git) {
-      git(root, ["init", "-q", "-b", "main"]);
-      git(root, ["config", "user.email", "fixture@example.com"]);
-      git(root, ["config", "user.name", "fixture"]);
-      if (opts.track !== false) git(root, ["add", "--", "scripts/phi-allow-list.txt"]);
-    }
+    // `makeRoot` now hands back a real repo with its four files COMMITTED, so both
+    // options are SUBTRACTIONS from that rather than additions to a bare directory.
+    // `git: false` takes the repository away; `track: false` empties the INDEX while
+    // leaving the working tree alone, which is the state a removed index really has.
+    if (!opts.git) rmSync(join(root, ".git"), { recursive: true, force: true });
+    else if (opts.track === false) git(root, ["rm", "-r", "--cached", "-q", "."]);
     const shim = shimDirRunning(pre(root));
     shims.push(shim);
     return fn(root, shim);
