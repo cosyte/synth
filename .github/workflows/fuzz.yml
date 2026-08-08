@@ -27,7 +27,7 @@ jobs:
       SYNTH_FUZZ_RUNS: "6000"
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6.0.9
       - uses: actions/setup-node@v4
         with:
           node-version: 22
