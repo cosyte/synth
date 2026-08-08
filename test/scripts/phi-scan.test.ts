@@ -849,10 +849,16 @@ describe("phi-scan: the scan roots cover src/, test/ and scripts/", () => {
 // NEITHER route, every workflow and every root config file among them, and a staged
 // repo-root file carrying a name, an SSN and an email exited 0 on both.
 //
-// The remedy is a UNION and never a replacement: the walk's own scope is untouched, no
-// detector was taught to skip anything, and the only subtraction anywhere is a list of
-// LITERAL paths for the vendored archives, which a base run never scanned in the first
-// place. The exemption reaches `all` mode only; `--staged` is byte-identical to base.
+// The remedy is a UNION and never a replacement: the walk's own scope is untouched and no
+// detector was taught to skip anything. The corpus exemption is a list of LITERAL paths
+// for the vendored archives, which a base run never scanned in the first place, and it
+// reaches `all` mode only, so what `--staged` ENUMERATES is byte-identical to base.
+//
+// THAT IS THE ONLY THING THAT IS BYTE-IDENTICAL, AND THIS PARAGRAPH IS THE THIRD PLACE
+// THE STRONGER CLAIM WAS WRITTEN, EACH TIME BY MISTAKE. The widening also added ONE
+// allow-list entry, and the allow-list is global and route-blind: it clears that literal
+// on `--staged` too. Both directions are pinned in the EMAIL block further down, and the
+// claim is corrected there and at the scope test above. Do not restore it here.
 // ---------------------------------------------------------------------------
 
 /**
