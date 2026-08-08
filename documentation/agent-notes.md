@@ -184,14 +184,28 @@ it. The standing rule is **relocate, never delete**: every paragraph below cost 
 - **THE REMEDY IS A UNION, NEVER A REPLACEMENT.** All-mode now reconciles what it walked against
   `git ls-files -s` and reads every tracked file the walk did not reach. The walk's own scope is
   untouched, no detector was taught to skip anything, and the head-side scanned set is a strict
-  superset of the base's: **225 tracked / 198 read / 27 in neither** (20 markdown, 7 vendored archives),
-  and **0** under `test/`. The grid was proved cell by cell: every base `1` is still `1`, five cells go
-  `0 -> 1`, and **nothing goes `1 -> 0`**.
-- **THE EXEMPTION IS A LITERAL PATH LIST AND IT REACHES `all` MODE ONLY.** `--staged` is byte-identical
-  to base, so the commit-blocking route cannot have lost anything. That is the rule this class paid an
-  `INTRODUCED` major for in a sibling: a corpus exemption written as a PREDICATE and applied to
-  `--staged` subtracted a detection the base had. The cost is stated rather than hidden: a repo-root
-  file with PHI is caught by CI on the pull request and not by the pre-commit hook.
+  superset of the base's. **Over the same 225 files the base measured: 198 read, 27 in neither** (20
+  markdown, 7 vendored archives), and **0** under `test/`. **In the shipped tree it is 226 / 198 / 28**,
+  because the change adds a changeset markdown file, which is the whole reason to derive the markdown
+  count rather than read it. The grid was proved cell by cell: every base `1` is still `1`, five cells
+  go `0 -> 1`, and **nothing goes `1 -> 0`** on either enumeration.
+- **THE EXEMPTION IS A LITERAL PATH LIST AND IT REACHES `all` MODE ONLY.** `--staged` enumerates
+  exactly what it always did. That is the rule this class paid an `INTRODUCED` major for in a sibling:
+  a corpus exemption written as a PREDICATE and applied to `--staged` subtracted a detection the base
+  had. The cost is stated rather than hidden: a repo-root file with PHI is caught by CI on the pull
+  request and not by the pre-commit hook.
+- **AND THE CLAIM THAT COST THIS SLICE ITS OWN REFUTATION, KEPT HERE SO THE DISTINCTION IS NOT
+  RE-LEARNED: "`--staged` IS BYTE-IDENTICAL" WAS FALSE, AND ONLY "THE ENUMERATION IS UNCHANGED" IS
+  TRUE.** The allow-list is read once and consumed inside `scanTarget`, which every mode shares, so
+  the `EMAIL hello@cosyte.com` entry this slice added clears that literal on EVERY route including the
+  pre-commit one: a file under `src/` carrying it red on `4c9900f` and does not now. One literal
+  organizational address, accepted rather than overlooked, because there is no path-scoped value
+  declaration in this scanner and `--allow-fixture` is unreachable from the two invocations that
+  matter (CI runs a bare `pnpm phi-scan`, the hook runs `pnpm phi-scan --staged`, neither passes the
+  flag). **The scope test could not see it, and neither could the measurement grid**, whose payload
+  never contained the cleared literal: appending `EMAILDOMAIN cosyte.com`, a far broader clearance,
+  passed the whole suite. Both directions are pinned now, the address cleared and any other address at
+  that domain still red, which is what reds that mutation.
 - **WHY THE INERT-EXEMPTION CHECK IS A TEST AND NOT A REFUSAL IN THE SCANNER.** Refusing on an exempt
   path git does not track would couple the scanner to seven archives existing, and it refused every
   throwaway root in the suite the first time it was written that way. The drift tripwire belongs where
@@ -217,14 +231,19 @@ it. The standing rule is **relocate, never delete**: every paragraph below cost 
   `author` field. It is **named here and declared in the allow-list rather than scrubbed**: it is this
   company's own published contact, already on the npm registry page, it denotes an organization and not
   a person receiving care, and removing it would delete the evidence that the sweep happened. Declared
-  as an exact `EMAIL`, not an `EMAILDOMAIN`, so it clears one address and not a live domain.
+  as an exact `EMAIL`, not an `EMAILDOMAIN`, so it clears one address and not a live domain. **What
+  that declaration costs on the commit-blocking route is the bullet above; it is not free.**
 - **WHAT IS STILL OPEN, DISCLOSED.** The reconciliation compares path SETS, not the bytes git carries at
   those paths, so a root swapped for a directory mirroring the tracked names still exits 0 over decoy
   contents. **No repo in this ecosystem has closed that**, and the widening makes it narrower rather
   than worse: a decoy must now mirror 198 names instead of 176. Markdown stays out of scope on both
-  arms; the 20 tracked markdown files were read by hand the same day and carry no SSN shape and no
-  email at all, and the reason it stays out is a real circularity, `phi-scan-overrides.md` exists to
-  record why a value was tolerated.
+  arms; at `4c9900f` all 20 tracked markdown files were read by hand the same day and carry no SSN
+  shape and no email at all, and the reason it stays out is a real circularity, `phi-scan-overrides.md`
+  exists to record why a value was tolerated. **DERIVE THAT 20, DO NOT TRUST IT**: every changeset adds
+  a markdown file, and this very change wrote the cleared address into THIS file, which the hand-read
+  predates. Also disclosed: `git ls-files` lists a `skip-worktree` or sparse-checkout entry like any
+  other, so all-mode cannot run in a cone-mode checkout at all. Fail-closed, and "stage the deletion"
+  is not an available remedy there.
 
 ## Required checks on `main`
 

@@ -87,17 +87,19 @@ traps a fixture generator gets wrong exactly once.
   tolerance is parse-side) round-tripping to **exactly one intended warning**, and an unsupported one
   is a fatal `SYNTH_UNSUPPORTED_QUIRK`. `notes#vendor-quirk-mode-synth-9-phase-7`.
 - **The `deid` pairing loop is CO-VALIDATION, not an independent audit of `@cosyte/deid`.** A
-  surviving sentinel is a hard failure; the over-scrub guard is equally load-bearing. **Never widen
-  the sweep past the former PHI loci**: provider/organization identity a de-identifier legitimately
-  retains comes from the same synthetic pools and would read as a false survivor. It **consumes the
-  shipped generators unchanged**, and `deidLoopPolicy` needs **no key context**, deliberately, so the
-  loop stays a pure function of the seed. `notes#the-cosytedeid-pairing-loop-synth-10-phase-8`.
+  surviving sentinel is a hard failure, the over-scrub guard is equally load-bearing, and **never
+  widen the sweep past the former PHI loci** (retained provider identity is drawn from the same
+  synthetic pools and would read as a false survivor).
+  `notes#the-cosytedeid-pairing-loop-synth-10-phase-8`.
 - **`pnpm phi-scan` reads MORE than its three roots, and the two modes do NOT share a scope.**
   All-mode walks `src`/`test`/`scripts` and then reads every other file git tracks; **`--staged`, the
   pre-commit half, still narrows to the three roots**, because the widening needs a corpus exemption
   and an exemption on the commit-blocking route is what has subtracted a real detection elsewhere.
-  **Write one as a LITERAL PATH, never as a predicate.** Refreshing a `vendor/*.tgz` means editing
-  `BINARY_EXEMPT_PATHS`. **A scan root of the wrong KIND refuses with 2, derived here, not ported**: a
+  **Write one as a LITERAL PATH, never as a predicate**, and refreshing a `vendor/*.tgz` means editing
+  `BINARY_EXEMPT_PATHS`. **What is unchanged on `--staged` is the ENUMERATION and ONLY that: the
+  allow-list is GLOBAL and route-blind**, so an entry in it clears its value on the pre-commit route
+  too. Saying otherwise cost a refutation.
+  **A scan root of the wrong KIND refuses with 2, derived here, not ported**: a
   regular-file root exited **1** before (the code reserved for "hits found"), and one symlinked at
   another root exited **0** over a corpus that was not on disk, because `existsSync` FOLLOWS a link.
   `notes#the-phi-scan-reads-more-than-its-three-roots`.

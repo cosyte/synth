@@ -142,12 +142,16 @@
  *     Pre-existing, and not widened here.
  *   - `.md` is out of scope everywhere, deliberately, AND THAT IS NOW THE LARGER
  *     HALF OF WHAT ALL-MODE DOES NOT READ, so it is priced rather than repeated:
- *     20 of the tracked files are markdown, they were read by hand on 2026-08-08
- *     and carry no SSN shape and no email at all. It stays out because
- *     `phi-scan-overrides.md` exists to record WHY a value was tolerated, so
- *     scanning it makes the log that satisfies the gate red the gate. Lifting it
- *     is a separate decision with its own false-positive surface, and this slice
- *     deliberately does not take it.
+ *     at `4c9900f`, 20 of the 225 tracked files were markdown, and all 20 were
+ *     read by hand on 2026-08-08 with no SSN shape and no email at all in any of
+ *     them. DERIVE THE COUNT, DO NOT TRUST IT: every changeset adds a markdown
+ *     file, so it moves on most commits, and the change that widened the scan
+ *     wrote a cleared address into `documentation/agent-notes.md` itself, which
+ *     the hand-read predates. `git ls-files | grep -ci '\.md$'` is the answer.
+ *     It stays out of scope because `phi-scan-overrides.md` exists to record WHY
+ *     a value was tolerated, so scanning it makes the log that satisfies the gate
+ *     red the gate. Lifting it is a separate decision with its own false-positive
+ *     surface, and this slice deliberately does not take it.
  *   - THE ROOTS ARE NO LONGER THE WHOLE OF ALL-MODE'S SCOPE. A file outside
  *     `src/`, `test/` and `scripts/` used to be invisible to BOTH routes: the
  *     walk never listed it and `--staged` filtered it out, so every workflow, the
@@ -165,6 +169,17 @@
  *     subtracted a real detection in a sibling. So the widening is `all`-route
  *     only, and a repo-root file carrying PHI is caught by CI on the pull request
  *     rather than by the pre-commit hook. Stated as the trade it is.
+ *   - AND SAY EXACTLY WHAT "UNCHANGED" MEANS THERE, BECAUSE THE FIRST VERSION OF
+ *     THAT SENTENCE OVERSTATED IT AND A REFUTER MEASURED THE DIFFERENCE. What is
+ *     byte-identical on `--staged` is the ENUMERATION: which files each mode
+ *     lists. THE ALLOW-LIST IS NOT PART OF THAT AND NEVER WAS. It is read once and
+ *     consumed inside `scanTarget`, which every mode shares, so ANY entry added to
+ *     `scripts/phi-allow-list.txt` clears its value on every route, the
+ *     commit-blocking one included. The widening added one: the publisher contact
+ *     in `package.json`, which the roots had never opened. A file under `src/`
+ *     carrying that address red before and does not now. One literal value, and it
+ *     is a real subtraction, so it is written down in the allow-list beside the
+ *     entry, pinned from both directions by the suite, and not called free.
  *   - All-mode drops git-ignored files; `--staged` does NOT apply that filter, so
  *     the two modes disagree about a force-added ignored file. BOTH directions are
  *     now exercised by the suite, and neither is changed: all-mode walks the working
@@ -309,6 +324,14 @@ const SCAN_ROOTS: readonly string[] = ["src", "test", "scripts"];
 // a tracked file deleted from the working tree but not yet staged as deleted REFUSES
 // (exit 2) rather than being skipped: staging the deletion removes it from
 // `git ls-files` and the refusal goes away. Fail-closed, and it names the path.
+//
+// AND ONE COST THAT REMEDY DOES NOT REACH, DISCLOSED BECAUSE A REFUTER MEASURED IT:
+// `git ls-files` lists a `skip-worktree` or sparse-checkout entry exactly like any
+// other, so in a CONE-MODE OR SPARSE CHECKOUT the deliberately-absent files land in
+// that same refusal and all-mode cannot run at all. Staging a deletion is not an
+// available answer there, and pretending it is would be worse than saying so: the
+// answer is a full checkout, which is what CI and every hook here use. Fail-closed
+// either way, so it costs a run and never a false green.
 //
 // EXEMPTIONS ARE LITERAL PATHS, ONE PER LINE, AND THEY REACH `all` MODE ONLY.
 // A compressed archive read as UTF-8 produces name-shaped and email-shaped nonsense:
@@ -791,6 +814,11 @@ function direntKind(e: Dirent): string {
 function statKind(st: Stats): string {
   if (st.isSymbolicLink()) return "a symbolic link";
   if (st.isDirectory()) return "a directory";
+  // NOT redundant with the fallback, and a refuter caught its absence: a scan root that
+  // IS a regular file used to be described as "not a regular file", which is the walk's
+  // framing arriving where the unmet requirement is "a directory". A diagnostic that
+  // states the opposite of what it found teaches the reader the wrong thing to look for.
+  if (st.isFile()) return "a regular file";
   if (st.isFIFO()) return "a FIFO";
   if (st.isSocket()) return "a socket";
   if (st.isBlockDevice()) return "a block device";
@@ -1047,12 +1075,20 @@ function buildTargetsForAll(): Target[] {
     }
     walk(abs, files, unscannable);
   }
-  refuseUnscannable(
-    rootProblems,
-    "A scan root that is not a directory yields no files, and the per-root observation rule " +
-      "cannot tell that apart from a root that is merely absent.",
-    "Restore it as a directory, or change SCAN_ROOTS in scripts/phi-scan.ts.",
-  );
+  // A ROOT GETS ITS OWN REFUSAL RATHER THAN `refuseUnscannable`'s, because the unmet
+  // requirement is different: an ENTRY has to be a regular file, a ROOT has to be a
+  // directory. Borrowing the entry wording printed "test (not a regular file)" for a
+  // root that was exactly that, which is the opposite of what it found.
+  if (rootProblems.length > 0) {
+    const lines = rootProblems.map((u) => `  - ${u.path} (${u.kind})`).join("\n");
+    const noun = rootProblems.length === 1 ? "scan root is" : "scan roots are";
+    throw new InvocationError(
+      `refusing the scan: ${String(rootProblems.length)} ${noun} not a directory:\n${lines}\n` +
+        `A scan root that is not a directory yields no files, and the per-root observation ` +
+        `rule cannot tell that apart from a root that is merely absent. Restore it as a ` +
+        `directory, or change SCAN_ROOTS in scripts/phi-scan.ts.`,
+    );
+  }
 
   // ONE `git check-ignore` over both lists. An ignored entry is already out of scope
   // for the file route, so applying the same rule to a link keeps a single boundary

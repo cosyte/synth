@@ -942,13 +942,20 @@ describe("phi-scan: all-mode reconciles what it walked against what git tracks",
     expect(r.stdout).not.toContain("OK");
   });
 
-  it("does NOT widen `--staged`, which is byte-identical to the base contract", () => {
+  it("does NOT widen what `--staged` ENUMERATES, which is the base contract", () => {
     // THE ONE RULE THIS CLASS HAS PAID AN `INTRODUCED` MAJOR FOR: an exemption must
     // never reach the commit-blocking route. The widening needs one (a compressed
     // archive read as text produces nonsense hits), so the widening is `all`-mode only
     // and the pre-commit half still narrows to the roots. Asserted rather than left as
     // prose, because the failure it prevents is a detection SUBTRACTED from the route
     // that blocks a commit.
+    //
+    // ENUMERATION IS THE WORD, AND IT IS NOT A HEDGE. This test pins WHICH FILES each
+    // mode lists and nothing else. It is structurally blind to the allow-list, which is
+    // global and route-blind: the first version of this slice read it as proof that
+    // `--staged` was unchanged in every respect, and a refuter falsified that in one
+    // command. What the allow-list gained, and the pins that hold it to one literal
+    // value, are in the EMAIL block further down.
     const { inRoot, outside } = withRoot([], (root) => {
       put(root, "src/staged.xml", VIOLATOR);
       put(root, "outside.xml", VIOLATOR);
@@ -1452,8 +1459,13 @@ describe("phi-scan: a scan root that is not a directory refuses the scan", () =>
       return runScannerIn(root, []);
     });
     expect(r.code, `stdout: ${r.stdout}\nstderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toMatch(/scan root/);
-    expect(r.stderr).toContain("test");
+    // THE SENTENCE, NOT JUST THE CODE. The first version of this rule borrowed the
+    // walk's wording and told the reader `test (not a regular file)` for a root that was
+    // exactly that; a refuter caught it. The unmet requirement for a ROOT is "directory",
+    // and the kind reported must be what was actually found.
+    expect(r.stderr).toMatch(/scan root is not a directory/);
+    expect(r.stderr).toMatch(/- test \(a regular file\)/);
+    expect(r.stderr).not.toMatch(/not a regular file/);
   });
 
   it("REFUSES a root that is a SYMLINK TO ANOTHER ROOT, which used to exit 0", () => {
@@ -1921,6 +1933,43 @@ describe("phi-scan: EMAIL clears one exact address, not a whole domain", () => {
     const r = scan("sibling-email.txt", `roster ${addr("someone", "lists", "hl7", "org")}\n`);
     expect(r.code, `stdout: ${r.stdout}`).toBe(1);
     expect(r.stderr).toMatch(/non-test domain/);
+  });
+
+  // THE PUBLISHER CONTACT IN `package.json`, AND THE PAIR EXISTS BECAUSE A REFUTER
+  // SHOWED WHAT WAS MISSING. The declaration was landed with a scope test that pinned
+  // only WHICH FILES each mode enumerates, and an allow-list entry is neither of those
+  // things: it is global and route-blind, so appending `EMAILDOMAIN cosyte.com` (a far
+  // broader clearance than the one declared) passed the entire suite. The second test
+  // below is what reds that mutation.
+  it("passes the publisher contact declared for package.json", () => {
+    const r = scan("publisher-email.txt", `author ${addr("hello", "cosyte", "com")}\n`);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("still flags ANY OTHER address at that domain, so the entry cannot be widened", () => {
+    const r = scan("other-cosyte-email.txt", `roster ${addr("someone-else", "cosyte", "com")}\n`);
+    expect(r.code, `stdout: ${r.stdout}`).toBe(1);
+    expect(r.stderr).toMatch(/non-test domain/);
+  });
+
+  it("clears that address on `--staged` TOO, which is the cost of a global declaration", () => {
+    // NOT A PASSING NOTE: the slice that added the entry claimed `--staged` was
+    // byte-identical to its previous contract, and that was FALSE, because an allow-list
+    // entry is read once and consumed inside `scanTarget`, which every mode shares. The
+    // ENUMERATION is what stayed byte-identical. This pins the real behaviour on the
+    // commit-blocking route, so the distinction cannot quietly go back to the wrong one.
+    const { cleared, other } = withRoot([], (root) => {
+      put(root, "src/contact.txt", `author ${addr("hello", "cosyte", "com")}\n`);
+      put(root, "src/roster.txt", `roster ${addr("someone-else", "cosyte", "com")}\n`);
+      git(root, ["add", "--", "src/contact.txt"]);
+      const cleared = runScannerIn(root, ["--staged"]);
+      git(root, ["add", "--", "src/roster.txt"]);
+      return { cleared, other: runScannerIn(root, ["--staged"]) };
+    });
+    expect(cleared.code, `stderr: ${cleared.stderr}`).toBe(0);
+    // Non-vacuous: the same route, one line different, still reds.
+    expect(other.code, `stdout: ${other.stdout}`).toBe(1);
+    expect(other.stderr).toContain("src/roster.txt");
   });
 });
 
