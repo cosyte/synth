@@ -53,6 +53,45 @@ EMAILDOMAIN example.test
 # Narrowest declaration that covers the finding.
 EMAIL cgp@lists.HL7.org
 
+# The publisher contact in `package.json`'s `author` field. It became visible the day
+# all-mode stopped stopping at `src/`, `test/` and `scripts/` and started reconciling
+# against everything git tracks: `package.json` had never been opened by either route.
+#
+# It is NAMED here rather than removed, because removing it would delete the evidence
+# that the sweep happened and would strip a real field off the published manifest: it is
+# this company's own published contact address, already on the npm registry page for
+# every `@cosyte/*` package, and it denotes an organization rather than a person
+# receiving care. It is the ONLY email anywhere in the 22 files that widening newly
+# opened (measured 2026-08-08 over the tracked corpus outside the scan roots, markdown
+# and the vendored archives aside), and there is no SSN shape in any of them.
+#
+# Declared as an exact EMAIL rather than `EMAILDOMAIN cosyte.com`, which would clear
+# every address at a live organizational domain, including one a future fixture might
+# carry by mistake. Narrowest declaration the allow-list has.
+#
+# ▶ AND SAY WHAT IT COSTS, BECAUSE A REFUTER CAUGHT THE FIRST VERSION OF THIS SLICE
+# CLAIMING IT COST NOTHING. AN ALLOW-LIST ENTRY IS GLOBAL AND ROUTE-BLIND. It is read
+# once and consumed inside `scanTarget`, so this line clears that one literal address in
+# EVERY mode, `--staged` and `--allow-fixture`-free `paths` mode included, not just in
+# the all-mode sweep that newly opened `package.json`. A file under `src/` carrying
+# `hello@cosyte.com` reds on the base of this change and does not red now. That is a real
+# subtraction on the commit-blocking route, it is one literal value rather than a rule,
+# and it is written here rather than left for the next reader to discover.
+#
+# IT IS ACCEPTED, NOT OVERLOOKED, AND THE ALTERNATIVES ARE WORSE. There is no
+# path-scoped value declaration in this scanner, and inventing one would put a second
+# moving part inside a PHI detector to spare one organizational address. The other
+# mechanism, `--allow-fixture package.json` plus an override-log entry, is not reachable
+# at all here: CI runs a bare `pnpm phi-scan` and the pre-commit hook runs
+# `pnpm phi-scan --staged`, neither of which passes the flag, so the hit would simply
+# stand. This is the same shape and the same trade as the `cgp@lists.HL7.org` entry
+# above, which the base already applied on every route.
+#
+# BOTH DIRECTIONS ARE PINNED by `test/scripts/phi-scan.test.ts`: that this address is
+# cleared, and that ANY OTHER address at the same domain still reds. The second is what
+# stops this line being quietly widened into `EMAILDOMAIN cosyte.com` later.
+EMAIL hello@cosyte.com
+
 # --- Synthetic person-name tokens (example: extend for your fixtures) ---
 # NAME DOE
 # NAME JOHN

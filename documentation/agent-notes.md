@@ -162,6 +162,89 @@ it. The standing rule is **relocate, never delete**: every paragraph below cost 
   ships for HL7 v2/C-CDA/ASTM; FHIR/X12/NCPDP quirks are deferred, and the `deid` pairing loop (Phase 8)
   ships for HL7/FHIR/C-CDA/X12/NCPDP Telecom.
 
+- **REFRESHING ONE NOW MEANS EDITING `BINARY_EXEMPT_PATHS` IN `scripts/phi-scan.ts` TOO**, because the
+  version is in the filename and that list is seven literal paths. Both directions of drift are loud
+  and neither is silent: the new filename, unlisted, is scanned and reds on nonsense hits (a gzip
+  stream read as UTF-8 produces name-shaped and email-shaped garbage, measured: 4 hits across 3 of the
+  7 archives); the old filename, stale, reds the reconciliation test in `test/scripts/phi-scan.test.ts`
+  that compares the list against what `.gitattributes` declares `binary`.
+
+## The PHI scan reads more than its three roots
+
+- **THE DEFECT, MEASURED ON `4c9900f`: 225 tracked files, 176 read, 49 read by NEITHER route.** All-mode
+  walked `src/`, `test/` and `scripts/`; `--staged` filtered the index by the same three prefixes. So
+  every workflow, `package.json`, `pnpm-lock.yaml`, `eslint.config.js`, `tsup.config.ts`,
+  `vitest.config.ts`, `tsconfig.json`, `.npmrc`, `.gitignore`, `.gitattributes`, `LICENSE`,
+  `docs-content/sidebars.json` and `.changeset/config.json` were opened by nothing. A repo-root file
+  carrying a name, an SSN and an email exited **0** on BOTH routes.
+- **THE HALF THAT WAS ALREADY CLOSED HERE, AND IT IS WHY THE FIGURES DIFFER FROM A SIBLING'S.** The
+  class defect is usually "walk roots stop at `test/fixtures/`, so tracked files under `test/` are read
+  by neither route". `test` has been a whole root in this package since the roots were widened, so that
+  count is **0** here. Re-derive per repo; do not port a residual.
+- **THE REMEDY IS A UNION, NEVER A REPLACEMENT.** All-mode now reconciles what it walked against
+  `git ls-files -s` and reads every tracked file the walk did not reach. The walk's own scope is
+  untouched, no detector was taught to skip anything, and the head-side scanned set is a strict
+  superset of the base's. **Over the same 225 files the base measured: 198 read, 27 in neither** (20
+  markdown, 7 vendored archives), and **0** under `test/`. **In the shipped tree it is 226 / 198 / 28**,
+  because the change adds a changeset markdown file, which is the whole reason to derive the markdown
+  count rather than read it. The grid was proved cell by cell: every base `1` is still `1`, five cells
+  go `0 -> 1`, and **nothing goes `1 -> 0`** on either enumeration.
+- **THE EXEMPTION IS A LITERAL PATH LIST AND IT REACHES `all` MODE ONLY.** `--staged` enumerates
+  exactly what it always did. That is the rule this class paid an `INTRODUCED` major for in a sibling:
+  a corpus exemption written as a PREDICATE and applied to `--staged` subtracted a detection the base
+  had. The cost is stated rather than hidden: a repo-root file with PHI is caught by CI on the pull
+  request and not by the pre-commit hook.
+- **AND THE CLAIM THAT COST THIS SLICE ITS OWN REFUTATION, KEPT HERE SO THE DISTINCTION IS NOT
+  RE-LEARNED: "`--staged` IS BYTE-IDENTICAL" WAS FALSE, AND ONLY "THE ENUMERATION IS UNCHANGED" IS
+  TRUE.** The allow-list is read once and consumed inside `scanTarget`, which every mode shares, so
+  the `EMAIL hello@cosyte.com` entry this slice added clears that literal on EVERY route including the
+  pre-commit one: a file under `src/` carrying it red on `4c9900f` and does not now. One literal
+  organizational address, accepted rather than overlooked, because there is no path-scoped value
+  declaration in this scanner and `--allow-fixture` is unreachable from the two invocations that
+  matter (CI runs a bare `pnpm phi-scan`, the hook runs `pnpm phi-scan --staged`, neither passes the
+  flag). **The scope test could not see it, and neither could the measurement grid**, whose payload
+  never contained the cleared literal: appending `EMAILDOMAIN cosyte.com`, a far broader clearance,
+  passed the whole suite. Both directions are pinned now, the address cleared and any other address at
+  that domain still red, which is what reds that mutation.
+- **WHY THE INERT-EXEMPTION CHECK IS A TEST AND NOT A REFUSAL IN THE SCANNER.** Refusing on an exempt
+  path git does not track would couple the scanner to seven archives existing, and it refused every
+  throwaway root in the suite the first time it was written that way. The drift tripwire belongs where
+  repo-specific facts belong: a test that reconciles the literal list against `git check-attr binary`.
+- **TWO WALK-ROOT DEFECTS CLOSED WITH IT, BOTH MEASURED ON THE BASE, AND THE EXIT CODE IS THIS REPO'S
+  OWN.** A root that is a REGULAR FILE threw `ENOTDIR` out of `walk()` past the `InvocationError`-only
+  catch and node exited **1**, the code this contract reserves for "hits found". A root that was a
+  SYMLINK TO ANOTHER ROOT returned `OK, no hits (145 file(s) scanned)` and exit **0** with the 99-file
+  test corpus not on disk: `normalizePath` is lexical, so `src/` was read twice and attributed once to
+  each prefix, and the per-root rule was satisfied by the other root's bytes. A false green. Both now
+  refuse with **2**, via an `lstat` on each root before the walk. **Do not port that 2 from here or
+  from a sibling: it was 1 in THIS repo, is 2 in some, and is deliberately 1 in another.**
+- **`existsSync` IS THE TRAP UNDERNEATH BOTH.** It FOLLOWS a link, so a dangling root answered false
+  and read as merely absent, and a root linked at another root answered true and was walked.
+- **A THIRD LIMIT CLOSED AS A SIDE EFFECT, AND IT IS NOT THE PER-ROOT RULE THAT CLOSED IT.** An absent
+  directory INSIDE a root, and a root emptied down to one file, both used to exit 0 under a plausible
+  denominator (`OK, no hits (78 file(s) scanned)` with 98 tracked files unread). The reconciliation
+  refuses, because git still carries what nothing read. **Stage the deletions and it is green again at
+  a smaller denominator**: the per-root rule is still a floor of one, and the two rules see different
+  states. Do not delete either thinking the other covers it.
+- **WHAT THE 22 NEWLY-OPENED FILES ACTUALLY CONTAINED, hand-read one by one on 2026-08-08:** no SSN
+  shape anywhere, and exactly ONE email, `hello@cosyte.com`, the publisher contact in `package.json`'s
+  `author` field. It is **named here and declared in the allow-list rather than scrubbed**: it is this
+  company's own published contact, already on the npm registry page, it denotes an organization and not
+  a person receiving care, and removing it would delete the evidence that the sweep happened. Declared
+  as an exact `EMAIL`, not an `EMAILDOMAIN`, so it clears one address and not a live domain. **What
+  that declaration costs on the commit-blocking route is the bullet above; it is not free.**
+- **WHAT IS STILL OPEN, DISCLOSED.** The reconciliation compares path SETS, not the bytes git carries at
+  those paths, so a root swapped for a directory mirroring the tracked names still exits 0 over decoy
+  contents. **No repo in this ecosystem has closed that**, and the widening makes it narrower rather
+  than worse: a decoy must now mirror 198 names instead of 176. Markdown stays out of scope on both
+  arms; at `4c9900f` all 20 tracked markdown files were read by hand the same day and carry no SSN
+  shape and no email at all, and the reason it stays out is a real circularity, `phi-scan-overrides.md`
+  exists to record why a value was tolerated. **DERIVE THAT 20, DO NOT TRUST IT**: every changeset adds
+  a markdown file, and this very change wrote the cleared address into THIS file, which the hand-read
+  predates. Also disclosed: `git ls-files` lists a `skip-worktree` or sparse-checkout entry like any
+  other, so all-mode cannot run in a cone-mode checkout at all. Fail-closed, and "stage the deletion"
+  is not an available remedy there.
+
 ## Required checks on `main`
 
 ### The one ruleset that protects `main`

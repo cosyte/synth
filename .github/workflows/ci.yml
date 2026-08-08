@@ -19,8 +19,13 @@ jobs:
   # examples smoke, an examples build) are added on top of this caller, never instead of it.
   # This repo ships a PHI scanner (scripts/phi-scan.ts), so the shared pipeline's optional PHI-scan
   # step is switched on. That step runs `pnpm phi-scan` with NO arguments, which is all-mode: it
-  # walks src/, test/ and scripts/ rather than the staged set, so it does not depend on what a
-  # given push happened to touch. The pre-commit hook is the --staged half; this is the backstop.
+  # walks src/, test/ and scripts/ AND then reads every other file git tracks, rather than the
+  # staged set, so it does not depend on what a given push happened to touch.
+  #
+  # THE TWO HALVES ARE NOT THE SAME SCOPE, AND THIS ONE IS THE WIDER OF THEM. The pre-commit hook is
+  # the --staged half and still narrows to those three roots, so a repo-root file carrying PHI, this
+  # workflow included, is caught HERE and not at commit time. Read the header of scripts/phi-scan.ts
+  # for why the widening is all-mode only.
   # The scanner is a floor, not the whole gate: the property suites are the real proof (see the
   # header of scripts/phi-scan.ts).
   ci:
