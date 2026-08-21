@@ -67,7 +67,7 @@ resource.** The floors, each an authoritative never-collide range or a deliberat
 
 | Locus                        | Source                                                                   | Why it cannot be real                                                           |
 | ---------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| **SSN**                      | area `900–999` (never issued) + the `987-65-432x` advertising block      | SSA never issues these areas                                                    |
+| **SSN**                      | area `900-999` (never issued) with a group outside every ITIN range + the `987-00-432x` block | SSA never issues these areas, and an IRS ITIN is a `9NN` value whose group falls in a published range (Internal Revenue Manual 3.21.263): neither authority can have issued it |
 | **NPI**                      | 10 digits with a **deliberately-invalid Luhn** check digit               | a real NPI must pass Luhn: `isSyntheticNpi` proves the failure                  |
 | **DEA**                      | registrant letter + 7 digits with a **deliberately-invalid** check digit | a real DEA must pass its checksum: `isSyntheticDea` proves the failure          |
 | **Phone**                    | NANP `555-0100 … 555-0199` only                                          | the reserved fictional block (not "any 555 number")                             |
@@ -114,11 +114,21 @@ parser's diagnostic, not this one's. And a **caller-authored label** (a `SynthPr
 that is what you asked for; no `synth` code path derives anything from it.
 
 ```ts runnable
-import { createRng, safe, isSyntheticSsn, isSyntheticNpi, isSyntheticDea } from "@cosyte/synth";
+import {
+  createRng,
+  safe,
+  isSyntheticSsn,
+  isItinFormatted,
+  isSyntheticNpi,
+  isSyntheticDea,
+} from "@cosyte/synth";
 
 const rng = createRng(1);
 // Every provider draws from a never-collide source: the checks below can never be false.
-isSyntheticSsn(safe.ssn(rng)) && isSyntheticNpi(safe.npi(rng)) && isSyntheticDea(safe.dea(rng)); // => true
+const nationalId = safe.ssn(rng);
+// The SSN locus clears BOTH authorities that share its number space, not just SSA's.
+const ssnOk = isSyntheticSsn(nationalId) && !isItinFormatted(nationalId);
+ssnOk && isSyntheticNpi(safe.npi(rng)) && isSyntheticDea(safe.dea(rng)); // => true
 ```
 
 ## Determinism holds within a version window

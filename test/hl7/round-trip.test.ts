@@ -9,7 +9,7 @@ import {
   type AdtTrigger,
   type Hl7MessageKind,
 } from "../../src/hl7/index.js";
-import { isSyntheticSsn, isSyntheticPhone } from "../../src/index.js";
+import { isSyntheticSsn, isItinFormatted, isSyntheticPhone } from "../../src/index.js";
 
 const TRIGGERS: readonly AdtTrigger[] = ["A01", "A04", "A08"];
 
@@ -53,6 +53,8 @@ describe("HL7 v2 ADT generation: the round-trip harness proof", () => {
       const aa = msg.get("PID.3.4");
       expect(ssnField).toBeDefined();
       expect(isSyntheticSsn(ssnField ?? "")).toBe(true);
+      // The other authority in the same number space: never a validly formatted IRS ITIN either.
+      expect(isItinFormatted(ssnField ?? ""), `PID-19 ${ssnField ?? ""}`).toBe(false);
       expect(phoneField).toBeDefined();
       expect(isSyntheticPhone(phoneField ?? "")).toBe(true);
       expect(aa).toBe("COSYTE-SYNTH");

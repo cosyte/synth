@@ -109,6 +109,7 @@ import {
 } from "../../src/astm/index.js";
 import { generateHl7Quirk } from "../../src/hl7/index.js";
 import { generateCcdaQuirk } from "../../src/ccda/index.js";
+import { isItinFormatted } from "../../src/index.js";
 
 const REPO_ROOT = process.cwd();
 const SCANNER_PATH = join(REPO_ROOT, "scripts", "phi-scan.ts");
@@ -513,9 +514,22 @@ describe("phi-scan: synthetic-area SSNs are NOT flagged (generator-aware floor)"
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
   });
 
-  it("the 987-65-432x advertising block passes (exit 0)", () => {
-    const r = scan("advert-ssn.txt", "advertising ssn 987-65-4321 reserved\n");
+  it("the fixed 987-00-432x display block passes (exit 0)", () => {
+    const r = scan("display-ssn.txt", "display ssn 987-00-4321 reserved\n");
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("an ITIN-formatted 9xx SSN also passes here, and that limit is DELIBERATE", () => {
+    // 987-65-4321 is SSA-never-issued (so this scan's area rule clears it) but ITIN-formatted
+    // (group 65, inside the published 50-65 band), and the generator no longer emits that shape.
+    // This scan is not extended to the ITIN half on purpose: doing so would red this repo's own
+    // ITIN boundary literals and force a route-blind allow-list entry for the very value the
+    // property suites keep dangerous. `pnpm phi-scan` is a floor, not the whole gate
+    // (phi-scan-overrides.md); the two-authority proof is `isItinFormatted` plus the property layer.
+    // Pinned so the boundary is a documented decision rather than an accidental blessing.
+    const r = scan("itin-ssn.txt", "itin-formatted 987-65-4321 shape\n");
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(isItinFormatted("987-65-4321"), "the library half DOES reject it").toBe(true);
   });
 });
 

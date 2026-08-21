@@ -28,6 +28,7 @@ import fc from "fast-check";
 
 import {
   isSyntheticSsn,
+  isItinFormatted,
   isSyntheticEmail,
   type Corpus,
   type SynthFormat,
@@ -72,7 +73,20 @@ const SPEC_CLEAN: ReadonlyArray<readonly [SynthFormat, CorpusFactory]> = [
 const ALL_FORMATS: readonly SynthFormat[] = ["hl7v2", "fhir", "ccda", "x12", "ncpdp", "astm"];
 
 /**
- * A conservative whole-content real-data floor: any **dashed** SSN in an issuable-area form, or any
+ * The **SSN-locus floor**, applied to one value. Two federal authorities share this number space:
+ * SSA never issues area `000`/`666`/`900-999`, and the IRS issues ITINs *inside* `900-999`, told
+ * apart by the group digits. A value must clear both, so an ITIN-formatted one is a hit even
+ * though the never-issued area half passes it.
+ */
+function ssnLocusHits(value: string): string[] {
+  if (!isSyntheticSsn(value)) return [`ssn:${value}`];
+  if (isItinFormatted(value)) return [`itin:${value}`];
+  return [];
+}
+
+/**
+ * A conservative whole-content real-data floor: any **dashed** SSN in an issuable-area or
+ * ITIN-formatted form, or any
  * email on a non-reserved domain. A hit means a plausibly-real value escaped. It fires for formats that
  * emit dashed SSNs / emails (C-CDA, FHIR); formats that emit **undashed** wire SSNs (HL7/X12/NCPDP/ASTM)
  * are gated authoritatively on the parsed locus by their own structured suites (NPI Luhn, DEA checksum,
@@ -82,7 +96,7 @@ const ALL_FORMATS: readonly SynthFormat[] = ["hl7v2", "fhir", "ccda", "x12", "nc
 function realDataHits(content: string): string[] {
   const hits: string[] = [];
   for (const m of content.matchAll(/\b\d{3}-\d{2}-\d{4}\b/g)) {
-    if (!isSyntheticSsn(m[0])) hits.push(`ssn:${m[0]}`);
+    hits.push(...ssnLocusHits(m[0]));
   }
   for (const m of content.matchAll(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g)) {
     if (!isSyntheticEmail(m[0])) hits.push(`email:${m[0]}`);
@@ -91,6 +105,23 @@ function realDataHits(content: string): string[] {
 }
 
 describe("consolidated property suite: every format satisfies the three mandatory properties", () => {
+  it("the cross-cutting floor FAILS on an ITIN-formatted value (true positive, not vacuous)", () => {
+    // The per-format properties only ever hand this floor values the (fixed) generators emit, so
+    // its ITIN arm is never exercised by real output. Feed it a known-bad value directly: the
+    // pre-existing area rule passes that value, and only the ITIN check catches it.
+    const ITIN_SHAPED = "987-65-4320"; // area 987 (SSA never issues it) + group 65, inside 50-65
+    expect(isSyntheticSsn(ITIN_SHAPED)).toBe(true);
+    expect(isItinFormatted(ITIN_SHAPED)).toBe(true);
+    expect(realDataHits(`PID|1||x||||||||||||||${ITIN_SHAPED}`)).toEqual([`itin:${ITIN_SHAPED}`]);
+    expect(ssnLocusHits(ITIN_SHAPED)).toEqual([`itin:${ITIN_SHAPED}`]);
+    // A corpus artifact carrying it is a hit too, in exactly the assertion the properties use.
+    const artifact = hl7Corpus({ seed: 7, count: 1 }).artifacts[0];
+    expect(realDataHits(artifact?.content ?? "")).toEqual([]);
+    expect(realDataHits(`${artifact?.content ?? ""}\r${ITIN_SHAPED}`)).toEqual([
+      `itin:${ITIN_SHAPED}`,
+    ]);
+  });
+
   it("the registry covers every SynthFormat (non-vacuity, no format is silently skipped)", () => {
     const covered = new Set(SPEC_CLEAN.map(([fmt]) => fmt));
     for (const fmt of ALL_FORMATS) expect(covered.has(fmt), `format ${fmt} untested`).toBe(true);

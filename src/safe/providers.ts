@@ -20,6 +20,7 @@ import {
   npiCheckDigit,
   deaCheckDigit,
   DEA_REGISTRANT_TYPES,
+  SSN_SYNTHETIC_GROUPS,
 } from "./reserved.js";
 import {
   SYNTHETIC_GIVEN_NAMES,
@@ -64,9 +65,23 @@ export interface SyntheticIdentifier {
 export type SsnBlock = "never-issued" | "advertising";
 
 /**
- * A **synthetic SSN**: dashed `AAA-GG-SSSS`. Default draws the SSA never-issued area space
- * (`900–999`); `block: "advertising"` draws SSA's reserved advertising block (`987-65-4320…4329`).
- * A value from this function can never be a real SSN.
+ * A **synthetic SSN**: dashed `AAA-GG-SSSS`, drawn so it can be neither an SSA-assignable Social
+ * Security number nor a validly formatted IRS ITIN. Two authorities share this number space: SSA
+ * never issues area `900-999`, and the IRS issues ITINs *inside* that area, distinguished by the
+ * group digits. So the area rule alone is only half the guarantee, and both blocks below also keep
+ * the group outside every published ITIN group range (see {@link isItinFormatted}).
+ *
+ * Default draws the never-issued area space (`900-999`) with a group from
+ * {@link SSN_SYNTHETIC_GROUPS}; `block: "advertising"` returns the fixed display block
+ * `987-00-4320` to `987-00-4329`, whose group `00` is one SSA never assigns and one no published
+ * ITIN range contains.
+ *
+ * **`"advertising"` no longer means SSA's own advertising block.** That published block is
+ * `987-65-4320` to `987-65-4329`, and group `65` sits inside a published ITIN group range, so every
+ * value in it is ITIN-formatted and none of them can be emitted here. The option keeps its name
+ * (renaming it would break call sites for a property no test asserts) and keeps its purpose, a fixed
+ * ten-value block safe to print on screen, but it is a display block of this package's choosing now,
+ * not a citation of SSA's. Do not reintroduce the `65` group to recover the provenance.
  *
  * @param rng - The seeded generator.
  * @param block - Which reserved space to draw from. Defaults to `"never-issued"`.
@@ -74,16 +89,20 @@ export type SsnBlock = "never-issued" | "advertising";
  * @example
  * ```ts
  * import { createRng, ssn } from "@cosyte/synth";
- * ssn(createRng(1)); // e.g. a 900-area, never-issued SSN
+ * ssn(createRng(1)); // e.g. a 900-area, never-issued, never-ITIN-formatted SSN
  * ```
  */
 export function ssn(rng: Rng, block: SsnBlock = "never-issued"): string {
   if (block === "advertising") {
-    // SSA's explicitly-reserved advertising block: last digit 0..9 within -4320..-4329.
-    return `987-65-432${String(rng.int(0, 9))}`;
+    // The fixed display block: last digit 0..9 within -4320..-4329, group 00 so no value here is
+    // ITIN-formatted (the previous group, 65, sat inside the published ITIN range 50-65).
+    return `987-00-432${String(rng.int(0, 9))}`;
   }
   const area = rng.int(900, 999); // SSA never issues 900-999.
-  const group = rng.digits(2);
+  // Never a bare two-digit draw: 44 of the 100 group values would make the result a validly
+  // formatted ITIN. The pool is the complement, so an ITIN-shaped candidate is never produced
+  // rather than produced and rejected (generation never fails for a seed).
+  const group = rng.pick(SSN_SYNTHETIC_GROUPS);
   const serial = rng.digits(4);
   return `${String(area)}-${group}-${serial}`;
 }

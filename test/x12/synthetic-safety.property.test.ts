@@ -20,6 +20,7 @@ import { generate837, generate835, generate271, roundTrip } from "../../src/x12/
 import {
   isSyntheticNpi,
   isSyntheticSsn,
+  isItinFormatted,
   npi,
   npiCheckDigit,
   luhnMod10,
@@ -38,6 +39,18 @@ function segments(edi: string): string[][] {
     .map((s) => s.replace(/[\r\n]+/g, "").trim())
     .filter((s) => s.length > 0)
     .map((s) => s.split(elementSep));
+}
+
+/**
+ * The **SSN-locus floor**, applied to a parsed wire value. Two federal authorities share this
+ * number space: SSA never issues area `000`/`666`/`900-999`, and the IRS issues ITINs *inside*
+ * `900-999`, told apart by the group digits. A `REF*SY` tax id must clear both, so an
+ * ITIN-formatted value is a hit even though it passes the never-issued area half.
+ */
+function ssnLocusHits(value: string): string[] {
+  if (!isSyntheticSsn(value)) return [`ssn:${value}`];
+  if (isItinFormatted(value)) return [`itin:${value}`];
+  return [];
 }
 
 /** Assert every X12 identity locus in `edi` is synthetic-by-construction. */
@@ -62,7 +75,10 @@ function assertSynthetic(edi: string): void {
     } else if (id === "REF" && el[1] === "SY") {
       const v = (el[2] ?? "").replace(/\D/g, "");
       if (/^\d{9}$/.test(v)) {
-        expect(isSyntheticSsn(v), `REF*SY SSN ${v} must be never-issued`).toBe(true);
+        expect(
+          ssnLocusHits(v),
+          `REF*SY SSN ${v} must be never-issued and not ITIN-formatted`,
+        ).toEqual([]);
       }
     }
   }
@@ -94,6 +110,28 @@ describe("X12 synthetic-safety (mandatory property)", () => {
       }),
       { numRuns: 120 },
     );
+  });
+
+  it("the sweep FAILS on an ITIN-formatted REF*SY tax id (true positive, not vacuous)", () => {
+    // The properties above only ever hand this sweep values the (fixed) generator emits, so the
+    // ITIN arm is never exercised by real output. Inject a known-bad value into a real artifact
+    // and require the sweep itself to red: an inverted or mis-targeted check fails here.
+    const ITIN_SHAPED = "987654320"; // area 987 (SSA never issues it) + group 65, inside 50-65
+    expect(isSyntheticSsn(ITIN_SHAPED), "the pre-existing area rule passes it").toBe(true);
+    expect(isItinFormatted(ITIN_SHAPED)).toBe(true);
+
+    const rt = roundTrip(generate837("P", { seed: 8371 }));
+    assertSynthetic(rt.content); // clean before tampering
+    const taxId = segments(rt.content).find((el) => el[0] === "REF" && el[1] === "SY")?.[2] ?? "";
+    expect(taxId, "the artifact must carry a REF*SY tax id for this to be non-vacuous").toMatch(
+      /^\d{9}$/,
+    );
+
+    const tampered = rt.content.replace(taxId, ITIN_SHAPED);
+    expect(tampered).not.toBe(rt.content);
+    expect(() => {
+      assertSynthetic(tampered);
+    }).toThrow();
   });
 
   it("member ids emitted in 271 live under the synthetic assigning authority namespace", () => {

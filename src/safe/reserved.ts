@@ -2,14 +2,19 @@
  * The reserved / never-collide identifier facts that make a `@cosyte/synth` value **provably
  * synthetic**: the ground truth behind the synthetic-safety invariant.
  *
- * These are **facts**, not copyrighted prose: authoritative ranges published by SSA, NANPA, and the
- * IETF that are guaranteed never to denote a real person or a real routable resource. Every provider
+ * These are **facts**, not copyrighted prose: authoritative ranges published by SSA, the IRS, NANPA
+ * and the IETF that are guaranteed never to denote a real person or a real routable resource. Where
+ * two authorities share one number space (SSN and ITIN), a value must be outside both. Every provider
  * draws only from these; the predicates here are the executable half of the CI synthetic-safety gate:
  * they let a test assert that no emitted value falls **outside** a reserved source.
  *
  * Sources:
- * - **SSN**, SSA never issues area numbers `000`, `666`, or `900–999`; the `987-65-4320…4329` block
- *   is SSA's explicitly-reserved advertising range. (ssa.gov)
+ * - **SSN**, SSA never issues area numbers `000`, `666`, or `900–999`. (ssa.gov)
+ * - **ITIN**, an IRS Individual Taxpayer Identification Number shares the SSN number space by
+ *   construction: it is a `9NN-GG-NNNN` value whose group `GG` falls in a published ITIN group
+ *   range. Area `900-999` alone therefore does not prove a value cannot be a federally issued
+ *   identifier, so a synthetic SSN also keeps its group outside every published range. (IRS
+ *   Internal Revenue Manual 3.21.263)
  * - **Phone**, NANP reserves `555-0100…555-0199` as the fictional/non-working line range. (nanpa.com)
  * - **Email/domain**, RFC 2606 / RFC 6761 reserved: `example.com`/`.net`/`.org` and the `.example`,
  *   `.test`, `.invalid`, `.localhost` TLDs.
@@ -57,6 +62,56 @@ export const TEST_NET_V4_PREFIXES: readonly string[] = Object.freeze([
 
 /** RFC 3849 IPv6 documentation prefix. */
 export const DOC_V6_PREFIX = "2001:db8";
+
+/**
+ * The published **IRS ITIN group ranges**, inclusive `[min, max]` bands over the two group digits
+ * (positions 4 and 5) of a `9NN-GG-NNNN` value. An Individual Taxpayer Identification Number is an
+ * SSN-format number that begins with `9` and carries a group inside one of these bands, so these
+ * bands are what separates a never-issued SSN from a validly formatted ITIN.
+ *
+ * These are **facts** about the number's shape, not copyrighted prose (IRS Internal Revenue Manual
+ * 3.21.263). Group values `89` and `93` sit between the bands on purpose: the IRM records them as
+ * reserved for other IRS programs rather than for ITINs, so a value carrying one is **not**
+ * ITIN-formatted (see {@link isItinFormatted}).
+ */
+export const ITIN_GROUP_RANGES: readonly Readonly<{ min: number; max: number }>[] = Object.freeze([
+  Object.freeze({ min: 50, max: 65 }),
+  Object.freeze({ min: 70, max: 88 }),
+  Object.freeze({ min: 90, max: 92 }),
+  Object.freeze({ min: 94, max: 99 }),
+]);
+
+/**
+ * The two group values the IRM records as reserved for other IRS programs rather than for ITINs.
+ * They are **not** ITIN-formatted (so {@link isItinFormatted} must not claim them), and they are
+ * still an issuing authority's space, so {@link SSN_SYNTHETIC_GROUPS} does not draw from them
+ * either: the generator stays out of every federally used group, not merely out of the ITIN ones.
+ *
+ * @internal
+ */
+const ITIN_EXCLUDED_GROUPS: readonly number[] = Object.freeze([89, 93]);
+
+/**
+ * The two-digit **group values a synthetic SSN may carry**: every value from `00` to `99` that is
+ * outside every band in {@link ITIN_GROUP_RANGES} and outside {@link ITIN_EXCLUDED_GROUPS}. Derived
+ * from those two lists rather than written out, so the pool can never drift from the published
+ * ranges it is defined against.
+ *
+ * Combined with the never-issued area `900-999`, a value drawn from this pool is provably outside
+ * both issuing authorities that share the number space: SSA never issues the area, and the IRS
+ * never issues an ITIN with this group.
+ *
+ * @internal
+ */
+export const SSN_SYNTHETIC_GROUPS: readonly string[] = Object.freeze(
+  Array.from({ length: 100 }, (_unused, group) => group)
+    .filter(
+      (group) =>
+        !ITIN_GROUP_RANGES.some((range) => group >= range.min && group <= range.max) &&
+        !ITIN_EXCLUDED_GROUPS.includes(group),
+    )
+    .map((group) => String(group).padStart(2, "0")),
+);
 
 /**
  * The `80840` prefix prepended to a 10-digit NPI before the Luhn check (the CMS NPI check-digit
@@ -214,6 +269,35 @@ export function isSyntheticSsn(value: string): boolean {
   if (digits.length !== 9) return false;
   const area = Number(digits.slice(0, 3));
   return area === 0 || area === 666 || area >= 900;
+}
+
+/**
+ * Whether a `ddd-dd-dddd` (or `ddddddddd`) value is a **validly formatted IRS ITIN**: it begins
+ * with `9` and its group digits (positions 4 and 5) fall inside a published ITIN group range
+ * ({@link ITIN_GROUP_RANGES}). This is the second issuing authority sharing the SSN number space,
+ * so `isSyntheticSsn(v) && !isItinFormatted(v)` is the full "cannot be a federally issued national
+ * id" guarantee, of which the area rule alone is only half.
+ *
+ * `true` means the value is ITIN-shaped and therefore **must not** be emitted at an SSN locus. A
+ * value that is not exactly 9 digits once separators are stripped returns `false` (not an SSN/ITIN
+ * shape) rather than throwing, as do the group values `89` and `93`, which the IRM reserves for
+ * other IRS programs rather than for ITINs.
+ *
+ * @param value - The candidate national id (dashes and other separators optional).
+ * @returns `true` when the value is formatted as a valid ITIN.
+ * @example
+ * ```ts
+ * import { isItinFormatted } from "@cosyte/synth";
+ * isItinFormatted("912-70-1234"); // true: group 70 is inside a published ITIN range
+ * isItinFormatted("912-66-1234"); // false: group 66 is outside every published ITIN range
+ * ```
+ */
+export function isItinFormatted(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length !== 9) return false;
+  if (!digits.startsWith("9")) return false;
+  const group = Number(digits.slice(3, 5));
+  return ITIN_GROUP_RANGES.some((range) => group >= range.min && group <= range.max);
 }
 
 /**

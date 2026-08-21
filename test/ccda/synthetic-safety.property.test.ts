@@ -18,6 +18,7 @@ import { serializeCcda } from "@cosyte/ccda";
 import { generateCcd, generateReferralNote } from "../../src/ccda/index.js";
 import {
   isSyntheticEmail,
+  isItinFormatted,
   isSyntheticPhone,
   isSyntheticSsn,
   SYNTHETIC_ASSIGNING_AUTHORITY,
@@ -30,11 +31,26 @@ const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 }
 const NAME_POOL = new Set<string>([...SYNTHETIC_GIVEN_NAMES, ...SYNTHETIC_FAMILY_NAMES]);
 const SYNTH_OID = SYNTHETIC_ASSIGNING_AUTHORITY.universalId;
 
-/** A conservative real-data sweep: any issuable-area dashed SSN, or any non-reserved email. */
+/**
+ * The **SSN-locus floor**, applied to one value. Two federal authorities share this number space:
+ * SSA never issues area `000`/`666`/`900-999`, and the IRS issues ITINs *inside* `900-999`, told
+ * apart by the group digits. A value must clear both, so an ITIN-formatted one is a hit even
+ * though the never-issued area half passes it.
+ */
+function ssnLocusHits(value: string): string[] {
+  if (!isSyntheticSsn(value)) return [`ssn:${value}`];
+  if (isItinFormatted(value)) return [`itin:${value}`];
+  return [];
+}
+
+/**
+ * A conservative real-data sweep: any dashed SSN in issuable-area or ITIN-formatted form, or any
+ * non-reserved email.
+ */
 function realDataHits(content: string): string[] {
   const hits: string[] = [];
   for (const m of content.matchAll(/\b\d{3}-\d{2}-\d{4}\b/g)) {
-    if (!isSyntheticSsn(m[0])) hits.push(`ssn:${m[0]}`);
+    hits.push(...ssnLocusHits(m[0]));
   }
   for (const m of content.matchAll(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g)) {
     if (!isSyntheticEmail(m[0])) hits.push(`email:${m[0]}`);
@@ -73,6 +89,17 @@ describe("synthetic-safety gate, generated C-CDA output (must be ZERO)", () => {
       }),
       { numRuns: 60 },
     );
+  }, 60_000);
+
+  it("the sweep FAILS on an ITIN-formatted SSN in a document (true positive, not vacuous)", () => {
+    // The sweeps above only ever see values the (fixed) generator emits, so the ITIN arm is never
+    // exercised by real output. Inject a known-bad value into a real serialized document and
+    // require the sweep itself to report a hit.
+    const ITIN_SHAPED = "987-65-4320"; // area 987 (SSA never issues it) + group 65, inside 50-65
+    expect(isSyntheticSsn(ITIN_SHAPED), "the pre-existing area rule passes it").toBe(true);
+    const xml = serializeCcda(generateCcd({ seed: 5150 }));
+    expect(realDataHits(xml)).toEqual([]);
+    expect(realDataHits(`${xml}<!-- ${ITIN_SHAPED} -->`)).toEqual([`itin:${ITIN_SHAPED}`]);
   }, 60_000);
 
   it("every C-CDA identity locus is provably synthetic", () => {

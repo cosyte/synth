@@ -1283,9 +1283,25 @@ function buildTargetsForStaged(): Target[] {
 /**
  * Whether a 9-digit SSN (dashes optional) is drawn from an SSA never-issued / reserved space: area
  * `000`, `666`, or `900–999`. This is the one place a *synthetic-data generator's* PHI gate must
- * differ from a parser's: `synth` legitimately emits `900-xx-xxxx` never-issued SSNs and the
- * `987-65-432x` advertising block, and those are *proof of synthetic*, not PHI. A real, issuable SSN
+ * differ from a parser's: `synth` legitimately emits `900-xx-xxxx` never-issued SSNs and a fixed
+ * `987-00-432x` display block, and those are *proof of synthetic*, not PHI. A real, issuable SSN
  * (area `001–899`, excluding `666`) is still a hard hit (roadmap §4.1, §4.4).
+ *
+ * **This is the SSA half alone, deliberately, and the cost of the other half was measured, not
+ * assumed.** A second federal authority issues inside the same `9xx` space (an IRS ITIN is an
+ * SSN-format number beginning with 9, told apart by its group digits), and the generator's own
+ * floor clears both; this scan does not. Adding the ITIN half here reds 25 committed values across
+ * 9 files (measured, by making the change and running the sweep, not reasoned from the shape of
+ * the code): every dashed ITIN literal the property suites carry precisely so their true-positive
+ * tests are not vacuous, the boundary values `test/safe.test.ts` pins, `isItinFormatted`'s own doc
+ * example, and the `"advertising"` block's own history note. Clearing those needs allow-list
+ * entries, and an allow-list entry is global and route-blind: it would silence those exact values on
+ * the commit-blocking pre-commit route too, which is the shape `phi-scan-overrides.md` warns has
+ * subtracted a real detection elsewhere. So the tightening would spend the most guarded lever here
+ * to buy nothing the property layer does not already prove. `pnpm phi-scan` is a floor, not the
+ * whole gate; the two-authority proof is `isItinFormatted` plus the property layer, and
+ * `test/scripts/phi-scan.test.ts` pins this limit as a deliberate one rather than leaving it to be
+ * read as a blessing.
  */
 function isSyntheticSsn(value: string): boolean {
   const digits = value.replace(/\D/g, "");
