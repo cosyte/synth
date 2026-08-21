@@ -7,12 +7,21 @@
  * groups prove the parts the `conformance-refuter` cares about: **non-vacuity** (the loop genuinely
  * fails when a sentinel survives, proven by tampering) and the **synthetic-safety** of the sentinels
  * themselves (every planted token is drawn from a guaranteed-non-colliding source, never realistic).
+ *
+ * The sentinel sweep is an SSN-locus synthetic-safety sweep like the per-format property suites: the
+ * planted PID-19 tokens are generated SSNs, so it applies the same two-authority floor (SSA area rule
+ * plus the IRS ITIN format check) and carries the same true-positive test proving it speaks up.
  */
 
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 
-import { isSyntheticSsn, isSyntheticPhone, isSyntheticEmail } from "../../src/index.js";
+import {
+  isSyntheticSsn,
+  isItinFormatted,
+  isSyntheticPhone,
+  isSyntheticEmail,
+} from "../../src/index.js";
 import {
   SYNTHETIC_GIVEN_NAMES,
   SYNTHETIC_FAMILY_NAMES,
@@ -211,37 +220,104 @@ describe("the deid pairing loop: synthetic-safety of the planted sentinels", () 
   );
   const SYNTHETIC_ID_PREFIX = /^(MBR|GRP|PRA|LAB|PTACCT|ACCT|MR|MRN)\d+$/i;
 
-  it("every planted token is drawn from a guaranteed-non-colliding synthetic source", () => {
-    const tokens = new Set<string>();
-    for (const seed of SEEDS)
-      for (const r of allRuns(seed)) for (const s of r.planted) tokens.add(s.token);
-    expect(tokens.size).toBeGreaterThan(20);
+  /**
+   * The **SSN-locus floor**, applied to a planted token. Two federal authorities share this number
+   * space: SSA never issues area `000`/`666`/`900-999`, and the IRS issues ITINs *inside* `900-999`,
+   * told apart by the group digits. A sentinel must clear both, so the area rule alone is only half
+   * the check and an ITIN-formatted token is a hit even though it passes that half.
+   */
+  function ssnLocusHits(token: string): string[] {
+    if (!isSyntheticSsn(token)) return [`ssn:${token}`];
+    if (isItinFormatted(token)) return [`itin:${token}`];
+    return [];
+  }
 
-    for (const token of tokens) {
-      if (token.includes("@")) {
-        expect(isSyntheticEmail(token), `${token} email`).toBe(true);
-      } else if (/^9\d{8}$/.test(token) || /^\d{3}-\d{2}-\d{4}$/.test(token)) {
-        // SSN-shaped: must be a never-issued synthetic SSN, never a real one.
-        expect(isSyntheticSsn(token), `${token} ssn`).toBe(true);
-      } else if (/^[\d()\s.+-]+$/.test(token) && /555/.test(token)) {
-        expect(isSyntheticPhone(token), `${token} phone`).toBe(true);
-      } else if (/^\d+$/.test(token)) {
-        // A purely-numeric identifier (MRN/member) minted under the synthetic assigning authority.
-        // Guard the one real-looking shape a bare number could take: a 9-digit run is an SSN shape and
-        // must be a never-issued synthetic SSN. Anything else is an institution-local id under a
-        // synthetic namespace (never an SSN: SSNs are always emitted 9-digit).
-        if (token.length === 9) {
-          expect(isSyntheticSsn(token), `${token} 9-digit id`).toBe(true);
-        }
-        expect(token.length, `${token} numeric id length`).toBeGreaterThanOrEqual(6);
-      } else if (SYNTHETIC_ID_PREFIX.test(token)) {
-        // A synthetic-assigning-authority id (member/group/account): clearly-synthetic prefix.
-        expect(true).toBe(true);
-      } else {
-        // Alphabetic: every word must come from the shipped clearly-fake name/place pools.
-        expect(POOL_WORDS.has(token.toLowerCase()), `${token} pool`).toBe(true);
-      }
+  /**
+   * One planted token against the synthetic source it must have been drawn from: the sweep's own
+   * classification, as a function, so a known-bad token can be pushed through the very same arms the
+   * corpus assertion uses. Returns the hits (empty = provably synthetic).
+   */
+  function plantedTokenHits(token: string): string[] {
+    if (token.includes("@")) {
+      return isSyntheticEmail(token) ? [] : [`email:${token}`];
     }
+    if (/^9\d{8}$/.test(token) || /^\d{3}-\d{2}-\d{4}$/.test(token)) {
+      // SSN-shaped: a never-issued synthetic SSN, and never a validly formatted IRS ITIN.
+      return ssnLocusHits(token);
+    }
+    if (/^[\d()\s.+-]+$/.test(token) && /555/.test(token)) {
+      return isSyntheticPhone(token) ? [] : [`phone:${token}`];
+    }
+    if (/^\d+$/.test(token)) {
+      // A purely-numeric identifier (MRN/member) minted under the synthetic assigning authority.
+      // Guard the one real-looking shape a bare number could take: a 9-digit run is an SSN shape and
+      // must clear both authorities. Anything else is an institution-local id under a synthetic
+      // namespace (never an SSN: SSNs are always emitted 9-digit).
+      const hits = token.length === 9 ? ssnLocusHits(token) : [];
+      if (token.length < 6) hits.push(`short-id:${token}`);
+      return hits;
+    }
+    if (SYNTHETIC_ID_PREFIX.test(token)) {
+      // A synthetic-assigning-authority id (member/group/account): clearly-synthetic prefix.
+      return [];
+    }
+    // Alphabetic: every word must come from the shipped clearly-fake name/place pools.
+    return POOL_WORDS.has(token.toLowerCase()) ? [] : [`pool:${token}`];
+  }
+
+  /** The sweep: every token in a planted corpus, classified. Empty = the corpus is synthetic-safe. */
+  function sweepPlantedTokens(tokens: Iterable<string>): string[] {
+    return [...tokens].flatMap((token) => plantedTokenHits(token));
+  }
+
+  /** Every distinct token planted across every format/variant, for the given seeds. */
+  function plantedTokens(seeds: readonly number[]): Set<string> {
+    const tokens = new Set<string>();
+    for (const seed of seeds)
+      for (const r of allRuns(seed)) for (const s of r.planted) tokens.add(s.token);
+    return tokens;
+  }
+
+  it("every planted token is drawn from a guaranteed-non-colliding synthetic source", () => {
+    const tokens = plantedTokens(SEEDS);
+    expect(tokens.size).toBeGreaterThan(20);
+    expect(sweepPlantedTokens(tokens)).toStrictEqual([]);
+  });
+
+  describe("the sweep itself fails on an ITIN-formatted token (true positive, not vacuous)", () => {
+    // The assertion above only ever sees the (now-fixed) generator's own output, so its ITIN arm is
+    // never exercised by a real token: it would stay green if the check were inverted, dropped, or
+    // reading the wrong digits. These tests feed a known-bad token through the SAME sweep function.
+    const ITIN_SHAPED = "987654320"; // area 987 (SSA never issues it) + group 65, inside 50-65
+    const ITIN_SHAPED_DASHED = "987-65-4320";
+
+    it("an ITIN-formatted token injected into the planted corpus is a hit, for every seed", () => {
+      expect(isSyntheticSsn(ITIN_SHAPED)).toBe(true); // the pre-existing SSA half calls it synthetic
+      expect(isItinFormatted(ITIN_SHAPED)).toBe(true);
+      for (const seed of SEEDS) {
+        const tokens = plantedTokens([seed]);
+        expect(sweepPlantedTokens(tokens), `seed ${seed} clean`).toStrictEqual([]);
+        tokens.add(ITIN_SHAPED);
+        expect(sweepPlantedTokens(tokens), `seed ${seed} injected`).toStrictEqual([
+          `itin:${ITIN_SHAPED}`,
+        ]);
+      }
+    });
+
+    it("the dashed form is caught too, and so is a real sentinel replaced by an ITIN", () => {
+      expect(plantedTokenHits(ITIN_SHAPED_DASHED)).toStrictEqual([`itin:${ITIN_SHAPED_DASHED}`]);
+
+      // Swap the corpus's own generated SSN sentinel for an ITIN: the sweep must report exactly it.
+      const r = hl7DeidLoop({ seed: 42, kind: "ADT^A01" });
+      const planted = r.planted.map((s) => s.token);
+      const ssn = planted.find((t) => /^9\d{8}$/.test(t));
+      expect(ssn, "the ADT corpus must plant an SSN sentinel").toBeDefined();
+      if (ssn === undefined) return;
+      expect(sweepPlantedTokens(planted)).toStrictEqual([]);
+      expect(sweepPlantedTokens(planted.map((t) => (t === ssn ? ITIN_SHAPED : t)))).toStrictEqual([
+        `itin:${ITIN_SHAPED}`,
+      ]);
+    });
   });
 });
 

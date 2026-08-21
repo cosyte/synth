@@ -76,6 +76,13 @@ export type SsnBlock = "never-issued" | "advertising";
  * `987-00-4320` to `987-00-4329`, whose group `00` is one SSA never assigns and one no published
  * ITIN range contains.
  *
+ * **`"advertising"` no longer means SSA's own advertising block.** That published block is
+ * `987-65-4320` to `987-65-4329`, and group `65` sits inside a published ITIN group range, so every
+ * value in it is ITIN-formatted and none of them can be emitted here. The option keeps its name
+ * (renaming it would break call sites for a property no test asserts) and keeps its purpose, a fixed
+ * ten-value block safe to print on screen, but it is a display block of this package's choosing now,
+ * not a citation of SSA's. Do not reintroduce the `65` group to recover the provenance.
+ *
  * @param rng - The seeded generator.
  * @param block - Which reserved space to draw from. Defaults to `"never-issued"`.
  * @returns A dashed synthetic SSN string.
