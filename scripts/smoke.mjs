@@ -80,6 +80,12 @@ const PROBES = {
     const rng = m.createRng(seed);
     const ssn = m.safe.ssn(rng);
     check(m.isSyntheticSsn(ssn), `root: isSyntheticSsn(safe.ssn(createRng(${seed}))) was false`);
+    // Two authorities share this number space, so the built package must ship both halves of the
+    // guarantee: never SSA-assignable, and never a validly formatted IRS ITIN either.
+    check(
+      m.isItinFormatted(ssn) === false,
+      `root: isItinFormatted(safe.ssn(createRng(${seed}))) was true`,
+    );
     return ssn;
   },
   // The six format subpaths each ship a `*Corpus({ seed, count })` returning artifacts with a

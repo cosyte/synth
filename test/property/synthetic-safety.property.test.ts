@@ -19,6 +19,7 @@ import {
   createRng,
   safe,
   isSyntheticSsn,
+  isItinFormatted,
   isSyntheticPhone,
   isSyntheticEmail,
   isSyntheticIp,
@@ -40,11 +41,26 @@ const ALL_KINDS: readonly Hl7MessageKind[] = [
   "VXU^V04",
 ];
 
-/** A conservative real-data sweep: any dashed SSN in issuable-area form, or any non-reserved email. */
+/**
+ * The **SSN-locus floor**, applied to a parsed wire value. Two federal authorities share this
+ * number space: SSA never issues area `000`/`666`/`900-999`, and the IRS issues ITINs *inside*
+ * `900-999`, told apart by the group digits. A locus value must clear both, so the area rule alone
+ * is only half the check and an ITIN-formatted value is a hit even though it passes that half.
+ */
+function ssnLocusHits(value: string): string[] {
+  if (!isSyntheticSsn(value)) return [`ssn:${value}`];
+  if (isItinFormatted(value)) return [`itin:${value}`];
+  return [];
+}
+
+/**
+ * A conservative real-data sweep: any dashed SSN in issuable-area form or in ITIN-formatted form,
+ * or any non-reserved email.
+ */
 function realDataHits(content: string): string[] {
   const hits: string[] = [];
   for (const m of content.matchAll(/\b\d{3}-\d{2}-\d{4}\b/g)) {
-    if (!isSyntheticSsn(m[0])) hits.push(`ssn:${m[0]}`);
+    hits.push(...ssnLocusHits(m[0]));
   }
   for (const m of content.matchAll(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g)) {
     if (!isSyntheticEmail(m[0])) hits.push(`email:${m[0]}`);
@@ -59,9 +75,9 @@ describe("synthetic-safety gate, generated HL7 output (must be ZERO)", () => {
         const content = generateAdt({ seed: s, trigger }).toString();
         const msg = parseHL7(content);
 
-        // PID-19 SSN, never-issued area only.
+        // PID-19 SSN: never-issued area, and never a validly formatted ITIN.
         const ssnValue = msg.get("PID.19") ?? "";
-        expect(isSyntheticSsn(ssnValue), `SSN ${ssnValue}`).toBe(true);
+        expect(ssnLocusHits(ssnValue), `SSN ${ssnValue}`).toEqual([]);
 
         // PID-13 phone: reserved 555-01xx block only.
         const phoneValue = msg.get("PID.13") ?? "";
@@ -100,7 +116,7 @@ describe("synthetic-safety gate, generated HL7 output (must be ZERO)", () => {
 
         // Every family carries a PID: its identity loci must all be synthetic-by-construction.
         const msg = parseHL7(content);
-        expect(isSyntheticSsn(msg.get("PID.19") ?? ""), `${kind} SSN`).toBe(true);
+        expect(ssnLocusHits(msg.get("PID.19") ?? ""), `${kind} SSN`).toEqual([]);
         expect(isSyntheticPhone(msg.get("PID.13") ?? ""), `${kind} phone`).toBe(true);
         expect(SYNTHETIC_FAMILY_NAMES).toContain(msg.get("PID.5.1"));
         expect(SYNTHETIC_GIVEN_NAMES).toContain(msg.get("PID.5.2"));
@@ -112,13 +128,42 @@ describe("synthetic-safety gate, generated HL7 output (must be ZERO)", () => {
   });
 });
 
+describe("the sweep itself fails on an ITIN-formatted value (true positive, not vacuous)", () => {
+  // Every assertion above says "the generator's output is clean". None of them proves the sweep
+  // would SPEAK UP if it were handed a bad value: with a fixed generator, the ITIN arm is never
+  // exercised by real output. These tests feed a known-bad value through the same sweep functions
+  // the properties call, so an inverted assertion or a warn-only check reds here.
+  const ITIN_SHAPED = "987654320"; // area 987 (SSA never issues it) + group 65, inside 50-65
+  const ITIN_SHAPED_DASHED = "987-65-4320";
+
+  it("a known ITIN-formatted value at an SSN locus is a hit, though the SSA area rule passes it", () => {
+    expect(isSyntheticSsn(ITIN_SHAPED)).toBe(true); // the pre-existing half says "synthetic"
+    expect(ssnLocusHits(ITIN_SHAPED)).toEqual([`itin:${ITIN_SHAPED}`]);
+    expect(ssnLocusHits(ITIN_SHAPED_DASHED)).toEqual([`itin:${ITIN_SHAPED_DASHED}`]);
+    expect(realDataHits(`PID|1||x||y||||||||||||${ITIN_SHAPED_DASHED}`)).toEqual([
+      `itin:${ITIN_SHAPED_DASHED}`,
+    ]);
+  });
+
+  it("a generated message whose PID-19 is replaced by an ITIN fails the same structured sweep", () => {
+    const content = generateAdt({ seed: 4321, trigger: "A01" }).toString();
+    const clean = parseHL7(content).get("PID.19") ?? "";
+    expect(ssnLocusHits(clean), `clean SSN ${clean}`).toEqual([]);
+
+    const tampered = content.replace(clean, ITIN_SHAPED);
+    const injected = parseHL7(tampered).get("PID.19") ?? "";
+    expect(injected, "the injection must land in PID-19").toBe(ITIN_SHAPED);
+    expect(ssnLocusHits(injected)).toEqual([`itin:${ITIN_SHAPED}`]);
+  });
+});
+
 describe("synthetic-safety gate: provider-level (must be ZERO)", () => {
   it("no primitive value escapes its reserved / synthetic source", () => {
     fc.assert(
       fc.property(seed(), (s) => {
         const rng = createRng(s);
-        expect(isSyntheticSsn(safe.ssn(rng))).toBe(true);
-        expect(isSyntheticSsn(safe.ssn(rng, "advertising"))).toBe(true);
+        expect(ssnLocusHits(safe.ssn(rng))).toEqual([]);
+        expect(ssnLocusHits(safe.ssn(rng, "advertising"))).toEqual([]);
         expect(isSyntheticPhone(safe.phone(rng))).toBe(true);
         const person = safe.name(rng);
         expect(SYNTHETIC_GIVEN_NAMES).toContain(person.given);

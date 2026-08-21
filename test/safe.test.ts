@@ -14,6 +14,8 @@ import {
   dateYmd,
   name,
   isSyntheticSsn,
+  isItinFormatted,
+  ITIN_GROUP_RANGES,
   isSyntheticPhone,
   isSyntheticEmail,
   isSyntheticIp,
@@ -21,6 +23,7 @@ import {
   SYNTHETIC_GIVEN_NAMES,
   SYNTHETIC_FAMILY_NAMES,
 } from "../src/index.js";
+import { SSN_SYNTHETIC_GROUPS } from "../src/safe/reserved.js";
 
 // `scripts/phi-scan.ts` walks all of `test/`, so this suite sits inside the corpus
 // the PHI gate guards. The three values below are deliberately NON-synthetic: they
@@ -41,11 +44,41 @@ describe("synthetic-safety providers: every value is provably synthetic", () => 
     }
   });
 
-  it("ssn advertising block is the reserved 987-65-432x range", () => {
+  it("ssn is never ITIN-formatted, and generation never fails for a seed", () => {
+    // The IRS shares this number space: an ITIN is an SSN-format value beginning with 9. Every
+    // draw must clear BOTH authorities, and the draw is restricted rather than retried, so a seed
+    // whose group would have been ITIN-shaped still yields a value instead of throwing.
+    for (let seed = 0; seed < 2000; seed += 1) {
+      const value = ssn(createRng(seed));
+      expect(isSyntheticSsn(value), `${value} SSA floor`).toBe(true);
+      expect(isItinFormatted(value), `${value} ITIN-formatted`).toBe(false);
+    }
+  });
+
+  it("every group value ssn can draw is outside every published ITIN range", () => {
+    // The pool is derived from the published ranges, so this pins the derivation, not a copy.
+    expect(SSN_SYNTHETIC_GROUPS).toHaveLength(54); // 100 - 44 ITIN values - 89 and 93
+    for (const group of SSN_SYNTHETIC_GROUPS) {
+      expect(group).toMatch(/^\d{2}$/);
+      expect(isItinFormatted(`912-${group}-3456`), `group ${group}`).toBe(false);
+    }
+    // Non-vacuity: the complement really is ITIN-formatted, so the pool is not trivially "all".
+    const drawable = new Set(SSN_SYNTHETIC_GROUPS);
+    for (let group = 0; group < 100; group += 1) {
+      const gg = String(group).padStart(2, "0");
+      if (drawable.has(gg) || gg === "89" || gg === "93") continue;
+      expect(isItinFormatted(`912-${gg}-3456`), `group ${gg}`).toBe(true);
+    }
+  });
+
+  it("ssn advertising block is the fixed 987-00-432x display range", () => {
     for (let seed = 0; seed < 50; seed += 1) {
       const value = ssn(createRng(seed), "advertising");
-      expect(value).toMatch(/^987-65-432\d$/);
+      expect(value).toMatch(/^987-00-432\d$/);
       expect(isSyntheticSsn(value)).toBe(true);
+      // The same not-ITIN-formatted guarantee as the default block, over arbitrary seeds.
+      expect(isItinFormatted(value), `${value} ITIN-formatted`).toBe(false);
+      expect(SSN_SYNTHETIC_GROUPS).toContain(value.slice(4, 6));
     }
   });
 
@@ -142,6 +175,67 @@ describe("reserved-range predicates reject real-looking values", () => {
     expect(isSyntheticSsn("12-34-5678")).toBe(false); // wrong length
     expect(isSyntheticSsn("000-12-3456")).toBe(true);
     expect(isSyntheticSsn("666-12-3456")).toBe(true);
+  });
+
+  it("the SSA never-issued-area floor is unchanged by the ITIN check", () => {
+    // Closing the ITIN gap must not narrow the pre-existing area rule: 000, 666 and 900-999 stay
+    // synthetic under isSyntheticSsn whatever their group digits are, including ITIN-shaped ones.
+    expect(isSyntheticSsn("900-70-1234")).toBe(true); // ITIN-shaped, still never-issued by SSA
+    expect(isSyntheticSsn("987-65-4320")).toBe(true); // the old advertising value, still area 987
+    expect(isSyntheticSsn("000-70-1234")).toBe(true);
+    expect(isSyntheticSsn("666-70-1234")).toBe(true);
+    expect(isSyntheticSsn(digits("123", "-70-", "1234"))).toBe(false); // issuable area, unchanged
+    for (let area = 900; area <= 999; area += 1) {
+      expect(isSyntheticSsn(`${String(area)}-70-1234`), `area ${String(area)}`).toBe(true);
+    }
+  });
+
+  it("isItinFormatted covers every published group range and nothing else", () => {
+    // Band edges, inside and just outside, for each published range.
+    expect(isItinFormatted("912-50-3456")).toBe(true);
+    expect(isItinFormatted("912-65-3456")).toBe(true);
+    expect(isItinFormatted("912-49-3456")).toBe(false);
+    expect(isItinFormatted("912-66-3456")).toBe(false);
+    expect(isItinFormatted("912-70-3456")).toBe(true);
+    expect(isItinFormatted("912-88-3456")).toBe(true);
+    expect(isItinFormatted("912-90-3456")).toBe(true);
+    expect(isItinFormatted("912-92-3456")).toBe(true);
+    expect(isItinFormatted("912-94-3456")).toBe(true);
+    expect(isItinFormatted("912-99-3456")).toBe(true);
+    // The published ranges are exactly the four bands.
+    expect(ITIN_GROUP_RANGES.map((r) => [r.min, r.max])).toEqual([
+      [50, 65],
+      [70, 88],
+      [90, 92],
+      [94, 99],
+    ]);
+    // Only a value beginning with 9 can be an ITIN, whatever its group.
+    expect(isItinFormatted(digits("123", "-70-", "3456"))).toBe(false);
+    expect(isItinFormatted(digits("899", "-70-", "3456"))).toBe(false);
+    // Undashed is the same value.
+    expect(isItinFormatted("912703456")).toBe(true);
+  });
+
+  it("isItinFormatted treats groups 89 and 93 as NOT ITIN-formatted", () => {
+    // The IRM reserves these two for other IRS programs rather than for ITINs, so they sit
+    // between the published bands and a value carrying one is not a validly formatted ITIN.
+    expect(isItinFormatted("912-89-3456")).toBe(false);
+    expect(isItinFormatted("912-93-3456")).toBe(false);
+    // Their neighbours inside the bands still are, so this is a hole, not a shifted edge.
+    expect(isItinFormatted("912-88-3456")).toBe(true);
+    expect(isItinFormatted("912-90-3456")).toBe(true);
+    expect(isItinFormatted("912-92-3456")).toBe(true);
+    expect(isItinFormatted("912-94-3456")).toBe(true);
+  });
+
+  it("isItinFormatted reports non-9-digit input as not ITIN-formatted rather than throwing", () => {
+    expect(() => isItinFormatted("912-70-345")).not.toThrow();
+    expect(isItinFormatted("912-70-345")).toBe(false); // 8 digits
+    expect(isItinFormatted("912-70-34567")).toBe(false); // 10 digits
+    expect(isItinFormatted("")).toBe(false);
+    expect(isItinFormatted("not-a-number")).toBe(false);
+    expect(isItinFormatted("9")).toBe(false);
+    expect(isItinFormatted("912-7O-3456")).toBe(false); // a letter, so 8 digits remain
   });
 
   it("isSyntheticPhone rejects a real working number", () => {

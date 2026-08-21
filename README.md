@@ -310,18 +310,21 @@ NCPDP **SCRIPT** and **ASTM** (no `@cosyte/deid` adapter) and **DICOM** (not gen
 ## Draw a synthetic value
 
 ```ts
-import { createRng, safe, isSyntheticSsn, isSyntheticNpi } from "@cosyte/synth";
+import { createRng, safe, isSyntheticSsn, isItinFormatted, isSyntheticNpi } from "@cosyte/synth";
 
 const rng = createRng(42);
-isSyntheticSsn(safe.ssn(rng)); // true, always an SSA never-issued SSN
+const nationalId = safe.ssn(rng);
+isSyntheticSsn(nationalId); // true, always an SSA never-issued SSN
+isItinFormatted(nationalId); // false, never a validly formatted IRS ITIN either
 isSyntheticNpi(safe.npi(rng)); // true, always a deliberately-invalid-Luhn NPI (never a real NPI)
 ```
 
 ## What makes it trustworthy
 
 - **Synthetic-by-construction**, no code path emits a value not drawn from a reserved range or the
-  shipped fake-name pool (SSA never-issued SSNs, NANP `555-01xx` phones, RFC 2606/6761 `example.*`
-  domains, RFC 5737/3849 TEST-NET IPs, a synthetic assigning authority for MRNs). A CI gate proves it.
+  shipped fake-name pool (SSA never-issued SSNs that are not IRS ITINs either, NANP `555-01xx`
+  phones, RFC 2606/6761 `example.*` domains, RFC 5737/3849 TEST-NET IPs, a synthetic assigning
+  authority for MRNs). A CI gate proves it.
   **No generated value can be real or plausibly-real PHI.**
 - **Spec-clean by the parser's own judgment**, built through the parser's conservative serializer, and
   checked by feeding the artifact straight back in: a spec-clean artifact re-parses with zero warnings.

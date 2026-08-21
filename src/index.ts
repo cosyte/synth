@@ -60,6 +60,8 @@ export {
 } from "./safe/index.js";
 export {
   isSyntheticSsn,
+  isItinFormatted,
+  ITIN_GROUP_RANGES,
   isSyntheticPhone,
   isSyntheticEmail,
   isSyntheticIp,
