@@ -32,3 +32,104 @@ jobs:
     uses: cosyte/.github/.github/workflows/ci.yml@main
     with:
       run-phi-scan: true
+
+  # ── THE ORACLE GATE ──────────────────────────────────────────────────────────────────────────
+  #
+  # ADDED ON TOP OF THE CALLER ABOVE, NEVER INSTEAD OF IT, which is what the banner on that caller
+  # says repo-specific extra jobs do. Both jobs run on every pull request and on every push to main;
+  # deleting either is a visible edit to this file.
+  #
+  # WHY IT EXISTS. Every "spec-clean" claim this package makes today is `artifact.warnings === []`,
+  # where the artifact was built by the same library that reads it back, so a shared misreading of a
+  # standard is invisible to the check and a consumer has no way to point at anybody but us. This job
+  # asks somebody else: the HL7-maintained FHIR validator grades a declared, seeded corpus of
+  # generated FHIR R4 artifacts against the US Core package this repository pins, and the validator's
+  # own report is the verdict. THIS IS THE ONLY PLACE THE EXTERNAL VALIDATOR EXECUTES. Everything the
+  # gate DECIDES is a pure function tested offline in `test/oracle/`, over reports committed as
+  # hand-authored fixtures; what cannot be faked offline, and therefore only happens here, is the
+  # validator actually looking at the output.
+  #
+  # NO `|| true` AND NO `continue-on-error`. A check that cannot fail is documentation, and this one
+  # exists precisely to be able to say no. There is no severity downgrade, no warning-only mode and
+  # no suppression list anywhere in the gate: when it reds, the sanctioned moves are to fix the
+  # question, fix the artifact, or narrow the DECLARED corpus and publish the exclusion and its
+  # reason in the coverage declaration.
+  #
+  # NO `setup-java` ACTION, DELIBERATELY. The GitHub-hosted Ubuntu image ships a JDK on PATH, so
+  # taking a dependency on another third-party action to install one would add a supply-chain surface
+  # to buy nothing. If an image ever stops shipping one, the `java -version` step below fails loudly
+  # rather than the oracle silently reporting a run it could not perform.
+  #
+  # THE DOWNLOAD URLS COME OUT OF THE PIN, not out of this file, so `scripts/oracle/oracle-lock.json`
+  # stays the single place the sources and their digests are recorded. The run itself verifies what
+  # arrived against that pin BEFORE it generates or grades anything.
+  #
+  # `oracle` IS THE CHECK-RUN CONTEXT NAME, and it is deliberately NOT a required context on `main`
+  # yet: requiring one no workflow has ever emitted there leaves every future pull request PENDING
+  # and unmergeable with nothing saying why. Let it run on `main` first, read the real name off a
+  # live check run, and only then extend the one existing ruleset in place.
+  oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The runner's own JDK. A missing one reds here, with a name, rather than inside the oracle.
+      - name: Show the JRE the validator will run on
+        run: java -version
+
+      # THE FIRST HOP IS THE ONE THAT NAMES THE RELEASE, and it is the only one worth recording.
+      # MEASURED, not assumed: `/releases/latest/download/<file>` answers 302 with a Location of
+      # `/releases/download/<tag>/<file>`, which carries the tag, while following the whole chain
+      # lands on a signed asset URL naming a storage GUID and carrying a short-lived token. The first
+      # run of this job recorded that GUID as the validator's "version", which is how this is known.
+      # So the redirect is read WITHOUT being followed, the tagged URL is what gets recorded and
+      # downloaded, and an absent redirect stops the job rather than being recorded as an unversioned
+      # source. The package registry is version-addressed already, so the URL asked for is the URL
+      # recorded, and the digest is what proves the bytes behind it.
+      - name: Acquire the pinned validator and conformance package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .oracle
+          read_pin() {
+            node -e 'const l=JSON.parse(require("node:fs").readFileSync("scripts/oracle/oracle-lock.json","utf8"));process.stdout.write(l[process.argv[1]].downloadUrl)' "$1"
+          }
+          jar_source=$(read_pin validator)
+          pkg_source=$(read_pin conformancePackage)
+          jar_url=$(curl --fail --silent --show-error --retry 3 --output /dev/null --write-out '%{redirect_url}' "$jar_source")
+          if [ -z "$jar_url" ]; then
+            echo "the validator download did not redirect, so no release tag can be recorded" >&2
+            exit 1
+          fi
+          curl --fail --silent --show-error --location --retry 3 --output .oracle/validator_cli.jar "$jar_url"
+          curl --fail --silent --show-error --location --retry 3 --output .oracle/us-core.tgz "$pkg_source"
+          node -e '
+            const fs = require("node:fs");
+            fs.writeFileSync(".oracle/acquisition.json", JSON.stringify({
+              validator: { path: ".oracle/validator_cli.jar", resolvedUrl: process.argv[1] },
+              conformancePackage: { path: ".oracle/us-core.tgz", resolvedUrl: process.argv[2] },
+            }, null, 2));
+          ' "$jar_url" "$pkg_source"
+          echo "resolved validator URL: $jar_url"
+          echo "resolved package URL:   $pkg_source"
+          sha256sum .oracle/validator_cli.jar .oracle/us-core.tgz
+
+      - name: Grade the declared corpus with the external validator
+        run: pnpm run oracle
+
+      # The verdict is printed by the run itself; this repeats the machine-readable record in the log
+      # so a failed run leaves the whole thing behind rather than a tail.
+      - name: Show the published verdict
+        if: always()
+        shell: bash
+        run: cat .oracle/out/verdict.json || echo "no verdict was published"

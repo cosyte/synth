@@ -1,0 +1,88 @@
+name: Consumer install
+
+# Runs `pnpm check:install` (scripts/check-install.mjs) in its default PACK mode: this branch is
+# packed into a tarball, the tarball is installed into a freshly created empty project with npm and
+# with pnpm, and the optional-peer degradation contract is exercised in that project.
+#
+# WHY THIS FILE EXISTS AT ALL, STATED PLAINLY. Every other job in this repo installs with
+# `pnpm install --frozen-lockfile`, which resolves the seven `@cosyte` peers from the
+# `file:vendor/*.tgz` devDependencies sitting in the tree. That is the dev install, and it is the
+# only install anything here has ever performed. Nothing in this repository has ever installed this
+# package the way a consumer installs it, so a fully green pipeline said nothing about whether
+# `npm install @cosyte/synth` works in an empty directory. It has not always worked, and the only
+# thing that ever noticed was a person trying it by hand.
+#
+# WHAT IT CATCHES THAT `smoke` DOES NOT. `smoke` loads `dist/` in place, from a tree where every
+# peer is already on disk. It cannot see a `peerDependencies` range that no published version
+# satisfies, a peer that stops being optional, a `files` entry that leaves a subpath out of the
+# tarball, or a resolver refusing an optional peer it cannot fetch. Those are install-time facts and
+# they need an install to observe. Keep both jobs.
+#
+# WHY A SEPARATE WORKFLOW AND NOT A JOB IN ci.yml. Same constraint smoke.yml records: `ci.yml` is a
+# thin caller of cosyte/.github/.github/workflows/ci.yml@main, which runs a fixed ladder and no
+# arbitrary repo script, so a job added there would land on every other caller in the org at once.
+#
+# IT RUNS ON EVERY PULL REQUEST, NOT ONLY ON ONES THAT TOUCH package.json. A `paths:` filter would
+# be the narrower reading of what this gate is for, and it is the wrong one twice over. An install
+# breaks on more than a dependency edit: a change to `exports`, to `files`, to the build, or to a
+# subpath's imports moves it just as far, and a peer publishing on the other side of the org moves it
+# with no commit here at all. And a `paths:` filter is the exact shape that leaves a required context
+# PENDING forever on the pull requests it skips, which is the failure mode this repo has already
+# written down twice.
+#
+# A REQUIRED JOB GATES ALL OF ITS STEPS, so `build` and the check are steps of ONE job on purpose.
+# Pack mode reads the built `dist/` (`files` starts with `dist`), so a build in a different job would
+# need an artifact hand-off and would drop the build out of the required context.
+#
+# THE JOB ID PLUS THE MATRIX VALUE IS THE CHECK-RUN CONTEXT NAME (`install (22)`, `install (24)`).
+# Neither is a required context on `main` yet, deliberately: requiring a context no workflow has
+# emitted on `main` leaves every future pull request PENDING and unmergeable rather than failing it.
+# Let this run on `main` first, read the real names off a live check run
+# (`gh api repos/cosyte/synth/commits/<sha>/check-runs --jq '.check_runs[].name'`), and only then
+# extend the one existing ruleset in place. After that, the job id, the matrix and the required
+# contexts move together or not at all.
+#
+# The Node matrix mirrors `ci / verify` and `smoke`, because `exports` resolution and ESM/CJS interop
+# are exactly the kind of thing that moves between Node majors, and the floor is
+# `engines.node >= 22`.
+#
+# THIS JOB REACHES THE PUBLIC REGISTRY, and that is the point rather than an accident: it installs
+# the real published `@cosyte/fhir` to prove the peer-present half. If the registry is unreachable,
+# the check exits non-zero with a diagnostic naming the package and version. It never reports a run
+# it could not perform as passed or as skipped.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # One job deliberately: see the banner. No `|| true`, no `continue-on-error`.
+      - run: pnpm build
+      - run: pnpm run check:install

@@ -25,7 +25,8 @@ a guaranteed-non-colliding synthetic source.**
   `@cosyte/ccda`'s `buildCcda`, the X12/NCPDP/ASTM domain builders), so it is spec-clean by the same
   mechanism that makes the parser's emit side spec-clean, and it is proven by feeding the output
   straight back into that parser and asserting **zero warnings**. `synth` never hand-writes wire bytes
-  around a builder.
+  around a builder. **Who did the proving matters, and it is not the same answer for every format:
+  see [Who checks the output, and who does not](#who-checks-the-output-and-who-does-not) below.**
 - **Synthetic-by-construction.** There is no code path that can emit a name, identifier, date, phone,
   email, address, or IP not sourced from a reserved range or a shipped clearly-fake pool (see the
   posture below). This is the inverse of a de-identifier: `deid` proves real PHI is _gone_; `synth`
@@ -33,6 +34,42 @@ a guaranteed-non-colliding synthetic source.**
 - **Deterministic.** The same seed yields **byte-identical** output on any machine, any run, the
   property every downstream regression and golden-file suite depends on. Determinism is threaded
   through a hand-rolled seeded PRNG (`splitmix32`/`sfc32`); `Math.random` is lint-banned in `src/`.
+
+## Who checks the output, and who does not
+
+**A round-trip is not an independent verdict.** Every artifact is built through a sibling parser's
+own builder and then read straight back by that same parser, which reports zero warnings. That is a
+real structural property and it is the one every format here carries. It is also **the same code
+grading its own work**: where the builder and the reader share a misreading of a standard, the
+round-trip cannot see it, because the misreading is on both sides of the check. So the round-trip is
+the floor, not the ceiling, and it is worth exactly what it says and no more.
+
+**One format is additionally graded by somebody who is not us.** On every change, the
+HL7-maintained FHIR validator (the `validator_cli` tool published with FHIR itself, pinned by
+version and by content digest so a verdict is attributable to a build) validates a seeded corpus of
+generated FHIR R4 resources against **US Core 6.1.0**. **Any issue it reports at severity `error` or
+`fatal` fails the build.** It is never recorded as a warning, never downgraded, and there is no
+suppression list. If an artifact ever has to come out of the graded set, it is named, with its seed
+and its reason, in the coverage declaration the run publishes alongside the verdict.
+
+| Format               | Independent external verdict?                                       | Who grades it, or why nobody does                                                                                                                                            |
+| -------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **FHIR R4**          | **Yes**, on every change                                             | The HL7-maintained FHIR validator, against US Core 6.1.0 on FHIR R4 4.0.1                                                                                                     |
+| **HL7 v2**           | No: round-trip only                                                  | No public, file-based, offline HL7 v2 validator was found. The available conformance tooling is a hosted service with no documented command-line or file entry point           |
+| **C-CDA R2.1**       | No: round-trip only                                                  | The public reference validator is server-shaped (a Java 8 web archive needing several gigabytes of memory, driven over an HTTP API) and ships none of the vocabulary it needs |
+| **X12 005010**       | No: round-trip only                                                  | No public, file-based validator was found                                                                                                                                     |
+| **NCPDP**            | No: round-trip only                                                  | No public, file-based validator was found                                                                                                                                     |
+| **ASTM E1394/E1381** | No: round-trip only                                                  | No public, file-based validator was found                                                                                                                                     |
+
+The table is **generated against the formats the library actually emits**, not maintained by hand: a
+format that ships without an entry saying who grades it, or why nobody does, fails the run.
+
+**What the FHIR verdict does not include.** The external run is configured with **no terminology
+server**, deliberately: a verdict that depends on a live public service is reproducible by rerunning
+a job rather than from a seed, and nothing generated here is sent to a third party for terminology
+resolution. So the independent verdict covers structure and profile conformance against the pinned
+package, and **terminology-bound checks (code membership in a value set) are not part of it**. Its
+own record says so, alongside the exact list of endpoints the run contacted.
 
 ## What it does **not** do
 

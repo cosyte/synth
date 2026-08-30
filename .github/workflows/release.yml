@@ -23,3 +23,50 @@ jobs:
     with:
       package-name: "@cosyte/synth"
     secrets: inherit
+
+  # THE RELEASE IS NOT DONE UNTIL A CONSUMER CAN INSTALL WHAT IT SHIPPED. Everything upstream of
+  # this job runs against a tree whose seven `@cosyte` peers are already on disk as
+  # `file:vendor/*.tgz` devDependencies, so none of it has ever answered the only question a
+  # published package is judged by: does `npm install @cosyte/synth` work in an empty directory.
+  # This job installs the version this tree declares, FROM THE PUBLIC REGISTRY, into a freshly
+  # created empty project with npm and with pnpm, and reds the release run when it does not.
+  #
+  # WHY IT NEEDS NO PUBLISH SIGNAL. The job above is a thin caller and the shared workflow's outputs
+  # are not ours to change, but none are needed. The version to verify is the one
+  # `package.json` declares on `main`: after a Version PR merges and the release publishes, that IS
+  # the version just published; on any other push to `main` it is the last released version, which
+  # is on the registry either way. So this asserts exactly one thing on every run, "the version this
+  # tree claims to be is installable by a consumer", and that is true precisely when it should be.
+  #
+  # THE RETRY BUDGET IS FOR PUBLISH PROPAGATION AND NOTHING ELSE: a version is not readable from
+  # every registry edge the instant the publish returns. EXHAUSTING IT IS A FAILURE, NEVER A PASS
+  # AND NEVER A SKIP. A release check that reports "could not verify" as green is worse than no
+  # release check, because it is the one a reader believes.
+  #
+  # ITS OWN `permissions` BLOCK, FOR THE REASON THE JOB ABOVE STATES IN REVERSE. Permissions are
+  # declared per job in this file rather than at workflow level, because the caller above has to
+  # hand the shared pipeline `contents`/`id-token`/`pull-requests: write`. This job downloads and
+  # executes packages from the public registry; it gets a read-only token and no inherited secrets,
+  # and it must not silently acquire the release job's scopes if that block ever moves up.
+  #
+  # `needs: release` is deliberate. If the release itself failed there is nothing new to verify and
+  # the run is already red; this job is the gate on a release that SUCCEEDED.
+  verify-consumer-install:
+    needs: release
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "22"
+
+      # No `pnpm install` and no `pnpm build` on purpose: registry mode installs the PUBLISHED
+      # tarball, so a local `dist/` or `node_modules` would be neither used nor relevant, and
+      # building one here would only invite the check to accidentally measure this tree instead of
+      # what was shipped.
+      - run: pnpm run check:install -- --mode=registry --retries=8 --retry-base-ms=3000

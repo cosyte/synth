@@ -1,0 +1,19 @@
+HAND-AUTHORED FIXTURE, NOT A CAPTURED VALIDATOR RUN. Written by hand to exercise one branch of
+scripts/oracle/gate.ts offline, in an environment with no JRE and no network. It is not evidence
+that any validator ever said this about anything. The only evidence of a real validator run is the
+oracle check in CI.
+
+Case: truncated. A report cut off part way through, which is what a killed JVM, a full disk or an
+interrupted write leaves behind. It carries a `.txt` suffix because it is deliberately not readable
+JSON, and the provenance note above is part of that: the file cannot carry the note as a JSON member
+and still be broken in the way the case needs.
+
+Everything below this line is the fixture the gate is handed.
+---
+{
+  "resourceType": "OperationOutcome",
+  "issue": [
+    {
+      "severity": "error",
+      "code": "structure",
+      "details": { "text": "Slice matching by va

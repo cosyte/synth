@@ -1,0 +1,61 @@
+{
+  "$comment": [
+    "THE COMMITTED HALF OF THE ORACLE'S HONESTY. Two declarations live here because both are human",
+    "judgements and both belong in review rather than in code.",
+    "",
+    "`formats` says, for every format this library generates, either who independently graded it or",
+    "why nobody did. It is RECONCILED against the set of formats the library actually generates,",
+    "which scripts/oracle/formats.ts derives by running the generators themselves. A generated",
+    "format missing from this object FAILS the run, and an entry here for a format the library does",
+    "not generate fails it too. Neither side can drift quietly.",
+    "",
+    "`corpus` is the declared seed corpus: every artifact the validator is asked about, named by",
+    "generator kind and by the seed that regenerates it byte-identically. Adding `excluded` to an",
+    "entry takes it out of the graded set and publishes the artifact and the reason in the coverage",
+    "declaration; the gate then refuses to count it toward the pass. That is the ONLY way to make",
+    "the graded set smaller. There is no way at all to make a validator finding smaller: no severity",
+    "downgrade, no warning-only mode, no suppression list.",
+    "",
+    "The profile each artifact is graded against is NOT written here. It is read off the generated",
+    "resource's own meta.profile, so the two cannot drift."
+  ],
+  "formats": {
+    "fhir": {
+      "graded": true,
+      "grader": "the HL7-maintained FHIR validator (validator_cli.jar, org.hl7.fhir.core)",
+      "gradedAgainst": "the US Core 6.1.0 package (hl7.fhir.us.core 6.1.0) on FHIR R4 4.0.1"
+    },
+    "hl7v2": {
+      "graded": false,
+      "reason": "No public, file-based, offline HL7 v2 validator was found. The NIST validation-tool project publishes no README, no command-line entry point and no documented file input, and the tool itself is hosted, so a verdict from it would be reproducible by rerunning a service rather than from a seed. HL7 v2 output therefore carries only the sibling parser's round-trip, which is not an independent verdict."
+    },
+    "ccda": {
+      "graded": false,
+      "reason": "The ONC reference C-CDA validator is server-shaped: a Tomcat 8.5 web archive on Java 8, needing 4GB or more of memory, driven over an HTTP form-data API, and it ships none of the externally published code systems and value sets it depends on. C-CDA output therefore carries only the sibling parser's round-trip, which is not an independent verdict."
+    },
+    "x12": {
+      "graded": false,
+      "reason": "No public, file-based validator for X12 005010 was found, so nothing independent has graded this output. It carries only the sibling parser's round-trip, which is not an independent verdict."
+    },
+    "ncpdp": {
+      "graded": false,
+      "reason": "No public, file-based validator for NCPDP SCRIPT or Telecom was found, so nothing independent has graded this output. It carries only the sibling parser's round-trip, which is not an independent verdict."
+    },
+    "astm": {
+      "graded": false,
+      "reason": "No public, file-based validator for ASTM E1394 or E1381 was found, so nothing independent has graded this output. It carries only the sibling parser's round-trip, which is not an independent verdict."
+    }
+  },
+  "corpus": [
+    { "kind": "USCorePatient", "seed": 61001 },
+    { "kind": "Condition", "seed": 61002 },
+    { "kind": "ObservationLab", "seed": 61003 },
+    { "kind": "VitalSign", "seed": 61004 },
+    { "kind": "MedicationRequest", "seed": 61005 },
+    { "kind": "Encounter", "seed": 61006 },
+    { "kind": "Immunization", "seed": 61007 },
+    { "kind": "AllergyIntolerance", "seed": 61008 },
+    { "kind": "Procedure", "seed": 61009 },
+    { "kind": "DiagnosticReport", "seed": 61010 }
+  ]
+}
