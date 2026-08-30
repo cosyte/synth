@@ -343,32 +343,56 @@ async function withRetry(label, attempt) {
 // and "the package manager could not install it" are distinguishable in the output, and so the
 // package name and the version are named in the diagnostic even when the package manager's own
 // error is terse.
+//
+// IT ASKS THROUGH `npm view` RATHER THAN OVER A URL THIS FILE BUILDS, and neither reason is
+// aesthetic. The client that answers here is then the same one that performs the install two steps
+// later, with the same configuration, proxy and auth, so a preflight cannot pass against an endpoint
+// the install never talks to. And spelling a SCOPED packument URL by hand means escaping the `/` in
+// the scope, which is one silent-truncation bug away from querying a different path than the one
+// reported; npm owns that encoding already. `--prefer-online` is load-bearing: a cached packument
+// would defeat the propagation retry, which is the only reason the budget exists.
 
-let lastPackument = null;
+let lastView = null;
 
-async function versionOnRegistry() {
-  const url = `${REGISTRY}/${NAME.replace("/", "%2f")}`;
-  return withRetry("registry preflight", async () => {
-    let res;
-    try {
-      res = await fetch(url, {
-        headers: { accept: "application/json" },
-        signal: AbortSignal.timeout(30_000),
-      });
-    } catch (err) {
-      return { ok: false, detail: `${url} could not be reached: ${String(err?.message ?? err)}` };
+const firstLine = (text) => text.trim().split("\n")[0] ?? "";
+
+function versionOnRegistry(cwd) {
+  return withRetry("registry preflight", () => {
+    const r = run(
+      "npm",
+      ["view", NAME, "--json", "--prefer-online", `--registry=${REGISTRY}/`],
+      cwd,
+    );
+    if (r.error !== null) {
+      return { ok: false, detail: `could not run npm: ${r.error}`, transient: false };
     }
-    if (res.status === 404) return { ok: false, detail: `${REGISTRY} has no package ${NAME}` };
-    if (!res.ok) return { ok: false, detail: `${url} answered HTTP ${String(res.status)}` };
+    let doc = null;
     try {
-      lastPackument = await res.json();
-    } catch (err) {
+      doc = JSON.parse(r.stdout);
+    } catch {
+      doc = null;
+    }
+    if (r.status !== 0) {
+      const code = doc?.error?.code;
+      const summary = doc?.error?.summary ?? firstLine(r.output);
       return {
         ok: false,
-        detail: `${url} answered unparseable JSON: ${String(err?.message ?? err)}`,
+        detail:
+          `\`npm view ${NAME}\` exited ${String(r.status)} against ${REGISTRY}` +
+          `${code === undefined ? "" : ` (${String(code)})`}: ${summary}`,
+        transient: isTransient(r.output),
       };
     }
-    if (Object.hasOwn(lastPackument.versions ?? {}, WANTED_VERSION)) return { ok: true };
+    if (doc === null) {
+      return {
+        ok: false,
+        detail: `\`npm view ${NAME}\` exited 0 but printed no JSON, so the registry's version list could not be read`,
+        transient: false,
+      };
+    }
+    lastView = doc;
+    const versions = Array.isArray(doc.versions) ? doc.versions : Object.keys(doc.versions ?? {});
+    if (versions.includes(WANTED_VERSION)) return { ok: true };
     return { ok: false, detail: `${REGISTRY} does not carry ${NAME}@${WANTED_VERSION}` };
   });
 }
@@ -583,9 +607,9 @@ if (opts.mode === "pack") {
   spec = packTarball(packDir);
   log(`mode=pack: packed ${NAME}@${WANTED_VERSION} from this tree to ${spec}`);
 } else {
-  const preflight = await versionOnRegistry();
+  const preflight = await versionOnRegistry(scratchRoot);
   if (!preflight.ok) {
-    const latest = lastPackument?.["dist-tags"]?.latest;
+    const latest = lastView?.["dist-tags"]?.latest;
     fail(
       `${NAME}@${WANTED_VERSION} could not be verified on ${REGISTRY} after ` +
         `${String(preflight.attempts)} attempt(s): ${preflight.detail}.` +
