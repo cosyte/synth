@@ -13,8 +13,8 @@ dependency**, needed only for this subpath.
 
 The FHIR surface covers the **US Core clinical set**: `Patient` (base + US Core), `Condition`
 (problem-list item), `Observation` (US Core Laboratory Result + Vital Signs), `MedicationRequest`,
-`Encounter`, `DiagnosticReport` (Laboratory), `Immunization`, `AllergyIntolerance`, and `Procedure`,
-assembled into a `collection`, `transaction`, or `document` `Bundle`.
+`Encounter`, `DiagnosticReport` (Laboratory), `Immunization`, `AllergyIntolerance`, `Procedure`, and
+`Provenance`, assembled into a `collection`, `transaction`, or `document` `Bundle`.
 
 ## A US Core Patient, spec-clean by construction
 
@@ -88,6 +88,37 @@ roundTrip(generateAllergyIntolerance({ seed: 13, patient: p })).errors; // => []
 roundTrip(generateProcedure({ seed: 14, subject: p })).errors; // => []
 roundTrip(generateDiagnosticReport({ seed: 15, subject: p })).errors; // => []
 ```
+
+`Provenance` records who authored and transmitted a resource. It follows the same shape, with a
+`target` reference instead of a subject:
+
+```ts runnable
+import { generateProvenance, roundTrip } from "@cosyte/synth/fhir";
+
+const provenance = generateProvenance({ seed: 16, target: "Patient/syn-patient-1" });
+roundTrip(provenance).errors; // => []
+```
+
+## Asking by profile name
+
+A generator name is this library's vocabulary; a **US Core 6.1.0 profile name** is the regulation's.
+`generateUsCoreProfile` takes the second and resolves it against the profile set the adopted guide
+publishes **before** generating anything, so a name it cannot honor is a refusal rather than a
+mislabelled artifact. `usCoreCoverage` is the readable form of that set: one entry per adopted
+profile, with its canonical URL and whether this build generates it.
+
+```ts runnable
+import { usCoreCoverage, generateUsCoreProfile, roundTrip } from "@cosyte/synth/fhir";
+
+usCoreCoverage().length; // => 49
+usCoreCoverage().filter((entry) => entry.generated).length; // => 11
+
+const patient = generateUsCoreProfile({ profile: "us-core-patient", seed: 12345 });
+roundTrip(patient).specClean; // => true
+```
+
+Which profiles are covered, which refuse, and the two distinct refusal codes:
+[what it does and does not do](./limitations).
 
 ## A self-contained Bundle
 

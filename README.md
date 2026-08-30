@@ -79,8 +79,13 @@ they are spec-clean by construction: validating under `validateResource` and, ag
 Core 6.1.0 profiles** (bring your own `StructureDefinition`s, none is bundled), conformant to US Core.
 The clinical set covers `Patient` (base + US Core), `Condition`, `Observation` (US Core Laboratory
 Result + Vital Signs), `MedicationRequest`, `Encounter`, `DiagnosticReport`, `Immunization`,
-`AllergyIntolerance`, and `Procedure`, assembled into a `collection`, `transaction`, or `document`
-`Bundle`.
+`AllergyIntolerance`, `Procedure`, and `Provenance`, assembled into a `collection`, `transaction`, or
+`document` `Bundle`.
+
+A fixture can also be requested **by US Core 6.1.0 profile name**. `usCoreCoverage()` reports one
+entry for every profile the guide publishes, with its canonical URL and whether this build generates
+it; `generateUsCoreProfile()` returns an artifact for a covered profile and otherwise refuses before
+generating anything. See [what it does and does not do](./docs-content/limitations.md).
 
 ```ts
 import { generatePatient, generateBundle, fhirCorpus, roundTrip } from "@cosyte/synth/fhir";

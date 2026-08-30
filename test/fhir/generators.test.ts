@@ -16,6 +16,7 @@ import {
   generateMedicationRequest,
   generateObservationLab,
   generateProcedure,
+  generateProvenance,
   generateVitalSign,
   roundTrip,
   type FhirResourceKind,
@@ -39,6 +40,15 @@ describe("FHIR generator option branches", () => {
     }
   });
 
+  it("usCore:false omits a Provenance's meta.profile, and only that", () => {
+    const json = serializeResource(generateProvenance({ seed: 1, usCore: false }));
+    expect(json).not.toContain('"meta"');
+    expect(json).not.toContain("StructureDefinition/us-core-provenance");
+    // The transmitter participation code is a US Core CODE SYSTEM identifier, not a profile claim,
+    // so dropping the profile claim must not drop it: this resource is still shaped for US Core.
+    expect(json).toContain("CodeSystem/us-core-provenance-participant-type");
+  });
+
   it("a custom subject and requester are honored", () => {
     const cond = serializeResource(generateCondition({ seed: 1, subject: "Patient/custom-x" }));
     expect(cond).toContain("Patient/custom-x");
@@ -46,6 +56,8 @@ describe("FHIR generator option branches", () => {
       generateMedicationRequest({ seed: 1, subject: "Patient/p", requester: "Organization/org-9" }),
     );
     expect(mr).toContain("Organization/org-9");
+    const prov = serializeResource(generateProvenance({ seed: 1, target: "Encounter/custom-y" }));
+    expect(prov).toContain("Encounter/custom-y");
   });
 
   it("the SYNTH-4 generators honor custom subject/patient references and result wiring", () => {

@@ -7,12 +7,17 @@
  *
  * This subpath ships the US Core clinical set: `Patient` (base + US Core), `Condition`, `Observation`
  * (US Core Laboratory Result + US Core Vital Signs), `MedicationRequest`, `Encounter`,
- * `DiagnosticReport` (Laboratory), `Immunization`, `AllergyIntolerance`, `Procedure`, plus the
- * `collection`, `transaction` and `document` Bundle shapes (the last a `Composition` + the wired
- * spine). Each is built through `@cosyte/fhir`'s
+ * `DiagnosticReport` (Laboratory), `Immunization`, `AllergyIntolerance`, `Procedure`, `Provenance`,
+ * plus the `collection`, `transaction` and `document` Bundle shapes (the last a `Composition` + the
+ * wired spine). Each is built through `@cosyte/fhir`'s
  * model constructors so it is **spec-clean by construction**, validating clean under
  * `@cosyte/fhir.validateResource` and, against caller-supplied (BYO) US Core `StructureDefinition`s,
  * conformant to US Core 6.1.0. Quirk generation is deferred.
+ *
+ * A fixture can also be addressed **by US Core 6.1.0 profile name** rather than by generator name:
+ * `generateUsCoreProfile` resolves the requested profile against the adopted set before generating
+ * anything, and `usCoreCoverage` reports, for every profile the guide publishes, whether this build
+ * generates it. See `./coverage.js`.
  *
  * @module
  */
@@ -35,6 +40,7 @@ export {
   type GenerateAllergyIntoleranceOptions,
 } from "./allergy-intolerance.js";
 export { generateProcedure, type GenerateProcedureOptions } from "./procedure.js";
+export { generateProvenance, type GenerateProvenanceOptions } from "./provenance.js";
 export {
   generateDiagnosticReport,
   type GenerateDiagnosticReportOptions,
@@ -75,12 +81,23 @@ export {
 // US Core canonical URLs + code-system identifiers (facts only, no bundled profile/terminology content).
 export {
   SYSTEM,
+  US_CORE_ADOPTED_PROFILES,
   US_CORE_PROFILE,
+  US_CORE_PROFILE_BASE,
   US_CORE_BIRTHSEX_EXTENSION,
   US_CORE_ETHNICITY_EXTENSION,
   US_CORE_RACE_EXTENSION,
+  type UsCoreProfileId,
   type UsCoreProfileUrl,
 } from "./us-core.js";
+
+// Profile-addressed generation + the coverage report over the adopted US Core 6.1.0 profile set.
+export {
+  generateUsCoreProfile,
+  usCoreCoverage,
+  type GenerateUsCoreProfileOptions,
+  type UsCoreProfileCoverage,
+} from "./coverage.js";
 
 // The license-clean example code pool.
 export {
