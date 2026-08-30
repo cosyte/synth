@@ -1,0 +1,6 @@
+{
+  "fixtureProvenance": "HAND-AUTHORED FIXTURE, NOT A CAPTURED VALIDATOR RUN. Written by hand to exercise one branch of scripts/oracle/gate.ts offline, in an environment with no JRE and no network. It is shaped like an OperationOutcome the HL7 FHIR validator writes; it is not evidence that any validator ever said this about anything. The only evidence of a real validator run is the oracle check in CI.",
+  "fixtureCase": "empty: an OperationOutcome whose issue array is empty. FHIR requires issue 1..*, so this is an incomplete report rather than a clean verdict, and reading it as zero errors is the exact failure the gate forbids",
+  "resourceType": "OperationOutcome",
+  "issue": []
+}

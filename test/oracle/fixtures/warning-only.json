@@ -1,0 +1,18 @@
+{
+  "fixtureProvenance": "HAND-AUTHORED FIXTURE, NOT A CAPTURED VALIDATOR RUN. Written by hand to exercise one branch of scripts/oracle/gate.ts offline, in an environment with no JRE and no network. It is shaped like an OperationOutcome the HL7 FHIR validator writes; it is not evidence that any validator ever said this about anything. The only evidence of a real validator run is the oracle check in CI.",
+  "fixtureCase": "warning-only: readable, non-empty, and carrying nothing blocking. This is the control for the fail rule: it proves the gate passes on warnings rather than reddening on everything, which is what makes a red on the error fixture mean something",
+  "resourceType": "OperationOutcome",
+  "issue": [
+    {
+      "severity": "warning",
+      "code": "business-rule",
+      "details": { "text": "A resource should have narrative for robust management" },
+      "expression": ["Patient"]
+    },
+    {
+      "severity": "information",
+      "code": "informational",
+      "details": { "text": "Reference could not be resolved and was not checked" }
+    }
+  ]
+}

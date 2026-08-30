@@ -32,7 +32,7 @@ name: Test-selection gate
 # versions in a sibling repo each shipped an evasion a refuter then found.
 #
 # ITS SUBJECT IS SCOPED, NOT UNIVERSAL, and the script prints the denominator on every run rather
-# than a bare OK. Today 38 of 39 tracked test modules are watched by a name-independent rule, 1 by
+# than a bare OK. Today 40 of 48 tracked test modules are watched by a name-independent rule, 8 by
 # the `.test.`/`.spec.` filename shape alone, and 0 by no rule at all. The scope, the limits, and
 # the one narrowing class this gate does NOT catch (a config that branches on its own invocation,
 # measured rather than guessed) are written out in the script header.

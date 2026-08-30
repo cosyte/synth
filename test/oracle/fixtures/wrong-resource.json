@@ -1,0 +1,7 @@
+{
+  "fixtureProvenance": "HAND-AUTHORED FIXTURE, NOT A CAPTURED VALIDATOR RUN. Written by hand to exercise one branch of scripts/oracle/gate.ts offline, in an environment with no JRE and no network. It is shaped like a FHIR resource the validator could be made to write; it is not evidence that any validator ever said this about anything. The only evidence of a real validator run is the oracle check in CI.",
+  "fixtureCase": "unrecognised shape: valid JSON, a valid FHIR resource, and not an OperationOutcome. A different invocation can produce this, and grading against a shape the gate does not understand would report a clean run over a document it never read",
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": []
+}
