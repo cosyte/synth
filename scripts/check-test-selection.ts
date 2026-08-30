@@ -88,7 +88,7 @@
  *          published entry point must have at least one selected module naming it. It is keyed on
  *          a RESOLVED PATH, not on a filename and not on a bare mention, so a rename changes
  *          nothing, and its scope is a DENY-LIST of three locations (see `OUT_OF_SCOPE`), so a move
- *          anywhere outside those three changes nothing either. It reaches 40 of this repo's 53
+ *          anywhere outside those three changes nothing either. It reaches 41 of this repo's 54
  *          in-scope test modules, which is why the denominator below reads the way it does.
  *          Removing a subpath from `exports` to shrink the subject is a breaking change to the
  *          published package, and it also reds the smoke, which derives its own subpath set from
@@ -139,7 +139,7 @@
  *     runs `vitest run`, so an `include` that reads `process.argv` can answer the two differently
  *     and this gate reports the wide answer. STATED BECAUSE IT WAS MEASURED, NOT BECAUSE IT IS
  *     SUSPECTED: seeded here, a config serving the full glob under `list` and `["test/hl7/**"]`
- *     under `run` left this gate green while CI would have run 2 of 53 suites. Every other
+ *     under `run` left this gate green while CI would have run 2 of 54 suites. Every other
  *     config-side narrowing is caught; this one is not, and no rule below claims otherwise.
  *   * WHICH SCRIPT the shared pipeline elects to invoke. This checks `test` and `test:coverage`,
  *     the two the shared caller in `cosyte/.github` runs today. That repo is not this one's to
@@ -150,7 +150,7 @@
  *     a subpath narrows it. MEASURED, and RE-MEASURED on the tree that added the `test/determinism`
  *     suites: deleting `"./astm"` from `exports` leaves this gate GREEN and moves TWO `test/astm`
  *     suites (`determinism.property.test.ts`, `generators.test.ts`) out of the derived subject and
- *     onto the filename floor, which the denominator reports as 40 name-independent going to 38 and
+ *     onto the filename floor, which the denominator reports as 41 name-independent going to 39 and
  *     the filename-only count going 13 to 15. The other three
  *     `test/astm` suites also name `src/index.ts`, so they stay. It is not a free escape. The
  *     suites still red if they are also dropped from the selection, un-exporting a subpath is a
@@ -228,7 +228,7 @@
  * THEM HERE. So every quantity is listed with the command that produces it, and every statement about
  * reach is bounded to a route that was actually seeded.
  *
- *   53 / 40 / 13 / 0 (in scope, name-independent, filename-shape-only, unwatched)
+ *   54 / 41 / 13 / 0 (in scope, name-independent, filename-shape-only, unwatched)
  *       Printed by this file on every run. Never quote it from memory: run `pnpm check:test-selection`.
  *   8 published entry points
  *       Same OK line, derived from `package.json` `exports` at run time.
@@ -236,11 +236,11 @@
  *       `git ls-files | grep -c 'synthetic-safety\.property\.test\.ts'` is 6;
  *       `git ls-files -- test/<dir> | grep -c synthetic-safety` is 0 for `hl7` and 1 for each of
  *       `fhir`, `ccda`, `x12`, `ncpdp`, `astm`, `property`.
- *   "2 of 53" for the argv-divergence route, and "zero of the six"
+ *   "2 of 54" for the argv-divergence route, and "zero of the six"
  *       Set `include: ["test/hl7/**\/*.test.ts"]` and run `vitest list --filesOnly -r .`: 2 files, of
- *       which 0 match `synthetic-safety`. The unnarrowed config lists 53.
- *   "40 to 38, TWO `test/astm` suites" for the un-export route
- *       Delete `"./astm"` from `exports`, run this gate, read its DENOMINATOR line: derived 38, and
+ *       which 0 match `synthetic-safety`. The unnarrowed config lists 54.
+ *   "41 to 39, TWO `test/astm` suites" for the un-export route
+ *       Delete `"./astm"` from `exports`, run this gate, read its DENOMINATOR line: derived 39, and
  *       the filename-shape-only list names `test/astm/determinism.property.test.ts` and
  *       `test/astm/generators.test.ts` alongside the thirteen already there.
  *   "ncpdp's like-for-like is 4 of 27"

@@ -20,7 +20,10 @@ import {
   generateObservationLab,
   generatePatient,
   generateProcedure,
+  generateProvenance,
+  generateUsCoreProfile,
   generateVitalSign,
+  usCoreCoverage,
 } from "../../src/fhir/index.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
@@ -59,8 +62,27 @@ describe("FHIR seed-determinism (mandatory property)", () => {
         expect(serializeResource(generateDiagnosticReport({ seed: s }))).toBe(
           serializeResource(generateDiagnosticReport({ seed: s })),
         );
+        expect(serializeResource(generateProvenance({ seed: s }))).toBe(
+          serializeResource(generateProvenance({ seed: s })),
+        );
       }),
       { numRuns: 250 },
+    );
+  });
+
+  it("profile-addressed generation is byte-identical for the same seed, every covered profile", () => {
+    const covered = usCoreCoverage().filter((entry) => entry.generated);
+    expect(covered.length).toBeGreaterThan(0);
+    fc.assert(
+      fc.property(seed(), (s) => {
+        for (const entry of covered) {
+          expect(
+            serializeResource(generateUsCoreProfile({ profile: entry.profile, seed: s })),
+            entry.profile,
+          ).toBe(serializeResource(generateUsCoreProfile({ profile: entry.profile, seed: s })));
+        }
+      }),
+      { numRuns: 120 },
     );
   });
 

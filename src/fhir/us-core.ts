@@ -40,7 +40,97 @@ export const US_CORE_PROFILE = Object.freeze({
   ALLERGY_INTOLERANCE: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-allergyintolerance",
   /** US Core Procedure. */
   PROCEDURE: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-procedure",
+  /** US Core Provenance. */
+  PROVENANCE: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-provenance",
 } as const);
+
+/**
+ * The canonical prefix every US Core 6.1.0 resource profile's `url` shares. A profile's canonical is
+ * this prefix followed by its profile id.
+ *
+ * @example
+ * ```ts
+ * import { US_CORE_PROFILE_BASE } from "@cosyte/synth/fhir";
+ * `${US_CORE_PROFILE_BASE}us-core-provenance`;
+ * ```
+ */
+export const US_CORE_PROFILE_BASE = "http://hl7.org/fhir/us/core/StructureDefinition/";
+
+/**
+ * The **adopted set**: the profile ids of every US Core 6.1.0 **resource profile** the implementation
+ * guide publishes, transcribed from the guide's own artifact index ("Structures: Resource Profiles").
+ * This is the closed set a profile-addressed request is resolved against, and it is *identifiers
+ * only*, never IG content, exactly like {@link US_CORE_PROFILE}.
+ *
+ * `45 CFR 170.215` adopts FHIR R4.0.1 and US Core STU 6.1.0, so this is the profile set a developer
+ * building to `45 CFR 170.315(g)(10)` addresses. It is **not** the count of
+ * `StructureDefinition-us-core-*.json` files in the guide's source tree: that directory also holds
+ * the guide's extension definitions and omits profiles the guide publishes.
+ *
+ * The guide's 10 **extension definitions** (`us-core-race`, `us-core-birthsex`, …) are deliberately
+ * absent: an extension is not a standalone artifact, so a request naming one is refused like any
+ * other name outside this set.
+ *
+ * @example
+ * ```ts
+ * import { US_CORE_ADOPTED_PROFILES } from "@cosyte/synth/fhir";
+ * US_CORE_ADOPTED_PROFILES.includes("us-core-provenance"); // true
+ * ```
+ */
+export const US_CORE_ADOPTED_PROFILES = Object.freeze([
+  "head-occipital-frontal-circumference-percentile",
+  "pediatric-bmi-for-age",
+  "pediatric-weight-for-height",
+  "us-core-allergyintolerance",
+  "us-core-blood-pressure",
+  "us-core-bmi",
+  "us-core-body-height",
+  "us-core-body-temperature",
+  "us-core-body-weight",
+  "us-core-careplan",
+  "us-core-careteam",
+  "us-core-condition-encounter-diagnosis",
+  "us-core-condition-problems-health-concerns",
+  "us-core-coverage",
+  "us-core-diagnosticreport-lab",
+  "us-core-diagnosticreport-note",
+  "us-core-documentreference",
+  "us-core-encounter",
+  "us-core-goal",
+  "us-core-head-circumference",
+  "us-core-heart-rate",
+  "us-core-immunization",
+  "us-core-implantable-device",
+  "us-core-location",
+  "us-core-medication",
+  "us-core-medicationdispense",
+  "us-core-medicationrequest",
+  "us-core-observation-clinical-result",
+  "us-core-observation-lab",
+  "us-core-observation-occupation",
+  "us-core-observation-pregnancyintent",
+  "us-core-observation-pregnancystatus",
+  "us-core-observation-screening-assessment",
+  "us-core-observation-sexual-orientation",
+  "us-core-organization",
+  "us-core-patient",
+  "us-core-practitioner",
+  "us-core-practitionerrole",
+  "us-core-procedure",
+  "us-core-provenance",
+  "us-core-pulse-oximetry",
+  "us-core-questionnaireresponse",
+  "us-core-relatedperson",
+  "us-core-respiratory-rate",
+  "us-core-servicerequest",
+  "us-core-simple-observation",
+  "us-core-smokingstatus",
+  "us-core-specimen",
+  "us-core-vital-signs",
+] as const);
+
+/** One profile id from the adopted US Core 6.1.0 set. Erased at run time, so it is resolved, not trusted. */
+export type UsCoreProfileId = (typeof US_CORE_ADOPTED_PROFILES)[number];
 
 /** The US Core `us-core-race` extension URL (a Patient must-support extension). */
 export const US_CORE_RACE_EXTENSION =
@@ -89,6 +179,11 @@ export const SYSTEM = Object.freeze({
   ALLERGY_CLINICAL: "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
   /** HL7 Terminology `allergyintolerance-verification`, `AllergyIntolerance.verificationStatus`. */
   ALLERGY_VERIFICATION: "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
+  /** HL7 Terminology `provenance-participant-type`, `Provenance.agent.type` (`author`). */
+  PROVENANCE_PARTICIPANT_TYPE: "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+  /** US Core `us-core-provenance-participant-type`, `Provenance.agent.type` (`transmitter`). */
+  US_CORE_PROVENANCE_PARTICIPANT_TYPE:
+    "http://hl7.org/fhir/us/core/CodeSystem/us-core-provenance-participant-type",
 } as const);
 
 /** A US Core profile canonical URL. */

@@ -35,6 +35,7 @@ import {
   generateObservationLab,
   generatePatient,
   generateProcedure,
+  generateProvenance,
   generateVitalSign,
 } from "../../src/fhir/index.js";
 
@@ -139,6 +140,7 @@ describe("synthetic-safety gate, generated FHIR output (must be ZERO)", () => {
           generateAllergyIntolerance({ seed: s }),
           generateProcedure({ seed: s }),
           generateDiagnosticReport({ seed: s }),
+          generateProvenance({ seed: s }),
           generateBundle({ seed: s, type: "transaction" }),
           generateBundle({ seed: s, type: "document" }),
         ];
