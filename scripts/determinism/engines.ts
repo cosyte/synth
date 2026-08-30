@@ -1,7 +1,7 @@
 /**
  * scripts/determinism/engines.ts
  *
- * THE DECLARED SUPPORTED-ENGINE SET, AND THE TWO RECONCILIATIONS THAT KEEP IT HONEST.
+ * THE DECLARED SUPPORTED-ENGINE SET, AND THE THREE RECONCILIATIONS THAT KEEP IT HONEST.
  *
  * "Each supported Node major" names no set on its own, and the set cannot be read off any single
  * file in this repository:
@@ -13,8 +13,8 @@
  *     matrix lives in ANOTHER REPOSITORY. Nothing here may edit it, and a gate that depended on it
  *     would be a gate this repository cannot keep true.
  *
- * So the set is DECLARED, in `determinism-policy.json`, and this file is the pair of
- * reconciliations that stop the declaration drifting away from the two facts that constrain it:
+ * So the set is DECLARED, in `determinism-policy.json`, and this file is the set of
+ * reconciliations that stop the declaration drifting away from the facts that constrain it:
  *
  *   (1) AGAINST THE PUBLISHED RANGE. Every declared major must satisfy `engines.node`; the MINIMUM
  *       major that range permits must be in the set (otherwise the floor the package publishes is
@@ -26,10 +26,41 @@
  *       are extracted from it by name, and the two sets must be equal. The comparison job is
  *       checked the same way: it must NEED every digest job and it must actually CONSUME every
  *       one's report, since a job that runs and is then ignored is a job that proves nothing.
+ *   (3) AGAINST CONDITIONAL EXECUTION, because "a job that EXISTS" and "a job that RUNS" are not
+ *       the same claim and (2) on its own only ever asked the first. `if: false` on a digest job,
+ *       or on the digest STEP inside a job that still starts, leaves the declaration intact, the
+ *       job named, the version pinned, the `report` output wired and the `needs:` list satisfied,
+ *       and the engine is never digested. A `needs:` on a skipped job SKIPS the dependent, and
+ *       GitHub reports a skipped job as SUCCESS for a required status check, so the whole gate goes
+ *       off AND GREEN. THE NON-MALICIOUS ROUTE IS THE ONE THAT MATTERS: `if: github.event_name !=
+ *       'pull_request'` on the Node 24 job, added in good faith to save CI minutes, turns this gate
+ *       off on every pull request and reds nothing. That is drift, which is precisely what this
+ *       file exists to catch. So NO `if:` IS PERMITTED ANYWHERE INSIDE A DETERMINISM JOB, at job
+ *       level or step level, and the same rule covers the comparison job, whose absence from a run
+ *       means two engines never meet. It is an allow-list of nothing rather than a list of
+ *       forbidden expressions: enumerating the expressions that switch a job off is unbounded, and
+ *       this repository has already paid for a deny-list of argument spellings once
+ *       (`scripts/attw.mjs`). The workflow's own TRIGGERS are read for the same reason: deleting
+ *       `pull_request:` and writing `if: github.event_name != 'pull_request'` have the identical
+ *       effect, and closing one route while leaving its twin open would be a check that only
+ *       catches the spelling it was written against.
  *
- * NEITHER RECONCILIATION IS ALLOWED TO SKIP. A workflow that cannot be read, a job whose shape is
+ * NO RECONCILIATION IS ALLOWED TO SKIP. A workflow that cannot be read, a job whose shape is
  * not understood and a range this file cannot parse are all reported as failures. A subject that
- * cannot be derived is not a subject that is absent.
+ * cannot be derived is not a subject that is absent. `strategy:` on a determinism job is refused on
+ * exactly that ground: a matrix decides how many times a job runs and on what, so the job's name
+ * and its pinned `node-version` stop being the answer to the question this file asks.
+ *
+ * WHAT THIS READER CANNOT SEE, STATED RATHER THAN IMPLIED. This is a TEXT SCAN over one file, and
+ * "actually runs" is a property of a run, not of a file. It CAN see the routes above. It CANNOT
+ * see: a required-status-check ruleset that stopped requiring these contexts (nothing inside this
+ * repository can observe its own ruleset, and the same sentence is already in CLAUDE.md for the
+ * same reason); a `runs-on:` label no runner ever answers, which leaves a job queued rather than
+ * red; an organisation or repository setting that disables Actions entirely; a re-usable workflow
+ * or composite action reached from here whose own contents are elsewhere; or a `pnpm run
+ * determinism:digest` whose SCRIPT was redefined in `package.json` to do nothing. The last of those
+ * is what `test/determinism/` and `pnpm check:test-selection` are for. Read this reconciliation as
+ * "the workflow file cannot be edited into a false green", never as "the digest definitely ran".
  *
  * THE RANGE PARSER IS DELIBERATELY NARROW AND REFUSES WHAT IT DOES NOT UNDERSTAND. It accepts
  * space-separated `>=`, `>`, `<=` and `<` comparators over full `X.Y.Z` versions, which is what
@@ -271,12 +302,19 @@ export function reconcileDeclaredEngines(
 
 /** What the workflow says about the determinism gate. */
 export interface WorkflowDeterminismJobs {
-  /** Majors with a per-engine digest job. */
+  /**
+   * Majors whose per-engine digest job the workflow runs UNCONDITIONALLY. This is the set the
+   * criterion is about: a job that exists and is switched off does not run the digest step.
+   */
   readonly digestEngines: readonly number[];
+  /** Majors with a per-engine digest job at all, whether or not its execution is conditional. */
+  readonly digestJobs: readonly number[];
   /** Majors the comparison job declares a dependency on. */
   readonly verifyNeeds: readonly number[];
   /** Majors whose report the comparison job actually reads and materialises. */
   readonly verifyConsumes: readonly number[];
+  /** Determinism jobs whose execution, or whose steps, are conditional. Named for the diagnostic. */
+  readonly conditionalJobs: readonly string[];
   /** Shapes this reader did not understand. Each is a failure, never a skip. */
   readonly problems: readonly string[];
 }
@@ -307,8 +345,123 @@ function jobBlocks(text: string): Map<string, string> {
   return blocks;
 }
 
+/**
+ * The lines of a block that YAML reads as STRUCTURE, with every block-scalar body dropped.
+ *
+ * A `run: |` body is text, not YAML, and the workflow this reads has shell in it. Scanning those
+ * lines for keys would read a shell line as a workflow key and would make the checks below depend
+ * on the contents of a script. A block scalar's body is every following line indented deeper than
+ * the key that introduced it, plus the blank lines inside it, so it ends where the indentation
+ * comes back. Nothing here guesses at indentation: it only compares one line's against another's.
+ */
+function structuralLines(block: string): readonly string[] {
+  const kept: string[] = [];
+  let scalarIndent: number | undefined;
+  for (const line of block.split("\n")) {
+    const indent = line.length - line.trimStart().length;
+    if (scalarIndent !== undefined) {
+      if (line.trim().length === 0 || indent > scalarIndent) continue;
+      scalarIndent = undefined;
+    }
+    kept.push(line);
+    if (/:\s*[|>][+-]?\d*\s*$/.test(line)) scalarIndent = indent;
+  }
+  return kept;
+}
+
+/**
+ * A line declaring an `if:` key, at job level, as a step key, or as the first key of a step.
+ *
+ * Both quoted spellings are matched because YAML accepts them and a runner reads them identically;
+ * a check keyed on one spelling is a check that teaches the next reader the wrong story.
+ */
+const IF_KEY = /^(?:-\s+)?(?:if|"if"|'if')\s*:/;
+
+/** Every conditional-execution declaration inside one job block, as written. */
+function conditionsIn(block: string): readonly string[] {
+  return structuralLines(block)
+    .map((line) => line.trim())
+    .filter((line) => IF_KEY.test(line));
+}
+
+/** A `strategy:` key, which makes "how many times, and on what" unanswerable from the job name. */
+const STRATEGY_KEY = /^(?:strategy|"strategy"|'strategy')\s*:/;
+
+/** Whether a job block declares a `strategy:`, which this reader refuses rather than approximates. */
+const declaresStrategy = (block: string): boolean =>
+  structuralLines(block).some((line) => STRATEGY_KEY.test(line.trim()));
+
 /** The name of the job that compares the per-engine reports. */
 const VERIFY_JOB = "determinism-verify";
+
+/** How a conditional determinism job is reported. The quoted conditions make the edit visible. */
+function conditionalProblem(
+  name: string,
+  conditions: readonly string[],
+  consequence: string,
+): string {
+  return (
+    `job \`${name}\` is CONDITIONAL (${conditions.map((c) => `\`${c}\``).join(", ")}), so ` +
+    `${consequence} A skipped job satisfies a \`needs:\` and GitHub reports it as SUCCESS for a ` +
+    "required status check, so this gate would be off AND GREEN. No `if:` is permitted inside a " +
+    "determinism job, at job level or step level, and that is a rule about the key rather than " +
+    "about any particular expression."
+  );
+}
+
+/** The `on:` block of a workflow, or `undefined` when the triggers are not where this can read. */
+function triggerBlock(text: string): string | undefined {
+  const lines = text.split("\n");
+  const at = lines.findIndex((line) => /^(?:on|"on"|'on')\s*:\s*$/.test(line));
+  if (at < 0) return undefined;
+  let end = lines.length;
+  for (let i = at + 1; i < lines.length; i += 1) {
+    if (/^\S/.test(lines[i] ?? "")) {
+      end = i;
+      break;
+    }
+  }
+  return lines.slice(at, end).join("\n");
+}
+
+/**
+ * Reconcile the workflow's TRIGGERS against the events this gate has to be observed on.
+ *
+ * Deleting `pull_request:` and writing `if: github.event_name != 'pull_request'` on a digest job
+ * have the identical effect, so both are read here. The default branch is checked too: a push-only
+ * or pull-request-only workflow leaves one half of the comparison never re-measured.
+ */
+function reconcileTriggers(text: string): readonly string[] {
+  const block = triggerBlock(text);
+  if (block === undefined) {
+    return [
+      "the workflow declares no `on:` block this reader could find, so the events the determinism " +
+        "jobs run on cannot be derived. Refusing rather than assuming they run on pull requests: " +
+        "an underivable trigger is not a trigger that is present.",
+    ];
+  }
+  const problems: string[] = [];
+  for (const [event, why] of [
+    [
+      "pull_request",
+      "so no determinism job ever runs on the change under review. Switching a trigger off is the " +
+        "same hole as switching a job off with an `if:`: the gate is not red, it is absent.",
+    ],
+    [
+      "push",
+      "so the mapping is never re-measured on the default branch and a baseline that landed there " +
+        "is never compared against a second engine again.",
+    ],
+  ] as const) {
+    if (!new RegExp(`^ {2}${event}:\\s*\\n\\s*branches:\\s*\\[\\s*main\\s*\\]`, "m").test(block)) {
+      problems.push(
+        `the workflow does not run on \`${event}\` to \`main\` (its \`on:\` block does not carry ` +
+          `\`${event}: { branches: [main] }\`), ${why}`,
+      );
+    }
+  }
+  return problems;
+}
 
 /** Every major named by a per-engine digest job, and what the comparison job does with them. */
 export function readWorkflowDeterminismJobs(text: string): WorkflowDeterminismJobs {
@@ -317,8 +470,10 @@ export function readWorkflowDeterminismJobs(text: string): WorkflowDeterminismJo
   if (blocks.size === 0) {
     return {
       digestEngines: [],
+      digestJobs: [],
       verifyNeeds: [],
       verifyConsumes: [],
+      conditionalJobs: [],
       problems: [
         "the workflow declares no `jobs:` mapping this reader could split, so the engines CI runs " +
           "the digest step on cannot be derived. Refusing rather than reporting an empty set: an " +
@@ -327,12 +482,16 @@ export function readWorkflowDeterminismJobs(text: string): WorkflowDeterminismJo
     };
   }
 
+  problems.push(...reconcileTriggers(text));
+
   const digestEngines: number[] = [];
+  const digestJobs: number[] = [];
+  const conditionalJobs: string[] = [];
   for (const [name, block] of blocks) {
     const major = /^determinism-digest-(\d+)$/.exec(name)?.[1];
     if (major === undefined) continue;
     const engine = Number(major);
-    digestEngines.push(engine);
+    digestJobs.push(engine);
 
     if (!new RegExp(`node-version:\\s*"${major}"`).test(block)) {
       problems.push(
@@ -349,6 +508,32 @@ export function readWorkflowDeterminismJobs(text: string): WorkflowDeterminismJo
           "comparison job and the job proves nothing.",
       );
     }
+
+    // Does it RUN? Everything above only ever asked whether it EXISTS.
+    let unconditional = true;
+    const conditions = conditionsIn(block);
+    if (conditions.length > 0) {
+      conditionalJobs.push(name);
+      unconditional = false;
+      problems.push(
+        conditionalProblem(
+          name,
+          conditions,
+          `Node ${major} is DECLARED but its digest step is not guaranteed to run.`,
+        ),
+      );
+    }
+    if (declaresStrategy(block)) {
+      unconditional = false;
+      problems.push(
+        `job \`${name}\` declares a \`strategy:\`, which this reconciliation REFUSES to read ` +
+          "rather than approximate: a matrix decides how many times a job runs and on which " +
+          `engine, so the job name and its pinned \`node-version: "${major}"\` stop being the ` +
+          "answer to what CI digests. Explicit per-engine jobs are the design here, because " +
+          "matrix legs share one `outputs` map and overwrite each other by key.",
+      );
+    }
+    if (unconditional) digestEngines.push(engine);
   }
 
   const verify = blocks.get(VERIFY_JOB);
@@ -363,11 +548,29 @@ export function readWorkflowDeterminismJobs(text: string): WorkflowDeterminismJo
     if (!verify.includes("pnpm run determinism:verify")) {
       problems.push(`job \`${VERIFY_JOB}\` does not run \`pnpm run determinism:verify\``);
     }
+    const verifyConditions = conditionsIn(verify);
+    if (verifyConditions.length > 0) {
+      conditionalJobs.push(VERIFY_JOB);
+      problems.push(
+        conditionalProblem(
+          VERIFY_JOB,
+          verifyConditions,
+          "the comparison is not guaranteed to happen at all and the two engines never meet.",
+        ),
+      );
+    }
+    if (declaresStrategy(verify)) {
+      problems.push(
+        `job \`${VERIFY_JOB}\` declares a \`strategy:\`, which this reconciliation REFUSES to read ` +
+          "rather than approximate: a matrix decides how many times the comparison runs, and one " +
+          "that runs zero times is a comparison nobody made.",
+      );
+    }
     const needsLine = /^\s*needs:\s*(.*)$/m.exec(verify)?.[1] ?? "";
     for (const match of needsLine.matchAll(/determinism-digest-(\d+)/g)) {
       verifyNeeds.push(Number(match[1]));
     }
-    for (const engine of digestEngines) {
+    for (const engine of digestJobs) {
       const referenced = verify.includes(
         `needs.determinism-digest-${String(engine)}.outputs.report`,
       );
@@ -378,8 +581,10 @@ export function readWorkflowDeterminismJobs(text: string): WorkflowDeterminismJo
 
   return {
     digestEngines: digestEngines.sort((a, b) => a - b),
+    digestJobs: digestJobs.sort((a, b) => a - b),
     verifyNeeds: [...new Set(verifyNeeds)].sort((a, b) => a - b),
     verifyConsumes: verifyConsumes.sort((a, b) => a - b),
+    conditionalJobs,
     problems,
   };
 }
@@ -412,11 +617,13 @@ export function reconcileWorkflowEngines(
 
   if (!same(found.digestEngines, unique)) {
     problems.push(
-      `the continuous-integration workflow runs the per-engine digest step on ` +
+      `the continuous-integration workflow UNCONDITIONALLY runs the per-engine digest step on ` +
         `[${renderSet(found.digestEngines)}] while the declared supported-engine set is ` +
         `[${renderSet(unique)}]. The declaration and the jobs cannot drift apart: an engine that ` +
         "is declared and never run is a promise nothing checks, and one that is run and never " +
-        "declared is a comparison nobody asked for.",
+        "declared is a comparison nobody asked for. An engine missing from the left-hand set " +
+        "either has no digest job at all or has one whose execution is not guaranteed; the " +
+        "problems above this one say which.",
     );
   }
   if (!same(found.verifyNeeds, unique)) {

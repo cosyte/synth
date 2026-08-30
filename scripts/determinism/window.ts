@@ -35,6 +35,18 @@
  * the algorithm, the corpus size and every (format, seed) digest. Reformatting a file is not a
  * mapping change and must not be reported as one, or the gate reds on correct work and gets
  * disabled.
+ *
+ * A NARROWED CORPUS IS REFUSED THE SAME WAY, AND THE DIAGNOSTIC SAYS THAT IS WHAT HAPPENED. Taking
+ * a (format, seed) pair out of the graded set (the one sanctioned narrowing: declare the exclusion
+ * and say why) leaves every surviving digest untouched, so NO SEED MAPS TO DIFFERENT BYTES, and the
+ * headline sentence below would be a falsehood about that change if it were printed alone. The
+ * VERDICT is unchanged, deliberately: what a consumer was promised is not only that the mapping
+ * holds but that it is VERIFIED across the declared engines, and a pair that is no longer graded is
+ * that promise quietly withdrawn. Widening a promise is easy and narrowing one is consumer-visible,
+ * so both go through the same door. What changes is only that the refusal describes the change it
+ * is refusing: a gate that reds correctly and then explains itself with a falsehood teaches the
+ * next reader the wrong story, and that reader is the one walking the narrowing procedure with a
+ * real cross-engine divergence in hand.
  */
 
 import { parseBaseline, type Baseline } from "./baseline.js";
@@ -106,12 +118,48 @@ function sameMapping(a: Baseline, b: Baseline): boolean {
   return true;
 }
 
+/**
+ * The pairs that came OUT of the graded set, when that is the ONLY difference between two
+ * baselines, and `undefined` when the difference is anything else.
+ *
+ * "Anything else" is: a moved digest on a surviving pair, a pair that was added, or a change to the
+ * window, the algorithm or the artifact count. Those are mapping changes and are described as such.
+ * This reports what the two files show and says nothing about WHY a pair is gone: the declaration
+ * that names an exclusion and its reason is checked where it is read, in the digest run, which
+ * refuses a corpus that shrank without one.
+ */
+function narrowedPairs(current: Baseline, previous: Baseline): readonly string[] | undefined {
+  if (current.package.window !== previous.package.window) return undefined;
+  if (current.digestAlgorithm !== previous.digestAlgorithm) return undefined;
+  if (current.artifactsPerPair !== previous.artifactsPerPair) return undefined;
+
+  const remaining = new Map(previous.entries.map((e) => [pairKey(e.format, e.seed), e.digest]));
+  for (const entry of current.entries) {
+    const key = pairKey(entry.format, entry.seed);
+    if (remaining.get(key) !== entry.digest) return undefined;
+    remaining.delete(key);
+  }
+  return remaining.size > 0 ? [...remaining.keys()].sort() : undefined;
+}
+
 /** The sentence that has to be said whenever a mapping change is refused. */
 const BREAKING_CHANGE_RULE =
   "A CHANGED SEED-TO-BYTES MAPPING IS A BREAKING CHANGE. A consumer is invited to commit a golden " +
   "fixture and diff against it, so a release that changes what a seed maps to has to say so in " +
   "that release's changelog entry. Add a changeset declaring a major change for this package, " +
   "whose summary says which pairs moved and why.";
+
+/** What is added to a refusal when the change is a narrowed corpus rather than a moved mapping. */
+const narrowingNote = (removed: readonly string[]): string =>
+  `\n\nWHAT ACTUALLY CHANGED HERE, and it does not change the verdict above: NO SEED MAPS TO ` +
+  `DIFFERENT BYTES. Every (format, seed) pair present in both baselines carries the same digest, ` +
+  `and ${String(removed.length)} pair(s) came OUT of the graded set (${removed.join(", ")}). That ` +
+  "is what the sanctioned narrowing looks like: an exclusion declared with its reason, never a " +
+  "tolerated difference. It is still refused without a major declaration, because the promise is " +
+  "not only that the mapping holds but that it is VERIFIED across the declared engines, and a " +
+  "pair that is no longer graded is that promise withdrawn without the consumer being told. " +
+  "Widening a promise is easy; narrowing one is consumer-visible, so it goes through this door " +
+  "too, and the changeset summary is where the consumer reads about it.";
 
 /**
  * Decide the compatibility-window check.
@@ -201,6 +249,7 @@ export function decideWindow(input: WindowInput): WindowVerdict {
     };
   }
 
+  const narrowed = narrowedPairs(currentRead.baseline, previousRead.baseline);
   return {
     status: "fail",
     message:
@@ -209,6 +258,7 @@ export function decideWindow(input: WindowInput): WindowVerdict {
       (input.changesets.length === 0
         ? " (there are no changesets at all)"
         : ` (${String(input.changesets.length)} changeset(s) present, none declaring major)`) +
-      `.\n\n${BREAKING_CHANGE_RULE}`,
+      `.\n\n${BREAKING_CHANGE_RULE}` +
+      (narrowed === undefined ? "" : narrowingNote(narrowed)),
   };
 }

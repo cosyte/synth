@@ -98,6 +98,37 @@ describe("an unchanged mapping passes and a changed one needs a declared breakin
     expect(decide(baseline({ hl7v2: A }), baseline({ hl7v2: A, fhir: B })).status).toBe("fail");
   });
 
+  it("says what actually changed when the corpus was NARROWED, without softening the refusal", () => {
+    // Walking the sanctioned narrowing procedure (declare an exclusion, say why) leaves every
+    // surviving digest untouched, so the headline sentence about a CHANGED mapping is not true of
+    // that change on its own. The verdict is deliberately the same: a pair that is no longer
+    // graded is a promise withdrawn, and a withdrawn promise is consumer-visible in the same way a
+    // moved one is. What the diagnostic must not do is describe it wrongly.
+    const verdict = decide(baseline({ hl7v2: A }), baseline({ hl7v2: A, fhir: B }));
+    expect(verdict.status).toBe("fail");
+    expect(verdict.message).toContain("A CHANGED SEED-TO-BYTES MAPPING IS A BREAKING CHANGE");
+    expect(verdict.message).toContain("NO SEED MAPS TO DIFFERENT BYTES");
+    expect(verdict.message).toContain("1 pair(s) came OUT of the graded set");
+    expect(verdict.message).toContain("fhir");
+
+    // A major changeset still clears it, by the same route as any other declared break.
+    expect(
+      decide(baseline({ hl7v2: A }), baseline({ hl7v2: A, fhir: B }), [changeset("major")]).status,
+    ).toBe("pass");
+  });
+
+  it("does not call a MOVED digest a narrowing, even when the corpus also shrank", () => {
+    const verdict = decide(baseline({ hl7v2: B }), baseline({ hl7v2: A, fhir: B }));
+    expect(verdict.status).toBe("fail");
+    expect(verdict.message).not.toContain("NO SEED MAPS TO DIFFERENT BYTES");
+  });
+
+  it("does not call a GROWN corpus a narrowing", () => {
+    const verdict = decide(baseline({ hl7v2: A, fhir: B }), baseline({ hl7v2: A }));
+    expect(verdict.status).toBe("fail");
+    expect(verdict.message).not.toContain("NO SEED MAPS TO DIFFERENT BYTES");
+  });
+
   it("fails when the window itself moved, which is not something a comparison can absorb", () => {
     const verdict = decide(
       baseline({ hl7v2: A }, { window: "1.x" }),

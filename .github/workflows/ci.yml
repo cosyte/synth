@@ -161,6 +161,24 @@ jobs:
   # supply-chain dependency on another action to move it would buy nothing.
   #
   # NO `|| true` AND NO `continue-on-error`. A check that cannot fail is documentation.
+  #
+  # AND NO `if:` ON ANY OF THE THREE JOBS BELOW, OR ON ANY STEP INSIDE THEM. NOT EVEN A REASONABLE
+  # ONE. A check that never runs is worse than one that cannot fail: a `needs:` on a SKIPPED job
+  # skips the dependent, and GitHub reports a skipped job as SUCCESS for a required status check, so
+  # one line here turns the whole cross-engine gate off AND GREEN. The route this is really about is
+  # not sabotage: `if: github.event_name != 'pull_request'` on the Node 24 job, added in good faith
+  # to save CI minutes, would turn this gate off on every pull request, which is every run anybody
+  # looks at. `strategy:` is refused on these jobs for the neighbouring reason (a matrix decides how
+  # many times a job runs and on what, and legs share one `outputs` map), and the two `branches:
+  # [main]` triggers at the top of this file are read as well, because deleting a trigger and
+  # writing an `if:` have the identical effect.
+  #
+  # THIS IS ENFORCED, NOT REQUESTED: `reconcileWorkflowEngines` in scripts/determinism/engines.ts
+  # reads this file, `pnpm run determinism:digest` and `pnpm run determinism:verify` REFUSE TO RUN
+  # when it reds, and test/determinism/engine-set.test.ts walks every route. Read that file's header
+  # for what a text scan over one workflow can NOT see, which is stated there rather than implied.
+  # If one of these jobs genuinely has to become conditional, change the reconciliation deliberately
+  # and say why; do not add the line and watch nothing happen.
   determinism-digest-22:
     runs-on: ubuntu-latest
     timeout-minutes: 20

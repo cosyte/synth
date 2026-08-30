@@ -12,9 +12,24 @@
  *   * the jobs continuous integration actually runs, so a declaration naming two engines while the
  *     workflow digests on one is caught. That is a ONE LINE edit and the resulting green is
  *     indistinguishable from a real one, which is exactly why it is asserted rather than trusted.
+ *   * CONDITIONAL EXECUTION, because "the job EXISTS" and "the job RUNS" are different claims and
+ *     the drift routes below only ever asserted the first. `if: false` on a digest job leaves the
+ *     declaration, the job name, the pinned `node-version`, the `report` output, the `needs:` list
+ *     and the report reference all intact while the engine is never digested; a `needs:` on a
+ *     skipped job SKIPS the dependent and GitHub reports a skipped job as SUCCESS for a required
+ *     status check, so the whole gate goes off AND GREEN. The route that matters is not sabotage:
+ *     `if: github.event_name != 'pull_request'` on the Node 24 job, added in good faith to save CI
+ *     minutes, turns this gate off on every pull request and reds nothing.
  *
  * THE LIVE CASE IS ASSERTED FIRST, against the real `package.json` and the real workflow, so this
  * suite reds the moment the committed declaration and this repository disagree.
+ *
+ * WHAT THIS SUITE DOES NOT REACH, since a text scan cannot answer "actually runs" in full: the
+ * required-status-check ruleset, a `runs-on:` label no runner answers, Actions being disabled at
+ * the organisation, and a redefined `determinism:digest` script. The header of
+ * `scripts/determinism/engines.ts` carries that residual in full; it is stated rather than implied,
+ * because a gate that reds correctly and then explains itself with a falsehood teaches the next
+ * reader the wrong story.
  */
 
 import { readFileSync } from "node:fs";
@@ -173,8 +188,203 @@ describe("the declaration is reconciled against the jobs CI runs", () => {
   it("does not mistake the two-space keys under `on:` for job names", () => {
     const found = readWorkflowDeterminismJobs(workflowText());
     expect(found.digestEngines).toEqual([22, 24]);
+    expect(found.digestJobs).toEqual([22, 24]);
     expect(found.verifyNeeds).toEqual([22, 24]);
     expect(found.verifyConsumes).toEqual([22, 24]);
+    expect(found.conditionalJobs).toEqual([]);
     expect(found.problems).toEqual([]);
+  });
+});
+
+describe("a declared engine whose digest step never RUNS is drift, not a detail", () => {
+  /** The committed workflow with one textual edit applied, asserting the edit landed. */
+  const sabotaged = (from: string, to: string): string => {
+    const edited = workflowText().replace(from, to);
+    expect(edited, "the sabotage did not apply, so the case below asserts nothing").not.toEqual(
+      workflowText(),
+    );
+    return edited;
+  };
+
+  /** The committed job header of the Node 24 digest job, the anchor most of these edits use. */
+  const JOB_24 = "  determinism-digest-24:\n    runs-on: ubuntu-latest\n";
+
+  /** The digest step of the LAST digest job, immediately above the comparison job. */
+  const LAST_DIGEST_STEP =
+    "      - name: Digest the declared corpus on this engine\n" +
+    "        id: digest\n" +
+    "        run: pnpm run determinism:digest\n\n  determinism-verify:";
+
+  it("fails when a digest job carries a job-level `if:` that switches it off", () => {
+    const problems = reconcileWorkflowEngines(
+      [22, 24],
+      sabotaged(JOB_24, "  determinism-digest-24:\n    if: false\n    runs-on: ubuntu-latest\n"),
+    );
+    const named = problems.join("\n");
+    expect(named).toContain("determinism-digest-24");
+    expect(named).toContain("CONDITIONAL");
+    // AC9's own clause, restated: the set CI unconditionally digests on is no longer the declared
+    // one. The set message and the reason for it are both present, so a reader is not left to
+    // infer which engine went missing.
+    expect(named).toContain("UNCONDITIONALLY runs the per-engine digest step on [22]");
+  });
+
+  it("fails on the PLAUSIBLE `if:`, which is the route that actually happens", () => {
+    // Added in good faith to save CI minutes. It turns this gate off on every pull request, which
+    // is every run a human ever looks at, and reds nothing.
+    const problems = reconcileWorkflowEngines(
+      [22, 24],
+      sabotaged(
+        JOB_24,
+        "  determinism-digest-24:\n" +
+          "    if: github.event_name != 'pull_request'\n" +
+          "    runs-on: ubuntu-latest\n",
+      ),
+    );
+    expect(problems.join("\n")).toContain("determinism-digest-24");
+    expect(problems.join("\n")).toContain("github.event_name != 'pull_request'");
+  });
+
+  it("fails when the digest STEP is switched off inside a job that still runs", () => {
+    const problems = reconcileWorkflowEngines(
+      [22, 24],
+      sabotaged(
+        LAST_DIGEST_STEP,
+        "      - name: Digest the declared corpus on this engine\n" +
+          "        id: digest\n" +
+          "        if: false\n" +
+          "        run: pnpm run determinism:digest\n\n  determinism-verify:",
+      ),
+    );
+    expect(problems.join("\n")).toContain("determinism-digest-24");
+  });
+
+  it("fails when the comparison job itself is switched off, so two runs never meet", () => {
+    const problems = reconcileWorkflowEngines(
+      [22, 24],
+      sabotaged(
+        "  determinism-verify:\n    runs-on: ubuntu-latest\n",
+        "  determinism-verify:\n    if: false\n    runs-on: ubuntu-latest\n",
+      ),
+    );
+    expect(problems.join("\n")).toContain("determinism-verify");
+    expect(readWorkflowDeterminismJobs(workflowText()).conditionalJobs).toEqual([]);
+  });
+
+  it("is a rule about the KEY, not about a list of expressions that switch a job off", () => {
+    // Enumerating the expressions that evaluate false is unbounded, and this repository has paid
+    // for a deny-list of spellings once already (scripts/attw.mjs). Both quoted YAML spellings and
+    // a condition written as a step's first key are the same key to a runner, so they are here.
+    for (const line of [
+      "    if: ${{ vars.RUN_DETERMINISM == 'yes' }}",
+      '    "if": false',
+      "    'if': always()",
+    ]) {
+      const problems = reconcileWorkflowEngines(
+        [22, 24],
+        sabotaged(JOB_24, `  determinism-digest-24:\n${line}\n    runs-on: ubuntu-latest\n`),
+      );
+      expect(problems.join("\n"), line).toContain("determinism-digest-24");
+    }
+    const asFirstStepKey = reconcileWorkflowEngines(
+      [22, 24],
+      sabotaged(
+        LAST_DIGEST_STEP,
+        "      - if: false\n" +
+          "        name: Digest the declared corpus on this engine\n" +
+          "        id: digest\n" +
+          "        run: pnpm run determinism:digest\n\n  determinism-verify:",
+      ),
+    );
+    expect(asFirstStepKey.join("\n")).toContain("determinism-digest-24");
+  });
+
+  it("does not read a shell line inside a `run:` body, or a comment, as a condition", () => {
+    // The false-positive side matters as much as the false-negative one: a check that reds on the
+    // contents of a script is a check somebody turns off. A block scalar's body is text.
+    const withHeredoc = reconcileWorkflowEngines(
+      [22, 24],
+      sabotaged(
+        "      - run: pnpm install --frozen-lockfile\n\n      - name: Digest the declared corpus " +
+          "on this engine\n        id: digest\n        run: pnpm run determinism:digest\n\n  " +
+          "determinism-verify:",
+        "      - run: pnpm install --frozen-lockfile\n\n" +
+          "      - name: Leave a snippet behind\n" +
+          "        shell: bash\n" +
+          "        run: |\n" +
+          "          cat > snippet.yml <<'YAML'\n" +
+          "          if: false\n" +
+          "          YAML\n\n" +
+          "      - name: Digest the declared corpus on this engine\n" +
+          "        id: digest\n" +
+          "        run: pnpm run determinism:digest\n\n  determinism-verify:",
+      ),
+    );
+    expect(withHeredoc).toEqual([]);
+
+    const withComment = reconcileWorkflowEngines(
+      [22, 24],
+      sabotaged(JOB_24, "  determinism-digest-24:\n    # if: false\n    runs-on: ubuntu-latest\n"),
+    );
+    expect(withComment).toEqual([]);
+  });
+
+  it("REFUSES a `strategy:` on a determinism job rather than approximating what it runs", () => {
+    // A matrix decides how many times a job runs and on what, so the job name and its pinned
+    // node-version stop being the answer to the question this reconciliation asks. Zero legs is a
+    // job that never ran. Refusing an unreadable shape is this file's standing rule.
+    const problems = reconcileWorkflowEngines(
+      [22, 24],
+      sabotaged(
+        JOB_24,
+        "  determinism-digest-24:\n" +
+          "    strategy:\n" +
+          "      matrix:\n" +
+          "        include: []\n" +
+          "    runs-on: ubuntu-latest\n",
+      ),
+    );
+    expect(problems.join("\n")).toContain("determinism-digest-24");
+    expect(problems.join("\n")).toContain("REFUSES to read");
+  });
+});
+
+describe("the workflow's triggers are read too, because they are the same hole", () => {
+  it("fails when it no longer runs on pull requests to the default branch", () => {
+    // Deleting this trigger and writing `if: github.event_name != 'pull_request'` on a digest job
+    // have the identical effect. Closing one route and leaving its twin open would be a check that
+    // only catches the spelling it was written against.
+    const problems = reconcileWorkflowEngines(
+      [22, 24],
+      workflowText().replace("  pull_request:\n    branches: [main]\n", ""),
+    );
+    expect(problems.join("\n")).toContain("does not run on `pull_request` to `main`");
+  });
+
+  it("fails when it no longer runs on pushes to the default branch", () => {
+    const problems = reconcileWorkflowEngines(
+      [22, 24],
+      workflowText().replace("  push:\n    branches: [main]\n", ""),
+    );
+    expect(problems.join("\n")).toContain("does not run on `push` to `main`");
+  });
+
+  it("fails when the triggers are narrowed to a branch that is not the default one", () => {
+    const problems = reconcileWorkflowEngines(
+      [22, 24],
+      workflowText().replace(
+        "  pull_request:\n    branches: [main]",
+        "  pull_request:\n    branches: [some-integration-branch]",
+      ),
+    );
+    expect(problems.join("\n")).toContain("does not run on `pull_request` to `main`");
+  });
+
+  it("REFUSES a workflow whose `on:` block it cannot find rather than assuming triggers", () => {
+    const problems = reconcileWorkflowEngines(
+      [22, 24],
+      workflowText().replace(/^on:$/m, "on: [pull_request]"),
+    );
+    expect(problems.join("\n")).toContain("declares no `on:` block this reader could find");
   });
 });

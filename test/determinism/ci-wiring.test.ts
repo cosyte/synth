@@ -12,6 +12,15 @@
  *   * A GATE THAT NEVER RUNS ON THE THING BEING REVIEWED. The digest jobs and the comparison job
  *     inherit the workflow's triggers, so those are asserted here rather than assumed.
  *
+ * A CHECK THAT NEVER RUNS IS THE THIRD OF THOSE AND IT IS NOT ASSERTED HERE. `if: false`, or the
+ * good-faith `if: github.event_name != 'pull_request'`, switches a determinism job off while every
+ * assertion in this file still passes, and a skipped job satisfies a `needs:` and reports SUCCESS
+ * for a required status check. That rule lives one layer down, in `reconcileWorkflowEngines`
+ * (`scripts/determinism/engines.ts`), so `pnpm run determinism:digest` and
+ * `pnpm run determinism:verify` REFUSE TO RUN under it rather than a suite merely reporting it, and
+ * it is exercised in `test/determinism/engine-set.test.ts`. Duplicating it here would be a second
+ * copy of one rule to keep true; look for it there.
+ *
  * It reads the workflow as TEXT, in the same shape `test/oracle/ci-wiring.test.ts` does and for the
  * same reason: a YAML parse would be a nicer object and a worse test, because what is being
  * asserted is what a reader and the runner both see in the file.
