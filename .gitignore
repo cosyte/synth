@@ -41,6 +41,12 @@ yarn-error.log*
 # none of it is ours to commit.
 .oracle/
 
+# Cross-engine determinism gate working directory: the per-engine digest reports one job leaves for
+# the comparison job to read. Every one of them is reproducible from the seeds in
+# scripts/determinism/determinism-policy.json on the engine that produced it. The BASELINE those
+# reports are measured against is committed, deliberately, and lives in scripts/determinism/.
+.determinism/
+
 # Local
 .cache/
 .turbo/

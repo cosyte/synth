@@ -1,0 +1,29 @@
+{
+  "_fixture": "HAND-AUTHORED FIXTURE, NOT A CAPTURED MATRIX RUN. The digests below are literals chosen to be readable in a diff; no engine ever produced them. They exist so the cross-engine comparison's decisions, including the mismatch case, can be driven offline in a session with one Node install. A real report is written by scripts/determinism/digest.ts.",
+  "schema": "cosyte-synth-determinism-report/1",
+  "engine": {
+    "id": "node-22",
+    "nodeMajor": 22,
+    "nodeVersion": "v22.0.0"
+  },
+  "package": {
+    "name": "@cosyte/synth",
+    "version": "0.0.0",
+    "window": "0.x"
+  },
+  "digestAlgorithm": "sha256",
+  "artifactsPerPair": 3,
+  "entries": [
+    {
+      "format": "hl7v2",
+      "seed": 1,
+      "digest": "1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "format": "fhir",
+      "seed": 2,
+      "digest": "2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  ],
+  "excluded": []
+}

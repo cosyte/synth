@@ -173,8 +173,22 @@ ssnOk && isSyntheticNpi(safe.npi(rng)) && isSyntheticDea(safe.dea(rng)); // => t
 A seed maps to the same bytes **within a documented compatibility window**, not across _major_
 `synth` versions. A version bump may change a value list or the algorithm and thus the seed→bytes
 mapping; that is a **documented breaking change**. For a long-lived golden fixture, **pin the `synth`
-version alongside the seed.** Cross-engine determinism assumes the pinned toolchain (Node ≥22, ES2019+
-stable sort and spec key order); it is not promised on arbitrary old engines.
+version alongside the seed.**
+
+**Which engines that is verified across, and how.** The seed→bytes mapping is verified
+**byte-identical across Node 22 and Node 24**, on every change. It is verified by **comparing
+digests across separate runs**, not by generating twice in one process: a declared seed corpus
+covering all six formats is generated in its own job on each of those Node majors, each job carries
+out one digest per `(format, seed)` pair and nothing else, and a third job fails the build if two
+engines disagree. A mismatch is reported by seed, format and engine, never by content. Each
+per-engine run is also compared against a **committed baseline** for the current window, so a
+toolchain or dependency change that moves every engine together is caught as well.
+
+**A change to that mapping is released as a breaking change.** The baseline is committed, and it
+cannot change without a release declaring a major version bump for the package, so a golden fixture
+pinned to a version inside the window keeps matching. Node majors outside the verified pair are not
+promised: `engines.node` says which ones are supported, and this check says which ones are
+measured.
 
 ## Coverage, and what is deferred
 

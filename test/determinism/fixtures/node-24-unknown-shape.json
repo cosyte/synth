@@ -1,0 +1,10 @@
+{
+  "_fixture": "HAND-AUTHORED FIXTURE, NOT A CAPTURED MATRIX RUN. Valid JSON in a shape this gate does not recognise: it declares a schema nobody writes and carries no entries. An unrecognised shape fails; it is never read as agreement.",
+  "schema": "some-other-tool-report/4",
+  "engine": "node-24",
+  "results": [
+    {
+      "ok": true
+    }
+  ]
+}

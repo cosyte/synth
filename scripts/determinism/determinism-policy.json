@@ -1,0 +1,8 @@
+{
+  "engines": [22, 24],
+  "corpus": {
+    "artifactsPerPair": 3,
+    "seeds": [1001, 4242, 60501, 813377]
+  },
+  "exclusions": []
+}
