@@ -133,3 +133,118 @@ jobs:
         if: always()
         shell: bash
         run: cat .oracle/out/verdict.json || echo "no verdict was published"
+
+  # ── THE CROSS-ENGINE DETERMINISM GATE ────────────────────────────────────────────────────────
+  #
+  # ADDED ON TOP OF THE CALLER ABOVE, NEVER INSTEAD OF IT, the same rule the oracle job follows.
+  #
+  # WHY IT EXISTS. This package sells one property above all others: a seed maps to bytes, so a
+  # consumer can commit a golden fixture and diff against it forever. Every determinism assertion in
+  # the test suite generates TWICE INSIDE ONE PROCESS, and a single process cannot disagree with
+  # itself about the engine it is running on. A V8 or ICU change that shifted number formatting,
+  # sort stability or key order between Node majors would land green, on every check, today.
+  #
+  # HOW IT IS OBSERVED. The declared seed corpus is generated once per DECLARED Node major, in its
+  # own job, on its own runner. Each job carries out ONE THING: a report of digests and engine
+  # identities, with no generated artifact content in it. A third job compares those reports and
+  # fails when two engines disagree, naming the seed, the format and both engines and NEVER the
+  # differing bytes: the corpus is reproducible from the seed, so anyone can regenerate both sides.
+  #
+  # THE ENGINE SET IS DECLARED IN scripts/determinism/determinism-policy.json AND RECONCILED AGAINST
+  # THIS FILE. `engines.node` in package.json is an open-ended range and the shared pipeline's Node
+  # matrix lives in another repository, so neither can say which majors are actually CHECKED. The
+  # digest run refuses before generating anything unless the declared set, the range and the jobs
+  # below agree, which is what stops this file and that declaration drifting apart.
+  #
+  # NO THIRD-PARTY ARTIFACT ACTION, DELIBERATELY, for the same reason there is no `setup-java`
+  # above: a report is a few kilobytes of hex digests, a job output carries it, and taking a
+  # supply-chain dependency on another action to move it would buy nothing.
+  #
+  # NO `|| true` AND NO `continue-on-error`. A check that cannot fail is documentation.
+  determinism-digest-22:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      report: ${{ steps.digest.outputs.report }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Generates the declared corpus on THIS engine, checks it against the committed baseline for
+      # the current compatibility window, and appends its report to GITHUB_OUTPUT.
+      - name: Digest the declared corpus on this engine
+        id: digest
+        run: pnpm run determinism:digest
+
+  determinism-digest-24:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      report: ${{ steps.digest.outputs.report }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Digest the declared corpus on this engine
+        id: digest
+        run: pnpm run determinism:digest
+
+  determinism-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [determinism-digest-22, determinism-digest-24]
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The reports come out of the two jobs above as job outputs, through the environment rather
+      # than interpolated into the script body: a value that reaches a shell through `run:` text is
+      # a script-injection surface even when we produced it ourselves.
+      - name: Reassemble the per-engine digest reports
+        env:
+          REPORT_NODE_22: ${{ needs.determinism-digest-22.outputs.report }}
+          REPORT_NODE_24: ${{ needs.determinism-digest-24.outputs.report }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .determinism/reports
+          printf '%s' "$REPORT_NODE_22" > .determinism/reports/node-22.json
+          printf '%s' "$REPORT_NODE_24" > .determinism/reports/node-24.json
+          wc -c .determinism/reports/node-22.json .determinism/reports/node-24.json
+
+      - name: Compare the digests across engines
+        run: pnpm run determinism:verify
+
+      # A changed baseline means a seed maps to different bytes than it did on the default branch,
+      # which is a breaking change and has to be declared as one. The fetch is explicit because
+      # actions/checkout leaves no default branch behind on a pull request, and this check refuses
+      # rather than passing when it cannot find one.
+      - name: Fetch the default branch the baseline is compared against
+        run: git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+
+      - name: Check the compatibility window
+        run: pnpm run check:determinism-window
