@@ -34,17 +34,36 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
   FHIR/X12/NCPDP quirks; NCPDP-SCRIPT/ASTM/DICOM deid pairing; Synthea ingestion):
   `notes#status-the-shipped-roadmap-in-full` (per-format subsections `notes#hl7-v2` through
   `notes#astm-synth-8`).
-- **Never quote a version here**, `npm view @cosyte/synth version` is the only source of truth; a
-  number written into this file is stale on the next release.
-- **ON THE REGISTRY BUT IT FAILS TO INSTALL.** `@cosyte/synth` is published and a consumer install
-  still fails: **`npm error code ERESOLVE` on `peerOptional @cosyte/fhir`**, measured against the
-  live registry, and it fails **despite the peer being declared optional**, so do not reason from
-  `peerDependenciesMeta` that it cannot. The peer is unpublished because `@cosyte/fhir` itself hits
-  `FHIR-NPM-NAME`, a persistent unexplained npm **E403 on publish**, **not missing work** (`fhir` is
-  built and staged on `main`). **Two different codes: `ERESOLVE` is ours, `E403` is `fhir`'s; a
-  sibling's note generalising `E404` is not this.** **The "name-similarity" reading is RETRACTED**:
-  it implies a rename, and the error never asked for one. **Do not rename anything** to chase it, and
-  never write this up as resolved.
+- **Never quote a version here as the CURRENT one**, `npm view @cosyte/synth version` is the only
+  source of truth; a number written into this file is stale on the next release. The one exception is
+  a DATED MEASUREMENT, like the one immediately below: it records the version a check actually
+  installed on a named day, and a dated fact does not go stale because it never claimed to be current.
+- **A CONSUMER INSTALL SUCCEEDED, MEASURED ON 2026-08-30, AND THERE IS NOW A CHECK THAT RE-RUNS IT.**
+  In an empty directory outside any checkout, the published `@cosyte/synth` (`0.0.9`, which was the
+  registry's `latest` that day) installed **with npm and with pnpm, exit 0, no `ERESOLVE` and no
+  failed peer resolution**. In that same clean project: the ROOT imported and generated a synthetic
+  artifact with **zero peers installed**; `./fhir` failed at IMPORT time with a diagnostic naming
+  `@cosyte/fhir`, then imported and generated once that peer was installed; `./ncpdp`, whose peer was
+  never installed, still failed only on import and named `@cosyte/ncpdp`. Re-run it rather than
+  believe it: **`pnpm check:install`** (`scripts/check-install.mjs`), which has two modes.
+  `--mode=pack` packs this tree and installs the tarball, and runs on every pull request as the
+  `Consumer install` workflow (`.github/workflows/install.yml`); `--mode=registry` installs the
+  version `package.json` declares from the public registry, and runs after every release as
+  `verify-consumer-install` in `release.yml`. An unreachable registry, or a version the registry does
+  not carry, is a **FAILURE** there, never a skip and never a pass.
+- **NEVER WRITE THE INSTALL UP AS RESOLVED BY REASONING. A DATED MEASUREMENT IS THE ONLY THING THAT
+  MAY BE WRITTEN HERE**, with the check that produced it, because declaring victory from the shape of
+  the manifest is the thing that went wrong before. Still do **NOT** reason from
+  `peerDependenciesMeta` that an install must succeed: npm has failed on an optional peer it could not
+  fetch, and that reasoning is exactly as invalid in the optimistic direction as it was in the
+  pessimistic one. What changed underneath is not this repo's doing: the old **`ERESOLVE` on
+  `peerOptional @cosyte/fhir`** was downstream of `@cosyte/fhir` being unpublished (`FHIR-NPM-NAME`, a
+  persistent unexplained npm **E403 on publish**, **not missing work**), and `@cosyte/fhir` published
+  on 2026-08-26. **The blocker moved on its own, in another repo, with nothing here watching, and
+  that is the whole reason the check above exists instead of a sentence saying it works.** **Two
+  different codes: `ERESOLVE` was ours, `E403` was `fhir`'s; a sibling's note generalising `E404` is
+  not this.** **The "name-similarity" reading stays RETRACTED**: it implies a rename, and the error
+  never asked for one. **Do not rename anything** to chase it.
 - The repo is **already public**, so flipping a repo public (still a non-waived act as **policy**)
   is not an outstanding item of **state** here; `npm publish` is covered by the standing waiver.
   **Publish state and visibility are independent: never infer one from the other, in either
@@ -140,9 +159,9 @@ to the GitHub Actions app: `notes#the-one-ruleset-that-protects-main`.
   context can be satisfied by any actor with write access posting a commit status of that name,
   without the workflow ever running. `notes#extend-that-one-ruleset-in-place`.
 - **Never require a context before its workflow has completed on `main`**: every future PR goes
-  PENDING and unmergeable with nothing saying why. `test-selection` and `smoke (22)`/`smoke (24)` are
-  deliberately not required yet; read real names off a live check run, never off a workflow's
-  `name:`. `notes#contexts-deliberately-not-required-yet`.
+  PENDING and unmergeable with nothing saying why. `test-selection`, `smoke (22)`/`smoke (24)` and
+  `install (22)`/`install (24)` are deliberately not required yet; read real names off a live check
+  run, never off a workflow's `name:`. `notes#contexts-deliberately-not-required-yet`.
 - **Never rename a required job, and never split a step out of one**: both silently un-require it
   and leave PRs pending rather than red (why `build` and `smoke` are one job in `smoke.yml`).
   `notes#things-that-silently-detach-or-hollow-out-a-required-check`.
