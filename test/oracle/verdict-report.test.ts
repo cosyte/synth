@@ -161,8 +161,62 @@ describe("the verdict is per artifact, and identifies each one by seed", () => {
         profile: "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient",
         status: "graded",
         counts: { information: 1 },
+        issues: [
+          { severity: "information", code: "informational", detail: "All OK", location: [] },
+        ],
       },
     ]);
+  });
+
+  it("publishes every issue verbatim, so a PASSING run still says what the validator said", () => {
+    const withWarning = JSON.stringify({
+      resourceType: "OperationOutcome",
+      issue: [
+        {
+          severity: "warning",
+          code: "business-rule",
+          details: { text: "narrative is recommended" },
+          expression: ["Patient"],
+        },
+      ],
+    });
+    const verdict = buildVerdict(
+      input({
+        decision: decideGate({
+          graded: [{ artifact: ARTIFACT, report: { kind: "text", text: withWarning } }],
+          excluded: [],
+          independentlyGradedFormats: ["fhir"],
+        }),
+      }),
+    );
+
+    expect(verdict.status).toBe("pass");
+    expect(verdict.artifacts[0]?.issues).toEqual([
+      {
+        severity: "warning",
+        code: "business-rule",
+        detail: "narrative is recommended",
+        location: ["Patient"],
+      },
+    ]);
+    // Rendered at the severity the report gave it, and marked as not blocking BESIDE that severity
+    // rather than instead of it.
+    const rendered = renderVerdict(verdict);
+    expect(rendered).toContain("warning (not blocking): narrative is recommended at Patient");
+  });
+
+  it("marks a blocking issue as failing the gate without changing its severity", () => {
+    const verdict = buildVerdict(
+      input({
+        decision: decideGate({
+          graded: [{ artifact: ARTIFACT, report: { kind: "text", text: ERROR_REPORT } }],
+          excluded: [],
+          independentlyGradedFormats: ["fhir"],
+        }),
+      }),
+    );
+    expect(renderVerdict(verdict)).toContain("error (FAILS THE GATE): required element is absent");
+    expect(verdict.artifacts[0]?.issues.map((i) => i.severity)).toEqual(["error"]);
   });
 
   it("a failing run records the finding at the severity the validator gave it", () => {

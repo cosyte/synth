@@ -111,7 +111,17 @@ export interface ArtifactOutcome {
   readonly status: "graded" | "no-report" | "unreadable";
   /** Issue counts by severity, for a report that was read. Empty otherwise. */
   readonly counts: Readonly<Partial<Record<IssueSeverity, number>>>;
-  /** The blocking issues, verbatim. */
+  /**
+   * EVERY issue the report carried, verbatim, blocking or not.
+   *
+   * A passing run that shows only a count tells a reader nothing about what the external validator
+   * actually said, and the non-blocking half is where the next conformance question lives. Carrying
+   * them all, at the severity the report gave each one, is also what makes the fail rule auditable:
+   * the reader can see which issues were treated as blocking and which were not, rather than
+   * trusting that the sorting happened.
+   */
+  readonly issues: readonly ValidatorIssue[];
+  /** The blocking issues, verbatim. A subset of `issues`. */
   readonly blocking: readonly ValidatorIssue[];
 }
 
@@ -177,7 +187,7 @@ export function decideGate(input: GateInput): GateDecision {
 
     if (entry.report.kind === "absent") {
       spoiltFormats.add(artifact.format);
-      outcomes.push({ artifact, status: "no-report", counts: {}, blocking: [] });
+      outcomes.push({ artifact, status: "no-report", counts: {}, issues: [], blocking: [] });
       findings.push({
         kind: "no-report",
         subject: artifact.id,
@@ -195,7 +205,7 @@ export function decideGate(input: GateInput): GateDecision {
     const parsed = parseValidatorReport(entry.report.text);
     if (!parsed.ok) {
       spoiltFormats.add(artifact.format);
-      outcomes.push({ artifact, status: "unreadable", counts: {}, blocking: [] });
+      outcomes.push({ artifact, status: "unreadable", counts: {}, issues: [], blocking: [] });
       findings.push({
         kind: "unreadable-report",
         subject: artifact.id,
@@ -215,6 +225,7 @@ export function decideGate(input: GateInput): GateDecision {
       artifact,
       status: "graded",
       counts: countBySeverity(parsed.issues),
+      issues: parsed.issues,
       blocking,
     });
 

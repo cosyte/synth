@@ -26,6 +26,7 @@
 
 import type { CoverageDeclaration } from "./coverage.js";
 import type { GateDecision } from "./gate.js";
+import { isBlocking, type ValidatorIssue } from "./report.js";
 
 /** An external artifact this run acquired and graded with. */
 export interface GradingComponent {
@@ -75,6 +76,15 @@ export interface VerdictArtifact {
   readonly status: "graded" | "no-report" | "unreadable";
   /** Issue counts by severity, exactly as the report spelled them. */
   readonly counts: Readonly<Record<string, number>>;
+  /**
+   * Every issue the validator reported for it, verbatim, blocking or not.
+   *
+   * A verdict that publishes only counts leaves a reader of a PASSING run unable to see what the
+   * external validator actually said, and the non-blocking half is where the next conformance
+   * question lives. Publishing them all at the severity the report gave each one is also what makes
+   * the fail rule auditable from the record rather than from trust.
+   */
+  readonly issues: readonly ValidatorIssue[];
 }
 
 /** The published verdict. */
@@ -143,6 +153,7 @@ export function buildVerdict(input: VerdictInput): OracleVerdict {
       profile: outcome.artifact.profile,
       status: outcome.status,
       counts: { ...outcome.counts },
+      issues: outcome.issues,
     }),
   );
 
@@ -196,6 +207,13 @@ export function renderVerdict(verdict: OracleVerdict): string {
     lines.push(
       `    ${artifact.id} [${artifact.status}] seed=${String(artifact.seed)} ${counts}`.trimEnd(),
     );
+    // Every issue, at the severity the report gave it, with the blocking ones marked as such. The
+    // marking is a READING of the severity beside it, never a replacement for it.
+    for (const issue of artifact.issues) {
+      const mark = isBlocking(issue.severity) ? "FAILS THE GATE" : "not blocking";
+      const where = issue.location.length > 0 ? ` at ${issue.location.join(", ")}` : "";
+      lines.push(`      ${issue.severity} (${mark}): ${issue.detail}${where}`);
+    }
   }
   if (verdict.findings.length > 0) {
     lines.push("  findings  :");
