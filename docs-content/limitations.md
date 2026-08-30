@@ -196,6 +196,57 @@ The spec-clean generation core is **feature-complete across all six formats**. Q
 - **Optional Synthea clinical-content ingestion** (re-serialize Synthea's coherent records through the
   cosyte parsers) is a **documented future concern**, not a v1 promise.
 
+### US Core 6.1.0 profile coverage
+
+You can address `synth` by **US Core 6.1.0 profile name**, and there are exactly two answers: a
+fixture that claims that profile, or a refusal raised **before any artifact exists**. There is no
+third outcome, and no default profile to fall through to.
+
+The adopted implementation guide publishes **49 resource profiles**. This library generates **11** of
+them:
+
+`us-core-allergyintolerance`, `us-core-condition-problems-health-concerns`,
+`us-core-diagnosticreport-lab`, `us-core-encounter`, `us-core-immunization`,
+`us-core-medicationrequest`, `us-core-observation-lab`, `us-core-patient`, `us-core-procedure`,
+`us-core-provenance`, `us-core-vital-signs`.
+
+**Every other adopted profile refuses**, and it refuses with a code distinct from the one an
+unrecognized name gets, because the two are different facts about your request:
+
+- `SYNTH_PROFILE_NOT_GENERATED`: the guide publishes this profile and this build does not generate it
+  yet. The other 38 adopted profiles are here.
+- `SYNTH_UNSUPPORTED_KIND`: the name is not in the adopted set at all: a typo, a blank, a value that
+  is not a string, or one of the guide's **extension definitions** (`us-core-race` and its nine
+  siblings), which are not standalone artifacts and so are not addressable.
+
+Neither returns a mislabelled artifact, and neither quotes your value back (see the diagnostics floor
+above).
+
+**Read the split as data, not off this page.** `usCoreCoverage()` reports one entry per adopted
+profile, carrying its canonical URL and whether this build generates it. This page can go stale
+between releases; that function is derived from the generators themselves and cannot.
+
+```ts runnable
+import { usCoreCoverage, generateUsCoreProfile, roundTrip } from "@cosyte/synth/fhir";
+
+const coverage = usCoreCoverage();
+coverage.length; // => 49
+coverage.filter((entry) => entry.generated).length; // => 11
+
+// A covered profile: an artifact claiming that profile's canonical URL.
+const provenance = generateUsCoreProfile({ profile: "us-core-provenance", seed: 42 });
+roundTrip(provenance).specClean; // => true
+
+// An adopted profile this build does not generate: a refusal, never an artifact.
+let refusedCode = "";
+try {
+  generateUsCoreProfile({ profile: "us-core-careteam", seed: 42 });
+} catch (err) {
+  refusedCode = (err as { code: string }).code;
+}
+refusedCode; // => "SYNTH_PROFILE_NOT_GENERATED"
+```
+
 ## Licensing & PHI posture
 
 - **The library is MIT.** Third-party **runtime** dependencies are **zero**; the parser and `deid`
