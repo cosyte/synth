@@ -1,7 +1,7 @@
 /**
  * scripts/determinism/engines.ts
  *
- * THE DECLARED SUPPORTED-ENGINE SET, AND THE THREE RECONCILIATIONS THAT KEEP IT HONEST.
+ * THE DECLARED SUPPORTED-ENGINE SET, AND THE FOUR RECONCILIATIONS THAT KEEP IT HONEST.
  *
  * "Each supported Node major" names no set on its own, and the set cannot be read off any single
  * file in this repository:
@@ -44,12 +44,33 @@
  *       `pull_request:` and writing `if: github.event_name != 'pull_request'` have the identical
  *       effect, and closing one route while leaving its twin open would be a check that only
  *       catches the spelling it was written against.
+ *   (4) AGAINST THE JOB GRAPH, because rule (3) reads ONE job block at a time and a job does not
+ *       have to carry its own `if:` to skip. `needs:` a job that is itself switched off and the
+ *       dependent skips too, reported as SUCCESS, with the declaration, the job name, the pinned
+ *       version, the `report` output, the `needs:` list and the report reference ALL INTACT. THE
+ *       RULE AS WRITTEN MAKES THAT THE COMPLIANT-LOOKING ROUTE: an editor told "no `if:` on these
+ *       jobs" who still wants to save CI minutes puts the `if:` on a NEW job and writes a `needs:`,
+ *       which is the mainstream idiom for gating expensive jobs behind change detection. So every
+ *       job a determinism job reaches through `needs:`, TRANSITIVELY, must itself be guaranteed to
+ *       run: no `if:`, no `strategy:`, and it has to be a job this reader can find at all. Reading
+ *       the graph is bounded because the edges and their targets are in the same file. THE RULE ON
+ *       A REACHED JOB IS THE SAME BLANKET ONE, ANY `if:` AT ANY LEVEL, WHICH IS DELIBERATELY WIDER
+ *       THAN THE MECHANISM AND IS SAID HERE RATHER THAN DISCOVERED: a STEP-level `if:` in a reached
+ *       job does not on its own skip that job, so this can refuse an edge that would in fact have
+ *       been safe. Narrowing it would mean teaching this reader which indent is a job key and which
+ *       is a step key, which is the kind of precision that becomes the next hole, and no
+ *       determinism job depends on a foreign job today, so the cost is currently zero.
  *
  * NO RECONCILIATION IS ALLOWED TO SKIP. A workflow that cannot be read, a job whose shape is
  * not understood and a range this file cannot parse are all reported as failures. A subject that
  * cannot be derived is not a subject that is absent. `strategy:` on a determinism job is refused on
  * exactly that ground: a matrix decides how many times a job runs and on what, so the job's name
- * and its pinned `node-version` stop being the answer to the question this file asks.
+ * and its pinned `node-version` stop being the answer to the question this file asks. A YAML FLOW
+ * MAPPING inside a determinism job is refused on the same ground and it is the same lesson learned
+ * twice: every rule here reads the file LINE BY LINE, a key written inside `{ }` is not at the head
+ * of a line, and a runner reads `- { if: false, run: ... }` exactly as it reads the block spelling.
+ * A reader that understands one of two spellings a runner treats alike is a reader that can be
+ * edited around, so the spelling it cannot read is refused rather than passed over.
  *
  * WHAT THIS READER CANNOT SEE, STATED RATHER THAN IMPLIED. This is a TEXT SCAN over one file, and
  * "actually runs" is a property of a run, not of a file. It CAN see the routes above. It CANNOT
@@ -59,8 +80,20 @@
  * red; an organisation or repository setting that disables Actions entirely; a re-usable workflow
  * or composite action reached from here whose own contents are elsewhere; or a `pnpm run
  * determinism:digest` whose SCRIPT was redefined in `package.json` to do nothing. The last of those
- * is what `test/determinism/` and `pnpm check:test-selection` are for. Read this reconciliation as
- * "the workflow file cannot be edited into a false green", never as "the digest definitely ran".
+ * is what `test/determinism/` and `pnpm check:test-selection` are for.
+ *
+ * AND IT IS A LINE READER, WHICH IS A LIMIT OF ITS OWN AND NOT AN ITEM ON THAT LIST. Two YAML
+ * spellings a runner treats alike were invisible to it before they were found: a flow-mapping step
+ * and a `paths:` filter added under a trigger whose `branches:` was left in place. Both are refused
+ * now, and the honest statement is the general one rather than a longer list. THE CLAIM THIS FILE
+ * MAKES IS BOUNDED: every route below is closed and each is exercised in
+ * `test/determinism/engine-set.test.ts`, and a shape this reader does not understand is refused
+ * rather than approved. IT IS NOT "the workflow file cannot be edited into a false green": that
+ * sentence stood here, and a refuter answered it with a route it did not cover. A gate that reds
+ * correctly and then explains itself with a falsehood teaches the next reader the wrong story, so
+ * when the next route turns up, WEAKEN THIS SENTENCE OR CLOSE THE ROUTE, and never quietly widen
+ * what the sentence claims. Read it as "these routes are closed and an unreadable shape is
+ * refused", never as "the digest definitely ran".
  *
  * THE RANGE PARSER IS DELIBERATELY NARROW AND REFUSES WHAT IT DOES NOT UNDERSTAND. It accepts
  * space-separated `>=`, `>`, `<=` and `<` comparators over full `X.Y.Z` versions, which is what
@@ -313,7 +346,10 @@ export interface WorkflowDeterminismJobs {
   readonly verifyNeeds: readonly number[];
   /** Majors whose report the comparison job actually reads and materialises. */
   readonly verifyConsumes: readonly number[];
-  /** Determinism jobs whose execution, or whose steps, are conditional. Named for the diagnostic. */
+  /**
+   * Determinism jobs that are not guaranteed to execute: their own `if:`, a conditional step, or a
+   * `needs:` reaching a job that can itself skip. Named for the diagnostic.
+   */
   readonly conditionalJobs: readonly string[];
   /** Shapes this reader did not understand. Each is a failure, never a skip. */
   readonly problems: readonly string[];
@@ -391,8 +427,167 @@ const STRATEGY_KEY = /^(?:strategy|"strategy"|'strategy')\s*:/;
 const declaresStrategy = (block: string): boolean =>
   structuralLines(block).some((line) => STRATEGY_KEY.test(line.trim()));
 
+/** Strip the surrounding quotes YAML allows around a scalar, so one name has one spelling. */
+const unquote = (text: string): string => text.trim().replace(/^(["'])([\s\S]*)\1$/, "$2");
+
+/** A GitHub expression. Its braces are the workflow language's, not YAML flow syntax. */
+const EXPRESSION = /\$\{\{[\s\S]*?\}\}/g;
+
+/** A shell parameter expansion, masked for the same reason on a single-line `run:`. */
+const SHELL_EXPANSION = /\$\{[^{}]*\}/g;
+
+/**
+ * Every structural line of a job block that carries YAML FLOW syntax, as written.
+ *
+ * Everything in this file reads the workflow line by line, so a key written inside `{ }` is not at
+ * the head of a line and no rule here sees it, while a runner reads `- { if: false, run: ... }`
+ * exactly as it reads the four block spellings the `if:` rule covers. The two brace languages that
+ * legitimately appear in this file, `${{ github.ref }}` and a shell `${VAR}`, are masked first, so
+ * what is left is YAML's own.
+ */
+function flowSyntaxIn(block: string): readonly string[] {
+  return structuralLines(block)
+    .filter((line) => line.replace(EXPRESSION, "").replace(SHELL_EXPANSION, "").includes("{"))
+    .map((line) => line.trim());
+}
+
+/** The scalars an inline value lists, in the flow-sequence and the plain-scalar spellings. */
+function scalarsInValue(value: string): readonly string[] {
+  const inline = value.trim();
+  if (inline.startsWith("[")) {
+    const close = inline.lastIndexOf("]");
+    const body = close < 0 ? inline.slice(1) : inline.slice(1, close);
+    return body
+      .split(",")
+      .map((name) => unquote(name))
+      .filter((name) => name.length > 0);
+  }
+  const scalar = unquote(inline.split("#")[0] ?? "");
+  return scalar.length === 0 ? [] : [scalar];
+}
+
+/**
+ * The scalars one `key:` declares, whichever of YAML's three sequence spellings it uses.
+ *
+ * The lesson of the flow mapping again, and the reason this is shared rather than written twice:
+ * `[main]`, `main` and a nested `- main` are one thing to a runner, so a reader that understands
+ * one of them is wrong in one direction (a hole) or the other (a refusal nobody keeps).
+ *
+ * @param lines - The block being read, already stripped of block-scalar bodies.
+ * @param at - The index of the `key:` line.
+ * @param indent - That line's indent; the nested form ends where the indent comes back to it.
+ * @param inline - Whatever followed the colon on that line.
+ */
+function scalarSequence(
+  lines: readonly string[],
+  at: number,
+  indent: number,
+  inline: string,
+): readonly string[] {
+  if (inline.length > 0) return scalarsInValue(inline);
+  const items: string[] = [];
+  for (let i = at + 1; i < lines.length; i += 1) {
+    const next = lines[i] ?? "";
+    if (next.trim().length === 0) continue;
+    if (next.length - next.trimStart().length <= indent) break;
+    const item = /^-\s*(.+)$/.exec(next.trim())?.[1];
+    if (item !== undefined) items.push(unquote(item.split("#")[0] ?? ""));
+  }
+  return items.filter((item) => item.length > 0);
+}
+
+/**
+ * Every job one job block declares a `needs:` on, whatever spelling it uses.
+ *
+ * A name this cannot read is a name that matches no job, which is reported as an unfindable
+ * dependency rather than dropped: the failure direction of a misparse here is a REFUSAL.
+ */
+function declaredNeeds(block: string): readonly string[] {
+  const lines = structuralLines(block);
+  const names: string[] = [];
+  for (const [index, line] of lines.entries()) {
+    const match = /^(\s*)(?:needs|"needs"|'needs')\s*:\s*(.*)$/.exec(line);
+    if (match === null) continue;
+    names.push(...scalarSequence(lines, index, (match[1] ?? "").length, (match[2] ?? "").trim()));
+  }
+  return names;
+}
+
+/** Why a job this gate depends on might not run, or `undefined` when its execution is guaranteed. */
+function whyNotGuaranteed(block: string | undefined): string | undefined {
+  if (block === undefined) {
+    return (
+      "which this reader cannot find as a job block in this workflow, so whether that dependency " +
+      "runs cannot be derived. Refusing rather than assuming it does: an underivable subject is " +
+      "not an absent one"
+    );
+  }
+  const conditions = conditionsIn(block);
+  if (conditions.length > 0) {
+    return `which is CONDITIONAL (${conditions.map((c) => `\`${c}\``).join(", ")})`;
+  }
+  if (declaresStrategy(block)) {
+    return "which declares a `strategy:`, so how many times it runs, and whether that is zero times, is not answerable from this file";
+  }
+  return undefined;
+}
+
+/**
+ * Walk the `needs:` graph out of one determinism job and report every dependency that could skip.
+ *
+ * Rule (3) reads one job block at a time, and a job does not have to carry its own `if:` to skip: a
+ * `needs:` on a job that is switched off skips the dependent, GitHub reports a skipped job as
+ * SUCCESS for a required status check, and the whole gate goes off AND GREEN with every line rule
+ * (3) reads still intact. The edges and their targets are in this same file, so the closure is a
+ * bounded thing to read.
+ *
+ * Determinism jobs reached on the way are walked THROUGH but not reported: each is already checked
+ * on its own account, and reporting it twice would make one edit read as two defects.
+ */
+function dependencyProblems(
+  job: string,
+  blocks: ReadonlyMap<string, string>,
+  determinismJobs: ReadonlySet<string>,
+): readonly string[] {
+  const problems: string[] = [];
+  const seen = new Set<string>([job]);
+  const queue = [...declaredNeeds(blocks.get(job) ?? "")];
+  while (queue.length > 0) {
+    const name = queue.shift() ?? "";
+    if (seen.has(name)) continue;
+    seen.add(name);
+    const block = blocks.get(name);
+    if (block !== undefined) queue.push(...declaredNeeds(block));
+    if (determinismJobs.has(name)) continue;
+    const why = whyNotGuaranteed(block);
+    if (why === undefined) continue;
+    problems.push(
+      `job \`${job}\` depends on job \`${name}\` through \`needs:\`, ${why}. A \`needs:\` on a ` +
+        "job that does not run SKIPS the dependent, and GitHub reports a skipped job as SUCCESS " +
+        "for a required status check, so this gate would be off AND GREEN with the declaration, " +
+        "the job name, the pinned `node-version`, the `report` output and the `needs:` list all " +
+        "intact. A determinism job may only depend on jobs that are themselves guaranteed to run: " +
+        "putting the `if:` on a new job and reaching it with a `needs:` is the same hole as " +
+        "writing the `if:` here.",
+    );
+  }
+  return problems;
+}
+
 /** The name of the job that compares the per-engine reports. */
 const VERIFY_JOB = "determinism-verify";
+
+/** How a flow mapping inside a determinism job is refused. */
+function flowSyntaxProblem(name: string, lines: readonly string[]): string {
+  return (
+    `job \`${name}\` writes YAML FLOW syntax (${lines.map((l) => `\`${l}\``).join(", ")}), which ` +
+    "this reconciliation REFUSES to read rather than approximate. Every rule here reads this file " +
+    "LINE BY LINE, so a key inside `{ }` is not at the head of a line and no rule sees it, while a " +
+    "runner reads `- { if: false, run: ... }` exactly as it reads the block spelling. Write the " +
+    "determinism jobs in block style; a reader that understands one of two spellings a runner " +
+    "treats alike is a reader that can be edited around."
+  );
+}
 
 /** How a conditional determinism job is reported. The quoted conditions make the edit visible. */
 function conditionalProblem(
@@ -424,12 +619,59 @@ function triggerBlock(text: string): string | undefined {
   return lines.slice(at, end).join("\n");
 }
 
+/** What one event under `on:` declares: the keys it carries, and the branches it names. */
+interface EventDeclaration {
+  readonly keys: readonly string[];
+  readonly branches: readonly string[];
+}
+
+/**
+ * Read one event out of the `on:` block, as the keys it carries rather than as one line pair.
+ *
+ * The pair `<event>:` followed by `branches: [main]` was what this read before, and it read no
+ * further, so a `paths:` filter added under an otherwise untouched trigger was invisible to the
+ * very check that exists because "deleting a trigger and writing an `if:` have the identical
+ * effect". A filter decides whether the workflow STARTS AT ALL, which is that same effect again.
+ * Only the keys at the event's own indent are collected; anything nested under one of them belongs
+ * to that key, not to the event.
+ */
+function eventDeclaration(block: string, event: string): EventDeclaration | undefined {
+  const lines = block.split("\n");
+  const head = new RegExp(`^ {2}(?:${event}|"${event}"|'${event}')\\s*:\\s*$`);
+  const at = lines.findIndex((line) => head.test(line));
+  if (at < 0) return undefined;
+
+  const keys: string[] = [];
+  let branches: readonly string[] = [];
+  let keyIndent: number | undefined;
+  for (let i = at + 1; i < lines.length; i += 1) {
+    const line = lines[i] ?? "";
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || trimmed.startsWith("#")) continue;
+    const indent = line.length - line.trimStart().length;
+    if (indent <= 2) break;
+    keyIndent ??= indent;
+    if (indent !== keyIndent) continue;
+    const match = /^([A-Za-z0-9_-]+|"[^"]+"|'[^']+')\s*:\s*(.*)$/.exec(trimmed);
+    if (match === null) {
+      keys.push(trimmed);
+      continue;
+    }
+    const key = unquote(match[1] ?? "");
+    keys.push(key);
+    if (key === "branches") branches = scalarSequence(lines, i, indent, (match[2] ?? "").trim());
+  }
+  return { keys, branches };
+}
+
 /**
  * Reconcile the workflow's TRIGGERS against the events this gate has to be observed on.
  *
  * Deleting `pull_request:` and writing `if: github.event_name != 'pull_request'` on a digest job
  * have the identical effect, so both are read here. The default branch is checked too: a push-only
- * or pull-request-only workflow leaves one half of the comparison never re-measured.
+ * or pull-request-only workflow leaves one half of the comparison never re-measured. And the event
+ * must carry `branches: [main]` AND NOTHING ELSE, because every other key under an event is a
+ * filter on whether the workflow starts.
  */
 function reconcileTriggers(text: string): readonly string[] {
   const block = triggerBlock(text);
@@ -453,10 +695,27 @@ function reconcileTriggers(text: string): readonly string[] {
         "is never compared against a second engine again.",
     ],
   ] as const) {
-    if (!new RegExp(`^ {2}${event}:\\s*\\n\\s*branches:\\s*\\[\\s*main\\s*\\]`, "m").test(block)) {
+    const declaration = eventDeclaration(block, event);
+    if (
+      declaration === undefined ||
+      declaration.branches.length !== 1 ||
+      declaration.branches[0] !== "main"
+    ) {
       problems.push(
         `the workflow does not run on \`${event}\` to \`main\` (its \`on:\` block does not carry ` +
           `\`${event}: { branches: [main] }\`), ${why}`,
+      );
+      continue;
+    }
+    const extra = declaration.keys.filter((key) => key !== "branches");
+    if (extra.length > 0) {
+      problems.push(
+        `the workflow's \`${event}:\` trigger carries ${extra.map((k) => `\`${k}\``).join(", ")} ` +
+          "alongside `branches: [main]`. A `paths:`, `paths-ignore:`, `branches-ignore:` or " +
+          "`types:` filter decides whether the workflow STARTS AT ALL, which is the same hole as " +
+          "switching a job off with an `if:` and quieter: a workflow that never starts leaves a " +
+          "required check unreported rather than red. This reconciliation permits `branches: " +
+          "[main]` and nothing else on the events the determinism gate rides on.",
       );
     }
   }
@@ -483,6 +742,14 @@ export function readWorkflowDeterminismJobs(text: string): WorkflowDeterminismJo
   }
 
   problems.push(...reconcileTriggers(text));
+
+  // Which job blocks this file is responsible for. A determinism job reached through another's
+  // `needs:` is walked through rather than reported twice; everything else is a foreign job.
+  const determinismJobs = new Set<string>(
+    [...blocks.keys()].filter(
+      (name) => /^determinism-digest-\d+$/.test(name) || name === VERIFY_JOB,
+    ),
+  );
 
   const digestEngines: number[] = [];
   const digestJobs: number[] = [];
@@ -533,6 +800,19 @@ export function readWorkflowDeterminismJobs(text: string): WorkflowDeterminismJo
           "matrix legs share one `outputs` map and overwrite each other by key.",
       );
     }
+    const flowSyntax = flowSyntaxIn(block);
+    if (flowSyntax.length > 0) {
+      unconditional = false;
+      problems.push(flowSyntaxProblem(name, flowSyntax));
+    }
+
+    // Does it reach a job that can skip? Everything above only ever read this job's own block.
+    const dependencies = dependencyProblems(name, blocks, determinismJobs);
+    if (dependencies.length > 0) {
+      if (!conditionalJobs.includes(name)) conditionalJobs.push(name);
+      unconditional = false;
+      problems.push(...dependencies);
+    }
     if (unconditional) digestEngines.push(engine);
   }
 
@@ -566,9 +846,20 @@ export function readWorkflowDeterminismJobs(text: string): WorkflowDeterminismJo
           "that runs zero times is a comparison nobody made.",
       );
     }
-    const needsLine = /^\s*needs:\s*(.*)$/m.exec(verify)?.[1] ?? "";
-    for (const match of needsLine.matchAll(/determinism-digest-(\d+)/g)) {
-      verifyNeeds.push(Number(match[1]));
+    const verifyFlowSyntax = flowSyntaxIn(verify);
+    if (verifyFlowSyntax.length > 0) problems.push(flowSyntaxProblem(VERIFY_JOB, verifyFlowSyntax));
+
+    // The comparison job is the one whose absence means two engines never meet, so the same
+    // graph walk is made from it: a `needs:` it carries on a switched-off job skips it too.
+    const verifyDependencies = dependencyProblems(VERIFY_JOB, blocks, determinismJobs);
+    if (verifyDependencies.length > 0) {
+      if (!conditionalJobs.includes(VERIFY_JOB)) conditionalJobs.push(VERIFY_JOB);
+      problems.push(...verifyDependencies);
+    }
+
+    for (const name of declaredNeeds(verify)) {
+      const match = /^determinism-digest-(\d+)$/.exec(name);
+      if (match !== null) verifyNeeds.push(Number(match[1]));
     }
     for (const engine of digestJobs) {
       const referenced = verify.includes(

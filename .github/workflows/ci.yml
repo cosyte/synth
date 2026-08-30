@@ -173,10 +173,28 @@ jobs:
   # [main]` triggers at the top of this file are read as well, because deleting a trigger and
   # writing an `if:` have the identical effect.
   #
+  # AND NO `needs:` ON A JOB THAT CAN ITSELF SKIP, DIRECTLY OR THROUGH ANOTHER `needs:`. READ THAT
+  # AS THE LOOPHOLE IN THE PARAGRAPH ABOVE RATHER THAN AS AN EXTRA RULE: "no `if:` on these three
+  # jobs" is exactly satisfied by putting the `if:` on a NEW job and reaching it with a `needs:`,
+  # which is the mainstream idiom for gating an expensive job behind change detection, and the
+  # dependent then skips with no `if:` anywhere near it. So the whole `needs:` graph out of these
+  # three jobs is walked and every job it reaches has to be guaranteed to run too.
+  #
+  # AND WRITE THEM IN BLOCK STYLE. A step spelled as a YAML flow mapping (`- { if: false, run: ...
+  # }`) is read by a runner exactly as the block spelling is, and the reconciliation reads this file
+  # line by line, so a key inside `{ }` is at no line's head. Flow syntax in these three jobs is
+  # REFUSED rather than approximated. The `${{ ... }}` expressions below are the workflow language's
+  # braces, not YAML's, and are not what that rule is about.
+  #
+  # AND `branches: [main]` AND NOTHING ELSE ON THOSE TWO TRIGGERS. A `paths:` filter decides whether
+  # this workflow STARTS AT ALL, which is quieter than an `if:`: a workflow that never starts leaves
+  # a required check UNREPORTED rather than red.
+  #
   # THIS IS ENFORCED, NOT REQUESTED: `reconcileWorkflowEngines` in scripts/determinism/engines.ts
   # reads this file, `pnpm run determinism:digest` and `pnpm run determinism:verify` REFUSE TO RUN
   # when it reds, and test/determinism/engine-set.test.ts walks every route. Read that file's header
-  # for what a text scan over one workflow can NOT see, which is stated there rather than implied.
+  # for what a text scan over one workflow can NOT see, which is stated there rather than implied,
+  # and for why it does NOT claim this file cannot be edited into a false green.
   # If one of these jobs genuinely has to become conditional, change the reconciliation deliberately
   # and say why; do not add the line and watch nothing happen.
   determinism-digest-22:
