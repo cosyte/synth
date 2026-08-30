@@ -1,0 +1,12 @@
+{
+  "fixtureProvenance": "HAND-AUTHORED FIXTURE, NOT A CAPTURED VALIDATOR RUN. Written by hand to exercise one branch of scripts/oracle/gate.ts offline, in an environment with no JRE and no network. It is shaped like an OperationOutcome the HL7 FHIR validator writes; it is not evidence that any validator ever said this about anything. The only evidence of a real validator run is the oracle check in CI.",
+  "fixtureCase": "unclassifiable severity: a well-formed OperationOutcome whose issue carries a severity outside the FHIR issue-severity value set. Classifying it as anything but a refusal would be a severity downgrade arriving through a typo",
+  "resourceType": "OperationOutcome",
+  "issue": [
+    {
+      "severity": "notice",
+      "code": "structure",
+      "details": { "text": "A severity nobody defined" }
+    }
+  ]
+}

@@ -35,6 +35,12 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Oracle gate working directory: the acquired third-party validator and package, the regenerated
+# corpus, the validator's reports, and the published verdict. All of it is reproducible from the
+# seeds in scripts/oracle/coverage-policy.json and the pin in scripts/oracle/oracle-lock.json, and
+# none of it is ours to commit.
+.oracle/
+
 # Local
 .cache/
 .turbo/

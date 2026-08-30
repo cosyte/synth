@@ -1,0 +1,40 @@
+{
+  "$comment": [
+    "THE PIN. What this gate grades WITH, recorded so a verdict is attributable to a build.",
+    "",
+    "The validator's own README publishes a download that resolves to the LATEST release, so the",
+    "bytes that arrive can move without a commit here. The sha256 is what makes the pin real:",
+    "upstream moving reds this gate loudly, and moving the pin is then a reviewed commit that says",
+    "which build the verdicts after it came from. An EMPTY sha256 is refused, not accepted: an",
+    "unrecorded identity read as 'accept anything' is the failure with extra steps. The run prints",
+    "the version and the digest it observed, so recording one is a deliberate act with the evidence",
+    "in front of you.",
+    "",
+    "`version` is compared against the version the DOWNLOAD RESOLVED TO. GitHub redirects the latest",
+    "download to /releases/download/<tag>/validator_cli.jar, so the tag is the version; the package",
+    "registry URL carries its version directly. Neither needs the artifact to be executed to be",
+    "identified, which is what keeps the comparison testable with no JVM.",
+    "",
+    "`terminologyServer` is null, and that is a DECLARATION rather than a silence. It is passed to",
+    "the validator explicitly (-tx n/a), so the endpoint record in the verdict is the configured set",
+    "rather than a guess at a default, no generated content leaves the runner for terminology",
+    "resolution, and the verdict does not depend on a live public service that would make it",
+    "reproducible by rerun rather than by seed. The consequence is stated in the verdict, in the",
+    "coverage declaration and on the published limitations page: terminology-bound checks are not",
+    "part of this verdict."
+  ],
+  "validator": {
+    "name": "validator_cli.jar (HL7-maintained FHIR validator, org.hl7.fhir.core)",
+    "downloadUrl": "https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar",
+    "version": "",
+    "sha256": ""
+  },
+  "conformancePackage": {
+    "name": "hl7.fhir.us.core",
+    "downloadUrl": "https://packages.fhir.org/hl7.fhir.us.core/6.1.0",
+    "version": "6.1.0",
+    "sha256": ""
+  },
+  "fhirVersion": "4.0.1",
+  "terminologyServer": null
+}
