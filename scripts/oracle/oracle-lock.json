@@ -27,13 +27,13 @@
     "name": "validator_cli.jar (HL7-maintained FHIR validator, org.hl7.fhir.core)",
     "downloadUrl": "https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar",
     "version": "",
-    "sha256": ""
+    "sha256": "b2cd1c761dbb79722d7a1ccb149c3c522195c37c9f1b8951b23b1340828b691b"
   },
   "conformancePackage": {
     "name": "hl7.fhir.us.core",
     "downloadUrl": "https://packages.fhir.org/hl7.fhir.us.core/6.1.0",
     "version": "6.1.0",
-    "sha256": ""
+    "sha256": "ec096f29bc4ce8f04117dfc4ef82e7289c67a7e2188892e86288c45389d158d9"
   },
   "fhirVersion": "4.0.1",
   "terminologyServer": null

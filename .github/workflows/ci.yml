@@ -87,24 +87,41 @@ jobs:
       - name: Show the JRE the validator will run on
         run: java -version
 
+      # THE FIRST HOP IS THE ONE THAT NAMES THE RELEASE, and it is the only one worth recording.
+      # MEASURED, not assumed: `/releases/latest/download/<file>` answers 302 with a Location of
+      # `/releases/download/<tag>/<file>`, which carries the tag, while following the whole chain
+      # lands on a signed asset URL naming a storage GUID and carrying a short-lived token. The first
+      # run of this job recorded that GUID as the validator's "version", which is how this is known.
+      # So the redirect is read WITHOUT being followed, the tagged URL is what gets recorded and
+      # downloaded, and an absent redirect stops the job rather than being recorded as an unversioned
+      # source. The package registry is version-addressed already, so the URL asked for is the URL
+      # recorded, and the digest is what proves the bytes behind it.
       - name: Acquire the pinned validator and conformance package
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .oracle
-          jar_source=$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync("scripts/oracle/oracle-lock.json","utf8")).validator.downloadUrl)')
-          pkg_source=$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync("scripts/oracle/oracle-lock.json","utf8")).conformancePackage.downloadUrl)')
-          jar_url=$(curl --fail --silent --show-error --location --retry 3 --output .oracle/validator_cli.jar --write-out '%{url_effective}' "$jar_source")
-          pkg_url=$(curl --fail --silent --show-error --location --retry 3 --output .oracle/us-core.tgz --write-out '%{url_effective}' "$pkg_source")
+          read_pin() {
+            node -e 'const l=JSON.parse(require("node:fs").readFileSync("scripts/oracle/oracle-lock.json","utf8"));process.stdout.write(l[process.argv[1]].downloadUrl)' "$1"
+          }
+          jar_source=$(read_pin validator)
+          pkg_source=$(read_pin conformancePackage)
+          jar_url=$(curl --fail --silent --show-error --retry 3 --output /dev/null --write-out '%{redirect_url}' "$jar_source")
+          if [ -z "$jar_url" ]; then
+            echo "the validator download did not redirect, so no release tag can be recorded" >&2
+            exit 1
+          fi
+          curl --fail --silent --show-error --location --retry 3 --output .oracle/validator_cli.jar "$jar_url"
+          curl --fail --silent --show-error --location --retry 3 --output .oracle/us-core.tgz "$pkg_source"
           node -e '
             const fs = require("node:fs");
             fs.writeFileSync(".oracle/acquisition.json", JSON.stringify({
               validator: { path: ".oracle/validator_cli.jar", resolvedUrl: process.argv[1] },
               conformancePackage: { path: ".oracle/us-core.tgz", resolvedUrl: process.argv[2] },
             }, null, 2));
-          ' "$jar_url" "$pkg_url"
+          ' "$jar_url" "$pkg_source"
           echo "resolved validator URL: $jar_url"
-          echo "resolved package URL:   $pkg_url"
+          echo "resolved package URL:   $pkg_source"
           sha256sum .oracle/validator_cli.jar .oracle/us-core.tgz
 
       - name: Grade the declared corpus with the external validator
