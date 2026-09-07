@@ -1,0 +1,20 @@
+{
+  "_fixture": "HAND-AUTHORED FIXTURE, NOT A CAPTURED MATRIX RUN. A report cut off part way through, which is what an interrupted upload or a full disk leaves behind. Stored with a .txt suffix so no tool mistakes it for a well-formed report. The comparison must fail on it and name it, and must never read 'we could not parse that engine's answer' as 'that engine agreed'.",
+  "schema": "cosyte-synth-determinism-report/1",
+  "engine": {
+    "id": "node-24",
+    "nodeMajor": 24,
+    "nodeVersion": "v24.0.0"
+  },
+  "package": {
+    "name": "@cosyte/synth",
+    "version": "0.0.0",
+    "window": "0.x"
+  },
+  "digestAlgorithm": "sha256",
+  "artifactsPerPair": 3,
+  "entries": [
+    {
+      "format": "hl7v2",
+      "seed": 1,
+      "digest": "11111111111111111111111

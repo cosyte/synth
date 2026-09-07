@@ -1,0 +1,29 @@
+{
+  "_fixture": "HAND-AUTHORED FIXTURE, NOT A CAPTURED MATRIX RUN. Covers a (format, seed) set that is not the declared one: it is missing fhir seed 2 and carries an undeclared ccda seed 9. A report about a different corpus is not a report this comparison can read as agreement.",
+  "schema": "cosyte-synth-determinism-report/1",
+  "engine": {
+    "id": "node-24",
+    "nodeMajor": 24,
+    "nodeVersion": "v24.0.0"
+  },
+  "package": {
+    "name": "@cosyte/synth",
+    "version": "0.0.0",
+    "window": "0.x"
+  },
+  "digestAlgorithm": "sha256",
+  "artifactsPerPair": 3,
+  "entries": [
+    {
+      "format": "hl7v2",
+      "seed": 1,
+      "digest": "1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "format": "ccda",
+      "seed": 9,
+      "digest": "4444444444444444444444444444444444444444444444444444444444444444"
+    }
+  ],
+  "excluded": []
+}

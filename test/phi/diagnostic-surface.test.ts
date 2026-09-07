@@ -128,8 +128,12 @@ import {
   fhirCorpus,
   generateBundle,
   generatePatient,
+  generateUsCoreProfile,
+  usCoreCoverage,
+  US_CORE_ADOPTED_PROFILES,
   type FhirBundleType,
   type FhirResourceKind,
+  type UsCoreProfileId,
 } from "../../src/fhir/index.js";
 
 import { assertNoDiagnosticPhiLeak, type DiagnosticSlot } from "@cosyte/test-utils";
@@ -613,6 +617,17 @@ export const SLOTS: readonly DiagnosticSlot<Probe>[] = [
     },
     expectCode: UNSUPPORTED_KIND,
   },
+  // The US Core 6.1.0 profile name a consumer addresses the package by. It is resolved against the
+  // adopted set before anything is generated, so the marker never reaches a generator, a peer builder
+  // or an artifact `meta.profile`.
+  {
+    name: "generateUsCoreProfile(options.profile)",
+    plant: (m) => () => {
+      generateUsCoreProfile({ seed: 1, profile: as<UsCoreProfileId>(m) });
+      return NO_RESULT;
+    },
+    expectCode: UNSUPPORTED_KIND,
+  },
 
   // ---- artifact.content: the layering check -----------------------------------------------
   // These three do **not** throw. They are the reason the table is not just a list of fatals:
@@ -901,6 +916,36 @@ describe("the fatal message registry is the only source of a diagnostic message"
     expect(identifiers.length).toBeGreaterThan(120);
     const outside = identifiers.filter((id) => !closed.has(id) && !CODE_SHAPE.test(id));
     expect(outside).toStrictEqual([]);
+  });
+
+  /**
+   * The second US Core refusal has no slot in the table above, and the reason is structural rather
+   * than an omission: `SYNTH_PROFILE_NOT_GENERATED` is only reachable with a name that IS in the
+   * adopted set, so a planted marker can never arrive there (it is refused one step earlier, by the
+   * slot above). What has to hold instead is that the refusal quotes neither the caller's name nor
+   * the set, which is what this asserts, over every adopted profile in turn.
+   */
+  it("the not-generated refusal quotes neither the requested profile nor the adopted set", () => {
+    const uncovered = usCoreCoverage().filter((entry) => !entry.generated);
+    expect(uncovered.length).toBeGreaterThan(0);
+    const message = SYNTH_FATAL_MESSAGES[SYNTH_FATAL_CODES.SYNTH_PROFILE_NOT_GENERATED];
+    for (const profile of US_CORE_ADOPTED_PROFILES) {
+      expect(message).not.toContain(profile);
+    }
+    for (const entry of uncovered) {
+      let thrown: unknown;
+      try {
+        generateUsCoreProfile({ seed: 1, profile: entry.profile });
+      } catch (error) {
+        thrown = error;
+      }
+      expect(thrown).toBeInstanceOf(SynthError);
+      const error = thrown as SynthError;
+      expect(error.code).toBe(SYNTH_FATAL_CODES.SYNTH_PROFILE_NOT_GENERATED);
+      expect(error.message).toBe(message);
+      expect(error.message).not.toContain(entry.profile);
+      expect(error.stack ?? "").not.toContain(entry.profile);
+    }
   });
 
   it("a corpus manifest derives only counts and a quirk set", () => {

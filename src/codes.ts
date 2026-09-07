@@ -69,6 +69,15 @@ export const SYNTH_FATAL_CODES = {
    * either mislabels the fixture or hands the value to a peer builder that quotes it back.
    */
   SYNTH_UNSUPPORTED_KIND: "SYNTH_UNSUPPORTED_KIND",
+  /**
+   * A requested profile IS published by the adopted implementation guide, and this build does not
+   * generate it. Deliberately distinct from `SYNTH_UNSUPPORTED_KIND`, which says the name is not in
+   * the adopted set at all: "the guide does not publish this" and "we do not generate this yet" are
+   * different answers, and a caller building to a regulatory profile set has to be able to tell them
+   * apart without matching message text. Fatal, and raised **before** anything is generated: a
+   * mislabelled artifact is worse than no artifact.
+   */
+  SYNTH_PROFILE_NOT_GENERATED: "SYNTH_PROFILE_NOT_GENERATED",
 } as const;
 
 /**
@@ -117,6 +126,9 @@ export const SYNTH_FATAL_MESSAGES: Readonly<Record<SynthFatalCode, string>> = Ob
   SYNTH_UNSUPPORTED_KIND:
     "The requested kind, document type, corpus mix entry, variant or profile is not one this " +
     "generator supports. The supported set is the exported union for that option.",
+  SYNTH_PROFILE_NOT_GENERATED:
+    "The requested profile is published by the adopted implementation guide, and this build does " +
+    "not generate it. The coverage surface reports, per adopted profile, whether it is generated.",
 });
 
 /**

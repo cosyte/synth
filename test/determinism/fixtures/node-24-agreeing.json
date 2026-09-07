@@ -1,0 +1,29 @@
+{
+  "_fixture": "HAND-AUTHORED FIXTURE, NOT A CAPTURED MATRIX RUN. Agrees with node-22.json on every pair, which is the only shape a passing comparison has.",
+  "schema": "cosyte-synth-determinism-report/1",
+  "engine": {
+    "id": "node-24",
+    "nodeMajor": 24,
+    "nodeVersion": "v24.0.0"
+  },
+  "package": {
+    "name": "@cosyte/synth",
+    "version": "0.0.0",
+    "window": "0.x"
+  },
+  "digestAlgorithm": "sha256",
+  "artifactsPerPair": 3,
+  "entries": [
+    {
+      "format": "hl7v2",
+      "seed": 1,
+      "digest": "1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "format": "fhir",
+      "seed": 2,
+      "digest": "2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  ],
+  "excluded": []
+}

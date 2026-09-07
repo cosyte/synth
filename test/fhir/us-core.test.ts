@@ -9,11 +9,16 @@
  * The real profiles carry FHIRPath invariants and must-support obligations; `MUST_SUPPORT_ABSENT`,
  * `INVARIANT_UNCHECKED`, and base `dom-*` best-practice findings are advisory (information/warning) and
  * never fail conformance, only an `error` does (roadmap §4.5, the false-spec-clean head).
+ *
+ * **The graded set is driven by the coverage surface, not by a list kept here.** The last describe in
+ * this file walks every profile `usCoreCoverage()` reports as generated and requires a committed
+ * `StructureDefinition` for each: a coverage claim with no profile behind it FAILS the suite rather
+ * than being skipped, so the claim can never outrun the evidence for it.
  */
 
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { loadStructureDefinition, parseResource, type StructureDefinition } from "@cosyte/fhir";
@@ -28,15 +33,21 @@ import {
   generateObservationLab,
   generatePatient,
   generateProcedure,
+  generateProvenance,
+  generateUsCoreProfile,
   generateVitalSign,
   roundTrip,
+  usCoreCoverage,
 } from "../../src/fhir/index.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SD_DIR = join(HERE, "..", "us-core-profiles");
 
+/** The committed `StructureDefinition` for one profile id, by the name its siblings are filed under. */
+const sdPath = (file: string): string => join(SD_DIR, `${file}.json`);
+
 function loadSD(file: string): StructureDefinition {
-  const { resource } = parseResource(readFileSync(join(SD_DIR, `${file}.json`), "utf8"));
+  const { resource } = parseResource(readFileSync(sdPath(file), "utf8"));
   const sd = loadStructureDefinition(resource);
   if (sd === undefined) throw new Error(`could not load StructureDefinition ${file}`);
   return sd;
@@ -53,7 +64,15 @@ const SD = {
   allergyIntolerance: loadSD("us-core-allergyintolerance"),
   procedure: loadSD("us-core-procedure"),
   diagnosticReportLab: loadSD("us-core-diagnosticreport-lab"),
+  provenance: loadSD("us-core-provenance"),
 };
+
+/** The canonical URLs a resource claims in `meta.profile`, read back off the serialized artifact. */
+function claimedProfiles(content: string): string[] {
+  const json = JSON.parse(content) as { meta?: { profile?: unknown } };
+  const claimed = json.meta?.profile;
+  return Array.isArray(claimed) ? claimed.map((p) => String(p)) : [];
+}
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
@@ -178,6 +197,17 @@ describe("US Core conformance: validated against the real US Core 6.1.0 profiles
     );
   });
 
+  it("US Core Provenance validates clean against us-core-provenance", () => {
+    fc.assert(
+      fc.property(seed(), (s) => {
+        const rt = roundTrip(generateProvenance({ seed: s }), { profiles: [SD.provenance] });
+        expect(rt.errors, `provenance seed ${String(s)}`).toEqual([]);
+        expect(rt.specClean).toBe(true);
+      }),
+      { numRuns: 200 },
+    );
+  });
+
   it("the profiles under test are the published US Core 6.1.0 artifacts", () => {
     expect(SD.patient.url).toBe("http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient");
     expect(SD.encounter.url).toBe(
@@ -186,8 +216,59 @@ describe("US Core conformance: validated against the real US Core 6.1.0 profiles
     expect(SD.diagnosticReportLab.url).toBe(
       "http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-lab",
     );
+    expect(SD.provenance.url).toBe(
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-provenance",
+    );
     // A snapshot must be present, validation binds against the profile's own element set.
     expect(SD.patient.snapshot?.length ?? 0).toBeGreaterThan(0);
     expect(SD.procedure.snapshot?.length ?? 0).toBeGreaterThan(0);
+    expect(SD.provenance.snapshot?.length ?? 0).toBeGreaterThan(0);
   });
+});
+
+/**
+ * **The coverage claim never outruns its evidence.** The graded set here is whatever
+ * `usCoreCoverage()` reports as generated: adding a profile to that surface without committing its
+ * published `StructureDefinition` reds this describe rather than quietly reducing the graded set.
+ *
+ * Each profile also gets its own `it`, so a failure names the profile rather than the loop.
+ */
+describe("profile-addressed generation validates against the profile it claims", () => {
+  const covered = usCoreCoverage().filter((entry) => entry.generated);
+
+  it("grades a non-empty set (a suite over nothing passes vacuously)", () => {
+    expect(covered.length).toBeGreaterThan(0);
+  });
+
+  it("FAILS rather than skips when a profile has no StructureDefinition in the corpus", () => {
+    // The positive control for the requirement below: the loader throws for an absent profile, so a
+    // covered profile with no committed StructureDefinition cannot be silently passed over.
+    expect(existsSync(sdPath("us-core-not-a-real-profile"))).toBe(false);
+    expect(() => loadSD("us-core-not-a-real-profile")).toThrow();
+  });
+
+  for (const entry of covered) {
+    it(`${entry.profile} has a committed StructureDefinition and validates with zero errors`, () => {
+      expect(
+        existsSync(sdPath(entry.profile)),
+        `${entry.profile} is reported as generated but has no StructureDefinition in test/us-core-profiles/`,
+      ).toBe(true);
+      const sd = loadSD(entry.profile);
+      // The canonical the coverage surface publishes is the profile's own `url`, not an assembled one.
+      expect(sd.url).toBe(entry.canonical);
+      expect(sd.snapshot?.length ?? 0).toBeGreaterThan(0);
+
+      fc.assert(
+        fc.property(seed(), (s) => {
+          const rt = roundTrip(generateUsCoreProfile({ profile: entry.profile, seed: s }), {
+            profiles: [sd],
+          });
+          expect(rt.errors, `${entry.profile} seed ${String(s)}`).toEqual([]);
+          expect(rt.specClean).toBe(true);
+          expect(claimedProfiles(rt.content)).toContain(entry.canonical);
+        }),
+        { numRuns: 40 },
+      );
+    });
+  }
 });

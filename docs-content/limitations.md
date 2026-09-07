@@ -177,8 +177,22 @@ ssnOk && isSyntheticNpi(safe.npi(rng)) && isSyntheticDea(safe.dea(rng)); // => t
 A seed maps to the same bytes **within a documented compatibility window**, not across _major_
 `synth` versions. A version bump may change a value list or the algorithm and thus the seed→bytes
 mapping; that is a **documented breaking change**. For a long-lived golden fixture, **pin the `synth`
-version alongside the seed.** Cross-engine determinism assumes the pinned toolchain (Node ≥22, ES2019+
-stable sort and spec key order); it is not promised on arbitrary old engines.
+version alongside the seed.**
+
+**Which engines that is verified across, and how.** The seed→bytes mapping is verified
+**byte-identical across Node 22 and Node 24**, on every change. It is verified by **comparing
+digests across separate runs**, not by generating twice in one process: a declared seed corpus
+covering all six formats is generated in its own job on each of those Node majors, each job carries
+out one digest per `(format, seed)` pair and nothing else, and a third job fails the build if two
+engines disagree. A mismatch is reported by seed, format and engine, never by content. Each
+per-engine run is also compared against a **committed baseline** for the current window, so a
+toolchain or dependency change that moves every engine together is caught as well.
+
+**A change to that mapping is released as a breaking change.** The baseline is committed, and it
+cannot change without a release declaring a major version bump for the package, so a golden fixture
+pinned to a version inside the window keeps matching. Node majors outside the verified pair are not
+promised: `engines.node` says which ones are supported, and this check says which ones are
+measured.
 
 ## Coverage, and what is deferred
 
@@ -199,6 +213,57 @@ The spec-clean generation core is **feature-complete across all six formats**. Q
   discipline the parsers hold).
 - **Optional Synthea clinical-content ingestion** (re-serialize Synthea's coherent records through the
   cosyte parsers) is a **documented future concern**, not a v1 promise.
+
+### US Core 6.1.0 profile coverage
+
+You can address `synth` by **US Core 6.1.0 profile name**, and there are exactly two answers: a
+fixture that claims that profile, or a refusal raised **before any artifact exists**. There is no
+third outcome, and no default profile to fall through to.
+
+The adopted implementation guide publishes **49 resource profiles**. This library generates **11** of
+them:
+
+`us-core-allergyintolerance`, `us-core-condition-problems-health-concerns`,
+`us-core-diagnosticreport-lab`, `us-core-encounter`, `us-core-immunization`,
+`us-core-medicationrequest`, `us-core-observation-lab`, `us-core-patient`, `us-core-procedure`,
+`us-core-provenance`, `us-core-vital-signs`.
+
+**Every other adopted profile refuses**, and it refuses with a code distinct from the one an
+unrecognized name gets, because the two are different facts about your request:
+
+- `SYNTH_PROFILE_NOT_GENERATED`: the guide publishes this profile and this build does not generate it
+  yet. The other 38 adopted profiles are here.
+- `SYNTH_UNSUPPORTED_KIND`: the name is not in the adopted set at all: a typo, a blank, a value that
+  is not a string, or one of the guide's **extension definitions** (`us-core-race` and its nine
+  siblings), which are not standalone artifacts and so are not addressable.
+
+Neither returns a mislabelled artifact, and neither quotes your value back (see the diagnostics floor
+above).
+
+**Read the split as data, not off this page.** `usCoreCoverage()` reports one entry per adopted
+profile, carrying its canonical URL and whether this build generates it. This page can go stale
+between releases; that function is derived from the generators themselves and cannot.
+
+```ts runnable
+import { usCoreCoverage, generateUsCoreProfile, roundTrip } from "@cosyte/synth/fhir";
+
+const coverage = usCoreCoverage();
+coverage.length; // => 49
+coverage.filter((entry) => entry.generated).length; // => 11
+
+// A covered profile: an artifact claiming that profile's canonical URL.
+const provenance = generateUsCoreProfile({ profile: "us-core-provenance", seed: 42 });
+roundTrip(provenance).specClean; // => true
+
+// An adopted profile this build does not generate: a refusal, never an artifact.
+let refusedCode = "";
+try {
+  generateUsCoreProfile({ profile: "us-core-careteam", seed: 42 });
+} catch (err) {
+  refusedCode = (err as { code: string }).code;
+}
+refusedCode; // => "SYNTH_PROFILE_NOT_GENERATED"
+```
 
 ## Licensing & PHI posture
 
