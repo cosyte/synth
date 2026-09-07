@@ -40,11 +40,12 @@
  *   <https://datatracker.ietf.org/doc/html/rfc3849>
  * - **NPI**, a real National Provider Identifier is a 10-digit number whose last digit is a Luhn
  *   check digit computed over the `80840` prefix + the 9-digit base. The rule is 69 FR 3434, the
- *   Department of Health and Human Services final rule adopting the NPI (FR Doc 04-1149): "the NPI
- *   check digit calculation must always be performed as though the NPI is preceded by" `80840`, and
- *   the check digit is "calculated using the ISO standard Luhn check digit algorithm". A number
- *   whose check digit is **wrong** therefore cannot be a validly issued NPI. `synth` emits NPIs with
- *   a deliberately-invalid check digit, so no generated NPI can collide with a real provider.
+ *   final rule adopting the NPI (FR Doc 04-1149, docket CMS-0045-F), whose issuing agency that
+ *   document records as "Centers for Medicare & Medicaid Services, HHS": "the NPI check digit
+ *   calculation must always be performed as though the NPI is preceded by" `80840`, and the check
+ *   digit is "calculated using the ISO standard Luhn check digit algorithm". A number whose check
+ *   digit is **wrong** therefore cannot be a validly issued NPI. `synth` emits NPIs with a
+ *   deliberately-invalid check digit, so no generated NPI can collide with a real provider.
  *   <https://www.federalregister.gov/documents/full_text/text/2004/01/23/04-1149.txt>
  * - **DEA**, the check-digit formula is **not** attributed to the DEA and no DEA-published text
  *   stating it is cited anywhere here. See {@link deaCheckDigit}, which names the non-normative
@@ -101,7 +102,7 @@ export const DOC_V6_PREFIX = "2001:db8";
  * The published **IRS ITIN group ranges**, inclusive `[min, max]` bands over the two group digits
  * (positions 4 and 5) of a `9NN-GG-NNNN` value. An Individual Taxpayer Identification Number is an
  * SSN-format number that begins with `9` and carries a group inside one of these bands, so these
- * bands are what separates a never-issued SSN from a validly formatted ITIN.
+ * bands are what separates an SSN the SSA manual calls invalid from a validly formatted ITIN.
  *
  * These are **facts** about the number's shape, not copyrighted prose (IRS Internal Revenue Manual
  * 3.21.263). Group values `89` and `93` sit between the bands on purpose: the IRM records them as
@@ -131,9 +132,9 @@ const ITIN_EXCLUDED_GROUPS: readonly number[] = Object.freeze([89, 93]);
  * from those two lists rather than written out, so the pool can never drift from the published
  * ranges it is defined against.
  *
- * Combined with the never-issued area `900-999`, a value drawn from this pool is provably outside
- * both issuing authorities that share the number space: SSA never issues the area, and the IRS
- * never issues an ITIN with this group.
+ * Combined with an area in the `900-999` band, a value drawn from this pool is provably outside both
+ * issuing authorities that share the number space: SSA POMS RM 10201.035 identifies that area as
+ * marking an **invalid** SSN, and a group outside every published ITIN band is not ITIN-formatted.
  *
  * @internal
  */
@@ -151,12 +152,14 @@ export const SSN_SYNTHETIC_GROUPS: readonly string[] = Object.freeze(
  * The `80840` prefix prepended to a 10-digit NPI before the Luhn check. A real NPI satisfies
  * `luhn("80840" + npi) ≡ 0 (mod 10)`.
  *
- * The rule is **69 FR 3434**, the Department of Health and Human Services final rule adopting the
- * NPI (FR Doc 04-1149): "the NPI check digit calculation must always be performed as though the NPI
- * is preceded by" `80840`. The same rule describes `80840` as the card issuer identifier prefix a
- * standard health care identification card requires, where `80` signifies health applications and
- * `840` the United States. It does **not** attribute that prefix to ISO 7812, and this module no
- * longer does either.
+ * The rule is **69 FR 3434**, the final rule adopting the NPI (FR Doc 04-1149, docket CMS-0045-F),
+ * issued by the agency that document names as "Centers for Medicare & Medicaid Services, HHS": "the
+ * NPI check digit calculation must always be performed as though the NPI is preceded by" `80840`.
+ * The prefix itself is not that rule's: it credits the NCITS.284 standard health care identification
+ * card, which "requires that the first five digits of the card issuer identifier be" `80840`, "where
+ * the initial two digits, 80, signify health applications, the next three digits, 840, signify
+ * United States". The rule cites no ISO document number for the prefix or for the check digit, and
+ * neither does this module.
  * <https://www.federalregister.gov/documents/full_text/text/2004/01/23/04-1149.txt>
  */
 export const NPI_LUHN_PREFIX = "80840";
@@ -195,7 +198,11 @@ export function luhnMod10(digits: string): number {
  *
  * The algorithm this inverts is cited: 69 FR 3434 (FR Doc 04-1149) requires the check digit to be
  * "calculated using the ISO standard Luhn check digit algorithm", a modulus 10 double-add-double
- * algorithm, performed as though the NPI were preceded by {@link NPI_LUHN_PREFIX}.
+ * algorithm, performed as though the NPI were preceded by {@link NPI_LUHN_PREFIX}. That rule names
+ * the algorithm and its behaviour but no ISO document number, and points onward for the step-by-step
+ * form: "The specification for calculation of the NPI check digit will be made available on the CMS
+ * Web site". What this function implements is the rule's own description, modulus 10 Luhn over the
+ * prefixed digits; no separate specification is cited for it.
  * <https://www.federalregister.gov/documents/full_text/text/2004/01/23/04-1149.txt>
  *
  * @param base9 - The 9-digit NPI base (positions 1 to 9).
@@ -336,7 +343,7 @@ export function isSyntheticNpi(value: string): boolean {
  * @example
  * ```ts
  * import { isSyntheticSsn } from "@cosyte/synth";
- * isSyntheticSsn("900-12-3456"); // true (never issued)
+ * isSyntheticSsn("900-12-3456"); // true (the 900 series marks an invalid SSN)
  * isSyntheticSsn("123456789");   // false (issuable area 123)
  * ```
  */

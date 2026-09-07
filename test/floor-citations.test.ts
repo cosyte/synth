@@ -236,6 +236,21 @@ describe("the synthetic-safety floor table", () => {
     },
   );
 
+  it("retracts only the half of the NPI attribution its source refutes, and names the replacement", () => {
+    // This is a FIXED-STRING PIN, not a check of the cited document: nothing here can read 69 FR
+    // 3434. What it stops is the specific defect that reached this row once. The old attribution
+    // was "CMS NPI check-digit rule, ISO 7812"; the cited rule carries no ISO document number, so
+    // that half is retracted and the row must name what took its place, while the rule DOES record
+    // CMS as its issuing agency, so a retraction of that half would be a new false claim about the
+    // same document. A reviewer still owns whether the quoted agency line is really in the text.
+    const npi = rows.find((r) => r.locus.toLowerCase().includes("npi"));
+    expect(npi).toBeDefined();
+    const text = plain(npi?.why ?? "");
+    expect(text).toContain("ISO standard Luhn check digit algorithm");
+    expect(text).toContain("Centers for Medicare & Medicaid Services");
+    expect(text).not.toMatch(/names? neither/i);
+  });
+
   it("marks the locus whose algorithm has no normative publisher, in the table", () => {
     const dea = rows.find((r) => r.locus.toLowerCase().includes("dea"));
     expect(dea).toBeDefined();
@@ -359,8 +374,11 @@ describe("the check-digit predicates document what they rest on", () => {
     expect(text).not.toContain("designated example root");
   });
 
-  it("no longer carries the attributions their sources do not make", () => {
-    expect(reserved).not.toContain("CMS NPI check-digit rule");
+  it("carries none of the attributions its sources do not make", () => {
+    // `ISO 7812` rather than `CMS NPI check-digit rule`: the rule this module cites carries no ISO
+    // document number at all, while it does record CMS as its issuing agency, so only the first of
+    // the two halves of that old attribution is a claim the source refuses.
+    expect(reserved).not.toContain("ISO 7812");
     expect(reserved).not.toContain("NPPES-issued");
     expect(reserved).not.toContain("designated example root");
   });
