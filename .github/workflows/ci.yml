@@ -87,42 +87,23 @@ jobs:
       - name: Show the JRE the validator will run on
         run: java -version
 
-      # THE FIRST HOP IS THE ONE THAT NAMES THE RELEASE, and it is the only one worth recording.
-      # MEASURED, not assumed: `/releases/latest/download/<file>` answers 302 with a Location of
-      # `/releases/download/<tag>/<file>`, which carries the tag, while following the whole chain
-      # lands on a signed asset URL naming a storage GUID and carrying a short-lived token. The first
-      # run of this job recorded that GUID as the validator's "version", which is how this is known.
-      # So the redirect is read WITHOUT being followed, the tagged URL is what gets recorded and
-      # downloaded, and an absent redirect stops the job rather than being recorded as an unversioned
-      # source. The package registry is version-addressed already, so the URL asked for is the URL
-      # recorded, and the digest is what proves the bytes behind it.
+      # THE PIN NAMES THE RELEASE, SO THERE IS NOTHING HERE TO RESOLVE. Every address in
+      # scripts/oracle/oracle-lock.json identifies one published release or one registry version, so
+      # the address asked for is the address recorded: `/releases/download/<tag>/<file>` for the
+      # validator, `<package>/<version>` for the conformance package. An address that names no
+      # version, and an artifact that cannot be fetched from the one it does name, both stop the job
+      # here with the artifact named, rather than reaching the grading step with nothing to grade.
+      #
+      # WHAT IS DELIBERATELY NOT RECORDED IS WHERE THE FETCH ENDS UP. MEASURED, not assumed:
+      # following a release download lands on a signed asset address naming a storage GUID and
+      # carrying a short-lived token, and the first run of this job recorded that GUID as the
+      # validator's "version". Redirects are still followed to GET the bytes; the end of the chain is
+      # simply not what the run says it acquired.
+      #
+      # NO ADDRESS AND NO DIGEST IS WRITTEN IN THIS FILE. Both live in the pin, and the acquisition
+      # reads them from it, so there is exactly one place either can be changed.
       - name: Acquire the pinned validator and conformance package
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p .oracle
-          read_pin() {
-            node -e 'const l=JSON.parse(require("node:fs").readFileSync("scripts/oracle/oracle-lock.json","utf8"));process.stdout.write(l[process.argv[1]].downloadUrl)' "$1"
-          }
-          jar_source=$(read_pin validator)
-          pkg_source=$(read_pin conformancePackage)
-          jar_url=$(curl --fail --silent --show-error --retry 3 --output /dev/null --write-out '%{redirect_url}' "$jar_source")
-          if [ -z "$jar_url" ]; then
-            echo "the validator download did not redirect, so no release tag can be recorded" >&2
-            exit 1
-          fi
-          curl --fail --silent --show-error --location --retry 3 --output .oracle/validator_cli.jar "$jar_url"
-          curl --fail --silent --show-error --location --retry 3 --output .oracle/us-core.tgz "$pkg_source"
-          node -e '
-            const fs = require("node:fs");
-            fs.writeFileSync(".oracle/acquisition.json", JSON.stringify({
-              validator: { path: ".oracle/validator_cli.jar", resolvedUrl: process.argv[1] },
-              conformancePackage: { path: ".oracle/us-core.tgz", resolvedUrl: process.argv[2] },
-            }, null, 2));
-          ' "$jar_url" "$pkg_source"
-          echo "resolved validator URL: $jar_url"
-          echo "resolved package URL:   $pkg_source"
-          sha256sum .oracle/validator_cli.jar .oracle/us-core.tgz
+        run: pnpm run oracle:acquire
 
       - name: Grade the declared corpus with the external validator
         run: pnpm run oracle
