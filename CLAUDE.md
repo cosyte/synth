@@ -39,7 +39,7 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
   a DATED MEASUREMENT, like the one immediately below: it records the version a check actually
   installed on a named day, and a dated fact does not go stale because it never claimed to be current.
 - **A CONSUMER INSTALL SUCCEEDED, MEASURED ON 2026-08-30, AND A CHECK RE-RUNS IT**: `pnpm
-  check:install`, `--mode=pack` per pull request and `--mode=registry` per release, where an
+check:install`, `--mode=pack` per pull request and `--mode=registry` per release, where an
   unreachable registry or a missing version is a **FAILURE**, never a skip. **NEVER WRITE THE
   INSTALL UP AS RESOLVED BY REASONING: A DATED MEASUREMENT PLUS ITS CHECK IS THE ONLY THING THAT MAY
   BE WRITTEN HERE**, and `peerDependenciesMeta` is not an argument in either direction. What was
