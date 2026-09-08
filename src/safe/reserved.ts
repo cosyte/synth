@@ -2,45 +2,80 @@
  * The reserved / never-collide identifier facts that make a `@cosyte/synth` value **provably
  * synthetic**: the ground truth behind the synthetic-safety invariant.
  *
- * These are **facts**, not copyrighted prose: authoritative ranges published by SSA, the IRS, NANPA
- * and the IETF that are guaranteed never to denote a real person or a real routable resource. Where
- * two authorities share one number space (SSN and ITIN), a value must be outside both. Every provider
- * draws only from these; the predicates here are the executable half of the CI synthetic-safety gate:
- * they let a test assert that no emitted value falls **outside** a reserved source.
+ * These are **facts**, not copyrighted prose: ranges and check-digit rules published by SSA, the
+ * IRS, HHS, NANPA and the IETF that are guaranteed never to denote a real person or a real routable
+ * resource. Where two authorities share one number space (SSN and ITIN), a value must be outside
+ * both. Every provider draws only from these; the predicates here are the executable half of the CI
+ * synthetic-safety gate: they let a test assert that no emitted value falls **outside** a reserved
+ * source.
+ *
+ * Every entry below names its authority by that authority's **own published identifier**, never by a
+ * bare hostname, so a reader can open the text and check the claim instead of taking this module's
+ * word for it. Two loci have no reserving authority and one rests on a source that is not the
+ * issuing agency; each says so at the point of use rather than being left out of this list.
  *
  * Sources:
- * - **SSN**, SSA never issues area numbers `000`, `666`, or `900–999`. (ssa.gov)
+ * - **SSN**, SSA POMS RM 10201.035 (Invalid Social Security Numbers (SSNs)) defines an invalid SSN
+ *   as "one that we never assigned", and identifies one by a first three digits (former area number)
+ *   of `000`, `666`, or "in the 900 series", or a second group of two digits (former group number)
+ *   of `00`. <https://secure.ssa.gov/poms.nsf/lnx/0110201035>
  * - **ITIN**, an IRS Individual Taxpayer Identification Number shares the SSN number space by
  *   construction: it is a `9NN-GG-NNNN` value whose group `GG` falls in a published ITIN group
  *   range. Area `900-999` alone therefore does not prove a value cannot be a federally issued
- *   identifier, so a synthetic SSN also keeps its group outside every published range. (IRS
- *   Internal Revenue Manual 3.21.263)
- * - **Phone**, NANP reserves `555-0100…555-0199` as the fictional/non-working line range. (nanpa.com)
- * - **Email/domain**, RFC 2606 / RFC 6761 reserved: `example.com`/`.net`/`.org` and the `.example`,
- *   `.test`, `.invalid`, `.localhost` TLDs.
- * - **IP**, RFC 5737 IPv4 TEST-NET-1/2/3 (`192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`) and
- *   RFC 3849 IPv6 documentation prefix `2001:db8::/32`.
+ *   identifier, so a synthetic SSN also keeps its group outside every published range. IRS Internal
+ *   Revenue Manual 3.21.263: "An ITIN begins with a `9` and the 4th and 5th digits are 50-65, 70-88,
+ *   90-92 and 94-99". <https://www.irs.gov/irm/part3/irm_03-021-263r>
+ * - **Phone**, NANPA's 555 Line Numbers page: "The fictitious, non-working numbers, 555-0100 through
+ *   555-0199, will remain reserved for entertainment/advertising."
+ *   <https://nanpa.com/numbering/555-line-numbers>
+ * - **Email/domain**, RFC 2606 (Reserved Top Level DNS Names) reserves the `.test`, `.example`,
+ *   `.invalid` and `.localhost` top-level names and the second-level names `example.com`/`.net`/
+ *   `.org`; RFC 6761 section 6.5 carries the example domains into the special-use registry.
+ *   <https://datatracker.ietf.org/doc/html/rfc2606>,
+ *   <https://datatracker.ietf.org/doc/html/rfc6761>
+ * - **IP**, RFC 5737: the blocks `192.0.2.0/24` (TEST-NET-1), `198.51.100.0/24` (TEST-NET-2) and
+ *   `203.0.113.0/24` (TEST-NET-3) "are provided for use in documentation"; RFC 3849: "The prefix
+ *   allocated for documentation purposes is 2001:DB8::/32".
+ *   <https://datatracker.ietf.org/doc/html/rfc5737>,
+ *   <https://datatracker.ietf.org/doc/html/rfc3849>
  * - **NPI**, a real National Provider Identifier is a 10-digit number whose last digit is a Luhn
- *   check digit computed over the `80840` prefix + the 9-digit base (CMS NPI check-digit rule, ISO
- *   7812). A number whose check digit is **wrong** therefore cannot be a NPPES-issued NPI. `synth`
- *   emits NPIs with a deliberately-invalid check digit, so no generated NPI can collide with a real
- *   provider.
+ *   check digit computed over the `80840` prefix + the 9-digit base. The rule is 69 FR 3434, the
+ *   final rule adopting the NPI (FR Doc 04-1149, docket CMS-0045-F), whose issuing agency that
+ *   document records as "Centers for Medicare & Medicaid Services, HHS": "the NPI check digit
+ *   calculation must always be performed as though the NPI is preceded by" `80840`, and the check
+ *   digit is "calculated using the ISO standard Luhn check digit algorithm". A number whose check
+ *   digit is **wrong** therefore cannot be a validly issued NPI. `synth` emits NPIs with a
+ *   deliberately-invalid check digit, so no generated NPI can collide with a real provider.
+ *   <https://www.federalregister.gov/documents/full_text/text/2004/01/23/04-1149.txt>
+ * - **DEA**, the check-digit formula is **not** attributed to the DEA and no DEA-published text
+ *   stating it is cited anywhere here. See {@link deaCheckDigit}, which names the non-normative
+ *   source the claim does rest on, and what that source is not.
+ * - **MRN / member / account**, **no authority reserves this locus**: there is no reserved MRN range
+ *   and none is claimed. See {@link SYNTHETIC_ASSIGNING_AUTHORITY} for what the floor rests on
+ *   instead.
  *
  * @module
  */
 
 /**
  * The synthetic **assigning authority** `@cosyte/synth` mints MRNs / account / member identifiers
- * under. There is **no** reserved MRN range (an MRN is unique only within its assigning-authority /
- * OID namespace), so, as a documented design decision, every synthetic identifier
- * is scoped to a namespace that clearly cannot be a real facility's: a `SYNTH`-labelled authority whose
- * OID lives under HL7's designated **example** root `2.16.840.1.113883.19`. A value under this AA can
- * never collide with a real record because the *namespace itself* is synthetic.
+ * under.
+ *
+ * **No authority reserves this locus.** An MRN is unique only within its assigning-authority / OID
+ * namespace, no registry reserves a range of them, and none is cited here. What the floor rests on
+ * instead is the *namespace*, as a documented design decision: every synthetic identifier is scoped
+ * to a namespace that clearly cannot be a real facility's, a `SYNTH`-labelled authority this package
+ * mints and no real facility uses. A value under this AA can never collide with a real record
+ * whatever its digits are, because the namespace itself is synthetic.
+ *
+ * The OID is **uncited for the same reason**. `2.16.840.1.113883.19.999` is a value this package
+ * chose; no published text designating the root `2.16.840.1.113883.19` for example use could be
+ * shown, so this module claims no such designation and the guarantee above does not rest on one.
  */
 export const SYNTHETIC_ASSIGNING_AUTHORITY = Object.freeze({
   /** The human-readable assigning-authority namespace id (HL7 HD.1). */
   namespaceId: "COSYTE-SYNTH",
-  /** The universal id, an OID under HL7's example arc `2.16.840.1.113883.19` (HD.2). */
+  /** The universal id, an OID this package chose under the root `2.16.840.1.113883.19` (HD.2). */
   universalId: "2.16.840.1.113883.19.999",
   /** The universal id type (HD.3). */
   universalIdType: "ISO",
@@ -67,7 +102,7 @@ export const DOC_V6_PREFIX = "2001:db8";
  * The published **IRS ITIN group ranges**, inclusive `[min, max]` bands over the two group digits
  * (positions 4 and 5) of a `9NN-GG-NNNN` value. An Individual Taxpayer Identification Number is an
  * SSN-format number that begins with `9` and carries a group inside one of these bands, so these
- * bands are what separates a never-issued SSN from a validly formatted ITIN.
+ * bands are what separates an SSN the SSA manual calls invalid from a validly formatted ITIN.
  *
  * These are **facts** about the number's shape, not copyrighted prose (IRS Internal Revenue Manual
  * 3.21.263). Group values `89` and `93` sit between the bands on purpose: the IRM records them as
@@ -97,9 +132,9 @@ const ITIN_EXCLUDED_GROUPS: readonly number[] = Object.freeze([89, 93]);
  * from those two lists rather than written out, so the pool can never drift from the published
  * ranges it is defined against.
  *
- * Combined with the never-issued area `900-999`, a value drawn from this pool is provably outside
- * both issuing authorities that share the number space: SSA never issues the area, and the IRS
- * never issues an ITIN with this group.
+ * Combined with an area in the `900-999` band, a value drawn from this pool is provably outside both
+ * issuing authorities that share the number space: SSA POMS RM 10201.035 identifies that area as
+ * marking an **invalid** SSN, and a group outside every published ITIN band is not ITIN-formatted.
  *
  * @internal
  */
@@ -114,9 +149,18 @@ export const SSN_SYNTHETIC_GROUPS: readonly string[] = Object.freeze(
 );
 
 /**
- * The `80840` prefix prepended to a 10-digit NPI before the Luhn check (the CMS NPI check-digit
- * rule: `80840` is the ISO 7812 issuer identifier for the US health-application namespace). A real
- * NPI satisfies `luhn("80840" + npi) ≡ 0 (mod 10)`.
+ * The `80840` prefix prepended to a 10-digit NPI before the Luhn check. A real NPI satisfies
+ * `luhn("80840" + npi) ≡ 0 (mod 10)`.
+ *
+ * The rule is **69 FR 3434**, the final rule adopting the NPI (FR Doc 04-1149, docket CMS-0045-F),
+ * issued by the agency that document names as "Centers for Medicare & Medicaid Services, HHS": "the
+ * NPI check digit calculation must always be performed as though the NPI is preceded by" `80840`.
+ * The prefix itself is not that rule's: it credits the NCITS.284 standard health care identification
+ * card, which "requires that the first five digits of the card issuer identifier be" `80840`, "where
+ * the initial two digits, 80, signify health applications, the next three digits, 840, signify
+ * United States". The rule cites no ISO document number for the prefix or for the check digit, and
+ * neither does this module.
+ * <https://www.federalregister.gov/documents/full_text/text/2004/01/23/04-1149.txt>
  */
 export const NPI_LUHN_PREFIX = "80840";
 
@@ -152,7 +196,16 @@ export function luhnMod10(digits: string): number {
  * The correct NPI check digit for a 9-digit base: the value that makes `80840` + base + check pass
  * the Luhn check.
  *
- * @param base9 - The 9-digit NPI base (positions 1–9).
+ * The algorithm this inverts is cited: 69 FR 3434 (FR Doc 04-1149) requires the check digit to be
+ * "calculated using the ISO standard Luhn check digit algorithm", a modulus 10 double-add-double
+ * algorithm, performed as though the NPI were preceded by {@link NPI_LUHN_PREFIX}. That rule names
+ * the algorithm and its behaviour but no ISO document number, and points onward for the step-by-step
+ * form: "The specification for calculation of the NPI check digit will be made available on the CMS
+ * Web site". What this function implements is the rule's own description, modulus 10 Luhn over the
+ * prefixed digits; no separate specification is cited for it.
+ * <https://www.federalregister.gov/documents/full_text/text/2004/01/23/04-1149.txt>
+ *
+ * @param base9 - The 9-digit NPI base (positions 1 to 9).
  * @returns The check digit (`0`–`9`) a real NPI would carry for this base.
  * @example
  * ```ts
@@ -186,11 +239,25 @@ export const DEA_REGISTRANT_TYPES: readonly string[] = Object.freeze([
 ]);
 
 /**
- * The correct DEA check digit for a 7-digit numeric base. The published DEA checksum is
+ * The correct DEA check digit for a 7-digit numeric base. The checksum is
  * `(d1 + d3 + d5) + 2·(d2 + d4 + d6)`, whose **units digit** is the 7th (check) digit. A real DEA
  * number satisfies this; a number whose 7th digit differs cannot be a validly-issued DEA registration.
  *
- * @param base6 - The first 6 digits of the DEA number (positions 1–6).
+ * **NON-NORMATIVELY SOURCED, and this is the one locus in this module that is.** The formula above
+ * is quoted from a pharmacy journal article, Gabay, "Federal Controlled Substances Act: Controlled
+ * Substances Prescriptions", Hospital Pharmacy (PMC3847977): "add the sum of the first, third, and
+ * fifth digits to twice the sum of the second, fourth, and sixth digits. The total should be a
+ * number whose last digit is the same as the last digit of the DEA number."
+ * <https://pmc.ncbi.nlm.nih.gov/articles/PMC3847977/>
+ *
+ * **That article is not the DEA.** It is a secondary description of the agency's algorithm, not the
+ * agency's own statement of it, and no DEA-published text stating the algorithm is cited here. The
+ * consequence is stated rather than hidden: if the formula is wrong, a value this package builds to
+ * fail it may in fact **pass** the real check, and the generator would then emit a checksum-valid
+ * DEA number while {@link isSyntheticDea} asserts the opposite. Every other entry in this module's
+ * `Sources:` list names the issuing authority's own text; this one cannot.
+ *
+ * @param base6 - The first 6 digits of the DEA number (positions 1 to 6).
  * @returns The check digit (`0`–`9`) a real DEA number would carry for this base.
  * @example
  * ```ts
@@ -211,9 +278,15 @@ export function deaCheckDigit(base6: string): number {
 
 /**
  * Whether a DEA number (`XX` + 7 digits, case-insensitive) is **provably synthetic**: its check digit
- * (the 7th digit) does **not** match the published DEA checksum, so it cannot be a validly-issued DEA
- * registration. A checksum-valid DEA number (which *could* denote a real prescriber) returns `false`; a
- * value that is not the DEA shape returns `false`.
+ * (the 7th digit) does **not** match the checksum {@link deaCheckDigit} computes, so it cannot be a
+ * validly-issued DEA registration. A checksum-valid DEA number (which *could* denote a real
+ * prescriber) returns `false`; a value that is not the DEA shape returns `false`.
+ *
+ * **NON-NORMATIVELY SOURCED.** This predicate is only as strong as the algorithm it inverts, and
+ * that algorithm is cited to a pharmacy journal article (PMC3847977), **not to the DEA**: no
+ * DEA-published statement of it is cited anywhere in this package. Read `true` as "fails the
+ * formula {@link deaCheckDigit} implements", never as "the DEA could not have issued this". The
+ * full citation and the consequence of the formula being wrong are on {@link deaCheckDigit}.
  *
  * @param value - The candidate DEA number (with or without incidental separators).
  * @returns `true` when the DEA number's checksum is wrong (never a real DEA registration).
@@ -233,8 +306,13 @@ export function isSyntheticDea(value: string): boolean {
 
 /**
  * Whether a 10-digit NPI is **provably synthetic**, i.e. its check digit is invalid, so it cannot be
- * a NPPES-issued NPI. A Luhn-valid 10-digit NPI (which *could* denote a real registered provider)
+ * a validly issued NPI. A Luhn-valid 10-digit NPI (which *could* denote a real registered provider)
  * returns `false`; a non-10-digit value returns `false` (not an NPI shape).
+ *
+ * The check this inverts is the one 69 FR 3434 (FR Doc 04-1149) requires: the Luhn check digit,
+ * computed as though the NPI were preceded by {@link NPI_LUHN_PREFIX}. Unlike the DEA locus, this
+ * one cites the issuing rule itself.
+ * <https://www.federalregister.gov/documents/full_text/text/2004/01/23/04-1149.txt>
  *
  * @param value - The candidate NPI (digits only, or with incidental separators).
  * @returns `true` when the NPI's check digit is wrong (never a real NPI).
@@ -252,15 +330,20 @@ export function isSyntheticNpi(value: string): boolean {
 }
 
 /**
- * Whether a `ddd-dd-dddd` (or `ddddddddd`) SSN string is drawn from an SSA never-issued / reserved
- * space: area `000`, `666`, or `900–999`. A real, issuable SSN returns `false`.
+ * Whether a `ddd-dd-dddd` (or `ddddddddd`) SSN string carries an area SSA's own manual identifies
+ * as **invalid**: `000`, `666`, or "in the 900 series". A real, issuable SSN returns `false`.
+ *
+ * The citable claim is SSA POMS RM 10201.035, which defines an invalid SSN as "one that we never
+ * assigned" and lists those three areas as identifying one. The wording here says invalid rather
+ * than never-issued because invalidity is what the manual states.
+ * <https://secure.ssa.gov/poms.nsf/lnx/0110201035>
  *
  * @param value - The candidate SSN (dashes optional).
  * @returns `true` when the SSN is provably synthetic.
  * @example
  * ```ts
  * import { isSyntheticSsn } from "@cosyte/synth";
- * isSyntheticSsn("900-12-3456"); // true (never issued)
+ * isSyntheticSsn("900-12-3456"); // true (the 900 series marks an invalid SSN)
  * isSyntheticSsn("123456789");   // false (issuable area 123)
  * ```
  */
