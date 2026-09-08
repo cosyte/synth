@@ -83,7 +83,7 @@ function readAcquisitionManifest(): {
     refuse(
       `${ACQUISITION_MANIFEST} does not exist, so the external validator was never acquired. The ` +
         "run FAILS rather than skipping: an ungraded corpus is not a passing one, and no format " +
-        "is reported as covered. `pnpm run oracle:acquire` writes this manifest after downloading " +
+        "is reported as covered. `pnpm run acquire:oracle` writes this manifest after downloading " +
         "the pinned validator and package.",
     );
   }

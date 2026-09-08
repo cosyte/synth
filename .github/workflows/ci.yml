@@ -102,8 +102,18 @@ jobs:
       #
       # NO ADDRESS AND NO DIGEST IS WRITTEN IN THIS FILE. Both live in the pin, and the acquisition
       # reads them from it, so there is exactly one place either can be changed.
+      #
+      # THE ACQUISITION SCRIPT IS DELIBERATELY NOT NAMED `oracle:acquire`, WHICH IS THE OBVIOUS
+      # SPELLING AND THE WRONG ONE. `test/oracle/ci-wiring.test.ts` asserts over this file AS TEXT,
+      # and `pnpm run oracle` is a PREFIX of `pnpm run oracle:acquire`: a step spelled that way and
+      # placed above the grading step is what an `indexOf` for the grading command finds first, so a
+      # guard aimed at the gate silently reads this step instead. MEASURED, not feared: that is how
+      # the "no `|| true` on the grading step" assertion was disarmed on this branch's first pass.
+      # The assertion no longer locates a step by its command, and the command no longer aliases the
+      # gate's, so neither half depends on the other being right. Do not rename this back, and do not
+      # add another step whose command begins with `pnpm run oracle`.
       - name: Acquire the pinned validator and conformance package
-        run: pnpm run oracle:acquire
+        run: pnpm run acquire:oracle
 
       - name: Grade the declared corpus with the external validator
         run: pnpm run oracle

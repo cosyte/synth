@@ -1,7 +1,7 @@
 /**
  * The oracle is wired into CI as a check that can fail, ALONGSIDE the shared pipeline caller.
  *
- * Three failures this guards, and none of them is theoretical in a repository whose workflows are
+ * Four failures this guards, and none of them is theoretical in a repository whose workflows are
  * mostly thin callers of somebody else's ladder:
  *
  *   * REPLACING THE CALLER RATHER THAN ADDING TO IT. `ci.yml` invokes the shared `cosyte/.github`
@@ -16,6 +16,14 @@
  *     failures (an address that identifies no version, an artifact that will not download) have to
  *     stop the job loudly, naming the artifact. A silent acquisition failure would hand the run an
  *     absent validator, and "nothing could be fetched" must not read like "nothing was wrong".
+ *   * A GUARD AIMED AT THE WRONG STEP, WHICH IS THE ONE THAT ACTUALLY HAPPENED HERE. `pnpm run
+ *     oracle` is a PREFIX of every `pnpm run oracle<suffix>`, so an assertion that located the
+ *     grading step with `indexOf("run: pnpm run oracle")` landed on an acquisition step spelled
+ *     `run: pnpm run oracle:acquire` the moment one was added above it. Nothing about the assertion
+ *     changed; it simply stopped reading the gate, and a `|| true` on the grading step would have
+ *     gone green underneath it. Two independent answers below, because either alone can rot: a step
+ *     is located by the NAME it carries, never by the command it runs, AND no command in the job
+ *     may begin with the grading command, so a text scan cannot be ambiguous in the first place.
  *
  * It reads the workflow as text on purpose. A YAML parse would be a nicer object and a worse test:
  * the thing being asserted is what a reader and the runner both see in the file. The refusals
@@ -47,6 +55,37 @@ function oracleJob(): string {
   return next === -1 ? rest : rest.slice(0, next + 1);
 }
 
+/** The command the gate itself runs. Everything below is anchored on this exact spelling. */
+const GRADING_COMMAND = "pnpm run oracle";
+
+/** The `name:` the grading step carries, which is how the step is found rather than its command. */
+const GRADING_STEP_NAME = "Grade the declared corpus with the external validator";
+
+/**
+ * The grading step alone, located by the NAME it carries.
+ *
+ * NOT by its command, and that is the whole point: `indexOf("run: pnpm run oracle")` finds the
+ * FIRST command with that prefix, which stopped being the gate as soon as an acquisition step was
+ * added above it. A name is not a prefix of anything and renaming the step reds here loudly.
+ */
+function gradingStep(): string {
+  const job = oracleJob();
+  const at = job.indexOf(`- name: ${GRADING_STEP_NAME}`);
+  expect(at).toBeGreaterThan(-1);
+  const rest = job.slice(at);
+  // Ends at the next step's bullet or the banner above it, so no neighbouring step is read as
+  // part of this one.
+  const end = rest.search(/\n\s*(?:- |#)/);
+  return end === -1 ? rest : rest.slice(0, end);
+}
+
+/** Every command the oracle job runs, bullet-form (`- run:`) and continuation-form alike. */
+function oracleCommands(): readonly string[] {
+  return [...oracleJob().matchAll(/^ *(?:- )?run: (.+)$/gm)].map((match) =>
+    (match[1] ?? "").trim(),
+  );
+}
+
 const packageScripts = (): Record<string, string> => {
   const parsed = JSON.parse(readFileSync(join(REPO_ROOT, "package.json"), "utf8")) as {
     scripts?: Record<string, string>;
@@ -61,9 +100,22 @@ describe("the oracle runs in CI alongside the shared pipeline caller", () => {
   });
 
   it("declares an oracle job that runs the gate", () => {
-    const text = workflow();
-    expect(text).toMatch(/^ {2}oracle:$/m);
-    expect(text).toContain("pnpm run oracle");
+    expect(workflow()).toMatch(/^ {2}oracle:$/m);
+    // THE WHOLE COMMAND ON ITS OWN LINE, never the substring. `toContain("pnpm run oracle")` is
+    // satisfied by `pnpm run oracle:acquire`, by a comment mentioning the gate, and by a job that
+    // downloads a validator and never grades with it.
+    expect(oracleJob()).toMatch(/^ *run: pnpm run oracle$/m);
+  });
+
+  it("spells its commands so none of them can be mistaken for the grading command", () => {
+    const commands = oracleCommands();
+    expect(commands).toContain(GRADING_COMMAND);
+    // Exactly one command may begin with the gate's, and it is the gate's. A second one makes
+    // every text scan over this file ambiguous, and an ambiguous scan can be pointed at the wrong
+    // step without a single assertion changing, which is what happened to the `|| true` guard.
+    expect(commands.filter((command) => command.startsWith(GRADING_COMMAND))).toEqual([
+      GRADING_COMMAND,
+    ]);
   });
 
   it("runs on pull requests to the default branch and on pushes to it", () => {
@@ -77,10 +129,22 @@ describe("the oracle runs in CI alongside the shared pipeline caller", () => {
     // The KEY, not the word: the banner above the job explains why the escape hatch is absent, and
     // a test that reds on its own explanation is a test somebody deletes.
     expect(text).not.toMatch(/^\s*continue-on-error:/m);
+
     // `|| true` on the grading step would swallow the exit code. The only tolerated `||` is on the
     // step that prints the verdict after the fact, which is not a gate.
-    const gradingStep = text.slice(text.indexOf("run: pnpm run oracle"));
-    expect(gradingStep.split("\n")[0]).not.toContain("|| true");
+    //
+    // THE STEP IS FOUND BY NAME. It used to be found by slicing from the first occurrence of
+    // `run: pnpm run oracle`, and that slice moved onto a different step the moment one spelled
+    // `run: pnpm run oracle:acquire` was inserted above it: the assertion still passed, still read
+    // a line, and no longer read the gate's.
+    const grading = gradingStep();
+    // The step found by that name really is the one that runs the gate, whole and alone, so the
+    // refusals below are asserted about the grading command and not about whatever else is here.
+    expect(grading).toMatch(/^ *run: pnpm run oracle$/m);
+    expect(grading).not.toContain("|| true");
+    // An `if:` on this step is the quieter half of the same move: a step that never runs reports
+    // no failure, exactly like one that cannot fail.
+    expect(grading).not.toMatch(/^\s*if:/m);
   });
 
   it("takes the download sources from the committed pin rather than from the workflow", () => {
@@ -95,15 +159,20 @@ describe("the oracle runs in CI alongside the shared pipeline caller", () => {
 
   it("acquires through the script that reads the pin, before anything is graded", () => {
     const job = oracleJob();
-    expect(job).toContain("run: pnpm run oracle:acquire");
-    expect(packageScripts()["oracle:acquire"]).toBe("tsx scripts/oracle/acquire.ts");
+    expect(job).toContain("run: pnpm run acquire:oracle");
+    expect(packageScripts()["acquire:oracle"]).toBe("tsx scripts/oracle/acquire.ts");
 
     const acquire = readFileSync(join(REPO_ROOT, "scripts", "oracle", "acquire.ts"), "utf8");
     expect(acquire).toContain("readOracleLock");
     expect(acquire).toContain("planAcquisition");
 
-    // Order is part of the contract: acquire, then grade.
-    expect(job.indexOf("pnpm run oracle:acquire")).toBeLessThan(job.indexOf("pnpm run oracle\n"));
+    // Order is part of the contract: acquire, then grade. Both ends are whole `run:` lines, so
+    // neither index can land on the other step, which is the failure the assertion above closes.
+    const acquireAt = job.search(/^ *run: pnpm run acquire:oracle$/m);
+    const gradeAt = job.search(/^ *run: pnpm run oracle$/m);
+    expect(acquireAt).toBeGreaterThan(-1);
+    expect(gradeAt).toBeGreaterThan(-1);
+    expect(acquireAt).toBeLessThan(gradeAt);
   });
 
   it("records the pinned address, never the end of the redirect chain", () => {

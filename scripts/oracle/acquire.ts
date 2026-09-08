@@ -2,8 +2,14 @@
 /**
  * scripts/oracle/acquire.ts
  *
- * THE ACQUISITION STEP. Reached by `pnpm run oracle:acquire`, and run by the CI oracle job before
+ * THE ACQUISITION STEP. Reached by `pnpm run acquire:oracle`, and run by the CI oracle job before
  * `pnpm run oracle` grades anything.
+ *
+ * THAT SCRIPT NAME IS INVERTED ON PURPOSE. `oracle:acquire` is the spelling the rest of this
+ * package's namespacing suggests, and it is the one that cannot be used: `pnpm run oracle` is a
+ * prefix of `pnpm run oracle:acquire`, the CI wiring suite reads the workflow as text, and a step
+ * spelled with the prefix above the grading step is what a search for the grading command finds
+ * first. The guard for "no `|| true` on the grading step" was disarmed exactly that way once.
  *
  * It fetches the two artifacts the committed pin names and leaves `.oracle/acquisition.json` behind
  * saying where each one landed and which address it came from. THE ADDRESS IT RECORDS IS THE PINNED
