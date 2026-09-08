@@ -169,6 +169,35 @@ it. The standing rule is **relocate, never delete**: every paragraph below cost 
   7 archives); the old filename, stale, reds the reconciliation test in `test/scripts/phi-scan.test.ts`
   that compares the list against what `.gitattributes` declares `binary`.
 
+### The consumer install and the check that re-runs it
+
+- **A CONSUMER INSTALL SUCCEEDED, MEASURED ON 2026-08-30, AND THERE IS NOW A CHECK THAT RE-RUNS IT.**
+  In an empty directory outside any checkout, the published `@cosyte/synth` (`0.0.9`, which was the
+  registry's `latest` that day) installed **with npm and with pnpm, exit 0, no `ERESOLVE` and no
+  failed peer resolution**. In that same clean project: the ROOT imported and generated a synthetic
+  artifact with **zero peers installed**; `./fhir` failed at IMPORT time with a diagnostic naming
+  `@cosyte/fhir`, then imported and generated once that peer was installed; `./ncpdp`, whose peer was
+  never installed, still failed only on import and named `@cosyte/ncpdp`. Re-run it rather than
+  believe it: **`pnpm check:install`** (`scripts/check-install.mjs`), which has two modes.
+  `--mode=pack` packs this tree and installs the tarball, and runs on every pull request as the
+  `Consumer install` workflow (`.github/workflows/install.yml`); `--mode=registry` installs the
+  version `package.json` declares from the public registry, and runs after every release as
+  `verify-consumer-install` in `release.yml`. An unreachable registry, or a version the registry does
+  not carry, is a **FAILURE** there, never a skip and never a pass.
+- **NEVER WRITE THE INSTALL UP AS RESOLVED BY REASONING. A DATED MEASUREMENT IS THE ONLY THING THAT
+  MAY BE WRITTEN**, with the check that produced it, because declaring victory from the shape of
+  the manifest is the thing that went wrong before. Still do **NOT** reason from
+  `peerDependenciesMeta` that an install must succeed: npm has failed on an optional peer it could not
+  fetch, and that reasoning is exactly as invalid in the optimistic direction as it was in the
+  pessimistic one. What changed underneath is not this repo's doing: the old **`ERESOLVE` on
+  `peerOptional @cosyte/fhir`** was downstream of `@cosyte/fhir` being unpublished (`FHIR-NPM-NAME`, a
+  persistent unexplained npm **E403 on publish**, **not missing work**), and `@cosyte/fhir` published
+  on 2026-08-26. **The blocker moved on its own, in another repo, with nothing here watching, and
+  that is the whole reason the check above exists instead of a sentence saying it works.** **Two
+  different codes: `ERESOLVE` was ours, `E403` was `fhir`'s; a sibling's note generalising `E404` is
+  not this.** **The "name-similarity" reading stays RETRACTED**: it implies a rename, and the error
+  never asked for one. **Do not rename anything** to chase it.
+
 ## The PHI scan reads more than its three roots
 
 - **THE DEFECT, MEASURED ON `4c9900f`: 225 tracked files, 176 read, 49 read by NEITHER route.** All-mode
@@ -244,6 +273,41 @@ it. The standing rule is **relocate, never delete**: every paragraph below cost 
   predates. Also disclosed: `git ls-files` lists a `skip-worktree` or sparse-checkout entry like any
   other, so all-mode cannot run in a cone-mode checkout at all. Fail-closed, and "stage the deletion"
   is not an available remedy there.
+
+### A target enumerated and never read is refused
+
+- **THE RULE.** Every path a run ENUMERATED must be accounted for when the sweep ends, and there are
+  exactly two ways to account for one: it was READ, or it is the bounded TOCTOU exception above (an
+  untracked file gone between enumeration and read, already named on stderr and already excluded from
+  the denominator). Anything else, which in practice means a path withdrawn by `--allow-fixture`,
+  refuses with **2** and is named. A scan that did not open a file has no clean verdict to give about
+  it.
+- **SO `--allow-fixture` CANNOT REACH EXIT 0 IN ANY MODE.** The flag, the override log and the two
+  `enforceObservation` guards all stay, so an attempt is RECORDED; what it can no longer do is buy a
+  verdict. The mechanism that CLEARS a value is `scripts/phi-allow-list.txt`, which clears the value
+  and leaves the file in the sweep. There is no whole-file substitute for it, and the hit report says
+  so rather than offering the bypass as an alternative.
+- **WHAT IT REPLACES, AND WHY THE OLD SHAPE READ AS SAFE.** `--allow-fixture` used to be described as
+  purely subtractive: `enforceObservation` returned survivors filtered by `!allowed.has(t.path)`, so a
+  withdrawn target left the target list BEFORE the sweep and no read-completeness accounting ever saw
+  it. Measured on `d400b97`: an all-mode run withdrawing a seeded C-CDA violator printed
+  `OK, no hits (254 file(s) scanned)` and exited **0**. The denominator was honest and the verdict was
+  not, which is the shape a reviewer reads as a pass.
+- **HITS ARE PRINTED BEFORE THE REFUSAL, DELIBERATELY.** A refusal must not swallow a real finding, the
+  same rule the starved-root block already followed. Only the exit code changes: whatever the sweep
+  read is reported first, the clean SUMMARY line is not printed at all, and the run exits 2.
+- **IT IS NOT A SECOND SPELLING OF THE PER-ROOT RULE, and neither subsumes the other.** The per-root
+  rule asks whether a declared root yielded ANYTHING and binds all-mode only; this one asks whether
+  each individual path the run listed was OPENED and binds every mode, `--staged` included. The
+  per-root block runs first, so a starved root keeps its own reason and its own message.
+- **THE ACCOUNTING IS A SET DIFFERENCE, NEVER A COUNT.** `n read of n targets` is exactly the
+  arithmetic that hides WHICH ones were not, and a gate that cannot name its own gap is a gate nobody
+  can act on. The enumerated set is captured before `enforceObservation` subtracts anything, because
+  the survivors are the SWEEP and not the accounting.
+- **WHAT IT DOES NOT CLOSE.** It constrains what happens to a path the enumerator LISTED, so it says
+  nothing about a file enumeration never reached: the limits list in `scripts/phi-scan.ts` still owns
+  that half. The TOCTOU tolerance is unchanged and deliberately excluded from the difference, so an
+  untracked file gone inside the enumeration window is still a reported skip rather than a refusal.
 
 ## Required checks on `main`
 

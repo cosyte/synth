@@ -1,19 +1,31 @@
 # phi-scan bypass log
 
 This file logs every `--allow-fixture <path>` bypass invocation of
-`scripts/phi-scan.ts`. The scanner refuses to honor a `--allow-fixture <path>`
-flag UNLESS this file contains a `### <path>` subsection referencing the same
-path. The committed log is intentionally annoying: it discourages bypass and
-creates an audit trail. Prefer extending `scripts/phi-allow-list.txt` (a
-token-level, reviewed declaration) over a whole-file bypass, which silences
-_every_ check for that file.
+`scripts/phi-scan.ts`. The scanner rejects a `--allow-fixture <path>` flag
+outright UNLESS this file contains a `### <path>` subsection referencing the
+same path. The committed log is intentionally annoying: it discourages bypass
+and creates an audit trail.
 
-> **An override is the blunt instrument, and the argument-driven routes to a silent
-> pass are closed.** A `--allow-fixture` path is purely _subtractive_: it can only
-> remove a file the scan already enumerated, so it can never become the scan itself,
-> and an entry here that matches no scanned file is an **error**, not a no-op, a
-> stale bypass fails loudly instead of drifting. Both summary lines carry the number
-> of files scanned, so an `OK` is never read without its denominator.
+> **A LOGGED BYPASS IS RECORDED AND THEN REFUSED. IT IS NOT A ROUTE TO A CLEAN
+> REPORT, IN ANY MODE.** A `--allow-fixture` path is withdrawn from the sweep, so
+> the scanner does not open it, and the scanner then refuses (exit 2) and names it,
+> because a scan that did not open a file has no clean verdict to give about it.
+> An argv carrying this flag can therefore not reach exit 0. What the flag buys is
+> a recorded, reviewable statement that a file was withheld, never a green gate
+> over one.
+>
+> **So `scripts/phi-allow-list.txt` is the mechanism, not the preference.** A
+> token-level declaration clears the value the scanner objects to while leaving the
+> file in the sweep, which is the only shape in which a verdict is still earned.
+> Reach for it whenever a genuinely-synthetic value reds the gate; there is no
+> whole-file substitute for it.
+>
+> **The other argument-driven routes to a silent pass are closed too.** A
+> `--allow-fixture` path can only name a file the scan already enumerated, so it can
+> never become the scan itself; an entry here that matches no scanned file is an
+> **error**, not a no-op, so a stale bypass fails loudly instead of drifting; and
+> both summary lines carry the number of files scanned, so an `OK` is never read
+> without its denominator.
 >
 > Read that as "these routes are closed", not as "the gate cannot be collapsed".
 > What the refusals constrain is the target _set_; they cannot see a file the

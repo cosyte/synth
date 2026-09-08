@@ -38,36 +38,15 @@ not wire tolerance. **It is a format/conformance generator, NOT a clinical simul
   source of truth; a number written into this file is stale on the next release. The one exception is
   a DATED MEASUREMENT, like the one immediately below: it records the version a check actually
   installed on a named day, and a dated fact does not go stale because it never claimed to be current.
-- **A CONSUMER INSTALL SUCCEEDED, MEASURED ON 2026-08-30, AND THERE IS NOW A CHECK THAT RE-RUNS IT.**
-  In an empty directory outside any checkout, the published `@cosyte/synth` (`0.0.9`, which was the
-  registry's `latest` that day) installed **with npm and with pnpm, exit 0, no `ERESOLVE` and no
-  failed peer resolution**. In that same clean project: the ROOT imported and generated a synthetic
-  artifact with **zero peers installed**; `./fhir` failed at IMPORT time with a diagnostic naming
-  `@cosyte/fhir`, then imported and generated once that peer was installed; `./ncpdp`, whose peer was
-  never installed, still failed only on import and named `@cosyte/ncpdp`. Re-run it rather than
-  believe it: **`pnpm check:install`** (`scripts/check-install.mjs`), which has two modes.
-  `--mode=pack` packs this tree and installs the tarball, and runs on every pull request as the
-  `Consumer install` workflow (`.github/workflows/install.yml`); `--mode=registry` installs the
-  version `package.json` declares from the public registry, and runs after every release as
-  `verify-consumer-install` in `release.yml`. An unreachable registry, or a version the registry does
-  not carry, is a **FAILURE** there, never a skip and never a pass.
-- **NEVER WRITE THE INSTALL UP AS RESOLVED BY REASONING. A DATED MEASUREMENT IS THE ONLY THING THAT
-  MAY BE WRITTEN HERE**, with the check that produced it, because declaring victory from the shape of
-  the manifest is the thing that went wrong before. Still do **NOT** reason from
-  `peerDependenciesMeta` that an install must succeed: npm has failed on an optional peer it could not
-  fetch, and that reasoning is exactly as invalid in the optimistic direction as it was in the
-  pessimistic one. What changed underneath is not this repo's doing: the old **`ERESOLVE` on
-  `peerOptional @cosyte/fhir`** was downstream of `@cosyte/fhir` being unpublished (`FHIR-NPM-NAME`, a
-  persistent unexplained npm **E403 on publish**, **not missing work**), and `@cosyte/fhir` published
-  on 2026-08-26. **The blocker moved on its own, in another repo, with nothing here watching, and
-  that is the whole reason the check above exists instead of a sentence saying it works.** **Two
-  different codes: `ERESOLVE` was ours, `E403` was `fhir`'s; a sibling's note generalising `E404` is
-  not this.** **The "name-similarity" reading stays RETRACTED**: it implies a rename, and the error
-  never asked for one. **Do not rename anything** to chase it.
-- The repo is **already public**, so flipping a repo public (still a non-waived act as **policy**)
-  is not an outstanding item of **state** here; `npm publish` is covered by the standing waiver.
-  **Publish state and visibility are independent: never infer one from the other, in either
-  direction.**
+- **A CONSUMER INSTALL SUCCEEDED, MEASURED ON 2026-08-30, AND A CHECK RE-RUNS IT**: `pnpm
+check:install`, `--mode=pack` per pull request and `--mode=registry` per release, where an
+  unreachable registry or a missing version is a **FAILURE**, never a skip. **NEVER WRITE THE
+  INSTALL UP AS RESOLVED BY REASONING: A DATED MEASUREMENT PLUS ITS CHECK IS THE ONLY THING THAT MAY
+  BE WRITTEN HERE**, and `peerDependenciesMeta` is not an argument in either direction. What was
+  measured, and the readings that stay RETRACTED: `notes#the-consumer-install-and-the-check-that-re-runs-it`.
+- The repo is **already public** (still a non-waived act as **policy**, but not an outstanding item
+  of **state**) and `npm publish` is covered by the standing waiver. **Publish state and visibility
+  are independent: never infer one from the other, in either direction.**
 - The six parsers **and `@cosyte/deid`** are **optional peer deps**, vendored for dev/test via the
   `mllp` pattern (`vendor/*.tgz`). **Third-party runtime deps stay at 0.** Refresh recipe, and the
   `peerDependencies` entry `pnpm remove` strips:
@@ -112,16 +91,15 @@ traps a fixture generator gets wrong exactly once.
   `notes#the-cosytedeid-pairing-loop-synth-10-phase-8`.
 - **`pnpm phi-scan` reads MORE than its three roots, and the two modes do NOT share a scope.**
   All-mode walks `src`/`test`/`scripts` and then reads every other file git tracks; **`--staged`, the
-  pre-commit half, still narrows to the three roots**, because the widening needs a corpus exemption
-  and an exemption on the commit-blocking route is what has subtracted a real detection elsewhere.
-  **Write one as a LITERAL PATH, never as a predicate**, and refreshing a `vendor/*.tgz` means editing
-  `BINARY_EXEMPT_PATHS`. **What is unchanged on `--staged` is the ENUMERATION and ONLY that: the
-  allow-list is GLOBAL and route-blind**, so an entry in it clears its value on the pre-commit route
-  too. Saying otherwise cost a refutation.
-  **A scan root of the wrong KIND refuses with 2, derived here, not ported**: a
-  regular-file root exited **1** before (the code reserved for "hits found"), and one symlinked at
-  another root exited **0** over a corpus that was not on disk, because `existsSync` FOLLOWS a link.
+  pre-commit half, still narrows to the three roots**. **Write a corpus exemption as a LITERAL PATH,
+  never as a predicate**, and refreshing a `vendor/*.tgz` means editing `BINARY_EXEMPT_PATHS`. **What
+  is unchanged on `--staged` is the ENUMERATION and ONLY that: the allow-list is GLOBAL and
+  route-blind.** **A scan root of the wrong KIND refuses with 2, derived here, not ported.**
   `notes#the-phi-scan-reads-more-than-its-three-roots`.
+- **A TARGET THE SCAN ENUMERATED AND NEVER READ IS REFUSED (exit 2), NAMED, AND NEVER REPORTED ON**,
+  so **`--allow-fixture` cannot reach exit 0 in any mode**: a logged whole-file bypass is RECORDED and
+  then REFUSED, and the only thing that CLEARS a value is `scripts/phi-allow-list.txt`, which clears
+  it while keeping the file in the sweep. `notes#a-target-enumerated-and-never-read-is-refused`.
 - **Never commit realistic PHI.** A vendor quirk is encoded only when a real de-identified document
   grounds it, never invented.
 
@@ -231,11 +209,9 @@ to the GitHub Actions app: `notes#the-one-ruleset-that-protects-main`.
   able to say its own inputs were missing, whatever removed them. `notes#the-attw-false-green-and-why-the-script-is-a-wrapper`.
 - **Do NOT re-derive the exit-0 condition from the shape of the code: three refuter passes corrected
   it, each in the same direction, and "attw misses subpaths" is the plausible, wrong story.** The
-  residual is a **known limit, filed rather than fixed; if you take it up, weaken the sentence rather
-  than adding a fifth arm.** **A gate that reds correctly and then explains itself with a falsehood
-  teaches the next reader the wrong story**, and this script gets copied to sixteen more manifests.
-  All three corrections, each with its measurement:
-  `notes#the-false-green-needs-every-entry-point-untyped-at-once`,
+  residual is a **known limit, filed rather than fixed; weaken the sentence rather than adding a
+  fifth arm.** All three corrections, each with its measurement, and why a correct red explained by a
+  falsehood is worse than it looks: `notes#the-false-green-needs-every-entry-point-untyped-at-once`,
   `notes#the-first-correction-was-also-wrong-in-the-same-direction`,
   `notes#missing-is-a-proxy-not-the-key-a-known-limit`.
 - **`scripts/attw.mjs` carries TWO nets that catch different things** (a preflight over the relative
@@ -243,11 +219,9 @@ to the GitHub Actions app: `notes#the-one-ruleset-that-protects-main`.
   `test/scripts/attw-gate.test.ts` against the real binary plus a negative control.
   `notes#the-two-nets-in-scriptsattwmjs`.
 - **The post-check reads a string, so the argument guard is an ALLOW-LIST, NOT A DENY-LIST**:
-  `--profile` and `--no-definitely-typed` forwarded, everything else refused, "harmless" included. A
-  deny-list was the second thing a refuter broke here: commander fuses a value to a short flag, so
-  `-fjson` is neither `-f` nor `--format` and walked through to exit 0 with the sentence gone. **Do
-  not answer this with a seventh spelling.** The `.attw.json` refusal stays separate: no argument
-  guard of any shape reaches a config applied after argv.
+  `--profile` and `--no-definitely-typed` forwarded, everything else refused, "harmless" included.
+  **Do not answer a hole in it with a seventh spelling.** The six measured routes, why a deny-list
+  could not hold, and why the `.attw.json` refusal stays separate:
   `notes#the-argument-guard-is-an-allow-list-not-a-deny-list`.
 - **The seven `file:vendor/*.tgz` devDeps are NOT part of the `attw` story**, `npm pack` emits no
   `vendor/` and attw does not resolve bare external specifiers. A **stale** vendored tarball makes
