@@ -32,7 +32,7 @@
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { acquireArtifacts, type AcquisitionAttempt } from "./acquisition.js";
@@ -118,14 +118,18 @@ writeFileSync(
 );
 
 // The log is where a pin move is decided from, so it carries the identity, not just the outcome.
+//
+// ONE READ PER ARTIFACT, and the size comes from the bytes that were hashed rather than from a
+// separate `statSync`. Two reads of one path are two different files if anything writes between
+// them, so a size and a digest sourced separately can describe different things, and a digest
+// reported next to somebody else's byte count is the kind of evidence a pin move gets made from.
 for (const artifact of plan.artifacts) {
-  const path = manifest[artifact.key]?.path ?? "";
-  const absolute = join(REPO_ROOT, path);
+  const bytes = readFileSync(join(REPO_ROOT, manifest[artifact.key]?.path ?? ""));
   process.stdout.write(
     `oracle: acquired ${artifact.name}\n` +
       `  from    ${artifact.source}\n` +
       `  version ${artifact.version}\n` +
-      `  bytes   ${String(statSync(absolute).size)}\n` +
-      `  sha256  ${createHash("sha256").update(readFileSync(absolute)).digest("hex")}\n`,
+      `  bytes   ${String(bytes.byteLength)}\n` +
+      `  sha256  ${createHash("sha256").update(bytes).digest("hex")}\n`,
   );
 }
