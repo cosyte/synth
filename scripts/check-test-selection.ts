@@ -88,7 +88,7 @@
  *          published entry point must have at least one selected module naming it. It is keyed on
  *          a RESOLVED PATH, not on a filename and not on a bare mention, so a rename changes
  *          nothing, and its scope is a DENY-LIST of three locations (see `OUT_OF_SCOPE`), so a move
- *          anywhere outside those three changes nothing either. It reaches 41 of this repo's 54
+ *          anywhere outside those three changes nothing either. It reaches 41 of this repo's 55
  *          in-scope test modules, which is why the denominator below reads the way it does.
  *          Removing a subpath from `exports` to shrink the subject is a breaking change to the
  *          published package, and it also reds the smoke, which derives its own subpath set from
@@ -139,7 +139,7 @@
  *     runs `vitest run`, so an `include` that reads `process.argv` can answer the two differently
  *     and this gate reports the wide answer. STATED BECAUSE IT WAS MEASURED, NOT BECAUSE IT IS
  *     SUSPECTED: seeded here, a config serving the full glob under `list` and `["test/hl7/**"]`
- *     under `run` left this gate green while CI would have run 2 of 54 suites. Every other
+ *     under `run` left this gate green while CI would have run 2 of 55 suites. Every other
  *     config-side narrowing is caught; this one is not, and no rule below claims otherwise.
  *   * WHICH SCRIPT the shared pipeline elects to invoke. This checks `test` and `test:coverage`,
  *     the two the shared caller in `cosyte/.github` runs today. That repo is not this one's to
@@ -147,11 +147,11 @@
  *   * Scripts other than those two, and anything a workflow runs inline rather than through a
  *     package script.
  *   * SHRINKING THE PUBLISHED SURFACE ITSELF. Subject (4a) is only as wide as `exports`, so removing
- *     a subpath narrows it. MEASURED, and RE-MEASURED on the tree that added the `test/determinism`
- *     suites: deleting `"./astm"` from `exports` leaves this gate GREEN and moves TWO `test/astm`
+ *     a subpath narrows it. MEASURED, and RE-MEASURED on the tree that added `test/oracle/pin.test.ts`:
+ *     deleting `"./astm"` from `exports` leaves this gate GREEN and moves TWO `test/astm`
  *     suites (`determinism.property.test.ts`, `generators.test.ts`) out of the derived subject and
  *     onto the filename floor, which the denominator reports as 41 name-independent going to 39 and
- *     the filename-only count going 13 to 15. The other three
+ *     the filename-only count going 14 to 16. The other three
  *     `test/astm` suites also name `src/index.ts`, so they stay. It is not a free escape. The
  *     suites still red if they are also dropped from the selection, un-exporting a subpath is a
  *     breaking change to the published package, and `scripts/smoke.mjs` derives its own subpath set
@@ -205,8 +205,8 @@
  *     DO NOT CHASE THESE BY TEACHING THE DECODER JS ESCAPES OR BY WIDENING `sources` PAST
  *     `exports`. That is growing the guard to defend a sentence, which is how this file's subject
  *     got its polarity wrong in the first place. Fix the sentence; the routes are named here.
- *   * THE IN-SCOPE TEST MODULES NO DERIVED RULE REACHES. Thirteen of them today:
- *     `test/docs-content.test.ts`, the two `test/scripts/` gate suites, the five `test/oracle/`
+ *   * THE IN-SCOPE TEST MODULES NO DERIVED RULE REACHES. Fourteen of them today:
+ *     `test/docs-content.test.ts`, the two `test/scripts/` gate suites, the six `test/oracle/`
  *     suites, and the five `test/determinism/` suites. The last two groups exercise a gate's own
  *     decision functions in `scripts/` and legitimately never name a published entry point. Each is
  *     watched by the `.test.`/`.spec.` filename shape alone, so renaming one out of that shape stops
@@ -228,7 +228,7 @@
  * THEM HERE. So every quantity is listed with the command that produces it, and every statement about
  * reach is bounded to a route that was actually seeded.
  *
- *   54 / 41 / 13 / 0 (in scope, name-independent, filename-shape-only, unwatched)
+ *   55 / 41 / 14 / 0 (in scope, name-independent, filename-shape-only, unwatched)
  *       Printed by this file on every run. Never quote it from memory: run `pnpm check:test-selection`.
  *   8 published entry points
  *       Same OK line, derived from `package.json` `exports` at run time.
@@ -236,13 +236,13 @@
  *       `git ls-files | grep -c 'synthetic-safety\.property\.test\.ts'` is 6;
  *       `git ls-files -- test/<dir> | grep -c synthetic-safety` is 0 for `hl7` and 1 for each of
  *       `fhir`, `ccda`, `x12`, `ncpdp`, `astm`, `property`.
- *   "2 of 54" for the argv-divergence route, and "zero of the six"
+ *   "2 of 55" for the argv-divergence route, and "zero of the six"
  *       Set `include: ["test/hl7/**\/*.test.ts"]` and run `vitest list --filesOnly -r .`: 2 files, of
- *       which 0 match `synthetic-safety`. The unnarrowed config lists 54.
+ *       which 0 match `synthetic-safety`. The unnarrowed config lists 55.
  *   "41 to 39, TWO `test/astm` suites" for the un-export route
  *       Delete `"./astm"` from `exports`, run this gate, read its DENOMINATOR line: derived 39, and
  *       the filename-shape-only list names `test/astm/determinism.property.test.ts` and
- *       `test/astm/generators.test.ts` alongside the thirteen already there.
+ *       `test/astm/generators.test.ts` alongside the fourteen already there.
  *   "ncpdp's like-for-like is 4 of 27"
  *       In `../ncpdp`: `git ls-files -- test | grep -cE '\.[cm]?[jt]sx?$'` is 27 in-scope modules
  *       (its own header quotes "4 of 24", counting only the 24 name-shaped files, which flatters the

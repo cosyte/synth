@@ -76,7 +76,7 @@ const input = (overrides: Partial<VerdictInput> = {}): VerdictInput => ({
     source: "https://packages.fhir.org/hl7.fhir.us.core/6.1.0",
   },
   endpoints: [
-    "https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar",
+    "https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.6.9/validator_cli.jar",
     "https://packages.fhir.org/hl7.fhir.us.core/6.1.0",
   ],
   terminology: "no terminology server was configured (-tx n/a)",
@@ -119,7 +119,7 @@ describe("the verdict records every external endpoint the run was configured to 
   it("names the acquisition endpoints, so a reader can tell what saw the generated fixtures", () => {
     const verdict = buildVerdict(input());
     expect(verdict.endpoints).toEqual([
-      "https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar",
+      "https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.6.9/validator_cli.jar",
       "https://packages.fhir.org/hl7.fhir.us.core/6.1.0",
     ]);
     expect(renderVerdict(verdict)).toContain("packages.fhir.org");

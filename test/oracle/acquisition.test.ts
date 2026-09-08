@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { verifyAcquisition, type AcquisitionCheck } from "../../scripts/oracle/acquisition.js";
-import { readOracleLock, versionFromResolvedUrl } from "../../scripts/oracle/lock.js";
+import { readOracleLock, versionNamedBySource } from "../../scripts/oracle/lock.js";
 
 const PINNED_DIGEST = "a".repeat(64);
 const OTHER_DIGEST = "b".repeat(64);
@@ -110,20 +110,33 @@ describe("an acquired artifact that does not match the recorded identity fails b
   });
 });
 
-describe("an acquired artifact's version is derived from the URL the download resolved to", () => {
+describe("an artifact's version is read out of the address the pin names", () => {
   it.each([
     [
       "https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.6.9/validator_cli.jar",
       "6.6.9",
     ],
     ["https://packages.fhir.org/hl7.fhir.us.core/6.1.0", "6.1.0"],
-    ["https://example.invalid/nothing/", "nothing"],
+    ["https://example.invalid/thing/v2.1", "v2.1"],
   ])("%s names version %s", (url, expected) => {
-    expect(versionFromResolvedUrl(url)).toBe(expected);
+    expect(versionNamedBySource(url)).toBe(expected);
   });
 
-  it("a URL that names no version yields an empty string, which the check then refuses", () => {
-    expect(versionFromResolvedUrl("not a url")).toBe("");
+  it.each([
+    // The floating source this gate exists to keep out: its last segment is a FILE NAME, and
+    // reporting that as a version is how an unidentifiable download passes for an identified one.
+    "https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar",
+    // The same idea spelled by a registry rather than by a release page.
+    "https://packages.fhir.org/hl7.fhir.us.core/latest",
+    // A tagged release page rather than a download from one: it names a release, but no artifact.
+    "https://github.com/hapifhir/org.hl7.fhir.core/releases/tag/6.6.9",
+    "https://example.invalid/nothing/",
+    "not a url",
+  ])("%s names no version at all", (url) => {
+    expect(versionNamedBySource(url)).toBe("");
+  });
+
+  it("a source that names no version yields an empty string, which the check then refuses", () => {
     const verdict = verifyAcquisition([
       check({ observed: { version: "", sha256: PINNED_DIGEST } }),
     ]);

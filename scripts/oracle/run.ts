@@ -28,11 +28,11 @@
  * is generated or graded, so a run that could not prove which validator it has never produces a
  * finding about this package's output at all.
  *
- * ACQUISITION IS THE WORKFLOW'S JOB, VERIFICATION IS THIS FILE'S. The CI job downloads the two
- * artifacts and writes `.oracle/acquisition.json` naming where each one landed and the URL the
- * download resolved to after redirects. A missing or unreadable manifest is a FAILED RUN, never a
- * skip: "the validator could not be acquired" and "the artifacts are fine" must never look the same
- * from outside.
+ * ACQUISITION IS THE STEP BEFORE THIS ONE, VERIFICATION IS THIS FILE'S. `scripts/oracle/acquire.ts`
+ * downloads the two artifacts from the addresses the pin names and writes `.oracle/acquisition.json`
+ * saying where each one landed and which pinned address it came from. A missing or unreadable
+ * manifest is a FAILED RUN, never a skip: "the validator could not be acquired" and "the artifacts
+ * are fine" must never look the same from outside.
  */
 
 import { spawnSync } from "node:child_process";
@@ -49,10 +49,10 @@ import {
 import { fhirCorpusGenerator, generateDeclaredCorpus, readCorpusDeclaration } from "./corpus.js";
 import { generatedFormats, REPO_ROOT } from "./formats.js";
 import { decideGate, type GradedArtifact, type ReportSource } from "./gate.js";
-import { readOracleLock, versionFromResolvedUrl, type OracleLock } from "./lock.js";
+import { readOracleLock, versionNamedBySource, type OracleLock } from "./lock.js";
 import { buildVerdict, renderVerdict, type GradingComponent } from "./verdict.js";
 
-/** Where the CI job leaves what it downloaded, and where this run leaves what it decided. */
+/** Where the acquisition step leaves what it downloaded, and where this run leaves what it decided. */
 const ACQUISITION_DIR = join(REPO_ROOT, ".oracle");
 const ACQUISITION_MANIFEST = join(ACQUISITION_DIR, "acquisition.json");
 const OUTPUT_DIR = join(REPO_ROOT, ".oracle", "out");
@@ -67,13 +67,14 @@ function refuse(message: string): never {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** One acquired file, as the workflow recorded it. */
+/** One acquired file, as the acquisition step recorded it. */
 interface AcquiredArtifact {
   readonly path: string;
-  readonly resolvedUrl: string;
+  /** The PINNED address it came from, which names its version. */
+  readonly source: string;
 }
 
-/** Read what the workflow says it downloaded. */
+/** Read what the acquisition step says it downloaded. */
 function readAcquisitionManifest(): {
   validator: AcquiredArtifact;
   conformancePackage: AcquiredArtifact;
@@ -82,22 +83,18 @@ function readAcquisitionManifest(): {
     refuse(
       `${ACQUISITION_MANIFEST} does not exist, so the external validator was never acquired. The ` +
         "run FAILS rather than skipping: an ungraded corpus is not a passing one, and no format " +
-        "is reported as covered. The CI job writes this manifest after downloading the pinned " +
-        "validator and package.",
+        "is reported as covered. `pnpm run acquire:oracle` writes this manifest after downloading " +
+        "the pinned validator and package.",
     );
   }
   const parsed: unknown = JSON.parse(readFileSync(ACQUISITION_MANIFEST, "utf8"));
   if (!isRecord(parsed)) refuse(`${ACQUISITION_MANIFEST} did not parse to an object`);
   const read = (key: string): AcquiredArtifact => {
     const raw = parsed[key];
-    if (
-      !isRecord(raw) ||
-      typeof raw["path"] !== "string" ||
-      typeof raw["resolvedUrl"] !== "string"
-    ) {
-      refuse(`${ACQUISITION_MANIFEST}: "${key}" does not name a path and a resolved URL`);
+    if (!isRecord(raw) || typeof raw["path"] !== "string" || typeof raw["source"] !== "string") {
+      refuse(`${ACQUISITION_MANIFEST}: "${key}" does not name a path and the source it came from`);
     }
-    return { path: raw["path"], resolvedUrl: raw["resolvedUrl"] };
+    return { path: raw["path"], source: raw["source"] };
   };
   return { validator: read("validator"), conformancePackage: read("conformancePackage") };
 }
@@ -119,22 +116,22 @@ function acquisitionChecks(
   return [
     {
       name: lock.validator.name,
-      source: acquired.validator.resolvedUrl,
+      source: acquired.validator.source,
       expected: { version: lock.validator.version, sha256: lock.validator.sha256 },
       observed: {
-        version: versionFromResolvedUrl(acquired.validator.resolvedUrl),
+        version: versionNamedBySource(acquired.validator.source),
         sha256: sha256OfFile(acquired.validator.path),
       },
     },
     {
       name: lock.conformancePackage.name,
-      source: acquired.conformancePackage.resolvedUrl,
+      source: acquired.conformancePackage.source,
       expected: {
         version: lock.conformancePackage.version,
         sha256: lock.conformancePackage.sha256,
       },
       observed: {
-        version: versionFromResolvedUrl(acquired.conformancePackage.resolvedUrl),
+        version: versionNamedBySource(acquired.conformancePackage.source),
         sha256: sha256OfFile(acquired.conformancePackage.path),
       },
     },
@@ -273,13 +270,13 @@ async function main(): Promise<void> {
       lock.validator.name,
       lock.validator.version,
       lock.validator.sha256,
-      acquired.validator.resolvedUrl,
+      acquired.validator.source,
     ),
     conformancePackage: component(
       lock.conformancePackage.name,
       lock.conformancePackage.version,
       lock.conformancePackage.sha256,
-      acquired.conformancePackage.resolvedUrl,
+      acquired.conformancePackage.source,
     ),
     endpoints: [
       lock.validator.downloadUrl,

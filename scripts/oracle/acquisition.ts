@@ -14,18 +14,28 @@
  * the unverified artifact and report the result with a caveat; a caveat on a graded run is a result
  * somebody will quote.
  *
- * WHY A DIGEST AND NOT ONLY A VERSION. The download URL the validator's own README publishes resolves
- * to the LATEST release, so the version alone moves under us without a commit here. The digest is
- * what makes the pin real: upstream moving reds this gate, loudly, and moving the pin is then a
- * reviewed one-line commit that says which build the verdicts after it came from.
+ * WHY A DIGEST AND NOT ONLY A VERSION. A version-addressed source stops the bytes moving for a
+ * reason this repository could have prevented; it does not stop them moving at all. Upstream
+ * replaces published release assets in place, so the address can stay fixed while what it serves
+ * does not. The digest is what makes the pin real: bytes moving behind a pinned address reds this
+ * gate, loudly, and moving the pin is then a reviewed one-line commit that says which build the
+ * verdicts after it came from.
  *
  * WHY AN ABSENT EXPECTED DIGEST IS A REFUSAL, NOT A BOOTSTRAP. A lock entry with no digest recorded
  * would otherwise mean "accept anything", which is the failure with extra steps. It refuses, and the
  * run prints the digest it observed so the pin can be recorded deliberately.
  *
- * Pure: it compares strings. The downloading and the hashing happen in the runner; every decision
- * this file makes is testable offline. See `test/oracle/acquisition.test.ts`.
+ * THE OTHER HALF, `acquireArtifacts`, IS THE STEP BEFORE THAT ONE: an artifact that never arrived
+ * cannot be compared against anything, so a download that fails stops the job right there, naming
+ * the artifact and its pinned source. It performs no I/O of its own; the caller injects the
+ * downloader, which is what lets the refusal be proven offline rather than only in CI.
+ *
+ * Pure: it compares strings, and sequences a downloader somebody else supplies. Nothing here opens
+ * a socket or touches a disk, so every decision is testable offline. See
+ * `test/oracle/acquisition.test.ts` and `test/oracle/ci-wiring.test.ts`.
  */
+
+import type { PinnedKey } from "./lock.js";
 
 /** What the repository RECORDS about an artifact it intends to grade with. */
 export interface RecordedIdentity {
@@ -135,4 +145,83 @@ export function verifyAcquisition(checks: readonly AcquisitionCheck[]): Acquisit
   }
 
   return refusals.length === 0 ? { ok: true } : { ok: false, refusals };
+}
+
+/** One artifact to fetch: the pinned address, and where its bytes are to land. */
+export interface AcquisitionAttempt {
+  /** Which entry of the pin this is, and the key it is recorded under. */
+  readonly key: PinnedKey;
+  /** What the artifact is, for the diagnostic. */
+  readonly name: string;
+  /** The pinned address. This is fetched, and this is what gets recorded. */
+  readonly source: string;
+  /** Where the bytes are to land, relative to the repository root. */
+  readonly destination: string;
+}
+
+/** What the run records about one artifact it obtained. */
+export interface AcquiredRecord {
+  /** Which entry of the pin this is. */
+  readonly key: PinnedKey;
+  /** Where the bytes landed, relative to the repository root. */
+  readonly path: string;
+  /** The PINNED address it came from, which names its version. */
+  readonly source: string;
+}
+
+/** Either everything arrived, or every reason something did not. */
+export type AcquisitionOutcome =
+  | { readonly ok: true; readonly acquired: readonly AcquiredRecord[] }
+  | { readonly ok: false; readonly refusals: readonly string[] };
+
+/**
+ * Fetch every pinned artifact and record what was obtained.
+ *
+ * WHAT IS RECORDED IS THE PINNED ADDRESS, NOT WHERE THE FETCH ENDED UP. Following a release download
+ * lands on a signed storage address naming a GUID and carrying a short-lived token; a verdict
+ * quoting that says nothing to the person who reads it a month later, and it names no version, so a
+ * run that recorded it could not state which release it graded with. The pin already names the
+ * release, so the address asked for is the address recorded.
+ *
+ * @param attempts - One entry per pinned artifact.
+ * @param download - Fetches a source into a destination, throwing when it cannot.
+ * @returns What was acquired, or every refusal, each naming its artifact.
+ * @example
+ * ```ts
+ * const outcome = acquireArtifacts([], () => undefined);
+ * outcome.ok; // false: acquiring nothing is not acquiring everything
+ * ```
+ */
+export function acquireArtifacts(
+  attempts: readonly AcquisitionAttempt[],
+  download: (source: string, destination: string) => void,
+): AcquisitionOutcome {
+  if (attempts.length === 0) {
+    return {
+      ok: false,
+      refusals: [
+        "no artifact was acquired, so there is nothing for the integrity check to verify and " +
+          "nothing for the validator to run. An acquisition over an empty set succeeds vacuously, " +
+          "which is indistinguishable from one that fetched the pinned artifacts.",
+      ],
+    };
+  }
+
+  const acquired: AcquiredRecord[] = [];
+  const refusals: string[] = [];
+  for (const attempt of attempts) {
+    try {
+      download(attempt.source, attempt.destination);
+      acquired.push({ key: attempt.key, path: attempt.destination, source: attempt.source });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      refusals.push(
+        `${attempt.name}: could not be obtained from its pinned source ${attempt.source} ` +
+          `(${detail}). The job stops here rather than continuing with an absent artifact: a run ` +
+          "that could not fetch the validator must not look like a run that graded cleanly.",
+      );
+    }
+  }
+
+  return refusals.length === 0 ? { ok: true, acquired } : { ok: false, refusals };
 }
