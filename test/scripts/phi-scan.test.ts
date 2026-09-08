@@ -13,11 +13,14 @@
  *     at a non-declared domain) and the generator-aware exemptions;
  *   - structured detection for every format this package generates, driven where
  *     possible by real generator output rather than a hand-written sample;
- *   - the argument-driven collapse routes. Note they do NOT all end the same way:
- *     `--allow-fixture` being purely subtractive is a `parseArgs` change and shows
- *     up as a FULL scan (exit 0 over a large denominator), while the two
- *     `enforceObservation` refusals, an override that subtracts nothing, and a
- *     target set emptied by overrides, exit 2;
+ *   - the argument-driven collapse routes, all of which end at exit 2 but for three
+ *     different reasons that must not be collapsed into one: the two
+ *     `enforceObservation` refusals (an override that subtracts nothing, and a target
+ *     set emptied by overrides) fire before anything is read, while READ-COMPLETENESS
+ *     fires after the sweep and is what makes `--allow-fixture` unable to reach exit 0
+ *     in any mode. The denominator is how the last one is told from the others: a
+ *     read-completeness refusal still carries the full corpus count, because the scan
+ *     really did happen and only the withdrawn path went unread;
  *   - the scan roots, seeded in-repo (below), and two of the exclusions that are
  *     real limits of the enumerator rather than oversights: markdown, and anything
  *     outside `src/` / `test/` / `scripts/` (repo-root files included). Those two
@@ -1191,14 +1194,28 @@ describe("phi-scan: every structured arm keys off content, not the file extensio
 // ---------------------------------------------------------------------------
 
 describe("phi-scan: a scan that observes nothing must not report OK", () => {
-  it("--allow-fixture SUBTRACTS from the full scan; it never becomes the scan", () => {
-    // The collapse: `--allow-fixture X` used to also SEED the target set, so the
-    // run became "scan [X], then subtract X", zero targets, `OK, no hits`,
-    // exit 0, over a scan that never happened. The mode now stays `all`.
+  it("--allow-fixture SUBTRACTS from the full scan; it never becomes the scan, and the run REFUSES", () => {
+    // TWO independent properties over one all-mode run, and the second one is why this
+    // case does not end at exit 0.
+    //
+    // THE FLAG NEVER SEEDS THE TARGET SET. `--allow-fixture X` used to also seed it, so
+    // the run became "scan [X], then subtract X": zero targets, `OK, no hits`, exit 0,
+    // over a scan that never happened. The mode stays `all`, which is what the
+    // denominator below asserts.
+    //
+    // AND THE WITHDRAWN FILE STAYS ACCOUNTABLE. It was enumerated and never read, so the
+    // sweep has no verdict to give about it and refuses rather than reporting one. That
+    // is the difference between subtracting a file from the SCAN and subtracting it from
+    // the ACCOUNTING: only the first is a thing this flag may do.
     const r = withSeeded([SEED_IN_FIXTURES], () =>
       withOverrides([SEED_IN_FIXTURES], () => runScanner(["--allow-fixture", SEED_IN_FIXTURES])),
     );
-    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.code, `stdout: ${r.stdout}\nstderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toMatch(/enumerated and never read/);
+    expect(r.stderr).toContain(SEED_IN_FIXTURES);
+    // The sweep itself was still the FULL one. The refusal is about a single unread
+    // target, not about a collapsed target set, and the denominator is what tells the
+    // two apart.
     expect(scannedCount(r)).toBeGreaterThan(100);
   });
 
@@ -1221,10 +1238,11 @@ describe("phi-scan: a scan that observes nothing must not report OK", () => {
 
   it("refuses when every enumerated file is excluded by --allow-fixture (exit 2)", () => {
     // A throwaway root's whole in-scope corpus, overridden away one path at a time:
-    // the target set empties and the gate must refuse, not report OK. This must
-    // subtract EVERY seeded path: an override log naming only the allow-list now
-    // leaves two survivors and the run passes, which is the per-root rule's fixture
-    // cost and not a weaker assertion.
+    // the target set empties and the gate must refuse, not report OK. It subtracts
+    // EVERY seeded path so that THIS rule is the one under test. Leaving survivors
+    // refuses too, under the per-root rule or the read-completeness rule below, so a
+    // partial subtraction would pass this case for the wrong reason rather than
+    // weaken it.
     const rels = [...SEEDED_ROOT_FILES];
     const r = withRoot(rels, (root) =>
       runScannerIn(
@@ -1246,6 +1264,100 @@ describe("phi-scan: a scan that observes nothing must not report OK", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A TARGET THAT WAS ENUMERATED AND NEVER READ IS REFUSED, NOT REPORTED ON
+//
+// The rule itself, and why the target set is not the accounting, live at the end of
+// `main()` in `scripts/phi-scan.ts`. What this block adds is the executable half, in
+// all three modes, because the claim is that NO argv carrying `--allow-fixture` can
+// reach the clean exit code.
+//
+// EVERY REFUSAL CASE HERE IS PAIRED WITH THE SAME CORPUS UNWITHDRAWN. A refusal test
+// that never shows its control passing is a test that a fixture is broken, not that a
+// rule fires, and the control is also what DERIVES this scanner's hits code rather
+// than assuming it: the exit codes are not agreed across the sibling scanners, so the
+// assertion below is "not 0 and not the control's code" and never a bare number.
+// ---------------------------------------------------------------------------
+
+describe("phi-scan: a target enumerated and never read is refused", () => {
+  it("REFUSES a run that withdraws one of two named targets, and names it", () => {
+    const violator = "test/zz-unread-violator.xml";
+    const withdrawn = "test/zz-unread-decoy.xml";
+    const { refused, control } = withRoot([withdrawn], (root) => {
+      put(root, violator, VIOLATOR);
+      put(root, withdrawn, CLEAN_DOC);
+      return {
+        control: runScannerIn(root, [violator, withdrawn]),
+        refused: runScannerIn(root, [violator, withdrawn, "--allow-fixture", withdrawn]),
+      };
+    });
+    // The control reads BOTH targets and finds the planted violator, which is what
+    // makes its exit code this scanner's HITS code.
+    expect(control.code, `stdout: ${control.stdout}`).toBe(1);
+    expect(control.stderr).toContain(violator);
+
+    expect(refused.code, `stdout: ${refused.stdout}\nstderr: ${refused.stderr}`).toBe(2);
+    expect(refused.code).not.toBe(0);
+    expect(refused.code).not.toBe(control.code);
+    expect(refused.stderr).toMatch(/enumerated and never read/);
+    expect(refused.stderr).toContain(withdrawn);
+    // A REFUSAL MUST NOT SWALLOW A REAL HIT: what the sweep did read is still reported,
+    // above the refusal, and only the exit code changes.
+    expect(refused.stderr).toContain(violator);
+  });
+
+  it("refuses even when every surviving target scanned CLEAN, so exit 0 is unreachable", () => {
+    // The dangerous shape, and the one a corpus grows into: withdraw the only file that
+    // would have red, and every remaining target is clean. Without this rule the run is
+    // indistinguishable from a genuinely clean sweep.
+    const kept = "test/zz-unread-kept.xml";
+    const withdrawn = "test/zz-unread-withheld.xml";
+    const { refused, control } = withRoot([withdrawn], (root) => {
+      put(root, kept, CLEAN_DOC);
+      put(root, withdrawn, CLEAN_DOC);
+      return {
+        control: runScannerIn(root, [kept, withdrawn]),
+        refused: runScannerIn(root, [kept, withdrawn, "--allow-fixture", withdrawn]),
+      };
+    });
+    expect(control.code, `stderr: ${control.stderr}`).toBe(0);
+    expect(control.stdout).toMatch(/OK, no hits/);
+
+    expect(refused.code, `stdout: ${refused.stdout}`).toBe(2);
+    expect(refused.stdout).not.toMatch(/OK, no hits/);
+    expect(refused.stderr).toContain(withdrawn);
+  });
+
+  it("REFUSES on the --staged route too, which is the commit-blocking one", () => {
+    // `--staged` is the pre-commit half. If the flag could reach exit 0 there, a
+    // withdrawn file would be committed under a green gate, which is the whole point.
+    const kept = "src/zz-staged-kept.xml";
+    const withdrawn = "src/zz-staged-withheld.xml";
+    const { refused, control } = withRoot([withdrawn], (root) => {
+      put(root, kept, CLEAN_DOC);
+      put(root, withdrawn, CLEAN_DOC);
+      git(root, ["add", "--", kept, withdrawn]);
+      return {
+        control: runScannerIn(root, ["--staged"]),
+        refused: runScannerIn(root, ["--staged", "--allow-fixture", withdrawn]),
+      };
+    });
+    expect(control.code, `stderr: ${control.stderr}`).toBe(0);
+    expect(refused.code, `stdout: ${refused.stdout}`).toBe(2);
+    expect(refused.stderr).toContain(withdrawn);
+  });
+
+  it("does NOT fire over a sweep that read everything it enumerated", () => {
+    // The negative control for the rule itself. Nothing withdrawn, nothing unread, and
+    // the committed corpus still reports a clean verdict over its own denominator: the
+    // rule must cost an ordinary run nothing.
+    const r = runScanner([]);
+    expect(r.code, `stdout: ${r.stdout}\nstderr: ${r.stderr}`).toBe(0);
+    expect(r.stderr).not.toMatch(/enumerated and never read/);
+    expect(scannedCount(r)).toBeGreaterThan(100);
   });
 });
 

@@ -1,0 +1,39 @@
+# This repository is a SINGLE package, not a workspace of many. The `packages`
+# key is here because pnpm requires it: a pnpm-workspace.yaml carrying only the
+# two settings below fails the install outright at the pinned pnpm@10.0.0 with
+# "packages field missing or empty", so a settings-only file would harden
+# nothing and break every install. `- "."` declares the repository root as the
+# one member, which is what this package already was.
+packages:
+  - "."
+
+# ---------------------------------------------------------------------------
+# INSTALL HARDENING. These two settings are the only defence this repository
+# has against a compromised release during the window between its publication
+# and its removal from the registry. pnpm ships both switched off
+# (minimumReleaseAge defaults to 0 before v11, trustPolicy to off), so every
+# value below is load-bearing and none of it is a default.
+#
+# THEY ARE INERT AT THIS REPOSITORY'S PINNED PNPM, AND THAT IS RECORDED RATHER
+# THAN HIDDEN. package.json pins `pnpm@10.0.0`; pnpm added minimumReleaseAge in
+# 10.16.0 and trustPolicy in 10.21.0, and an older pnpm ignores an unknown key
+# entirely. So this file satisfies the estate's requirement while decorating
+# rather than defending until the pin moves, and moving the pin re-resolves the
+# whole lockfile, which is its own change.
+#
+# NO trustPolicyExclude HERE. An exclusion is only honest when it names a
+# package and version measured against THIS repository's own dependency set,
+# and none has been measured. An empty or copied list is a place for an entry
+# to appear unremarked.
+# ---------------------------------------------------------------------------
+
+# 1440 minutes = 24 hours. pnpm's own rationale for the number: since malware
+# is usually detected quickly, delaying updates by 24 hours will most likely
+# prevent you from installing a bad version
+# (https://pnpm.io/supply-chain-security).
+minimumReleaseAge: 1440
+
+# Fail the install when a package's trust evidence is weaker than that of an
+# earlier-published version of the same package (a trusted publisher that
+# becomes provenance-only, or provenance that becomes nothing at all).
+trustPolicy: no-downgrade

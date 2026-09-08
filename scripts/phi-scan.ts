@@ -35,32 +35,47 @@
  * (`scripts/phi-allow-list.txt`), a positive declaration that a fixture's
  * identifiers are fake. Byte-strict formats cannot carry an inline
  * `# synthetic: true` header, so the allow-list is the proven substitute (the
- * same approach every sibling uses). A whole-file bypass needs
- * `--allow-fixture <path>` AND a logged entry in `phi-scan-overrides.md`.
+ * same approach every sibling uses). IT IS THE ONLY MECHANISM THAT CLEARS A
+ * VALUE, because it clears the value while leaving the file in the sweep. A
+ * whole-file `--allow-fixture <path>` bypass still needs a logged entry in
+ * `phi-scan-overrides.md`, and is then RECORDED AND REFUSED rather than honoured:
+ * see the read-completeness rule below.
  *
  * Modes:
  *   --staged                 - scan only files staged in `git diff --cached`
- *   --allow-fixture <path>   - SUBTRACT one already-enumerated path from the scan;
- *                              rejected unless logged in phi-scan-overrides.md
+ *   --allow-fixture <path>   - withdraw one already-enumerated path from the SWEEP;
+ *                              rejected unless logged in phi-scan-overrides.md, and
+ *                              the run then REFUSES over the path it did not read
  *   <path> [<path>...]       - scan specific paths
  *   (no args)                - scan all in-scope working-tree files
  *
- * Exit codes: 0 (clean), 1 (hits found), 2 (invocation error).
+ * Exit codes: 0 (clean), 1 (hits found), 2 (invocation error, or a refusal to
+ * report over a corpus this run did not observe in full).
  *
  * A SCAN THAT OBSERVES NOTHING MUST NOT REPORT OK. A safety gate that can be
  * collapsed to an empty target set is worse than no gate, because it prints the
  * same `OK` a real pass prints. Three invariants close the argument-driven routes
  * to that, and every one is checked before any hit counting (`enforceObservation`):
  *
- *   1. `--allow-fixture` is PURELY SUBTRACTIVE and never seeds the target set.
- *      Seeding it meant `--allow-fixture X` with no positional path expanded to
- *      "scan [X], then subtract X" = scan nothing, exit 0.
+ *   1. `--allow-fixture` never SEEDS the target set. Seeding it meant
+ *      `--allow-fixture X` with no positional path expanded to "scan [X], then
+ *      subtract X" = scan nothing, exit 0.
  *   2. Every `--allow-fixture` path must actually subtract an enumerated target.
  *      An override that matches nothing is inert: the operator believes a bypass
  *      is in effect when it is not, and a stale override log drifts unnoticed.
  *   3. The post-subtraction target set must be non-empty whenever the
  *      pre-subtraction set was, and the pre-subtraction set must be non-empty in
  *      every mode but `--staged` (where "nothing staged" is legitimate).
+ *
+ * AND THE FOURTH, WHICH IS WHAT MAKES THE OTHER THREE FINAL RATHER THAN A FLOOR:
+ * READ-COMPLETENESS. Every path a run ENUMERATED must be accounted for when the
+ * sweep ends, either by having been read or by the one bounded TOCTOU exception
+ * below, and a path withdrawn by `--allow-fixture` is neither, so the run refuses
+ * (exit 2) and names it. The flag can therefore not reach the clean exit code in
+ * any mode. Invariants 1 to 3 constrain WHICH files a bypass may withdraw; this
+ * one denies a withdrawal the verdict it was reaching for, and it is checked at
+ * the end of `main()` rather than in `enforceObservation`, because it is a
+ * question about what was READ and not about what was listed.
  *
  * A scan that could not READ what it enumerated refuses (exit 2) for the same
  * reason, rather than reporting a clean tree it never observed. The one bounded
@@ -511,13 +526,14 @@ function parseArgs(argv: string[]): Args {
     throw new InvocationError("--staged cannot be combined with positional paths");
   }
 
-  // An `--allow-fixture` path is a PURELY SUBTRACTIVE acknowledgement on a
-  // broader scan, and never a scan target on its own. It must NOT seed the
-  // positional path set: doing so made `--allow-fixture X` (with no positional
-  // path) flip the mode to "paths", build the target set `[X]`, subtract `X`, and
-  // scan NOTHING while printing `OK, no hits` and exiting 0. The mode is decided
-  // by `--staged` and positional paths alone; `--allow-fixture X` on its own now
-  // means "scan everything in scope EXCEPT X", which is what it always read as.
+  // An `--allow-fixture` path is a withdrawal from a broader scan, and never a
+  // scan target on its own. It must NOT seed the positional path set: doing so
+  // made `--allow-fixture X` (with no positional path) flip the mode to "paths",
+  // build the target set `[X]`, subtract `X`, and scan NOTHING while printing
+  // `OK, no hits` and exiting 0. The mode is decided by `--staged` and positional
+  // paths alone; `--allow-fixture X` on its own means "enumerate everything in
+  // scope, do not open X", and the run then refuses over X (read-completeness, at
+  // the end of `main()`), so the withdrawal buys no verdict.
   let mode: Args["mode"];
   if (staged) {
     mode = "staged";
@@ -2137,8 +2153,9 @@ function report(hits: Hit[], scanned: number): void {
   }
   process.stderr.write(
     `[phi-scan] ${String(hits.length)} hit(s) across ${String(byPath.size)} file(s) (${denom}). ` +
-      `If a value is genuinely synthetic, declare it in scripts/phi-allow-list.txt OR ` +
-      `run with --allow-fixture <path> AND log it in phi-scan-overrides.md.\n`,
+      `If a value is genuinely synthetic, declare it in scripts/phi-allow-list.txt: that ` +
+      `clears the value and keeps the file in the sweep. A logged --allow-fixture bypass ` +
+      `withdraws the file and is then refused, so it clears nothing.\n`,
   );
 }
 
@@ -2151,6 +2168,12 @@ function report(hits: Hit[], scanned: number): void {
  * nothing. This is the rule that keeps `OK, no hits` honest: without it, an
  * emptied target set is indistinguishable from a clean corpus, and the gate
  * reports success for a scan it never performed.
+ *
+ * THE SURVIVORS ARE THE SWEEP, NOT THE ACCOUNTING. What this returns is the set of
+ * files that will be OPENED; the set that must be answered for is the `enumerated`
+ * argument, which `main` keeps and reconciles against what was actually read once the
+ * sweep is over. Do not fold that rule in here: it is a question about reads, and
+ * nothing has been read yet at this point.
  *
  * @param mode - the resolved scan mode.
  * @param enumerated - targets BEFORE `--allow-fixture` subtraction.
@@ -2218,6 +2241,7 @@ function main(): number {
 
   let allow: AllowList;
   let targets: Target[];
+  let enumerated: Set<string>;
   try {
     // Inside the try: a missing allow-list is an invocation error (2), and used to
     // escape as an uncaught throw that exited 1, which reads as "hits found".
@@ -2225,6 +2249,11 @@ function main(): number {
     if (args.mode === "staged") targets = buildTargetsForStaged();
     else if (args.mode === "paths") targets = buildTargetsForPaths(args.paths);
     else targets = buildTargetsForAll();
+    // ENUMERATION IS THE ACCOUNTING, SUBTRACTION IS ONLY THE SWEEP. Captured BEFORE
+    // `enforceObservation` returns survivors, because a path this run listed is a path
+    // this run owes an answer about, and the answer "I was told not to look" is not one.
+    // See the read-completeness rule at the end of this function.
+    enumerated = new Set(targets.map((t) => t.path));
     targets = enforceObservation(args.mode, targets, allowed);
   } catch (err) {
     if (err instanceof InvocationError) {
@@ -2237,11 +2266,13 @@ function main(): number {
   const hits: Hit[] = [];
   const vanished: Target[] = [];
   const observedRoots = new Set<string>();
+  const read = new Set<string>();
   let observed = 0;
   for (const t of targets) {
     try {
       if (scanTarget(t, allow, hits)) {
         observed += 1;
+        read.add(t.path);
         // Attributed through the SAME predicate that decided scope, never a second
         // copy of the prefix rule. A `paths`-mode target can sit outside every root
         // and contribute nothing here; that mode makes no per-root promise.
@@ -2329,6 +2360,47 @@ function main(): number {
       );
       return 2;
     }
+  }
+
+  // THE READ-COMPLETENESS RULE. Every path this run ENUMERATED must be accounted for by
+  // the time the sweep ends, and there are exactly two ways to account for one: it was
+  // READ, or it is the bounded TOCTOU exception above, an untracked file gone between
+  // enumeration and read, which is already named on stderr and already excluded from the
+  // denominator. A path withdrawn by `--allow-fixture` is neither, so the run refuses.
+  //
+  // THIS IS WHERE `--allow-fixture` STOPS. The flag, the override log and the two
+  // `enforceObservation` guards are all still here and still do their jobs, so an attempt
+  // is RECORDED; what it can no longer do is buy a verdict. A scan that did not open a
+  // file has no clean verdict to give about it, and the alternative reading, that a
+  // logged bypass makes a file's contents someone else's problem, is exactly the state
+  // this gate cannot distinguish from a corpus that really is clean.
+  //
+  // A SET DIFFERENCE, NEVER A COUNT. `n read of n targets` is the arithmetic that hides
+  // WHICH ones were not, and a gate that cannot name its own gap is a gate nobody can
+  // act on. Every offender is printed.
+  //
+  // IT IS NOT A SECOND SPELLING OF THE PER-ROOT RULE ABOVE, and neither subsumes the
+  // other: that one asks whether a declared root yielded anything at all and only binds
+  // all-mode, this one asks whether each individual path the run listed was opened and
+  // binds every mode, `--staged` included. The per-root block runs first so a starved
+  // root keeps its own reason.
+  const tolerated = new Set(vanished.map((t) => t.path));
+  const unread = [...enumerated].filter((p) => !read.has(p) && !tolerated.has(p));
+  if (unread.length > 0) {
+    // A REFUSAL MUST NOT SWALLOW A REAL HIT, the same rule as the starved-root block:
+    // whatever the sweep did read is printed first, and only the exit code changes. The
+    // clean SUMMARY line is deliberately not printed, because there is nothing clean to
+    // report about a corpus this run did not observe in full.
+    if (hits.length > 0) report(hits, observed);
+    process.stderr.write(
+      `[phi-scan] refusing: ${String(unread.length)} target(s) were enumerated and never read ` +
+        `(${String(observed)} file(s) scanned):\n${unread.map((p) => `  - ${p}`).join("\n")}\n` +
+        `A scan that did not open a file has no clean verdict to give about it, so a whole-file ` +
+        `--allow-fixture bypass is recorded and then refused rather than honoured. If the values ` +
+        `in it are genuinely synthetic, declare them in scripts/phi-allow-list.txt, which clears ` +
+        `the values while keeping the file in the sweep.\n`,
+    );
+    return 2;
   }
 
   // The denominator counts files READ, not files listed: a tolerated skip must
