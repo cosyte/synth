@@ -10,8 +10,8 @@ sidebar_position: 1
 its core. It ships dual **ESM + CJS** builds with per-condition type declarations, so it works from
 either module system without configuration.
 
-> **Status:** pre-alpha (`0.0.x`), published to npm. The version shown on the npm package page is the
-> one that is live; this page never repeats it.
+> **Status:** `0.1`, published to npm. The version shown on the npm package page is the one that is
+> live; this page never repeats it.
 
 ## Prerequisites
 
