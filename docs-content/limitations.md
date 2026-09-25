@@ -177,7 +177,10 @@ ssnOk && isSyntheticNpi(safe.npi(rng)) && isSyntheticDea(safe.dea(rng)); // => t
 A seed maps to the same bytes **within a documented compatibility window**, not across _major_
 `synth` versions. A version bump may change a value list or the algorithm and thus the seed→bytes
 mapping; that is a **documented breaking change**. For a long-lived golden fixture, **pin the `synth`
-version alongside the seed.**
+version, and the versions of the parsers you generate with, alongside the seed.** Each format's bytes
+come from that parser's own builder and serializer, so upgrading a parser can change them even when
+`synth` has not moved: measured, the same C-CDA seeds serialize differently under two releases of
+`@cosyte/ccda`.
 
 **Which engines that is verified across, and how.** The seed→bytes mapping is verified
 **byte-identical across Node 22 and Node 24**, on every change. It is verified by **comparing

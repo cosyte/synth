@@ -21,7 +21,8 @@ generateAdt({ seed: 5 }).toString() === generateAdt({ seed: 5 }).toString(); // 
 ```
 
 Note that a **`synth` version bump may change the seed→bytes mapping**: that is a documented breaking
-change, so pin the version alongside the seed for a long-lived golden fixture.
+change, so pin the version alongside the seed for a long-lived golden fixture. Pin the parser peers
+too: each format's bytes come from that parser's own builder, so a parser upgrade can change them.
 
 ## "Cannot find module @cosyte/hl7"
 
