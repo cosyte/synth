@@ -18,8 +18,9 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 **format/conformance generator, not a clinical simulator**: it does not model disease progression
 (that is Synthea).
 
-> **Status:** pre-alpha (`0.0.x`), published to npm. The version shown on the npm package page is the
-> one that is live; this page never repeats it. The generator is **feature-complete**: the
+> **Status:** `0.1`, published to npm. The version shown on the npm package page is the one that is
+> live; this page never repeats it. Below 1.0, a breaking change raises the minor version and the
+> changelog says what broke. The generator is **feature-complete**: the
 > seeded-PRNG core, the synthetic-safety providers, and the round-trip harness; **spec-clean generation
 > across all six formats**, HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`), FHIR R4 / US Core (the full clinical
 > set + `collection`/`transaction`/`document` Bundles), C-CDA R2.1 (CCD + Referral Note), X12 005010
@@ -61,15 +62,15 @@ const adt = generateAdt({ seed: 12345, trigger: "A01" });
 const oru = generateOru({ seed: 12345 });
 
 // Spec-clean by construction: it round-trips through @cosyte/hl7 with zero warnings.
-roundTrip(adt).specClean; // true
-roundTrip(oru).specClean; // true
+console.log(roundTrip(adt).specClean); // true
+console.log(roundTrip(oru).specClean); // true
 
 // Or generate a reproducible mixed corpus across every family:
 const corpus = hl7Corpus({ seed: 42, count: 7 }); // one of each family, cycled
-corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
+console.log(corpus.artifacts.every((a) => a.warnings.length === 0)); // true, all spec-clean
 
 // Dispatch by kind when the message type is data:
-generateHl7("VXU^V04", 12345);
+console.log(roundTrip(generateHl7("VXU^V04", 12345)).content.split("\r")[0]); // its MSH segment
 ```
 
 ## Generate a spec-clean FHIR R4 / US Core resource

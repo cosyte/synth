@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@cosyte/synth": ["../src/index.ts"],
+      "@cosyte/synth/hl7": ["../src/hl7/index.ts"],
+      "@cosyte/synth/fhir": ["../src/fhir/index.ts"],
+      "@cosyte/synth/ccda": ["../src/ccda/index.ts"],
+      "@cosyte/synth/x12": ["../src/x12/index.ts"],
+      "@cosyte/synth/ncpdp": ["../src/ncpdp/index.ts"],
+      "@cosyte/synth/astm": ["../src/astm/index.ts"],
+      "@cosyte/synth/deid": ["../src/deid/index.ts"]
+    }
+  },
+  "include": ["*.ts"]
+}
