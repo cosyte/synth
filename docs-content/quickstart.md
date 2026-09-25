@@ -9,6 +9,36 @@ sidebar_position: 1
 Generate reproducible, synthetic-by-construction fixtures in a few lines. A **seed** determines the
 output entirely, so a fixture set regenerates identically anywhere.
 
+## Generate a spec-clean HL7 v2 message
+
+This is the program the README opens with. The `@cosyte/synth/hl7` subpath builds each message
+**through `@cosyte/hl7`'s own `buildMessage`**, so it is spec-clean by construction, and `roundTrip`
+feeds it straight back to the parser. `@cosyte/hl7` is the optional peer this subpath needs; see
+[Installation](./installation.md):
+
+```ts runnable
+import { generateAdt, generateOru, generateHl7, hl7Corpus, roundTrip } from "@cosyte/synth/hl7";
+
+// Same seed → byte-identical message, on any machine, any run.
+const adt = generateAdt({ seed: 12345, trigger: "A01" });
+const oru = generateOru({ seed: 12345 });
+
+// Spec-clean by construction: it round-trips through @cosyte/hl7 with zero warnings.
+console.log(roundTrip(adt).specClean); // true
+console.log(roundTrip(oru).specClean); // true
+
+// Or generate a reproducible mixed corpus across every family:
+const corpus = hl7Corpus({ seed: 42, count: 7 }); // one of each family, cycled
+console.log(corpus.artifacts.every((a) => a.warnings.length === 0)); // true, all spec-clean
+
+// Dispatch by kind when the message type is data:
+console.log(roundTrip(generateHl7("VXU^V04", 12345)).content.split("\r")[0]); // its MSH segment
+```
+
+The first three lines print `true`, and the last prints the `MSH` segment of a generated `VXU^V04`.
+Every identifier, name and date in these messages is drawn from a reserved range or the shipped
+fake-name pool.
+
 ## Draw a synthetic value
 
 The `safe` providers each draw from a reserved, never-collide source. Everything is a pure function of
@@ -24,10 +54,10 @@ const nationalId = safe.ssn(rng);
 isSyntheticSsn(nationalId); // => true
 ```
 
-## Generate an HL7 v2 message
+## Check the round trip yourself
 
-The `@cosyte/synth/hl7` subpath builds messages **through `@cosyte/hl7`**, so they are spec-clean by
-construction and round-trip with zero warnings:
+`roundTrip` returns more than the verdict: the warnings the parser raised on the way back, which for
+a spec-clean artifact is none at all:
 
 ```ts runnable
 import { generateAdt, roundTrip } from "@cosyte/synth/hl7";
