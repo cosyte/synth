@@ -1,5 +1,78 @@
 # Changelog
 
+## 0.1.0
+
+### Minor Changes
+
+- b2155cb: `0.1.0` is the first release of `@cosyte/synth` whose public API we ask you to build on.
+
+  **What is covered, and what you can depend on.** Seeded generation of spec-clean test fixtures in six formats, each built through that format's own `@cosyte/*` builder or serializer and read back by its parser with zero warnings: HL7 v2 (ADT, ORU, ORM, SIU and VXU), FHIR R4 and US Core (the clinical resources, fixtures requested by US Core 6.1.0 profile name, and `collection`, `transaction` and `document` Bundles), C-CDA R2.1 (CCD and Referral Note), X12 005010 (837P, 837I, 837D, 835 and 271), NCPDP SCRIPT (NewRx, RxRenewalRequest and RxChangeRequest) and Telecom (B1, B2 and B3), and ASTM E1394 records with E1381 framing. Every identifier, name, date, phone and address comes from a reserved range or the shipped fake-name pool, never from real data. Also covered: vendor-quirk fixtures for HL7 v2, C-CDA and ASTM, each round-tripping to exactly one intended warning; the pairing loop with `@cosyte/deid`; the `safe` value providers and their validators; and the stable `SYNTH_*` fatal codes. Node.js 22 and 24, ESM and CommonJS, with type declarations for both, and no third-party runtime dependency.
+
+  **What the version promises.** The same seed yields byte-identical output, verified across Node 22 and Node 24 on every change. Each format's bytes come from that format's own `@cosyte/*` builder, so the mapping holds for a given set of installed parsers: for a long-lived golden fixture, pin `@cosyte/synth` and the parsers you generate with alongside the seed. With the parsers unchanged, a change to what a seed maps to ships only in a release that declares a major version. For the rest of the API: until 1.0, a breaking change raises the minor version (0.1 to 0.2), and the changelog entry says what broke and what to change. A patch release (0.1.x) does not break you, so a `^0.1.0` range takes the patches and stops before 0.2.0.
+
+  **What is not covered yet.** Quirk recipes for FHIR, X12 and NCPDP; the X12 270 eligibility request and the NCPDP SCRIPT lifecycle responses, which wait on builders in the parsers; `@cosyte/deid` pairing for NCPDP SCRIPT, ASTM and DICOM; DICOM generation; and clinical realism, since this is a format and conformance generator rather than a clinical simulator. The pairing loop co-validates the two packages on this package's own output and is not an independent audit of `@cosyte/deid`. The documentation at https://docs.cosyte.com/synth lists the known limitations in full.
+
+  The repository now carries runnable examples under `examples/`, run against the built package on every change.
+
+### Patch Changes
+
+- 32fd419: The repository's PHI commit-gate (`pnpm phi-scan`) no longer honours a whole-file `--allow-fixture` bypass. A path the run enumerated and then did not open is now refused (exit 2) and named on stderr, because a scan that did not read a file has no clean verdict to give about it. The flag and its `phi-scan-overrides.md` log are both kept, so an attempt is still recorded and reviewable; what it can no longer do is produce a clean report.
+
+  This changes an observable exit code for an existing invocation shape: an argv carrying `--allow-fixture` that used to exit 0, or to exit with the hits code, now exits 2 in every mode, `--staged` included. Declaring a genuinely synthetic value in `scripts/phi-allow-list.txt` is the way to clear it, and unlike a whole-file bypass it leaves the file in the sweep. Nothing a consumer installs is affected: no generator, export, warning code or published artifact changes.
+
+- 9b69baf: The synthetic-safety floor table now cites, for every locus, the authority that reserves the range or defines the check digit, by that authority's own published identifier and with the sentence the row rests on, so you can open the text and check the claim instead of taking the page's word for it. Where a row was previously grounded on a bare hostname (`ssa.gov`, `nanpa.com`) or on nothing at all, it now names a document: SSA POMS RM 10201.035, IRS Internal Revenue Manual 3.21.263, 69 FR 3434 (FR Doc 04-1149), the NANPA 555 Line Numbers page, RFC 2606, RFC 6761, RFC 5737, RFC 3849, and USPS Postal Facts.
+
+  Two justifications were wrong and are corrected rather than restated. The NPI check-digit rule was attributed, with no citation, to a "CMS NPI check-digit rule, ISO 7812". The rule that requires the `80840`-prefixed Luhn check is the final rule at 69 FR 3434 (FR Doc 04-1149, docket CMS-0045-F), and the doc comments on `NPI_LUHN_PREFIX`, `npiCheckDigit` and `isSyntheticNpi` now cite it. Only the ISO half of the old attribution is retracted: the rule names no ISO document number, and what replaces `ISO 7812` is the rule's own name for the algorithm, "the ISO standard Luhn check digit algorithm", a modulus 10 double-add-double algorithm. The CMS half stands and is now cited instead of asserted, that document recording its issuing agency as "Centers for Medicare & Medicaid Services, HHS" and stating that "The specification for calculation of the NPI check digit will be made available on the CMS Web site". The SSN row said SSA "never issues" the areas it draws from; what SSA's manual states is that those areas identify an **invalid** SSN, defined there as one SSA never assigned, so that is what the row and `isSyntheticSsn` now say.
+
+  Three limits that were implicit are now stated on the surface a consumer reads.
+  - **The DEA check digit is non-normatively sourced.** The formula `deaCheckDigit` implements is quoted from a pharmacy journal article (PMC3847977), not from the DEA, and no DEA-published statement of the algorithm is cited anywhere in this package. `isSyntheticDea` returning `true` means "fails that formula", not "the DEA could not have issued this", and both doc comments now say so, together with the consequence: if the formula is wrong, a value built to fail it could pass the real check.
+  - **Two loci have no reserving authority at all**, and their rows now say so and name what the floor rests on instead: the MRN / member / account namespace (the assigning authority, not the digits) and the name / street / city pool (the shipped clearly-fake pool itself).
+  - **The ZIP row draws an inference**, and now presents it as one. USPS publishes that the lowest ZIP Code is `00501`; that `00000` is therefore unassigned is this package's inference, not a Postal Service statement.
+
+  The claim that `2.16.840.1.113883.19` is a designated example root has been dropped from `SYNTHETIC_ASSIGNING_AUTHORITY`: no published designation could be shown, so none is claimed. The OID is unchanged and the guarantee never rested on it.
+
+  No generated value changes. Every reserved range, check-digit computation and predicate result is byte-for-byte what it was, so a pinned golden corpus is unaffected: this release changes what the package says about its floors, not where it draws from. A new suite fails the build if a floor-table locus is ever added without an authority identifier and the supporting text to go with it.
+
+- 7daedf4: Seed determinism is now verified ACROSS Node majors, not just twice inside one process. Until now every determinism assertion in this repository generated the same seed twice in a single Node process and compared the two, and a single process cannot disagree with itself about the engine it is running on. A change in the JavaScript engine that shifted number formatting, sort stability or key order between Node majors would have landed with every check green, while a consumer's committed golden file quietly stopped matching.
+
+  On every change, a declared seed corpus covering all six formats is now generated in its own job on **Node 22 and on Node 24**, each job carries out one digest per `(format, seed)` pair and nothing else, and a third job fails the build if the two engines disagree. A mismatch is reported by seed, format and engine identity; the differing bytes are never printed, because the corpus is reproducible from the seed. There is no tolerance on a digest, no warning-only mode and no suppression list. Taking a pair out of the compared set means naming it and its reason in a committed declaration, which every report republishes.
+
+  Each per-engine run is also measured against a **committed baseline** for the current compatibility window, so a toolchain or dependency change that moves every engine together, the one thing a cross-engine comparison is blind to, is caught as well. That baseline cannot change without a release declaring a breaking change, so a golden fixture pinned to a version inside the window keeps matching.
+
+  `docs-content/limitations.md` now states which Node majors the seed-to-bytes mapping is verified byte-identical across, that the verification is a digest comparison across separate runs, and that a change to that mapping is released as a breaking change.
+
+  Nothing about what the generator emits changed. Same seeds, same bytes.
+
+- 5e46b8d: The Quickstart page now opens with the same program as the README: an HL7 v2 message generated from a seed and round-tripped through `@cosyte/hl7`, plus a mixed corpus.
+
+  Before this, the page opened with the seeded value providers while the README opened with the HL7 v2 generators, so a reader arriving from npm and one arriving from the documentation site met two different first programs. The value-provider, round-trip, corpus and determinism examples follow it. The test suite now fails if the page's first program differs from the README's quickstart, and runs it against the built package. Documentation and test change only.
+
+- 8389346: You can now ask for a FHIR fixture by **US Core 6.1.0 profile name** instead of by generator name, and the answer is one of exactly two things: an artifact claiming that profile, or a refusal raised before any artifact exists.
+
+  New exports on `@cosyte/synth/fhir`: `usCoreCoverage()` reports one entry for every one of the **49 resource profiles** the adopted implementation guide publishes, each carrying its canonical URL and whether this build generates it; `generateUsCoreProfile({ profile, seed })` resolves the requested name against that closed set before generating anything. `US_CORE_ADOPTED_PROFILES`, `US_CORE_PROFILE_BASE` and the `UsCoreProfileId` / `UsCoreProfileCoverage` types are exported alongside them. Identifiers only, as ever: no implementation-guide content is bundled.
+
+  The two refusals are deliberately different codes, because they are different facts about your request. `SYNTH_PROFILE_NOT_GENERATED` (new) says the guide publishes the profile and this build does not generate it yet. `SYNTH_UNSUPPORTED_KIND` says the name is not in the adopted set at all: a typo, a blank, a value that is not a string, or one of the guide's extension definitions, which are not standalone artifacts. Neither quotes your value back, and neither returns a mislabelled artifact.
+
+  Coverage moves from 10 profiles to 11: **`generateProvenance()`** generates a US Core `Provenance`, built through `@cosyte/fhir`'s model constructors like every other resource here, and validated against the published `us-core-provenance` StructureDefinition with zero errors over arbitrary seeds. The other 38 adopted profiles are reported as uncovered and refuse: this release closes the contract, not the breadth.
+
+  The conformance suite is now driven by the coverage surface rather than by a list kept beside it, so a profile reported as generated with no committed StructureDefinition behind it fails the suite instead of being skipped.
+
+- fd8c32d: Generated FHIR R4 output is now graded by a validator that is not ours. Until now, every "spec-clean" claim this package made was the sibling parser reading back what the sibling parser wrote: a strong structural property, and one that cannot see a misreading of a standard that the builder and the reader share. On every change, the HL7-maintained FHIR validator, pinned by version and by content digest, now validates a seeded corpus of generated FHIR R4 resources against US Core 6.1.0, and any issue it reports at severity `error` or `fatal` fails the build. There is no severity downgrade, no warning-only mode and no suppression list.
+
+  The run publishes a coverage declaration alongside its verdict. It names every format the library generates and marks each one either independently graded, with the grader named, or ungraded, with a reason, and it is built from the set of formats the generators actually emit rather than from a hand-kept list, so a format cannot ship without that judgement being made. Today FHIR R4 is the graded one; HL7 v2, C-CDA, X12, NCPDP and ASTM carry only the sibling parser's round-trip, and the declaration says so in those words. The verdict also records the validator version, the package version, and every external endpoint the run was configured to contact.
+
+  `docs-content/limitations.md` gains the distinction a consumer needs to read the promise correctly: which formats carry an independent external verdict, which carry only a round-trip, and what the external verdict deliberately leaves out (it runs with no terminology server, so code membership in a value set is not part of it).
+
+  Nothing about what the generator emits changed. Same seeds, same bytes.
+
+- f6d18d7: Synthetic SSNs now clear both federal authorities that share the SSN number space, not just SSA's. An IRS ITIN is itself an SSN-format number beginning with `9`, so the never-issued `900-999` area alone never ruled one out: 44 of the 100 group values placed a generated value inside a published ITIN group range, and the fixed advertising block sat inside one for every seed. `safe.ssn()` now draws its group only from values outside every published ITIN group range (and outside the two the IRS reserves for other programs), and its fixed block is `987-00-4320` through `987-00-4329`. No draw can produce an ITIN-shaped candidate, so generation still returns a value for every seed.
+
+  New exports: `isItinFormatted(value)` and `ITIN_GROUP_RANGES`, so a consumer can assert the second half of the guarantee directly (`isSyntheticSsn(v) && !isItinFormatted(v)`). The synthetic-safety sweeps for HL7 v2, FHIR, C-CDA, X12, the cross-format suite and the de-identification pairing loop now fail on an ITIN-formatted value at an SSN-bearing locus, over arbitrary seeds.
+
+  `ssn(rng, "advertising")` keeps its name and its shape (a fixed ten-value display block) but loses one property: its old value was the block the Social Security Administration itself prints in advertising, and that block is ITIN-formatted, so it could not stay. If you chose that option because the number is the one SSA publishes, it no longer is. The option name is unchanged so no call site breaks.
+
+  If you pin a golden corpus: this changes more than the SSN field. The default block now takes one random draw fewer than before (a single pick from the safe group pool replaced two independent group digits), so **every value drawn after an SSN in the same seeded stream moves too**: identifiers, codes, amounts and timestamps in an affected artifact all regenerate with different bytes, not only its SSN.
+
 ## 0.0.9
 
 ### Patch Changes
