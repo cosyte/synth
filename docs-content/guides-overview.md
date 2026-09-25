@@ -23,7 +23,8 @@ to one real fixture-generation question.
 ## Pin a seed for a reusable golden fixture
 
 A `Corpus` is a seed plus a manifest of what was generated: deep-frozen and self-describing. Pin the
-seed (and the `synth` version) and every downstream run regenerates the identical set:
+seed (and the versions of `synth` and the parsers you generate with) and every downstream run
+regenerates the identical set:
 
 ```ts runnable
 import { hl7Corpus } from "@cosyte/synth/hl7";
