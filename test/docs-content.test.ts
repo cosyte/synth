@@ -1,9 +1,10 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { beforeAll } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
-import { docSnippetSuite } from "@cosyte/vitest-config/snippets";
+import { docSnippetSuite, extractRunnableSnippets } from "@cosyte/vitest-config/snippets";
 
 /**
  * Doc/code-agreement gate. Every ```` ```ts runnable ```` block in `docs-content/` is extracted,
@@ -43,4 +44,24 @@ docSnippetSuite({
     if (specifier === "@cosyte/synth/deid") return deidEntry;
     return undefined;
   },
+});
+
+/**
+ * The README's quickstart (the first TypeScript block after `## Install`) is what a reader runs from
+ * npm, and the Quickstart page is what the same reader runs from the docs site. Two first programs
+ * that disagree send a reader two ways at once, so the page must open with the README's program,
+ * byte for byte, and the sweep above is what executes it.
+ */
+describe("the Quickstart page opens with the README's quickstart program", () => {
+  it("carries the README's first TypeScript block after ## Install as its first runnable block", () => {
+    const readme = readFileSync(join(root, "README.md"), "utf8");
+    const afterInstall = readme.slice(readme.indexOf("\n## Install\n"));
+    const readmeFirst = /\n```ts\n([\s\S]*?)\n```\n/.exec(afterInstall)?.[1];
+    const quickstart = readFileSync(join(root, "docs-content", "quickstart.md"), "utf8");
+    const pageFirst = extractRunnableSnippets(quickstart)[0]?.code;
+
+    expect(readme.includes("\n## Install\n")).toBe(true);
+    expect(readmeFirst).toBeDefined();
+    expect(pageFirst).toBe(readmeFirst);
+  });
 });
