@@ -1,6 +1,6 @@
 {
   "name": "@cosyte/synth",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "description": "Deterministic, seedable synthetic healthcare test fixtures for Node.js and TypeScript: HL7 v2, FHIR R4 and US Core, C-CDA, X12, NCPDP and ASTM, spec-clean by construction and never real PHI.",
   "keywords": [
     "synth",
