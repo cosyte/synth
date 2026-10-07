@@ -26,4 +26,4 @@ Pick the bump type from what the change does to the published package. On the `0
 One exception is enforced rather than chosen: a change to the bytes a seed maps to needs a
 **major** changeset, because `pnpm run check:determinism-window` refuses it without one.
 
-See the cosyte version ladder in the meta-repo's `documentation/conventions.md`.
+See the Cosyte version ladder in the meta-repo's `documentation/conventions.md`.

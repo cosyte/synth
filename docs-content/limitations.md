@@ -17,7 +17,7 @@ a given release ships; this page is the shape of the whole.
 ## The promise (narrow, on purpose)
 
 `@cosyte/synth` emits **deterministic, seedable, spec-clean (and, in quirk mode, deliberately
-off-spec) synthetic fixtures** across the six cosyte formats, and **every value it emits is drawn from
+off-spec) synthetic fixtures** across the six Cosyte formats, and **every value it emits is drawn from
 a guaranteed-non-colliding synthetic source.**
 
 - **Spec-clean by construction.** Each artifact is built **through the parser's own
