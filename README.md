@@ -164,8 +164,8 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true
 
 `@cosyte/x12` is an **optional peer dependency**, needed only for the `@cosyte/synth/x12` subpath.
 
-**Deferred:** the **270** eligibility _request_ (`@cosyte/x12` ships a `build271` but no `build270`, and
-`synth` never hand-writes bytes around a missing builder) and **vendor-quirk mode**.
+**Deferred:** the **270** eligibility _request_ (`@cosyte/x12` ships `build270` from 0.1.0, but `synth`
+does not generate a 270 yet) and **vendor-quirk mode**.
 
 ## Generate an NCPDP message
 
