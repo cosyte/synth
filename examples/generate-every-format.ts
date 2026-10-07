@@ -1,5 +1,5 @@
 /**
- * Generate one spec-clean artifact in each of the other five formats, from a seed, and round-trip
+ * Generate one artifact in each of the other five formats, from a seed, and round-trip
  * each through its own parser.
  *
  * FHIR R4 / US Core, C-CDA R2.1, X12 005010, NCPDP (SCRIPT and Telecom) and ASTM: each is built

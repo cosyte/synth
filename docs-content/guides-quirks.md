@@ -11,7 +11,7 @@ a parser tolerates the **realistic vendor deviations** real-world traffic carrie
 the right diagnostic when it does. That is what quirk mode generates.
 
 The load-bearing idea: **the quirk vocabulary _is_ the parsers' own profile systems.** A `synth` quirk
-deviates the _structure_ of an otherwise spec-clean message so it round-trips through the parser to
+deviates the _structure_ of a message that otherwise re-parses with zero warnings so it round-trips through the parser to
 **exactly one intended, stable warning code**, the tolerance the corresponding parser profile
 (`hl7.defineProfile`, `ccda.defineCcdaProfile`, `astm.defineAstmProfile`) encodes. This is the
 **intended-warning contract**: a quirk fixture is never a fiction, it exercises a documented, coded
