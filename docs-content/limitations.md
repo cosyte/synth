@@ -214,7 +214,7 @@ The generation core is **feature-complete across all six formats**. Quirk mode a
   stay **consumer-authored** until a public spec grounds a built-in one (the same public-only
   discipline the parsers hold).
 - **Optional Synthea clinical-content ingestion** (re-serialize Synthea's coherent records through the
-  cosyte parsers) is a **documented future concern**, not a v1 promise.
+  Cosyte parsers) is a **documented future concern**, not a v1 promise.
 
 ### US Core 6.1.0 profile coverage
 

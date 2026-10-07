@@ -12,7 +12,7 @@
 
 `@cosyte/synth` generates reproducible synthetic test corpora across the six Cosyte formats (HL7 v2,
 FHIR R4 / US Core, C-CDA, X12, NCPDP, and ASTM). It is a **consumer** of the
-cosyte parsers, not a parser: it builds each artifact **through the parser's own builder/serializer**
+Cosyte parsers, not a parser: it builds each artifact **through the parser's own builder/serializer**
 (so each artifact re-parses through that parser with zero warnings) and draws every identifier, name,
 date, phone, and address from a **guaranteed-non-colliding synthetic source**. It is a
 **format/conformance generator, not a clinical simulator**: it does not model disease progression
