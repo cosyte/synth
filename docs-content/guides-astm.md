@@ -8,8 +8,7 @@ sidebar_position: 7
 
 The `@cosyte/synth/astm` subpath builds ASTM laboratory messages **through `@cosyte/astm`'s own emit
 surface**: `buildAstmMessage` for the E1394 record layer and `composeAstmFrames` for the E1381 frame
-layer, so every message is **spec-clean by construction** and round-trips through the parser with
-**zero warnings**. `@cosyte/astm` is an **optional peer dependency**, needed only for this subpath.
+layer, so every message round-trips through the parser with **zero warnings**. `@cosyte/astm` is an **optional peer dependency**, needed only for this subpath.
 
 The surface covers both layers:
 
@@ -27,10 +26,10 @@ PHI. The practice- and lab-assigned IDs are minted independently, so they stay *
 `@cosyte/astm` keeps them distinct on parse). `synth` is a **format/conformance generator, not a clinical
 simulator**: a generated result pairs a code and a value with no claim of clinical coherence.
 
-## A result report, spec-clean by construction
+## A result report
 
-The round-trip harness proves spec-cleanliness by `@cosyte/astm`'s own judgment: a spec-clean message
-re-parses with zero warnings and re-serializes byte-identically:
+The round-trip harness checks a message by `@cosyte/astm`'s own judgment: it re-parses with zero
+warnings and re-serializes byte-identically:
 
 ```ts runnable
 import { generateAstmResult, astmRoundTrip } from "@cosyte/synth/astm";

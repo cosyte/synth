@@ -8,8 +8,8 @@ sidebar_position: 5
 
 The `@cosyte/synth/x12` subpath builds HIPAA **005010** transactions **through `@cosyte/x12`'s domain
 builders** (`build837P/I/D`, `build835`, `build271`), so the ISA/GS/ST…SE/GE/IEA envelope, the computed
-HL spine, the control numbers, and every segment are the builder's own: each transaction is
-**spec-clean by construction** and round-trips through `@cosyte/x12` with **zero warnings**.
+HL spine, the control numbers, and every segment are the builder's own: each transaction
+round-trips through `@cosyte/x12` with **zero warnings**.
 `@cosyte/x12` is an **optional peer dependency**, needed only for this subpath.
 
 The X12 surface emits:
@@ -22,8 +22,8 @@ The X12 surface emits:
 
 ## A claim, spec-clean by construction
 
-The round-trip harness proves spec-cleanliness by `@cosyte/x12`'s own judgment: a spec-clean
-interchange re-parses with zero warnings and re-serializes byte-identically:
+The round-trip harness checks an interchange by `@cosyte/x12`'s own judgment: it re-parses with
+zero warnings and re-serializes byte-identically:
 
 ```ts runnable
 import { generate837P, roundTrip } from "@cosyte/synth/x12";

@@ -6,12 +6,13 @@ sidebar_position: 1
 
 # @cosyte/synth
 
-Generate **deterministic, seedable synthetic healthcare fixtures** (spec-clean HL7 v2, FHIR R4 /
-US Core, C-CDA, X12, NCPDP and ASTM) without hand-writing a byte of the wire format, and **without
+Generate **deterministic, seedable synthetic healthcare fixtures** (HL7 v2, FHIR R4 / US Core,
+C-CDA, X12, NCPDP and ASTM) without hand-writing a byte of the wire format, and **without
 any chance the "patient" you just generated is a real person**.
 
 `@cosyte/synth` is a **consumer** of the cosyte parsers, not a parser. It builds each artifact **through
-the parser's own builder/serializer** (so the output is spec-clean by construction) and draws every
+the parser's own builder/serializer** (so each artifact re-parses through that parser with zero
+warnings) and draws every
 identifier, name, date, phone, and address from a **guaranteed-non-colliding synthetic source** (SSA
 never-issued SSNs, NANP `555-01xx` phones, `example.*` domains, TEST-NET IPs, a synthetic assigning
 authority for MRNs, and a shipped clearly-fake name pool). It is a **format/conformance generator, not a

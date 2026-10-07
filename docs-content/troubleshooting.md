@@ -33,7 +33,7 @@ providers.
 ## An unsupported request threw
 
 A generator has nothing to tolerate, so it **fails closed**. Asking for a format or quirk this build
-cannot produce spec-clean throws a typed `SynthError` with a stable `SYNTH_FATAL_CODES` value, never a
+cannot produce throws a typed `SynthError` with a stable `SYNTH_FATAL_CODES` value, never a
 hand-written byte workaround:
 
 ```ts runnable throws

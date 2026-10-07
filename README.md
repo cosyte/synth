@@ -8,12 +8,12 @@
 # @cosyte/synth
 
 > Deterministic, seedable **synthetic healthcare-fixture generator** for Node.js and TypeScript:
-> spec-clean by construction, and **never real PHI**.
+> built through each parser's own builder, and **never real PHI**.
 
 `@cosyte/synth` generates reproducible synthetic test corpora across the six Cosyte formats (HL7 v2,
 FHIR R4 / US Core, C-CDA, X12, NCPDP, and ASTM). It is a **consumer** of the
 cosyte parsers, not a parser: it builds each artifact **through the parser's own builder/serializer**
-(so the output is spec-clean by the same mechanism the parser proves) and draws every identifier, name,
+(so each artifact re-parses through that parser with zero warnings) and draws every identifier, name,
 date, phone, and address from a **guaranteed-non-colliding synthetic source**. It is a
 **format/conformance generator, not a clinical simulator**: it does not model disease progression
 (that is Synthea).
@@ -21,8 +21,8 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 > **Status:** `0.1`, published to npm. The version shown on the npm package page is the one that is
 > live; this page never repeats it. Below 1.0, a breaking change raises the minor version and the
 > changelog says what broke. The generator is **feature-complete**: the
-> seeded-PRNG core, the synthetic-safety providers, and the round-trip harness; **spec-clean generation
-> across all six formats**, HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`), FHIR R4 / US Core (the full clinical
+> seeded-PRNG core, the synthetic-safety providers, and the round-trip harness; **generation across all
+> six formats**, HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`), FHIR R4 / US Core (the full clinical
 > set + `collection`/`transaction`/`document` Bundles), C-CDA R2.1 (CCD + Referral Note), X12 005010
 > (837P/I/D, 835, 271), NCPDP (SCRIPT NewRx / RxRenewal / RxChange + Telecom B1/B2/B3), and ASTM (E1394
 > record reports + E1381 framing), each built **through its parser's own builder/serializer**; **vendor-quirk
@@ -136,7 +136,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
 
 `@cosyte/ccda` is an **optional peer dependency**, needed only for the `@cosyte/synth/ccda` subpath.
 
-## Generate a spec-clean X12 transaction
+## Generate an X12 transaction
 
 The `@cosyte/synth/x12` subpath builds HIPAA **005010** transactions **through `@cosyte/x12`'s domain
 builders** (`build837P/I/D`, `build835`, `build271`), so the ISA/GS/ST…SE/GE/IEA envelope, the
@@ -159,7 +159,7 @@ roundTrip(generate271({ seed: 3 })).specClean; // true
 
 // Or a reproducible mixed corpus (837P/I/D + 835 + 271):
 const corpus = x12Corpus({ seed: 42 });
-corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
+corpus.artifacts.every((a) => a.warnings.length === 0); // true
 ```
 
 `@cosyte/x12` is an **optional peer dependency**, needed only for the `@cosyte/synth/x12` subpath.
@@ -167,7 +167,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
 **Deferred:** the **270** eligibility _request_ (`@cosyte/x12` ships a `build271` but no `build270`, and
 `synth` never hand-writes bytes around a missing builder) and **vendor-quirk mode**.
 
-## Generate a spec-clean NCPDP message
+## Generate an NCPDP message
 
 The `@cosyte/synth/ncpdp` subpath builds both NCPDP standards **through `@cosyte/ncpdp`'s own emit
 surface**, so each message round-trips through the parser with **zero warnings**. It emits **SCRIPT**
@@ -193,7 +193,7 @@ telecomRoundTrip(generateB1({ seed: 777 })).specClean; // true
 
 // Or a reproducible mixed corpus (NewRx + RxRenewal + RxChange + B1 + B2 + B3):
 const corpus = ncpdpCorpus({ seed: 42 });
-corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
+corpus.artifacts.every((a) => a.warnings.length === 0); // true
 ```
 
 `@cosyte/ncpdp` is an **optional peer dependency**, needed only for the `@cosyte/synth/ncpdp` subpath.
@@ -201,7 +201,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
 **Deferred:** vendor-quirk mode. SCRIPT coverage tracks the parser's builder surface: the
 renewal/change _responses_ land as `@cosyte/ncpdp` grows builders.
 
-## Generate a spec-clean ASTM message
+## Generate an ASTM message
 
 The `@cosyte/synth/astm` subpath builds ASTM laboratory messages **through `@cosyte/astm`'s own emit
 surface**: `buildAstmMessage` for the E1394 record layer, `composeAstmFrames` for the E1381 frame
@@ -229,7 +229,7 @@ astmFramedRoundTrip(generateAstmResultFramed({ seed: 12345 })).specClean; // tru
 
 // Or a reproducible mixed corpus (a result report + an order):
 const corpus = astmCorpus({ seed: 42 });
-corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
+corpus.artifacts.every((a) => a.warnings.length === 0); // true
 ```
 
 `@cosyte/astm` is an **optional peer dependency**, needed only for the `@cosyte/synth/astm` subpath.
@@ -276,7 +276,7 @@ vendor-attributed corpus** to ground.
 ## Co-validate with `@cosyte/deid` (the pairing loop)
 
 The `@cosyte/synth/deid` subpath is a deterministic **closed-loop co-validation harness** for the
-`synth` ⇄ `deid` pair: it **generates** a spec-clean artifact, **plants** distinctive synthetic PHI
+`synth` ⇄ `deid` pair: it **generates** an artifact, **plants** distinctive synthetic PHI
 sentinels at the patient loci, **de-identifies** it through `@cosyte/deid`, and **verifies** every
 sentinel is gone from the output (a surviving sentinel is a hard failure) while the clinical payload
 survives (the over-scrub guard).
@@ -332,8 +332,8 @@ isSyntheticNpi(safe.npi(rng)); // true, always a deliberately-invalid-Luhn NPI (
   phones, RFC 2606/6761 `example.*` domains, RFC 5737/3849 TEST-NET IPs, a synthetic assigning
   authority for MRNs). A CI gate proves it.
   **No generated value can be real or plausibly-real PHI.**
-- **Spec-clean by the parser's own judgment**, built through the parser's conservative serializer, and
-  checked by feeding the artifact straight back in: a spec-clean artifact re-parses with zero warnings.
+- **Checked by the parser's own judgment**, built through the parser's conservative serializer and
+  fed straight back in: each artifact re-parses with zero warnings.
 - **Deterministic**, a hand-rolled seeded PRNG (`sfc32`/`splitmix32`); `Math.random` is lint-banned.
   A seed, and only the seed, determines the output, byte-for-byte, anywhere.
 - **Immutable**, generated artifacts and the `Corpus` result are deep-frozen.

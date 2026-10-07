@@ -7,8 +7,7 @@ sidebar_position: 6
 # Generate NCPDP messages
 
 The `@cosyte/synth/ncpdp` subpath builds both NCPDP standards **through `@cosyte/ncpdp`'s own emit
-surface**, so every message is **spec-clean by construction** and round-trips through the parser with
-**zero warnings**. `@cosyte/ncpdp` is an **optional peer dependency**, needed only for this subpath.
+surface**, so every message round-trips through the parser with **zero warnings**. `@cosyte/ncpdp` is an **optional peer dependency**, needed only for this subpath.
 
 NCPDP is two structurally unrelated standards under one brand, and the surface covers both:
 
@@ -21,8 +20,8 @@ NCPDP is two structurally unrelated standards under one brand, and the surface c
 
 ## A NewRx, spec-clean by construction
 
-The round-trip harness proves spec-cleanliness by `@cosyte/ncpdp`'s own judgment: a spec-clean message
-re-parses with zero warnings and re-serializes byte-identically:
+The round-trip harness checks a message by `@cosyte/ncpdp`'s own judgment: it re-parses with zero
+warnings and re-serializes byte-identically:
 
 ```ts runnable
 import { generateNewRx, scriptRoundTrip } from "@cosyte/synth/ncpdp";

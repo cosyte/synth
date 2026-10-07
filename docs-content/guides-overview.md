@@ -15,7 +15,7 @@ to one real fixture-generation question.
 > `@cosyte/ccda`'s `buildCcda`, the [C-CDA guide](./guides-ccda)); X12 005010 (837P/I/D, 835, 271 via
 > `@cosyte/x12`, the [X12 guide](./guides-x12)); NCPDP (SCRIPT + Telecom via `@cosyte/ncpdp`, the
 > [NCPDP guide](./guides-ncpdp)); and ASTM (E1394 records + E1381 framing via `@cosyte/astm`, the
-> [ASTM guide](./guides-astm)), the spec-clean generation core across all six formats. On top of it,
+> [ASTM guide](./guides-astm)), the generation core across all six formats. On top of it,
 > **vendor-quirk generation** for HL7 v2, C-CDA, and ASTM (see the [quirk guide](./guides-quirks)). A
 > guide is only written once the behavior it documents is shipped and its runnable example passes the
 > doc/code-agreement check.
@@ -36,8 +36,8 @@ corpus.seed; // => 1867
 
 ## Verify an artifact round-trips before you trust it
 
-The round-trip harness proves spec-cleanliness by the parser's own judgment: a spec-clean artifact
-re-parses with zero warnings and re-serializes byte-identically:
+The round-trip harness checks an artifact by the parser's own judgment: it re-parses with zero
+warnings and re-serializes byte-identically:
 
 ```ts runnable
 import { generateAdt, roundTrip } from "@cosyte/synth/hl7";

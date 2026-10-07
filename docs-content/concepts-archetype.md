@@ -27,11 +27,10 @@ const rng = createRng(1);
 [isSyntheticSsn(safe.ssn(rng)), isSyntheticPhone(safe.phone(rng))]; // => [true, true]
 ```
 
-## Spec-clean, by the parser's own judgment
+## Checked by the parser's own judgment
 
 `synth` never hand-writes bytes. It builds **through the parser's own conservative serializer**, so an
-artifact is spec-clean by the exact mechanism the parser already proves, and its correctness is
-checkable by feeding it straight back into that parser. A spec-clean artifact re-parses with **zero
+artifact is checkable by feeding it straight back into that parser: it re-parses with **zero
 warnings** and re-serializes byte-identically:
 
 ```ts runnable
@@ -55,7 +54,7 @@ pipeline without defensive copying.
 ## Stable fatal codes
 
 A generator has no input to tolerate, so its diagnostics are **fatal**: a request it cannot honor
-spec-clean (an unsupported format or quirk) throws a typed `SynthError` carrying a stable
+(an unsupported format or quirk) throws a typed `SynthError` carrying a stable
 `SYNTH_FATAL_CODES` value, never a silent fabrication. Codes are `key === value`, so the full set
 survives an `Object.values(...)` snapshot into a stability tripwire.
 

@@ -10,7 +10,7 @@ A synthetic-fixture generator and a de-identifier are natural partners: `@cosyte
 that **looks like** PHI but contains none, and `@cosyte/deid` removes PHI. The `@cosyte/synth/deid`
 subpath closes the loop between them, a deterministic, seeded **co-validation harness**:
 
-1. **Generate** a spec-clean synthetic artifact through `synth`'s own generators.
+1. **Generate** a synthetic artifact through `synth`'s own generators.
 2. **Enumerate** the distinctive synthetic PHI sentinels `synth` planted at the patient loci.
 3. **De-identify** it through `@cosyte/deid`.
 4. **Verify** every sentinel is gone from the de-identified output: a surviving sentinel is a hard
@@ -74,7 +74,7 @@ locates a locus but fails to strip it is still caught.
 
 ## Deterministic and seeded
 
-The loop is a pure function of the seed: the same seed yields the byte-identical spec-clean artifact,
+The loop is a pure function of the seed: the same seed yields the byte-identical artifact,
 the byte-identical de-identified output, and the same sentinel set.
 
 ```ts runnable

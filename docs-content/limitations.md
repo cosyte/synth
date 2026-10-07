@@ -16,15 +16,14 @@ a given release ships; this page is the shape of the whole.
 
 ## The promise (narrow, on purpose)
 
-`@cosyte/synth` emits **deterministic, seedable, spec-clean (and, in quirk mode, deliberately
-off-spec) synthetic fixtures** across the six Cosyte formats, and **every value it emits is drawn from
+`@cosyte/synth` emits **deterministic, seedable synthetic fixtures (and, in quirk mode, deliberately
+off-spec ones)** across the six Cosyte formats, and **every value it emits is drawn from
 a guaranteed-non-colliding synthetic source.**
 
-- **Spec-clean by construction.** Each artifact is built **through the parser's own
+- **Built through the parser.** Each artifact is built **through the parser's own
   builder/serializer** (`@cosyte/hl7`'s `buildMessage`, `@cosyte/fhir`'s model + serializer,
-  `@cosyte/ccda`'s `buildCcda`, the X12/NCPDP/ASTM domain builders), so it is spec-clean by the same
-  mechanism that makes the parser's emit side spec-clean, and it is proven by feeding the output
-  straight back into that parser and asserting **zero warnings**. `synth` never hand-writes wire bytes
+  `@cosyte/ccda`'s `buildCcda`, the X12/NCPDP/ASTM domain builders), and it is checked by feeding the
+  output straight back into that parser and asserting **zero warnings**. `synth` never hand-writes wire bytes
   around a builder. **Who did the proving matters, and it is not the same answer for every format:
   see [Who checks the output, and who does not](#who-checks-the-output-and-who-does-not) below.**
 - **Synthetic-by-construction.** There is no code path that can emit a name, identifier, date, phone,
@@ -199,7 +198,7 @@ measured.
 
 ## Coverage, and what is deferred
 
-The spec-clean generation core is **feature-complete across all six formats**. Quirk mode and the
+The generation core is **feature-complete across all six formats**. Quirk mode and the
 `deid` pairing loop ship for a subset; the honest gaps:
 
 - **Vendor-quirk mode** ships for the three richest profile systems: **HL7 v2, C-CDA, ASTM**. Quirk
