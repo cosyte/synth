@@ -10,7 +10,7 @@
 > Deterministic, seedable **synthetic healthcare-fixture generator** for Node.js and TypeScript:
 > spec-clean by construction, and **never real PHI**.
 
-`@cosyte/synth` generates reproducible synthetic test corpora across the six cosyte formats (HL7 v2,
+`@cosyte/synth` generates reproducible synthetic test corpora across the six Cosyte formats (HL7 v2,
 FHIR R4 / US Core, C-CDA, X12, NCPDP, and ASTM). It is a **consumer** of the
 cosyte parsers, not a parser: it builds each artifact **through the parser's own builder/serializer**
 (so the output is spec-clean by the same mechanism the parser proves) and draws every identifier, name,
@@ -337,7 +337,7 @@ isSyntheticNpi(safe.npi(rng)); // true, always a deliberately-invalid-Luhn NPI (
 - **Deterministic**, a hand-rolled seeded PRNG (`sfc32`/`splitmix32`); `Math.random` is lint-banned.
   A seed, and only the seed, determines the output, byte-for-byte, anywhere.
 - **Immutable**, generated artifacts and the `Corpus` result are deep-frozen.
-- **Zero third-party runtime dependencies**, the parser peers are first-party cosyte packages,
+- **Zero third-party runtime dependencies**, the parser peers are first-party Cosyte packages,
   vendored for dev/test; dual ESM + CJS, validated with `attw`.
 
 ## License
