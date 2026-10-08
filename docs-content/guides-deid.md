@@ -95,4 +95,4 @@ DEID_LOOP_SKIPPED.map((s) => s.format); // => ["ncpdp-script", "astm", "dicom"]
 
 `@cosyte/deid` ships no NCPDP **SCRIPT** or **ASTM** adapter, and `synth` does not generate **DICOM**,
 so those pairings are deferred until the adapters exist. Optional **Synthea** clinical-content ingestion
-(re-serializing Synthea's coherent records through the cosyte parsers) is a documented future concern.
+(re-serializing Synthea's coherent records through the Cosyte parsers) is a documented future concern.

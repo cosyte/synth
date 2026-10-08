@@ -207,14 +207,15 @@ The generation core is **feature-complete across all six formats**. Quirk mode a
 - **The `deid` pairing loop** ships for **HL7 v2, FHIR, C-CDA, X12, and NCPDP Telecom**. NCPDP
   **SCRIPT**, **ASTM**, and **DICOM** pairing are deferred (no adapter, or not generated:
   `DEID_LOOP_SKIPPED` names each).
-- **Format-specific gaps flagged, never faked:** the X12 **270** request (no `build270` upstream) and
-  NCPDP **SCRIPT lifecycle responses** are not generated, a gap is surfaced, never hand-written.
+- **Format-specific gaps flagged, never faked:** the X12 **270** request (`@cosyte/x12` ships
+  `build270` from 0.1.0; `synth` does not use it yet) and NCPDP **SCRIPT lifecycle responses** are not
+  generated, a gap is surfaced, never hand-written.
 - **Built-in `synth` profiles.** `defineSynthProfile()` is the public growth-loop hook, and
   ready-made quirk profiles ship for the three quirk formats; broader **named site/vendor** recipes
   stay **consumer-authored** until a public spec grounds a built-in one (the same public-only
   discipline the parsers hold).
 - **Optional Synthea clinical-content ingestion** (re-serialize Synthea's coherent records through the
-  cosyte parsers) is a **documented future concern**, not a v1 promise.
+  Cosyte parsers) is a **documented future concern**, not a v1 promise.
 
 ### US Core 6.1.0 profile coverage
 
@@ -271,8 +272,7 @@ refusedCode; // => "SYNTH_PROFILE_NOT_GENERATED"
 
 - **The library is MIT.** Third-party **runtime** dependencies are **zero**; the parser and `deid`
   peers are first-party, optional, and lazily loaded per format.
-- **HIPAA-capable, not HIPAA-compliant**, and here that framing is nearly vacuous, because there is no
-  real PHI: `synth`'s entire output _looks like_ PHI and contains none, by construction. Every value
+- **No real PHI.** `synth`'s entire output _looks like_ PHI and contains none, by construction. Every value
   it emits is drawn from the sources in the floor table above, and a `phi-scan` gate sweeps this project's own
   sources, fixtures and tooling on every change. You can commit and log a generated corpus without a
   PHI review of its contents: that is the whole point.

@@ -6,7 +6,7 @@ sidebar_position: 1
 
 # Core Concepts
 
-`@cosyte/synth` borrows the cosyte parser archetype's _disciplines_ (immutability, stable typed codes,
+`@cosyte/synth` borrows the Cosyte parser archetype's _disciplines_ (immutability, stable typed codes,
 the profile system) but its central reflex is neither the parser's liberal parse nor a fail-closed
 de-identifier: it is **synthetic-by-construction**.
 

@@ -70,7 +70,7 @@ failure.
 
 ## Deferred
 
-- The **270** eligibility _request_: `@cosyte/x12` ships a `build271` but no `build270` (the 270 is only
-  read, as the echoed trace on a 271). `synth` never hand-writes bytes around a missing builder, so 270
-  generation lands when `@cosyte/x12` grows `build270`.
+- The **270** eligibility _request_: `@cosyte/x12` ships `build270` from 0.1.0, but `synth` does not
+  generate a 270 yet. `synth` builds every artifact through the parser's own builder or serializer and
+  never hand-writes the bytes.
 - **Vendor-quirk mode** (deliberately off-spec fixtures) is deferred for X12.

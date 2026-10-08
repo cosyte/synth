@@ -79,7 +79,8 @@ it. The standing rule is **relocate, never delete**: every paragraph below cost 
     identity-dense synthetic-safety invariant: NPIs carry a **deliberately-invalid Luhn** check digit
     (never a real NPI), provider tax ids are 900-range SSNs at `REF*SY`, member ids are synthetic-AA
     scoped. The `phi-scan` gains X12-aware structured detection (NM1/PER/REF loci; a Luhn-valid NPI is a
-    hard hit). **Deferred: the 270 request (`@cosyte/x12` ships no `build270`).** Quirk mode is Phase 7.
+    hard hit). **Deferred: the 270 request (`@cosyte/x12` ships `build270` from 0.1.0; no 270
+    generator yet).** Quirk mode is Phase 7.
 
 ### NCPDP (SYNTH-7)
 
