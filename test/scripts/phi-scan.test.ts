@@ -385,6 +385,14 @@ function makeRoot(entries: readonly string[] = []): string {
   git(root, ["init", "-q", "-b", "main"]);
   git(root, ["config", "user.email", "fixture@example.com"]);
   git(root, ["config", "user.name", "fixture"]);
+  // NO AUTO-MAINTENANCE, so nothing outlives the commit below. Left on, `git commit`
+  // starts a DETACHED `git maintenance run --auto`, which holds
+  // `.git/objects/maintenance.lock` and unlinks it after the commit has returned. The two
+  // tests that delete `.git` do it straight after this commit, and when that unlink lands
+  // inside `rmSync`'s walk, `rmSync` returns without throwing and leaves most of `.git` on
+  // disk. The scanner then reads this root's own index and prints OK, which is how
+  // "REFUSES all-mode outright" went red on CI with no change to the scanner.
+  git(root, ["config", "maintenance.auto", "false"]);
   git(root, ["add", "-A"]);
   git(root, ["commit", "-q", "-m", "base"]);
   return root;
@@ -958,6 +966,9 @@ describe("phi-scan: all-mode reconciles what it walked against what git tracks",
     // about arriving through the back door.
     const r = withRoot([], (root) => {
       rmSync(join(root, ".git"), { recursive: true, force: true });
+      // The premise is checked, not assumed: `rmSync` can return with `.git` still on disk
+      // (see `makeRoot`), and a scanner that then reads it is right to say OK.
+      if (existsSync(join(root, ".git"))) throw new Error("the fixture still has a .git");
       return runScannerIn(root, [], { GIT_CEILING_DIRECTORIES: tmpdir() });
     });
     expect(r.code, `stdout: ${r.stdout}`).toBe(2);
@@ -2194,8 +2205,10 @@ function withToctouRoot<T>(
     // options are SUBTRACTIONS from that rather than additions to a bare directory.
     // `git: false` takes the repository away; `track: false` empties the INDEX while
     // leaving the working tree alone, which is the state a removed index really has.
-    if (!opts.git) rmSync(join(root, ".git"), { recursive: true, force: true });
-    else if (opts.track === false) git(root, ["rm", "-r", "--cached", "-q", "."]);
+    if (!opts.git) {
+      rmSync(join(root, ".git"), { recursive: true, force: true });
+      if (existsSync(join(root, ".git"))) throw new Error("the fixture still has a .git");
+    } else if (opts.track === false) git(root, ["rm", "-r", "--cached", "-q", "."]);
     const shim = shimDirRunning(pre(root));
     shims.push(shim);
     return fn(root, shim);
