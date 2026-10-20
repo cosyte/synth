@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    # The nightly run on main, 05:43 UTC. An odd minute: GitHub delays scheduled runs at the start of every hour.
+    - cron: "43 5 * * *"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,10 +32,17 @@ jobs:
   # for why the widening is all-mode only.
   # The scanner is a floor, not the whole gate: the property suites are the real proof (see the
   # header of scripts/phi-scan.ts).
+  #
+  # actionlint is skipped on the nightly `schedule` run, and only there. The shared pipeline runs it
+  # through reviewdog, which reads the repository's owner and name from the event payload. A
+  # `schedule` payload carries no `repository`, so reviewdog posts to `repos///check-runs`, gets a
+  # 404 and fails the job (reviewdog/reviewdog issues 832 and 1263, open). The workflow files change
+  # only by a push, and every push, pull request and manual run still lints them.
   ci:
     uses: cosyte/.github/.github/workflows/ci.yml@main
     with:
       run-phi-scan: true
+      run-actionlint: ${{ github.event_name != 'schedule' }}
 
   # ── THE ORACLE GATE ──────────────────────────────────────────────────────────────────────────
   #
