@@ -1,299 +1,59 @@
-# @cosyte/synth: Project Guide for Claude
+# @cosyte/synth
 
-> **The long-form record is `documentation/agent-notes.md`**: the shipped-phase histories, the
-> per-incident narratives and the measured evidence behind every one-line rule here, **relocated
-> verbatim, not deleted** (meta-repo ADR 0023, amendment 2026-08-04). This file is always-read and
-> every worker pays for it; that one is read on demand. A pointer written `notes#<section>` below names
-> that section: **read it before you touch the thing the rule guards**, and when you refute
-> something, correct it _there_ and keep the one-line rule here pointing at it.
+A deterministic, seedable generator of synthetic healthcare fixtures (HL7 v2, FHIR R4 / US Core,
+C-CDA, X12, NCPDP, ASTM) for Node.js. Tooling, not a parser: each format is built through its
+sibling `@cosyte/*` parser's builder (optional peers, vendored in `vendor/`), so a seed gives the
+same bytes on the same parser versions. Public, MIT, on npm, zero runtime dependencies.
 
-## Project
+## Gate
 
-**`@cosyte/synth`**: a deterministic, seedable **synthetic healthcare-fixture generator** for
-Node.js/TypeScript, published under the Cosyte brand. Open-source (MIT). It is a **consumer** of the
-sibling `@cosyte/*` parsers, **not a parser**: it builds artifacts _through_ each parser's own
-builder/serializer (spec-clean by construction) and draws every value from a guaranteed-non-colliding
-synthetic source. See the roadmap `operations/roadmaps/synth.md` in the meta-repo.
+From the repo root, in order; comments name the workflow. The `pnpm` on PATH must be pnpm 10
+(`packageManager`): tests call `pnpm build`, and pnpm 12 refuses this repo. If `pnpm --version` is
+not 10, run `corepack enable --install-directory <dir> pnpm` and put `<dir>` first on PATH.
 
-**North star:** a developer writes `generateAdt({ seed: 12345 })` and gets a structurally-valid HL7 v2
-message whose every identifier/name/date is provably synthetic and which round-trips through
-`@cosyte/hl7` with zero warnings, and the _same seed_ on any machine yields the _byte-identical_
-message. The central reflex is neither the parser's liberal parse nor a de-identifier's fail-closed:
-it is **synthetic-by-construction**: no code path can emit a value not drawn from a reserved range or
-the shipped fake-name pool. It borrows the archetype's _disciplines_ (immutability, stable typed codes,
-the profile system) but its correctness is round-trip fidelity + seed-determinism + synthetic-safety,
-not wire tolerance. **It is a format/conformance generator, NOT a clinical simulator (that is Synthea).**
+```sh
+pnpm install --frozen-lockfile
+pnpm typecheck && pnpm lint && pnpm format:check   # ci.yml, the shared cosyte/.github ci.yml
+pnpm phi-scan                 # ci.yml; the pre-commit hook runs `pnpm phi-scan --staged`
+pnpm test && pnpm test:coverage && pnpm build && pnpm attw   # ci.yml; coverage floor 90%
+pnpm examples && pnpm smoke   # ci.yml examples job, smoke.yml
+pnpm check:install            # install.yml: packs this tree and installs it (needs the network)
+pnpm check:test-selection     # test-selection.yml
+pnpm run determinism:digest && pnpm run check:determinism-window   # ci.yml, Node 22 and 24
+pnpm run acquire:oracle && pnpm run oracle   # ci.yml oracle job: needs `java` and the network
+pnpm check:no-emdash && pnpm check:no-internal-refs   # no-emdash.yml, no-internal-refs.yml
+actionlint                    # on PATH here; CI runs it through reviewdog
+```
 
-## Status
+Only CI runs the shared prepublish checks and CodeQL. `no-emdash.yml` also reads the PR title, body
+and commits: check yours with `pnpm check:no-emdash --stdin pr < body.md` before pushing.
 
-- **Phases 1–9 shipped (SYNTH-1 … SYNTH-11): the roadmap is complete.** Pre-alpha `0.0.x`. All six
-  formats have spec-clean generators built through their sibling parser's own builder (HL7 v2, FHIR
-  R4/US Core, C-CDA R2.1, X12 005010, NCPDP SCRIPT + Telecom, ASTM E1394/E1381), plus vendor-quirk
-  mode for HL7 v2/C-CDA/ASTM and the `@cosyte/deid` pairing loop. Per-format public surface, what
-  each is built through, and **every DEFERRED item** (X12 270; SCRIPT lifecycle responses;
-  FHIR/X12/NCPDP quirks; NCPDP-SCRIPT/ASTM/DICOM deid pairing; Synthea ingestion):
-  `notes#status-the-shipped-roadmap-in-full` (per-format subsections `notes#hl7-v2` through
-  `notes#astm-synth-8`).
-- **Never quote a version here as the CURRENT one**, `npm view @cosyte/synth version` is the only
-  source of truth; a number written into this file is stale on the next release. The one exception is
-  a DATED MEASUREMENT, like the one immediately below: it records the version a check actually
-  installed on a named day, and a dated fact does not go stale because it never claimed to be current.
-- **A CONSUMER INSTALL SUCCEEDED, MEASURED ON 2026-08-30, AND A CHECK RE-RUNS IT**: `pnpm
-check:install`, `--mode=pack` per pull request and `--mode=registry` per release, where an
-  unreachable registry or a missing version is a **FAILURE**, never a skip. **NEVER WRITE THE
-  INSTALL UP AS RESOLVED BY REASONING: A DATED MEASUREMENT PLUS ITS CHECK IS THE ONLY THING THAT MAY
-  BE WRITTEN HERE**, and `peerDependenciesMeta` is not an argument in either direction. What was
-  measured, and the readings that stay RETRACTED: `notes#the-consumer-install-and-the-check-that-re-runs-it`.
-- The repo is **already public** (still a non-waived act as **policy**, but not an outstanding item
-  of **state**) and `npm publish` is covered by the standing waiver. **Publish state and visibility
-  are independent: never infer one from the other, in either direction.**
-- The six parsers **and `@cosyte/deid`** are **optional peer deps**, vendored for dev/test via the
-  `mllp` pattern (`vendor/*.tgz`). **Third-party runtime deps stay at 0.** Refresh recipe, and the
-  `peerDependencies` entry `pnpm remove` strips:
-  `notes#optional-peer-deps-and-how-to-refresh-a-vendored-tarball`.
+## Hazard
 
-## Synthetic-safety and PHI discipline (why this package exists)
+Everything here is synthetic, so the risk is not leaking PHI but emitting a value realistic enough
+to pass for real, or one a real person holds. Identifiers come only from reserved ranges or the
+shipped name pool: NPIs that fail Luhn, DEAs that fail their checksum, SSNs outside SSA-issued and
+IRS ITIN ranges (#52), `555-01xx` phones, `example.*` domains, TEST-NET addresses. Never make one
+valid: a Luhn-valid NPI or checksum-valid DEA in output is a `pnpm phi-scan` hit.
 
-Correctness here is round-trip fidelity + seed-determinism + **synthetic-safety**. These are the
-traps a fixture generator gets wrong exactly once.
+## Rules (each cites the cosyte/synth PR that paid for it)
 
-- **No code path may emit a value not drawn from a reserved range or the shipped fake-name pool.**
-  900-range SSNs, a **deliberately-invalid-Luhn** NPI (`safe.npi`), a **deliberately-invalid-checksum**
-  DEA (`safe.dea`), `555-01xx` phones, `example.*` domains, TEST-NET addresses, synthetic-AA-scoped
-  MRN/member/patient ids. Full posture: `docs-content/limitations.md`,
-  `notes#shipped-phases-release-hardening-and-the-generator-core`.
-- **A Luhn-valid NPI or a checksum-valid DEA in output is a HARD `phi-scan` hit**, never "fix" a
-  synthetic identifier so it validates. Per-format scanner arms (X12 NM1/PER/REF; NCPDP SCRIPT
-  `<NPI>`/`<DEANumber>` + Telecom CA/CB/CC/CD/CQ/CY/C2/DB; ASTM P-record fields 3/4/6):
-  `notes#x12-005010-synth-6`, `notes#ncpdp-synth-7`, `notes#astm-synth-8`.
-- **Never hand-write framing, checksums or envelopes, they are the parser's own, never faked.** The
-  ASTM E1381 modulo-256 checksum and `0`–`7` frame numbers come from `composeAstmFrames`, the X12
-  ISA/GS/ST…SE/GE/IEA envelope and HL spine from `@cosyte/x12`'s domain builders, and NCPDP goes
-  through the public typed model + serializer, **never hand-written bytes**. `notes#astm-synth-8`,
-  `notes#x12-005010-synth-6`, `notes#ncpdp-synth-7`.
-- **Never let a builder default supply a wall-clock value.** `buildCcda`'s default
-  `effectiveTime: new Date()` is **always overridden** with a synthetic date or the reproducibility
-  contract silently breaks. `notes#c-cda-r21-synth-5`.
-- **ASTM practice- and laboratory-assigned patient IDs are minted independently and must stay
-  distinct** (`PRA`/`LAB`). `notes#astm-synth-8`.
-- **Code/drug pools stay license-clean**: invented `00000`-labeler NDCs, public LOINC plus invented
-  local codes, US Core validated against real profiles under `test/us-core-profiles/` (BYO, no IG
-  bundled). **No NCPDP or terminology prose is ever bundled.**
-  `notes#fhir-r4--us-core-synth-3--synth-4`.
-- **A quirk deviates structure, never provenance**: `phi-scan` stays **zero** over quirk output.
-  Every quirk is **publicly grounded** (ADR 0018), is a **post-serialize transform** (profile
-  tolerance is parse-side) round-tripping to **exactly one intended warning**, and an unsupported one
-  is a fatal `SYNTH_UNSUPPORTED_QUIRK`. `notes#vendor-quirk-mode-synth-9-phase-7`.
-- **The `deid` pairing loop is CO-VALIDATION, not an independent audit of `@cosyte/deid`.** A
-  surviving sentinel is a hard failure, the over-scrub guard is equally load-bearing, and **never
-  widen the sweep past the former PHI loci** (retained provider identity is drawn from the same
-  synthetic pools and would read as a false survivor).
-  `notes#the-cosytedeid-pairing-loop-synth-10-phase-8`.
-- **`pnpm phi-scan` reads MORE than its three roots, and the two modes do NOT share a scope.**
-  All-mode walks `src`/`test`/`scripts` and then reads every other file git tracks; **`--staged`, the
-  pre-commit half, still narrows to the three roots**. **Write a corpus exemption as a LITERAL PATH,
-  never as a predicate**, and refreshing a `vendor/*.tgz` means editing `BINARY_EXEMPT_PATHS`. **What
-  is unchanged on `--staged` is the ENUMERATION and ONLY that: the allow-list is GLOBAL and
-  route-blind.** **A scan root of the wrong KIND refuses with 2, derived here, not ported.**
-  `notes#the-phi-scan-reads-more-than-its-three-roots`.
-- **A TARGET THE SCAN ENUMERATED AND NEVER READ IS REFUSED (exit 2), NAMED, AND NEVER REPORTED ON**,
-  so **`--allow-fixture` cannot reach exit 0 in any mode**: a logged whole-file bypass is RECORDED and
-  then REFUSED, and the only thing that CLEARS a value is `scripts/phi-allow-list.txt`, which clears
-  it while keeping the file in the sweep. `notes#a-target-enumerated-and-never-read-is-refused`.
-- **Never commit realistic PHI.** A vendor quirk is encoded only when a real de-identified document
-  grounds it, never invented.
-
-## Tech Stack (the shared `@cosyte/*` standard)
-
-This repo inherits the canonical toolchain by depending on the published `@cosyte/*` config packages,
-not by copying files. The source of truth is the meta-repo's `documentation/conventions.md`: this is
-a summary.
-
-- **Language:** TypeScript (strict, full rigor set incl. `noUncheckedIndexedAccess`) via
-  `@cosyte/tsconfig`. **Target ES2023**, `NodeNext`. TypeScript 5.9.x, exact-pinned.
-- **Build:** dual ESM + CJS + `.d.ts` via `tsup` (`@cosyte/tsup-config`); `attw` is a publish gate
-  (per-condition types: `.d.ts` for `import`, `.d.cts` for `require`). The `attw` script is
-  **`node scripts/attw.mjs --profile node16`, not the bare CLI**: see the guardrail below; the CLI
-  reports a wholly-untyped pack as "does not contain types" and **exits 0**.
-- **Node:** **>= 22** (CI matrix 22 + 24).
-- **Package manager:** `pnpm@10`.
-- **Lint/format:** **ESLint 10** + unified `typescript-eslint` (type-checked) via
-  `@cosyte/eslint-config`; Prettier via `@cosyte/prettier-config`. Lint at `--max-warnings=0`.
-- **Testing:** **Vitest 4** + v8 coverage (`@cosyte/vitest-config`), per-directory >= 90 gates; the
-  property-based conformance invariants come from `@cosyte/test-utils` (round-trip, lenient-mode,
-  immutability, warning-code stability), the format-specific arbitraries stay in this repo.
-- **CI/CD:** thin callers of the reusable `cosyte/.github` workflows.
-- **Runtime deps:** **Zero.** Node stdlib only.
-- **License:** MIT.
-
-## Required checks on `main`
-
-One ruleset protects `main`: **`required-checks`, id `19913330`**. **Read the live set back rather
-than trusting any list written down** (`gh api "repos/cosyte/synth/rulesets?includes_parents=true"`):
-a hardcoded list goes stale and it is prose no test can check. Snapshot + why every context is pinned
-to the GitHub Actions app: `notes#the-one-ruleset-that-protects-main`.
-
-- **Extend that one ruleset in place; never add a second for the next gate.** An unpinned required
-  context can be satisfied by any actor with write access posting a commit status of that name,
-  without the workflow ever running. `notes#extend-that-one-ruleset-in-place`.
-- **Never require a context before its workflow has completed on `main`**: every future PR goes
-  PENDING and unmergeable with nothing saying why. `test-selection`, `smoke (22)`/`smoke (24)` and
-  `install (22)`/`install (24)` are deliberately not required yet; read real names off a live check
-  run, never off a workflow's `name:`. `notes#contexts-deliberately-not-required-yet`.
-- **Never rename a required job, and never split a step out of one**: both silently un-require it
-  and leave PRs pending rather than red (why `build` and `smoke` are one job in `smoke.yml`).
-  `notes#things-that-silently-detach-or-hollow-out-a-required-check`.
-- **Never narrow `include` in `vitest.config.ts`.** `pnpm test` takes no path arguments, so that one
-  glob selects everything `ci / verify` runs, and **coverage does not backstop it** (measured over
-  `src/**` only, so dropping every `synthetic-safety.property.test.ts` costs 0% and reds nothing).
-  **For a synthetic-data generator that is the whole safety story.** Gated by
-  `pnpm check:test-selection`. `notes#things-that-silently-detach-or-hollow-out-a-required-check`.
-- **Never replace that gate's exact-match script rule with a parser, and never answer a hole in it
-  with one more spelling**: analysing a shell string is unbounded, and this is the half a refuter
-  broke **three times** in `ncpdp`, each time in the remedy for the last. Its four deliberate shapes,
-  and why **self-test C is NOT covered by self-test A**:
-  `notes#the-test-selection-gate-and-its-four-deliberate-shapes`.
-- **READ THE COUNTS OFF THE GATE, NOT OFF PROSE, AND MOVE THEM WHEN YOU ADD A TEST FILE.**
-  `pnpm check:test-selection` prints watched / name-only / unwatched every run; they have gone stale
-  **twice**. The numbers, and what the gate does **not** reach:
-  `notes#know-the-denominator-and-what-the-gate-does-not-reach`.
-- **Deleting a subpath from `exports` shrinks that gate's headline subject and it stays green**
-  (measured). Not a free escape: it is a breaking change, and `scripts/smoke.mjs` derives its subpath
-  set from the same map and **refuses** on disagreement. Two gates on one map, on purpose.
-  `notes#narrowing-the-published-surface`.
-- **Never require a workflow with no `pull_request` trigger** (`fuzz`, `scorecard`, `release`): it
-  strands every PR forever. `notes#requiring-a-workflow-with-no-pull_request-trigger`.
-- **RE-MEASURE EVERY PORTED SENTENCE AGAINST THIS REPO: the one failure that repeated.** Two of
-  three refuter passes found a false number or a false claim of reach carried over from `ncpdp`/`deid`
-  rather than a hole in the mechanism. **Where a number is asserted, name what produced it; where
-  reach is asserted, bound it to a route actually seeded.**
-  `notes#re-measure-every-ported-sentence-against-this-repo`.
-- **Nothing inside this repository can observe its own ruleset.** Delete it and every test still
-  passes, every gate still prints OK, and this file still says `main` is protected. A ruleset makes a
-  red check block a merge; it does not make the check correct.
-  `notes#nothing-inside-this-repository-can-observe-its-own-ruleset`.
-
-## Engineering Guardrails
-
-- No `any`. No unjustified `as` casts. Use `unknown` and narrow.
-- JSDoc (with `@example`) on every public export: the JSDoc lint rule is an **error** on public
-  exports, so this is enforced, not optional.
-- Immutable by default. Mutation only via explicit methods.
-- No `console.*` in library code. Throw typed errors or return results.
-- Short, testable functions over big parsing blobs.
-- Postel's Law: parser is liberal (lenient default + warnings), serializer is conservative (always
-  emits spec-clean output).
-- Fatal errors only for unrecoverable structural corruption (Tier-3 codes). Everything else is a
-  warning with a stable code + positional context.
-- **No diagnostic takes a value parameter.** `SynthError(code)` is the only error `src/` constructs
-  and its message is a fixed entry in the frozen `SYNTH_FATAL_MESSAGES` table, so a caller string has
-  no position through which to reach `message`, `stack` or a thrown field. **Adding a fatal means
-  adding a registry entry, never a template string.** `notes#no-diagnostic-takes-a-value-parameter`.
-- **Resolve every caller-supplied selector against its closed set** (`resolveKind`/`resolveMix`,
-  `src/select.ts`) at the entry point, before anything is generated. **Not a style rule**: an
-  unresolved selector reached an `err.message`/`err.stack` via a peer builder's `TypeError`, became an
-  `Artifact.kind` and a `manifest.counts` key, and fell out of an exhaustive `switch` as `undefined`.
-  All three were live. `notes#resolve-every-caller-supplied-selector-against-its-closed-set`.
-- **Never claim `SynthError` being the only constructor is the whole guarantee**: `src/` can still
-  surface a runtime `TypeError` or a peer parser's fatal on forwarded input. Harnesses keep
-  `String(w.code)`, never a `message` or snippet; `test/phi/diagnostic-surface.test.ts` carries the
-  proof. `notes#syntherror-being-the-only-constructor-is-not-the-whole-guarantee`.
-- **Read the meta-repo's `documentation/repos/phi-audit.md` before touching that.** **A new safety
-  sentence is worth nothing without a slot in that table behind it.**
-  `notes#the-phi-free-diagnostics-claim`.
-- **▶ `attw` SAYS "does not contain types" AND EXITS 0, SO THE `attw` SCRIPT IS A WRAPPER
-  (`node scripts/attw.mjs --profile node16`), NOT THE BARE CLI.** For a package that ships types that
-  sentence means the declarations were **not in the tarball** (a broken publish reported as a pass),
-  and no `--profile`, `--ignore-rules` or config setting reaches that early return. **The race only
-  supplies the condition**, so the answer is not a lock, a lease or a build queue: the gate must be
-  able to say its own inputs were missing, whatever removed them. `notes#the-attw-false-green-and-why-the-script-is-a-wrapper`.
-- **Do NOT re-derive the exit-0 condition from the shape of the code: three refuter passes corrected
-  it, each in the same direction, and "attw misses subpaths" is the plausible, wrong story.** The
-  residual is a **known limit, filed rather than fixed; weaken the sentence rather than adding a
-  fifth arm.** All three corrections, each with its measurement, and why a correct red explained by a
-  falsehood is worse than it looks: `notes#the-false-green-needs-every-entry-point-untyped-at-once`,
-  `notes#the-first-correction-was-also-wrong-in-the-same-direction`,
-  `notes#missing-is-a-proxy-not-the-key-a-known-limit`.
-- **`scripts/attw.mjs` carries TWO nets that catch different things** (a preflight over the relative
-  paths `package.json` promises, and a post-check on the untyped sentence), both pinned by
-  `test/scripts/attw-gate.test.ts` against the real binary plus a negative control.
-  `notes#the-two-nets-in-scriptsattwmjs`.
-- **The post-check reads a string, so the argument guard is an ALLOW-LIST, NOT A DENY-LIST**:
-  `--profile` and `--no-definitely-typed` forwarded, everything else refused, "harmless" included.
-  **Do not answer a hole in it with a seventh spelling.** The six measured routes, why a deny-list
-  could not hold, and why the `.attw.json` refusal stays separate:
-  `notes#the-argument-guard-is-an-allow-list-not-a-deny-list`.
-- **The seven `file:vendor/*.tgz` devDeps are NOT part of the `attw` story**, `npm pack` emits no
-  `vendor/` and attw does not resolve bare external specifiers. A **stale** vendored tarball makes
-  this gate neither red nor green; a **missing** one is a different thing this sentence does not
-  cover. `notes#the-vendored-tarballs-are-not-part-of-the-attw-story`.
-- Coverage: per-directory >= 90% (lines/branches/functions/statements), enforced by
-  `pnpm test:coverage`.
-
-## Standing disciplines (every change)
-
-Mirrors the three disciplines in the meta-repo's `documentation/conventions.md`, and they bind here too:
-
-1. **Documentation follows code**: a change to the public surface/stack/status isn't done until the
-   docs are: this repo's docs content (`README.md`, `docs-content/`), the meta-repo
-   `documentation/repos/synth.md` (bump its "last verified" date), and the `ecosystem-map.md`
-   status table.
-2. **Version + changelog**: a Changeset (`patch` on the `0.0.x` ladder) per meaningful change.
-   **The changeset summary IS the changelog entry**, and `CHANGELOG.md` is generated output above
-   `## Released before this file was generated`: `.changeset/config.json` names a `changelog`
-   generator, so the release writes the version heading and the entry itself. **Do not hand-edit
-   `CHANGELOG.md`, and never reintroduce a hand-maintained `[Unreleased]` heading**: one stood over
-   this package's whole published history and shipped a tarball calling its own contents unreleased;
-   with generation on, a release prepends ABOVE such a heading, which is worse. Only the H1 may sit
-   above the first heading, and Changesets' Prettier pass stays ON here (derived, not copied):
-   `notes#the-changelog-is-generated-by-the-release`. Gated by
-   `test/scripts/changelog-generation.test.ts`. Renaming a stable warning code is a **breaking
-   change**.
-3. **Crew + knowledgebase loop**, if this parser's public API or warning codes change, flag/update
-   the matching `crew` healthcare skill + the KB product doc.
-4. **No internal project bookkeeping on a public surface** (founder directive, 2026-07-27). What a
-   consumer reads (`README.md`, `docs-content/`, the npm `description`, a release body) says what the
-   software does and what changed; identifiers, phase/wave language, ADR numbers, meta-repo paths and
-   `roadmap §N` citations belong in the changeset, `CHANGELOG.md`, the commit, the PR and the
-   roadmap. It is a **translation** at the boundary, not a deletion: **repair the head of a line you
-   strip an identifier from**. Gated by `pnpm check:no-internal-refs`, which keys on known prefixes
-   (**a new programme prefix must be added by hand**) and catches identifiers, not English sentences
-   about our process, so the reviewer still owns half the rule.
-   `notes#no-internal-project-bookkeeping-on-a-public-surface`.
-
-   **`SYNTH` is BOTH our item prefix AND the marker this package writes into what it generates**
-   (`SYNTH-FAC`, `SYNTH-LIS`, `SYNTH-ANALYZER`, the `SYNTH-`+10-digit NCPDP message id). The
-   separation is the explicit `SYNTHETIC_FIXTURE_TOKEN` list in the gate, never a shape rule.
-   **Never re-key the identifier rule on the `WORD-N` shape**, and never "resync" the prefix list
-   with a sibling's copy without re-reading why `SYNTH` is PRESENT here and ABSENT from `ncpdp`'s.
-   `notes#synth-is-both-our-item-prefix-and-a-marker-in-generated-output`.
-
-   **Four surfaces, three different answers.** Browsable Markdown, npm metadata and `/** */` doc
-   comments are **gated**; string literals are **gated too, and here they matter most: they are the
-   bytes this package emits**; `//` and plain `/* */` comments are **not gated and identifiers are
-   welcome in them**, because the convention says source comments are a place identifiers belong.
-   **Do not justify this boundary from what reaches `dist/`**: effectively all of `src/` does, and
-   two attempts to argue it that way in a sibling repo were false and both caught by a refuter. The
-   line is not what reaches a consumer's disk but what a consumer is **shown**.
-   `notes#four-surfaces-three-different-answers`.
-
-   Two consequences: **removing a doc comment to satisfy the gate is a regression**, not a fix; and
-   **when a stale claim is what carries the phase number, cut the sentence rather than reword it**:
-   rewording leaves a falsehood standing in cleaner clothes. The gate cannot read `dist/`, so it
-   gates the source of the published text, not the published text.
-   `notes#two-consequences-doc-comments-and-stale-phase-claims`.
-
-5. **No em dash, anywhere** (founder directive, 2026-07-24), **including commit messages**. Gated by
-   `pnpm check:no-emdash` over every tracked file, its name, the gate script, and on a PR the title,
-   body and commit messages. Rewrite with a comma, colon, period or **parentheses**; **never
-   re-encode it**. Landed 2026-08-06 with the sweep (1,167 rewrites over 135 files).
-   Full text and the sweep's own traps: `notes#no-em-dash-anywhere`. Two that gate what you change:
-   - **The job is deliberately NOT a required context**: it reads the PR body, and Dependabot pastes
-     the dependency's upstream release notes there. **Keep the exemption and its written reason, and
-     never answer it with an actor `if:` on a required context** (that leaves the check PENDING, not
-     red). **PR text is also the half no local hook can see, so check your own before you push.**
-   - **Do not simplify two deliberate shapes.** The binary partition is a **declaration**
-     (`git check-attr binary`, refused outside `vendor/`), never a NUL test and never `grep -I`,
-     because a real UTF-8 source here holds a NUL and carried 14. And `CHANGELOG.md` is scanned
-     **above** `## Released before this file was generated` rather than excluded, the archive below
-     being a dated ship-log (128 deliberate survivors, and it fails closed).
+- A fatal is `SynthError(code)` with its text in `SYNTH_FATAL_MESSAGES`, never built from a value;
+  resolve caller selectors with `resolveKind` / `resolveMix` first: one reached `err.message` (#29).
+- A package change adds `.changeset/<slug>.md`. Never edit `CHANGELOG.md` or add `[Unreleased]`:
+  the release writes it, and 0.0.1 to 0.0.7 shipped one with no version headings (#45).
+- Never hand-edit `VERSION` in `src/index.ts`: `scripts/sync-version.mjs` sets it at release (#39).
+- `pnpm attw` is `scripts/attw.mjs`. Never use bare `attw` or add flags beyond `--profile` and
+  `--no-definitely-typed`: bare attw exits 0 on a pack with no types (#36).
+- Never narrow `include` in `vitest.config.ts` or edit the `test` / `test:coverage` scripts: #25
+  showed that drops the synthetic-safety suites with CI green. Stage a new test file before
+  `pnpm check:test-selection`: it reads only tracked files.
+- Clear a flagged synthetic name or address with one exact `scripts/phi-allow-list.txt` entry
+  (`NAME`, `EMAIL`; `EMAILDOMAIN` only for a reserved domain, #49). `--allow-fixture` exits 2 (#61).
+- A parser bump can change bytes with this package unchanged (#67). After refreshing a vendored
+  tarball, run `pnpm test` and `pnpm run determinism:digest`, and update `BINARY_EXEMPT_PATHS` in
+  `scripts/phi-scan.ts`. A moved determinism baseline is a breaking change.
+- No item ids, phase names or internal paths in what a consumer reads: `README.md`, `docs-content/`,
+  the npm `description`, `src/` doc comments and strings. Its gate sees ids, not prose (#18).
+- Say a thing works or is covered only after running it or reading the workflow's steps, and
+  re-measure claims ported from sibling repos: #25, #55 and #67 each corrected a reasoned claim.
