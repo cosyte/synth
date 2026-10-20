@@ -19,7 +19,7 @@ pnpm test && pnpm test:coverage && pnpm build && pnpm attw   # ci.yml; coverage 
 pnpm examples && pnpm smoke   # ci.yml examples job, smoke.yml
 pnpm check:install            # install.yml: packs this tree and installs it (needs the network)
 pnpm check:test-selection     # test-selection.yml
-pnpm run determinism:digest && pnpm run check:determinism-window   # ci.yml, Node 22 and 24
+pnpm run determinism:digest && pnpm run check:determinism-window   # ci.yml; digest on 22 and 24
 pnpm run acquire:oracle && pnpm run oracle   # ci.yml oracle job: needs `java` and the network
 pnpm check:no-emdash && pnpm check:no-internal-refs   # no-emdash.yml, no-internal-refs.yml
 actionlint                    # on PATH here; CI runs it through reviewdog
