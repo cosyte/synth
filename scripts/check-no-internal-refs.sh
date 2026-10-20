@@ -580,8 +580,8 @@ RULE_COUNT=6
 # maintainer reads stays internal.
 #
 # REMOVING A DOC COMMENT TO SATISFY THIS PASS IS A REGRESSION, NOT A FIX. JSDoc with an
-# `@example` on every public export is a hard guardrail in CLAUDE.md and the JSDoc lint
-# rule is an error, but neither lint nor coverage notices prose deleted from the middle of
+# `@example` on every public export is a hard guardrail and the JSDoc lint rule is an
+# error, but neither lint nor coverage notices prose deleted from the middle of
 # a block. Rewrite the sentence to say what the software does.
 SRC_RULE_NAME[0]="${RULE_NAME[0]}"; SRC_RULE_PATTERN[0]="${RULE_PATTERN[0]}"
 SRC_RULE_NAME[1]="${RULE_NAME[1]}"; SRC_RULE_PATTERN[1]="${RULE_PATTERN[1]}"

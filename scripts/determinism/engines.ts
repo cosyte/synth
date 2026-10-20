@@ -75,9 +75,9 @@
  * WHAT THIS READER CANNOT SEE, STATED RATHER THAN IMPLIED. This is a TEXT SCAN over one file, and
  * "actually runs" is a property of a run, not of a file. It CAN see the routes above. It CANNOT
  * see: a required-status-check ruleset that stopped requiring these contexts (nothing inside this
- * repository can observe its own ruleset, and the same sentence is already in CLAUDE.md for the
- * same reason); a `runs-on:` label no runner ever answers, which leaves a job queued rather than
- * red; an organisation or repository setting that disables Actions entirely; a re-usable workflow
+ * repository can observe its own ruleset, as documentation/agent-notes.md also records); a
+ * `runs-on:` label no runner ever answers, which leaves a job queued rather than red; an
+ * organisation or repository setting that disables Actions entirely; a re-usable workflow
  * or composite action reached from here whose own contents are elsewhere; or a `pnpm run
  * determinism:digest` whose SCRIPT was redefined in `package.json` to do nothing. The last of those
  * is what `test/determinism/` and `pnpm check:test-selection` are for.
