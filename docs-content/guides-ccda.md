@@ -2,6 +2,7 @@
 id: guides-ccda
 title: C-CDA (CCD / Referral Note)
 sidebar_position: 4
+description: "Generate C-CDA R2.1 documents (a CCD and a Referral Note) through @cosyte/ccda's builder."
 ---
 
 # Generate C-CDA documents

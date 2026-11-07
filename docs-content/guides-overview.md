@@ -2,6 +2,7 @@
 id: guides-overview
 title: Guides
 sidebar_position: 1
+description: "What each guide covers, one per format, plus vendor-quirk fixtures and the @cosyte/deid pairing loop."
 ---
 
 # Guides
@@ -9,7 +10,7 @@ sidebar_position: 1
 Task-oriented recipes ("how do I X?") for `@cosyte/synth`. Each guide is a short, copy-pasteable answer
 to one real fixture-generation question.
 
-> **Status:** the seeded-PRNG core, the synthetic-safety providers and the round-trip harness ship,
+> **Status:** the seeded-PRNG core, the synthetic-safety providers, and the round-trip harness ship,
 > alongside the HL7 v2 message set (`ADT`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`); FHIR R4 /
 > US Core (see the [FHIR guide](./guides-fhir)); C-CDA generation (CCD + Referral Note via
 > `@cosyte/ccda`'s `buildCcda`, the [C-CDA guide](./guides-ccda)); X12 005010 (837P/I/D, 835, 271 via

@@ -2,6 +2,7 @@
 id: troubleshooting
 title: Troubleshooting
 sidebar_position: 1
+description: "Why output can change between runs, a missing parser package, an unsupported request, and whether generated output is safe to commit and log."
 ---
 
 # Troubleshooting

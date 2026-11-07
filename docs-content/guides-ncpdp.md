@@ -2,6 +2,7 @@
 id: guides-ncpdp
 title: NCPDP (SCRIPT / Telecom)
 sidebar_position: 6
+description: "Generate NCPDP SCRIPT prescriptions and Telecom claims through @cosyte/ncpdp's builders."
 ---
 
 # Generate NCPDP messages

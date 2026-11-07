@@ -2,9 +2,10 @@
 id: concepts-archetype
 title: Core concepts
 sidebar_position: 1
+description: "What every fixture promises: synthetic by construction, checked by its own parser, the same bytes for the same seed, immutable, and stable fatal codes."
 ---
 
-# Core Concepts
+# Core concepts
 
 `@cosyte/synth` borrows the Cosyte parser archetype's _disciplines_ (immutability, stable typed codes,
 the profile system) but its central reflex is neither the parser's liberal parse nor a fail-closed
