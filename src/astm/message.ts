@@ -7,7 +7,7 @@
  *
  * A framed **E1381 / CLSI LIS01** variant is also offered ({@link generateAstmResultFramed}) via
  * `composeAstmFrames`, which frames each record into `<STX> FN text <ETB|ETX> CS <CR><LF>` with the
- * **modulo-256 checksum and the `0`–`7` frame number computed by the parser**, never faked. Both round
+ * **modulo-256 checksum and the `0` to `7` frame number computed by the parser**, never faked. Both round
  * trip through `@cosyte/astm` cleanly (`parseAstmRecords` / `parseFramedAstm`: see `./round-trip`).
  *
  * Every value at a PHI-bearing locus (the `P` record's name / DOB / practice+lab IDs) is
@@ -33,7 +33,7 @@ import { EXAMPLE_ASTM_TESTS, ASTM_ABNORMAL_FLAGS, ASTM_COMMENT_TEXT } from "./ex
 export interface GenerateAstmOptions {
   /** The seed (deterministic: same seed yields a byte-identical message). */
   readonly seed: number;
-  /** How many `R` (result) records to emit. Defaults to a seeded 1–4. */
+  /** How many `R` (result) records to emit. Defaults to a seeded 1 to 4. */
   readonly resultCount?: number;
   /** Whether to append a `C` (comment) record after the results. Defaults to `true`. */
   readonly comment?: boolean;
@@ -140,7 +140,7 @@ export function generateAstmOrder(options: GenerateAstmOptions): string {
 /**
  * Generate a spec-clean **framed** ASTM result message: the same `H`/`P`/`O`/`R`…/`C`/`L` records,
  * wrapped in the **E1381 / CLSI LIS01** frame envelope (`<STX> FN text <ETB|ETX> CS <CR><LF>`) via
- * `@cosyte/astm`'s `composeAstmFrames`. The **modulo-256 checksum and the `0`–`7` frame number are
+ * `@cosyte/astm`'s `composeAstmFrames`. The **modulo-256 checksum and the `0` to `7` frame number are
  * computed by the parser** (never hand-written), and a record over 240 bytes is split across frames,
  * so the bytes round-trip through `parseFramedAstm` with zero frame **and** record warnings (see
  * `./round-trip`). Each record is framed independently (one `ETX`-closed run per record), mirroring what

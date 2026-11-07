@@ -55,7 +55,7 @@ export function generateVxu(options: GenerateVxuOptions = {}): Hl7Message {
 
   const vaccine = rng.pick(EXAMPLE_VACCINES);
   const administeredAt = seededTimestamp(rng);
-  const doseAmount = String(rng.int(1, 5) / 10); // 0.1–0.5 mL, structural only
+  const doseAmount = String(rng.int(1, 5) / 10); // 0.1 to 0.5 mL, structural only
 
   message.addSegment("RXA", [
     "0", // RXA-1 give sub-id counter

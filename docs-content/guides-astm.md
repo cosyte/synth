@@ -17,7 +17,7 @@ The surface covers both layers:
   so the `H|\^&` delimiter declaration, the record type letters, the per-type sequence counters, and the
   `L` terminator are the parser's own conservative emit, never a hand-written byte.
 - **Framing (E1381)**: `generateAstmResultFramed` wraps the same records in the
-  `<STX> FN text <ETB|ETX> CS <CR><LF>` frame envelope, with the **modulo-256 checksum and the `0`–`7`
+  `<STX> FN text <ETB|ETX> CS <CR><LF>` frame envelope, with the **modulo-256 checksum and the `0` to `7`
   frame number computed by `@cosyte/astm`**, never faked.
 
 Every value at the `P` (patient) record (the name, birthdate, and the practice- and laboratory-assigned

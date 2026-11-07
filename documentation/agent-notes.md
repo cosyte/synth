@@ -13,7 +13,7 @@ it. The standing rule is **relocate, never delete**: every paragraph below cost 
 
 ### Shipped phases, release hardening, and the generator core
 
-- **Phases 1–9 shipped (SYNTH-1 … SYNTH-11): the roadmap is complete.** Pre-alpha `0.0.x`, and
+- **Phases 1 to 9 shipped (SYNTH-1 … SYNTH-11): the roadmap is complete.** Pre-alpha `0.0.x`, and
   **published to npm** (verify with `npm view @cosyte/synth version`; this line deliberately does not
   name the number, which is stale by construction on the next release). The repo is **already public**
   (`gh repo view cosyte/synth --json visibility`), so neither founder gate is still pending: flipping a
@@ -103,7 +103,7 @@ it. The standing rule is **relocate, never delete**: every paragraph below cost 
   - **ASTM (SYNTH-8)** at the `@cosyte/synth/astm` subpath: E1394 record reports (`generateAstmResult`
     = `H`/`P`/`O`/`R`…/`C`/`L`; `generateAstmOrder` = `H`/`P`/`O`/`L`) built through `@cosyte/astm`'s
     `buildAstmMessage`, and the E1381-**framed** twin (`generateAstmResultFramed`) via `composeAstmFrames`
-    (the modulo-256 checksum + `0`–`7` frame numbers are the parser's own, never faked), plus `astmCorpus`,
+    (the modulo-256 checksum + `0` to `7` frame numbers are the parser's own, never faked), plus `astmCorpus`,
     the `astmRoundTrip`/`astmFramedRoundTrip` harnesses, the `astmPatient`/`astmOrder`/`astmHeaderIdentity`
     identity minters, and a license-clean `EXAMPLE_ASTM_TESTS` pool (public LOINC + invented local codes;
     no terminology prose bundled). Each message round-trips through `@cosyte/astm` with zero warnings,

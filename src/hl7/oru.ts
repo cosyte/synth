@@ -49,7 +49,7 @@ function obxSegment(rng: Rng, setId: number): readonly (string | RawField)[] {
 /**
  * Generate a spec-clean `ORU^R01` {@link Hl7Message} through `@cosyte/hl7`. Deterministic in `seed`.
  *
- * Layout: MSH, `PID` (synthetic identity), `OBR` (order/observation request), and 1–3 `OBX` result
+ * Layout: MSH, `PID` (synthetic identity), `OBR` (order/observation request), and 1 to 3 `OBX` result
  * rows. The `OBR`/`OBX` result group satisfies the parser's `ORU^R01` structure net, so the message
  * re-parses with **zero warnings** (proven by {@link ./round-trip}).
  *

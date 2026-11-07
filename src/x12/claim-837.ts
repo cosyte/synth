@@ -147,7 +147,7 @@ function dentalLine(
   return { line, charge };
 }
 
-/** Build one claim of the given variant with 1–2 service lines; `totalCharge` = Σ line charges. */
+/** Build one claim of the given variant with 1 to 2 service lines; `totalCharge` = Σ line charges. */
 function claimOf(rng: Rng, variant: Claim837Variant, serviceDate: string): Build837ClaimSpec {
   const lineCount = rng.int(1, 2);
   const built = Array.from({ length: lineCount }, () => {

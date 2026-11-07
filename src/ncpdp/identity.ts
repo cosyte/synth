@@ -175,7 +175,7 @@ export interface NcpdpScriptRouting {
 
 /**
  * Mint a seeded SCRIPT routing bundle. The timestamp is drawn from the seeded generator in a recent
- * window (2024–2026) so a message reads current while staying byte-reproducible.
+ * window (2024 to 2026) so a message reads current while staying byte-reproducible.
  *
  * @param rng - The seeded generator.
  * @returns A synthetic {@link NcpdpScriptRouting}.

@@ -1298,10 +1298,10 @@ function buildTargetsForStaged(): Target[] {
 
 /**
  * Whether a 9-digit SSN (dashes optional) is drawn from an SSA never-issued / reserved space: area
- * `000`, `666`, or `900–999`. This is the one place a *synthetic-data generator's* PHI gate must
+ * `000`, `666`, or `900` to `999`. This is the one place a *synthetic-data generator's* PHI gate must
  * differ from a parser's: `synth` legitimately emits `900-xx-xxxx` never-issued SSNs and a fixed
  * `987-00-432x` display block, and those are *proof of synthetic*, not PHI. A real, issuable SSN
- * (area `001–899`, excluding `666`) is still a hard hit (roadmap §4.1, §4.4).
+ * (area `001` to `899`, excluding `666`) is still a hard hit (roadmap §4.1, §4.4).
  *
  * **This is the SSA half alone, deliberately, and the cost of the other half was measured, not
  * assumed.** A second federal authority issues inside the same `9xx` space (an IRS ITIN is an

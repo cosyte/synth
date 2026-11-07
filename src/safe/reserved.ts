@@ -206,7 +206,7 @@ export function luhnMod10(digits: string): number {
  * <https://www.federalregister.gov/documents/full_text/text/2004/01/23/04-1149.txt>
  *
  * @param base9 - The 9-digit NPI base (positions 1 to 9).
- * @returns The check digit (`0`–`9`) a real NPI would carry for this base.
+ * @returns The check digit (`0` to `9`) a real NPI would carry for this base.
  * @example
  * ```ts
  * import { npiCheckDigit } from "@cosyte/synth";
@@ -258,7 +258,7 @@ export const DEA_REGISTRANT_TYPES: readonly string[] = Object.freeze([
  * `Sources:` list names the issuing authority's own text; this one cannot.
  *
  * @param base6 - The first 6 digits of the DEA number (positions 1 to 6).
- * @returns The check digit (`0`–`9`) a real DEA number would carry for this base.
+ * @returns The check digit (`0` to `9`) a real DEA number would carry for this base.
  * @example
  * ```ts
  * import { deaCheckDigit } from "@cosyte/synth";
