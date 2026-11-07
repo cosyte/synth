@@ -254,11 +254,27 @@ function makeScratch() {
 // ---------------------------------------------------------------------------
 // RUNNING THINGS.
 
+/**
+ * The environment the package managers run in: this process's own, minus the settings `pnpm run`
+ * exports from THIS repository's configuration as `npm_config_*` variables. They are not a
+ * consumer's, and the clean project exists to measure what a consumer gets. Measured on pnpm
+ * 10.34.5: `pnpm run` exports `minimumReleaseAge` (1440) as `npm_config_minimum_release_age` but
+ * not its `@cosyte/*` exemption, so the nested `pnpm add` refused the version this job had just
+ * published as too new to install, an outcome no consumer's default configuration produces.
+ */
+function consumerEnv() {
+  const env = { ...process.env, CI: "1" };
+  for (const key of Object.keys(env)) {
+    if (/^p?npm_config_/i.test(key)) delete env[key];
+  }
+  return env;
+}
+
 function run(cmd, args, cwd) {
   const r = spawnSync(cmd, args, {
     cwd,
     encoding: "utf8",
-    env: { ...process.env, CI: "1" },
+    env: consumerEnv(),
     timeout: 20 * 60 * 1000,
   });
   return {
