@@ -50,7 +50,7 @@ export interface Rng {
    */
   pick<T>(items: readonly T[]): T;
   /**
-   * A string of `n` decimal digits (`0`–`9`), each drawn uniformly.
+   * A string of `n` decimal digits (`0` to `9`), each drawn uniformly.
    *
    * @param n - The number of digits (`>= 0`).
    */

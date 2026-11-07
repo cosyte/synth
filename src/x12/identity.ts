@@ -11,7 +11,7 @@
  * - **NPI**: a deliberately **invalid Luhn** check digit, so it can never be a NPPES-issued NPI
  *   ({@link ../safe/reserved.isSyntheticNpi}).
  * - **provider tax id**: emitted as an SSN (REF*SY) in the SSA **never-issued** 900-range, so it can
- *   never be a real, issuable SSN (900–999 is never assigned as an SSN, the universal synthetic-safe
+ *   never be a real, issuable SSN (900 to 999 is never assigned as an SSN, the universal synthetic-safe
  *   SSN convention).
  * - **name**: the shipped clearly-fake pool; **DOB / dates**: the seeded generator (no real event
  *   implied); **address**: synthetic street + reserved ZIP.
@@ -200,7 +200,7 @@ export interface X12EnvelopeTiming {
 
 /**
  * Mint a seeded envelope timing + control-number bundle. The service/transaction date is drawn in a
- * recent plausible window (2024–2026) so a generated transaction reads like a current one; every value
+ * recent plausible window (2024 to 2026) so a generated transaction reads like a current one; every value
  * is seeded, so the interchange is byte-reproducible.
  *
  * @param rng - The seeded generator.

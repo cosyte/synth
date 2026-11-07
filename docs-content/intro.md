@@ -42,7 +42,7 @@ const message = generateAdt({ seed: 12345, trigger: "A01" });
 roundTrip(message).specClean; // => true
 ```
 
-Every value in that message is provably synthetic: the SSN is never-issued (`900–999` area), the phone
+Every value in that message is provably synthetic: the SSN is never-issued (`900` to `999` area), the phone
 is in the reserved `555-01xx` block, the name is from a clearly-fake pool, and the MRN lives under a
 synthetic assigning authority.
 

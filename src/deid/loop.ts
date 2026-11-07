@@ -320,7 +320,7 @@ export function sweepSurvivors(
  * are probed (a code that appears solely inside a free-text narrative a de-identifier legitimately blocks
  * is not a structured-content loss).
  *
- * Only **distinctive** codes (four or more characters) are probed: a short 2–3 digit code (e.g. a CVX
+ * Only **distinctive** codes (four or more characters) are probed: a short 2- to 3-digit code (e.g. a CVX
  * vaccine code) can appear by coincidence *inside* a PHI value a de-identifier removes: a timestamp, an
  * SSN, and would read as a false over-scrub. Distinctive codes (LOINC `4548-4`, SNOMED `44054006`,
  * 11-digit NDCs, CPT `99213`) do not collide this way. An artifact whose clinical codes are all short

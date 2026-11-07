@@ -224,7 +224,7 @@ import {
 // (so they stay DISTINCT, exactly as @cosyte/astm keeps them on parse).
 astmRoundTrip(generateAstmResult({ seed: 12345 })).specClean; // true, zero warnings, byte-stable
 
-// The E1381-framed twin: the modulo-256 checksum and 0–7 frame numbers are computed by @cosyte/astm.
+// The E1381-framed twin: the modulo-256 checksum and 0 to 7 frame numbers are computed by @cosyte/astm.
 astmFramedRoundTrip(generateAstmResultFramed({ seed: 12345 })).specClean; // true
 
 // Or a reproducible mixed corpus (a result report + an order):

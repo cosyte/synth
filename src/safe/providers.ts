@@ -109,7 +109,7 @@ export function ssn(rng: Rng, block: SsnBlock = "never-issued"): string {
 
 /**
  * A **synthetic phone** in the NANP reserved fictional block: `(AAA) 555-01NN`. The reserved
- * guarantee is the `555-01NN` tail (exchange 555, line 0100–0199); the area code is any NANP-valid
+ * guarantee is the `555-01NN` tail (exchange 555, line 0100 to 0199); the area code is any NANP-valid
  * `NXX`. Can never be a working number.
  *
  * @param rng - The seeded generator.

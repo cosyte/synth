@@ -5,6 +5,11 @@
 # every cosyte surface. Source of truth: `knowledgebase/06-brand/voice-and-tone.md`,
 # which names commit messages explicitly.
 #
+# THE EN DASH (U+2013) IS HELD TO THE SAME RULE, since 2026-11-07: no em or en dashes
+# anywhere, plain hyphens only. Every arm below that matches U+2014 has a U+2013 twin,
+# for the literal character and for every encoded form alike, and the same change swept
+# the en dashes out of the tree.
+#
 # Ported into synth from the sibling `astm` copy, which is the reference form
 # (it carries the interposed-grep fix and the scanner-visibility probe that the
 # older `hl7` copy lacks). Like astm, this gate did NOT arrive on a clean tree:
@@ -17,7 +22,7 @@
 # are one change.
 #
 # The fix is never to re-encode the character: rewrite the sentence with a
-# period, a colon, a comma, or parentheses.
+# period, a colon, a comma, or parentheses, and write a range with "to".
 #
 # Two modes:
 #   check-no-emdash.sh                 scan every tracked file
@@ -41,6 +46,8 @@
 #       NUL-partitioning scan would have skipped all 14 in silence.
 #   (C) `CHANGELOG.md` IS SCANNED ONLY ABOVE ITS ARCHIVE BOUNDARY, because the
 #       text below that boundary is a dated ship-log this repo does not edit.
+#   (D) ONE VERBATIM COPY OF A PUBLISHED STANDARD IS EXCLUDED BY ITS LITERAL PATH:
+#       a US Core profile whose own prose carries the en dash. See VERBATIM_COPIES.
 #
 # Note: this script itself is excluded from the tracked-file scan (it necessarily
 # names the encodings it bans). It matches by codepoint and by encoding, so it
@@ -84,7 +91,10 @@ export LC_ALL=C.UTF-8
 
 # Matches U+2014 as the literal character and as its encodings: %E2%80%94 (URL), both
 # JavaScript backslash-u escapes (the bare and the braced form), and the &mdash; / &#8212; /
-# &#x2014; HTML entities, each with or without its closing semicolon.
+# &#x2014; HTML entities, each with or without its closing semicolon. Matches U+2013 the
+# same way, arm for arm: %E2%80%93, the bare and braced escapes of 2013, and the &ndash; /
+# &#8211; / &#x2013; entities. Each arm names both characters, so neither can be dropped
+# from one arm without the other going with it, and the self-test below seeds both.
 #
 # THE ENTITY ARMS ARE NOT DECORATION. The reference sweep of this rule in
 # `claude-containers` found the gate caught what the hand sweep missed precisely
@@ -120,12 +130,12 @@ export LC_ALL=C.UTF-8
 # keeps it honest: `&#8212;?` alone matches inside `&#82120;` and `&#x2014;?` inside `&#x20145;`,
 # which are different codepoints entirely, and `&mdash;?` matches inside `&mdashboard`. All three
 # were checked as controls alongside the sixteen true spellings.
-PATTERN='\x{2014}|\\u2014|\\u\{0*2014\}|(?i:%E2%80%94|&mdash(?:;|(?![A-Za-z0-9]))|&#0*8212(?:;|(?![0-9]))|&#x0*2014(?:;|(?![0-9A-Fa-f])))'
+PATTERN='[\x{2013}\x{2014}]|\\u201[34]|\\u\{0*201[34]\}|(?i:%E2%80%9[34]|&[mn]dash(?:;|(?![A-Za-z0-9]))|&#0*821[12](?:;|(?![0-9]))|&#x0*201[34](?:;|(?![0-9A-Fa-f])))'
 
 # The literal-only arm, used to scan THIS script (see the self-exclusion note at the
 # bottom). This file must be able to name the encoded forms, but it has no reason to
 # contain the character itself, so the one arm it can be held to is the codepoint.
-LITERAL_PATTERN='\x{2014}'
+LITERAL_PATTERN='[\x{2013}\x{2014}]'
 
 # SELF-TEST: prove the scanner can still MATCH what it is meant to catch before any
 # clean result is believed. `printf` emits U+2014 as its UTF-8 bytes, so this file
@@ -137,13 +147,35 @@ if ! printf 'a\xe2\x80\x94b\n' | grep -qP "$PATTERN"; then
   exit 1
 fi
 
+# The same proof for the en dash, over every spelling the pattern claims, and for the
+# literal arm this script is held to. Each specimen is ASCII; `%b` expands the escapes in
+# it, so the first becomes the character's UTF-8 bytes and a doubled backslash becomes one,
+# and this file never contains the character. A pattern
+# that lost any en dash arm reds here rather than reporting a clean tree.
+for EN_SPECIMEN in 'a\xe2\x80\x93b' 'a%E2%80%93b' 'a%e2%80%93b' 'a\\u2013b' 'a\\u{2013}b' \
+  'a&ndash;b' 'a&ndash b' 'a&#8211;b' 'a&#x2013;b' 'a&#X02013;b'; do
+  if ! printf '%b\n' "$EN_SPECIMEN" | grep -qP "$PATTERN"; then
+    echo "ERROR: check-no-emdash - the scanner cannot match a known en dash spelling" >&2
+    echo "       (specimen '${EN_SPECIMEN}'). An en dash arm is missing from PATTERN, or" >&2
+    echo "       grep -P is unavailable or not in UTF-8 mode (LC_ALL=${LC_ALL})." >&2
+    echo "       Refusing to report a clean tree on a scanner that cannot see." >&2
+    exit 1
+  fi
+done
+if ! printf 'a\xe2\x80\x93b\n' | grep -qP "$LITERAL_PATTERN"; then
+  echo "ERROR: check-no-emdash - the literal arm this script is held to cannot match a" >&2
+  echo "       known en dash. Refusing to report a clean tree on a scanner that cannot see." >&2
+  exit 1
+fi
+
 fail_with_hits() {
   local what="$1" hits="$2"
   echo "$hits" >&2
   echo "" >&2
-  echo "ERROR: check-no-emdash - em dash (U+2014, or an encoded form) found in ${what}." >&2
-  echo "       cosyte never uses em dashes (founder directive; 06-brand/voice-and-tone.md)." >&2
-  echo "       Rewrite with a period, colon, comma, or parentheses." >&2
+  echo "ERROR: check-no-emdash - em dash (U+2014) or en dash (U+2013), or an encoded form," >&2
+  echo "       found in ${what}." >&2
+  echo "       cosyte never uses em or en dashes (founder directive; 06-brand/voice-and-tone.md)." >&2
+  echo "       Rewrite with a period, colon, comma, or parentheses; write a range with 'to'." >&2
   exit 1
 }
 
@@ -231,7 +263,7 @@ if [ "${1:-}" = "--stdin" ]; then
   HITS=$(grep -nP -e "$PATTERN" - 2>>"$ERRLOG" || true)
   refuse_if_incomplete
   [ -n "$HITS" ] && fail_with_hits "$LABEL" "$HITS"
-  echo "check-no-emdash: OK (no em dashes in ${LABEL})"
+  echo "check-no-emdash: OK (no em or en dashes in ${LABEL})"
   exit 0
 fi
 
@@ -264,7 +296,7 @@ cd "$(git rev-parse --show-toplevel)"
 #   wrote down. See the partition block.
 #
 #   KNOWN LIMIT, unchanged from the sibling copies and restated because this repo
-#   generates wire formats. The pattern matches U+2014 as UTF-8 and as the five
+#   generates wire formats. The pattern matches U+2014 and U+2013 as UTF-8 and as the
 #   textual encodings listed with it. It does NOT match an em dash encoded in some
 #   other charset (a CP1252 0x97 fixture, a UTF-16 document). Measured, not assumed:
 #   such a file scans clean and this gate stays GREEN. There is none today (every
@@ -352,8 +384,34 @@ if [ "${#BINARY_PATHS[@]}" -gt 0 ]; then
   for p in "${BINARY_PATHS[@]}"; do echo "  $p"; done
 fi
 
+# ---------------------------------------------------------------------------
+# VERBATIM COPIES OF A PUBLISHED STANDARD, EXCLUDED BY LITERAL PATH (divergence D).
+# ---------------------------------------------------------------------------
+#
+# `test/us-core-profiles/` holds real US Core 6.1.0 StructureDefinitions, committed as
+# published so the FHIR suites validate against the standard itself. We keep copies of a
+# standard byte-faithful, and the file below is a verbatim copy of the published profile
+# whose own prose carries the en dash (two `comment` strings). It is excluded from the
+# CONTENT scan by its literal path, never by a pattern or a directory, so every other file
+# beside it is scanned like any other, and its NAME is still scanned above. A listed path
+# that is no longer tracked refuses, so the list cannot go stale and later cover a file
+# nobody argued for.
+VERBATIM_COPIES=('test/us-core-profiles/us-core-medicationrequest.json')
+for v in "${VERBATIM_COPIES[@]}"; do
+  if ! git --literal-pathspecs ls-files --error-unmatch -- "$v" >/dev/null 2>&1; then
+    echo "ERROR: check-no-emdash - '${v}' is excluded as a verbatim copy of a published" >&2
+    echo "       standard, but it is not tracked. Remove it from VERBATIM_COPIES deliberately," >&2
+    echo "       or restore the file. Refusing to report from a scan whose stated scope no" >&2
+    echo "       longer describes this tree." >&2
+    exit 1
+  fi
+done
+echo "check-no-emdash: excluded from the CONTENT scan (verbatim copy of a published standard, name still scanned):"
+for v in "${VERBATIM_COPIES[@]}"; do echo "  $v"; done
+
 # The text list is every tracked file minus the declared binaries, minus this script,
-# minus CHANGELOG.md (which gets its own bounded scan two blocks down). Built by
+# minus the verbatim copies above, minus CHANGELOG.md (which gets its own bounded scan
+# two blocks down). Built by
 # reading the NUL list rather than by filtering it with another matcher, so a path
 # holding a newline or a quote cannot fall out of the filter unnoticed.
 : > "$TEXTLIST"
@@ -361,6 +419,7 @@ while IFS= read -r -d '' p; do
   case "$p" in
     'scripts/check-no-emdash.sh'|'CHANGELOG.md') continue ;;
   esac
+  for v in "${VERBATIM_COPIES[@]}"; do [ "$p" = "$v" ] && continue 2; done
   [ -n "${DECLARED_BINARY[$p]:-}" ] && continue
   printf '%s\0' "$p" >> "$TEXTLIST"
 done < "$FILELIST"
@@ -431,4 +490,4 @@ SELF_HITS=$(grep -H -nP -e "$LITERAL_PATTERN" -- 'scripts/check-no-emdash.sh' 2>
 refuse_if_incomplete
 [ -n "$SELF_HITS" ] && fail_with_hits "this script itself" "$SELF_HITS"
 
-echo "check-no-emdash: OK (no em dashes in the tracked files, their names, or this script)"
+echo "check-no-emdash: OK (no em or en dashes in the tracked files, their names, or this script)"

@@ -14,7 +14,7 @@
  *   synthetic-by-construction. The practice- and laboratory-assigned patient IDs are
  *   minted independently, so they stay **distinct**.
  * - **Framing (E1381):** `generateAstmResultFramed` via `composeAstmFrames`, the modulo-256 checksum
- *   and the `0`–`7` frame number are **computed by the parser, never faked**, and the bytes round-trip
+ *   and the `0` to `7` frame number are **computed by the parser, never faked**, and the bytes round-trip
  *   through `parseFramedAstm` with zero frame **and** record warnings.
  *
  * @module
