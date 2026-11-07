@@ -1,3 +1,10 @@
+# Text files are stored with LF line endings and checked out with LF on every platform.
+* text=auto eol=lf
+
+# The US Core profiles under test/us-core-profiles/ are verbatim copies of published HL7 files and
+# keep the CRLF line endings they were published with, byte for byte, so git never converts them.
+test/us-core-profiles/*.json -text
+
 # The vendored parser tarballs are third-party archives. Declaring them keeps git
 # from ever treating them as text, and it is the declaration `scripts/check-no-emdash.sh`
 # partitions on: a compressed stream can hold the em dash's UTF-8 bytes by coincidence

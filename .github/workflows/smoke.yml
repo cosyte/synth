@@ -5,15 +5,15 @@ name: Release smoke
 # and the same seed asserted to produce byte-identical output under the two module systems.
 #
 # WHY THIS FILE EXISTS AT ALL, STATED PLAINLY. `pnpm smoke` ran in NO CI job, here or upstream. It
-# had only ever run on the meta-repo's local `scripts/verify.sh` ladder, which a contributor is not
-# obliged to run and CI never runs, so no required check covered the eight published subpaths and a
+# had only ever run on a local ladder outside this repository, which a contributor was not
+# obliged to run and CI never ran, so no required check covered the eight published subpaths and a
 # green pull request said nothing about whether they load. A gate that only runs when someone
 # remembers to run it is not protecting the branch. The sibling `deid` had the same gap and closed it
 # the same way, which is what makes this a class rather than an incident.
 #
 # WHAT THIS IS NOT. An earlier draft here said the docs had described `pnpm smoke` as a CI gate, so
 # that they "assert a protection nothing provides". A refuter checked and that is FALSE for this
-# repo: every surface describing this file said `run by verify.sh`, which was accurate. The sentence
+# repo: every surface describing this file said it ran on that local ladder, which was accurate. The sentence
 # came from `deid`, where it is true, and was ported without re-measuring. The defect being fixed is
 # real; it is "local-only, therefore not a gate", not "the documentation lied".
 #
@@ -76,6 +76,7 @@ jobs:
       matrix:
         node: ["22", "24"]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 

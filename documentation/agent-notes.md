@@ -4,8 +4,7 @@ The long-form record behind `CLAUDE.md`: the shipped-phase history, the per-inci
 and the full rationale behind every trap that `CLAUDE.md` states in one line. Each compressed rule
 up there names the section down here that carries its evidence.
 
-**This file exists because `CLAUDE.md` is always-read and this is not** (meta-repo ADR 0023,
-amendment 2026-08-04). Everything below was **relocated verbatim**, not rewritten or summarised. If
+**This file exists because `CLAUDE.md` is always-read and this is not.** Everything below was **relocated verbatim**, not rewritten or summarised. If
 you refute something here, correct it *here* and keep the one-line rule in `CLAUDE.md` pointing at
 it. The standing rule is **relocate, never delete**: every paragraph below cost a defect to learn.
 
@@ -13,7 +12,7 @@ it. The standing rule is **relocate, never delete**: every paragraph below cost 
 
 ### Shipped phases, release hardening, and the generator core
 
-- **Phases 1 to 9 shipped (SYNTH-1 … SYNTH-11): the roadmap is complete.** Pre-alpha `0.0.x`, and
+- **Phases 1 to 9 shipped (SYNTH-1 … SYNTH-11).** On the 0.1 line, and
   **published to npm** (verify with `npm view @cosyte/synth version`; this line deliberately does not
   name the number, which is stale by construction on the next release). The repo is **already public**
   (`gh repo view cosyte/synth --json visibility`), so neither founder gate is still pending: flipping a
@@ -24,8 +23,8 @@ it. The standing rule is **relocate, never delete**: every paragraph below cost 
   (`test/property/all-formats.property.test.ts`) driving every spec-clean format generator through the
   same three mandatory properties (round-trip · seed-determinism · synthetic-safety) with an
   intended-warning arm for the HL7 v2 / C-CDA / ASTM quirk corpora and non-vacuity asserted directly; a
-  **seed-sweep generation fuzz** (`test/property/seed-sweep.fuzz.property.test.ts`, the inverted fuzz of
-  roadmap §6) proving generation is total over seed × count × format, scaled by `SYNTH_FUZZ_RUNS` with a
+  **seed-sweep generation fuzz** (`test/property/seed-sweep.fuzz.property.test.ts`, the inverted fuzz)
+  proving generation is total over seed × count × format, scaled by `SYNTH_FUZZ_RUNS` with a
   `test:fuzz` script + nightly `Fuzz` workflow; a **dual ESM/CJS release-shape smoke**
   (`scripts/smoke.mjs`, `smoke` script) across all eight subpaths, whose subpath set is now derived
   from `package.json` `exports` and which now runs in CI (`smoke.yml`) rather than only in
@@ -495,7 +494,8 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
 
 ### The PHI-free-diagnostics claim
 
-  **Read `documentation/repos/phi-audit.md` in the meta-repo before touching this.** The claim that
+  **Read the PHI audit before touching this:** `documentation/repos/phi-audit.md`, deleted with the
+  old umbrella's documentation and still readable at umbrella commit `f6240ed`. The claim that
   warning messages are PHI-free by construction spread across thirteen repos as prose rather than as
   shared code, and this package had inherited the sentence and used it as a reason not to bound
   anything. A new safety sentence here is worth nothing without a slot in that table behind it.
@@ -657,8 +657,8 @@ the changeset, so a tree without history exercises a line shape no release write
 4. **No internal project bookkeeping on a public surface** (founder directive, 2026-07-27). What a
    consumer reads (`README.md`, `docs-content/`, the npm `description`, a release body) says what the
    software does and what changed. Item identifiers (`SYNTH-4`), phase and wave language, ADR numbers,
-   meta-repo paths and `roadmap §N` citations belong in the changeset, `CHANGELOG.md`, the commit, the
-   PR and the roadmap. It is a **translation** at the boundary, not a deletion, and when you strip an
+   private paths and `roadmap §N` citations belong in the changeset, `CHANGELOG.md`, the commit, the
+   PR and the umbrella's plans. It is a **translation** at the boundary, not a deletion, and when you strip an
    identifier off the front of a line, repair the head: a fragment reads worse than the text it
    replaced. Gated by `pnpm check:no-internal-refs`. The gate keys on known project prefixes, so **a
    new programme prefix has to be added to it by hand**; and it catches identifiers and citations, not
