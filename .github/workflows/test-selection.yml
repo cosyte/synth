@@ -55,8 +55,7 @@ name: Test-selection gate
 # add it to the ruleset. After that, renaming this job and the required context are one edit or
 # neither.
 #
-# Run it locally with `pnpm check:test-selection`, also reached by `pnpm check`, which is on the
-# meta-repo's `scripts/verify.sh synth` ladder.
+# Run it locally with `pnpm check:test-selection`, also reached by `pnpm check`.
 
 on:
   push:
@@ -74,6 +73,7 @@ permissions:
 jobs:
   test-selection:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
