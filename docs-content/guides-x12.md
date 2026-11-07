@@ -2,6 +2,7 @@
 id: guides-x12
 title: X12 (837 / 835 / 271)
 sidebar_position: 5
+description: "Generate X12 005010 claims, remittances, and eligibility responses through @cosyte/x12's builders."
 ---
 
 # Generate X12 EDI transactions
@@ -70,7 +71,7 @@ failure.
 
 ## Deferred
 
-- The **270** eligibility _request_: `@cosyte/x12` ships `build270` from 0.1.0, but `synth` does not
+- The **270** eligibility _request_: `@cosyte/x12` ships `build270` on its 0.1 line, but `synth` does not
   generate a 270 yet. `synth` builds every artifact through the parser's own builder or serializer and
   never hand-writes the bytes.
 - **Vendor-quirk mode** (deliberately off-spec fixtures) is deferred for X12.

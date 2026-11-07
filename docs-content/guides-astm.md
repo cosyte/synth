@@ -2,6 +2,7 @@
 id: guides-astm
 title: ASTM (E1394 / E1381)
 sidebar_position: 7
+description: "Generate ASTM E1394 records and E1381 frames through @cosyte/astm's builders."
 ---
 
 # Generate ASTM messages

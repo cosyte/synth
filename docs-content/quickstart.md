@@ -2,6 +2,7 @@
 id: quickstart
 title: Quickstart
 sidebar_position: 1
+description: "Generate a spec-clean HL7 v2 message, draw a synthetic value, check the round trip yourself, and build a reproducible corpus."
 ---
 
 # Quickstart
@@ -36,7 +37,7 @@ console.log(roundTrip(generateHl7("VXU^V04", 12345)).content.split("\r")[0]); //
 ```
 
 The first three lines print `true`, and the last prints the `MSH` segment of a generated `VXU^V04`.
-Every identifier, name and date in these messages is drawn from a reserved range or the shipped
+Every identifier, name, and date in these messages is drawn from a reserved range or the shipped
 fake-name pool.
 
 ## Draw a synthetic value

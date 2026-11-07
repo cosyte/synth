@@ -2,12 +2,13 @@
 id: intro
 title: Getting started
 sidebar_position: 1
+description: "What @cosyte/synth is: deterministic, seedable synthetic healthcare fixtures in six formats, built through each parser's own builder and never real PHI."
 ---
 
 # @cosyte/synth
 
 Generate **deterministic, seedable synthetic healthcare fixtures** (HL7 v2, FHIR R4 / US Core,
-C-CDA, X12, NCPDP and ASTM) without hand-writing a byte of the wire format, and **without
+C-CDA, X12, NCPDP, and ASTM) without hand-writing a byte of the wire format, and **without
 any chance the "patient" you just generated is a real person**.
 
 `@cosyte/synth` is a **consumer** of the Cosyte parsers, not a parser. It builds each artifact **through
@@ -18,8 +19,8 @@ never-issued SSNs, NANP `555-01xx` phones, `example.*` domains, TEST-NET IPs, a 
 authority for MRNs, and a shipped clearly-fake name pool). It is a **format/conformance generator, not a
 clinical simulator**: it does not model disease progression (that is Synthea).
 
-> **Status:** `0.1`, published to npm. The version shown on the npm package page is the one that is
-> live; this page never repeats it.
+> **Status:** the 0.1 line, published to npm. The version shown on the npm package page is the one
+> that is live; this page never repeats it.
 
 ## Install
 

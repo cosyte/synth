@@ -2,6 +2,7 @@
 id: guides-quirks
 title: Vendor-quirk generation
 sidebar_position: 8
+description: "Generate off-spec fixtures from a parser's vendor profile, each round-tripping to exactly the warning it is meant to trigger."
 ---
 
 # Generate vendor-quirk fixtures

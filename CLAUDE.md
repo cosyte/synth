@@ -5,6 +5,8 @@ C-CDA, X12, NCPDP, ASTM) for Node.js. Tooling, not a parser: each format is buil
 sibling `@cosyte/*` parser's builder (optional peers, vendored in `vendor/`), so a seed gives the
 same bytes on the same parser versions. Public, MIT, on npm, zero runtime dependencies.
 
+@AGENTS.md
+
 ## Gate
 
 From the repo root, in order; comments name the workflow. The `pnpm` on PATH must be pnpm 10

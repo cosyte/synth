@@ -1,14 +1,13 @@
 <a href="https://cosyte.com">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://cosyte.com/tile/cosyte-lockup-tile-on-dark-1200x300.png">
-    <img alt="Cosyte: a plus mark set in two overlapping rounded squares, one solid and one outlined, beside the Cosyte wordmark" src="https://cosyte.com/tile/cosyte-lockup-tile-on-light-1200x300.png">
+    <img alt="The Cosyte logo on its own white ground: the icon beside the word Cosyte." src="https://cosyte.com/tile/cosyte-lockup-tile-on-light-1200x300.png">
   </picture>
 </a>
 
 # @cosyte/synth
 
-> Deterministic, seedable **synthetic healthcare-fixture generator** for Node.js and TypeScript:
-> built through each parser's own builder, and **never real PHI**.
+> Seeded, reproducible **synthetic healthcare fixtures** for Node.js and TypeScript: spec-clean, never real PHI.
 
 `@cosyte/synth` generates reproducible synthetic test corpora across the six Cosyte formats (HL7 v2,
 FHIR R4 / US Core, C-CDA, X12, NCPDP, and ASTM). It is a **consumer** of the
@@ -18,8 +17,8 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 **format/conformance generator, not a clinical simulator**: it does not model disease progression
 (that is Synthea).
 
-> **Status:** `0.1`, published to npm. The version shown on the npm package page is the one that is
-> live; this page never repeats it. Below 1.0, a breaking change raises the minor version and the
+> **Status:** the 0.1 line, published to npm. The version shown on the npm package page is the one
+> that is live; this page never repeats it. Below 1.0, a breaking change raises the minor version and the
 > changelog says what broke. The generator is **feature-complete**: the
 > seeded-PRNG core, the synthetic-safety providers, and the round-trip harness; **generation across all
 > six formats**, HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`), FHIR R4 / US Core (the full clinical
@@ -41,6 +40,8 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 ```bash
 npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cosyte/ncpdp @cosyte/astm
 ```
+
+Node.js 22 or later, tested on 22 and 24.
 
 `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, `@cosyte/ncpdp`, `@cosyte/astm`, and
 `@cosyte/deid` are **optional peer dependencies**, each needed only for its subpath (`@cosyte/synth/hl7`,
@@ -164,7 +165,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true
 
 `@cosyte/x12` is an **optional peer dependency**, needed only for the `@cosyte/synth/x12` subpath.
 
-**Deferred:** the **270** eligibility _request_ (`@cosyte/x12` ships `build270` from 0.1.0, but `synth`
+**Deferred:** the **270** eligibility _request_ (`@cosyte/x12` ships `build270` on its 0.1 line, but `synth`
 does not generate a 270 yet) and **vendor-quirk mode**.
 
 ## Generate an NCPDP message
@@ -265,7 +266,7 @@ astmQuirkRoundTrip(generateAstmQuirk({ seed: 1, quirk: "unknown-escape" })).inte
 A quirk a format's profile system does not support fails closed with a stable `SYNTH_UNSUPPORTED_QUIRK`
 diagnostic, never a silently-wrong fixture, and so do the other selectors: a message kind, a
 document type, a corpus mix entry, an `837` variant, a Bundle type. Each is checked against its own set
-before anything is generated, so an unrecognised one is a fatal `SYNTH_UNSUPPORTED_KIND` rather than a
+before anything is generated, so an unrecognized one is a fatal `SYNTH_UNSUPPORTED_KIND` rather than a
 mislabelled corpus. Every refusal carries a code and a fixed message from a frozen table, and quotes
 nothing you passed. Every quirk is grounded in a **publicly-documented** deviation or a parser's
 **public** profile, never a private vendor corpus.
@@ -342,4 +343,4 @@ isSyntheticNpi(safe.npi(rng)); // true, always a deliberately-invalid-Luhn NPI (
 
 ## License
 
-MIT © Cosyte
+MIT, copyright Cosyte LLC. See [LICENSE](https://github.com/cosyte/synth/blob/main/LICENSE).

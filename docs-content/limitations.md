@@ -2,6 +2,7 @@
 id: limitations
 title: What it does and does not do
 sidebar_position: 1
+description: "What @cosyte/synth promises and does not, the sources every synthetic value comes from, and how the no-real-PHI rule is kept."
 ---
 
 # What `@cosyte/synth` does and does not do
@@ -115,7 +116,7 @@ source that is **not** the issuing agency and says what it is not.
 | **IP** | `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`, `2001:db8::/32` | [RFC 5737](https://datatracker.ietf.org/doc/html/rfc5737): "The blocks 192.0.2.0/24 (TEST-NET-1), 198.51.100.0/24 (TEST-NET-2), and 203.0.113.0/24 (TEST-NET-3) are provided for use in documentation." [RFC 3849](https://datatracker.ietf.org/doc/html/rfc3849): "The prefix allocated for documentation purposes is 2001:DB8::/32". |
 | **MRN / member / account** | a clearly-synthetic **assigning-authority** namespace (`COSYTE-SYNTH`) | **No authority reserves this locus.** An MRN is unique only inside its assigning authority and no registry reserves a range of them, so there is nothing external to cite and nothing is claimed. What the floor rests on instead is the _namespace_: every value is minted under an assigning authority this project invented and no real facility uses, so it cannot collide with a real record whatever its digits are. The OID `2.16.840.1.113883.19.999` is likewise a value this project chose, and no authority is cited for the root it sits under: no published text designating that root for example use could be shown, so no such designation is claimed here. |
 | **ZIP** | `00000` | [USPS Postal Facts, Lowest ZIP Code number](https://facts.usps.com/lowest-zip-code/): "The lowest ZIP Code number is 00501, unique for the Internal Revenue Service in Holtsville, NY." `00000` is below `00501`, from which **this project infers** that it is not an assigned ZIP Code. The inference is ours, not the Postal Service's: USPS states the lowest assigned number and says nothing about `00000`. |
-| **Names / streets / cities** | a shipped, curated **clearly-fake pool** | **No authority reserves this locus.** No registry reserves personal, street or city names, so there is nothing external to cite and nothing is claimed. What the floor rests on instead is the pool itself: every token is an invented, fixture-flavoured word (`Testina Testerson`, `Example Boulevard`, `Faketon`) that a reader can see at a glance names nobody, and no code path draws a name, street or city from anywhere else. |
+| **Names / streets / cities** | a shipped, curated **clearly-fake pool** | **No authority reserves this locus.** No registry reserves personal, street, or city names, so there is nothing external to cite and nothing is claimed. What the floor rests on instead is the pool itself: every token is an invented, fixture-flavored word (`Testina Testerson`, `Example Boulevard`, `Faketon`) that a reader can see at a glance names nobody, and no code path draws a name, street or city from anywhere else. |
 
 The floors are enforced two ways: a **union `phi-scan`** (the parsers' own PHI scanners) sweeps a
 representative generated corpus in CI and must report **zero** real-data hits, and a **property suite**
@@ -130,7 +131,7 @@ values `synth` emits. A separate guarantee covers what `synth` says about your c
   on the thrown object.
 - Caller-supplied **selectors** (a message kind, a document type, a corpus mix entry, a claim
   variant, a Bundle type, a resource profile, a quirk name) are resolved against their own closed set
-  before anything is generated. An unrecognised one is a fatal `SYNTH_UNSUPPORTED_KIND` (or
+  before anything is generated. An unrecognized one is a fatal `SYNTH_UNSUPPORTED_KIND` (or
   `SYNTH_UNSUPPORTED_QUIRK`), so it does not reach a peer builder that might quote it back and does
   not become an artifact `kind` or a manifest key.
 - A round-trip result keeps only the sibling parser's warning **codes**, never the parser's message
@@ -141,7 +142,7 @@ the fact that a fixture generator's values are synthetic anyway. **The list of p
 enumeration, not a proof of exhaustiveness.** What holds generally is the mechanism: the error type
 has no value parameter, and a selector is resolved against its closed set in one place, everywhere
 except the `@cosyte/synth/deid` pairing loops. Those are the stated exception: `x12DeidLoop({ variant })`
-and `ncpdpTelecomDeidLoop({ transaction })` still surface an uncoded `TypeError` for an unrecognised
+and `ncpdpTelecomDeidLoop({ transaction })` still surface an uncoded `TypeError` for an unrecognized
 value, and `ccdaDeidLoop({ documentType })` still generates a Referral Note for anything but `"ccd"`.
 None echoes your value into a message, and all three are tracked separately.
 
@@ -186,7 +187,7 @@ come from that parser's own builder and serializer, so upgrading a parser can ch
 digests across separate runs**, not by generating twice in one process: a declared seed corpus
 covering all six formats is generated in its own job on each of those Node majors, each job carries
 out one digest per `(format, seed)` pair and nothing else, and a third job fails the build if two
-engines disagree. A mismatch is reported by seed, format and engine, never by content. Each
+engines disagree. A mismatch is reported by seed, format, and engine, never by content. Each
 per-engine run is also compared against a **committed baseline** for the current window, so a
 toolchain or dependency change that moves every engine together is caught as well.
 
@@ -208,7 +209,7 @@ The generation core is **feature-complete across all six formats**. Quirk mode a
   **SCRIPT**, **ASTM**, and **DICOM** pairing are deferred (no adapter, or not generated:
   `DEID_LOOP_SKIPPED` names each).
 - **Format-specific gaps flagged, never faked:** the X12 **270** request (`@cosyte/x12` ships
-  `build270` from 0.1.0; `synth` does not use it yet) and NCPDP **SCRIPT lifecycle responses** are not
+  `build270` on its 0.1 line; `synth` does not use it yet) and NCPDP **SCRIPT lifecycle responses** are not
   generated, a gap is surfaced, never hand-written.
 - **Built-in `synth` profiles.** `defineSynthProfile()` is the public growth-loop hook, and
   ready-made quirk profiles ship for the three quirk formats; broader **named site/vendor** recipes
@@ -268,11 +269,11 @@ try {
 refusedCode; // => "SYNTH_PROFILE_NOT_GENERATED"
 ```
 
-## Licensing & PHI posture
+## Licensing and PHI posture
 
 - **The library is MIT.** Third-party **runtime** dependencies are **zero**; the parser and `deid`
   peers are first-party, optional, and lazily loaded per format.
 - **No real PHI.** `synth`'s entire output _looks like_ PHI and contains none, by construction. Every value
   it emits is drawn from the sources in the floor table above, and a `phi-scan` gate sweeps this project's own
-  sources, fixtures and tooling on every change. You can commit and log a generated corpus without a
+  sources, fixtures, and tooling on every change. You can commit and log a generated corpus without a
   PHI review of its contents: that is the whole point.

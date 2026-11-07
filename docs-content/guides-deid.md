@@ -2,6 +2,7 @@
 id: guides-deid
 title: The @cosyte/deid pairing loop
 sidebar_position: 9
+description: "Generate fixtures with planted synthetic identifiers, de-identify them with @cosyte/deid, and check every one is removed."
 ---
 
 # Co-validate with `@cosyte/deid`

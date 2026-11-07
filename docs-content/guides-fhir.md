@@ -2,6 +2,7 @@
 id: guides-fhir
 title: FHIR R4 / US Core
 sidebar_position: 3
+description: "Generate FHIR R4 and US Core resources and Bundles, and check them against the published profiles."
 ---
 
 # Generate FHIR R4 / US Core resources
