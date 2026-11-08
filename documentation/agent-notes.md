@@ -156,7 +156,8 @@ it. The standing rule is **relocate, never delete**: every paragraph below cost 
   as registry devDependencies resolved through `pnpm-lock.yaml`; the vendored `vendor/*.tgz` tarballs
   this section once described are gone (2026-11-07). Move one by changing its range and running
   `pnpm install`, then `pnpm test` and `pnpm run determinism:digest`: a sibling bump can move the bytes
-  a seed produces, and the determinism window treats that as a breaking change. **Third-party runtime
+  a seed produces, and the determinism window refuses that unless a changeset states it: a major,
+  or (operator decision D57, 2026-11-07) an `Output change:` section naming every format that moved. **Third-party runtime
   deps stay at 0.** Quirk generation (Phase 7) ships for HL7 v2/C-CDA/ASTM; FHIR/X12/NCPDP quirks are
   deferred, and the `deid` pairing loop (Phase 8) ships for HL7/FHIR/C-CDA/X12/NCPDP Telecom.
 
