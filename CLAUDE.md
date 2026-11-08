@@ -23,7 +23,7 @@ pnpm check:test-selection     # test-selection.yml
 pnpm run determinism:digest && pnpm run check:determinism-window   # ci.yml; digest on 22 and 24
 pnpm run acquire:oracle && pnpm run oracle   # ci.yml oracle job: needs `java` and the network
 pnpm check:no-emdash && pnpm check:no-internal-refs   # no-emdash.yml, no-internal-refs.yml
-pnpm check:readme && pnpm check:claude-card && pnpm check:agent-notes   # documents job
+pnpm check:readme && pnpm check:claude-card && pnpm check:agent-notes && pnpm check:catalog
 ```
 
 Only CI runs the shared prepublish checks, actionlint and CodeQL. `no-emdash.yml` also reads the PR
