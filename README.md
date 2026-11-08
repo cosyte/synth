@@ -358,7 +358,7 @@ isSyntheticNpi(safe.npi(rng)); // true, always a deliberately-invalid-Luhn NPI (
   fed straight back in: each artifact re-parses with zero warnings.
 - **Deterministic**, a hand-rolled seeded PRNG (`sfc32`/`splitmix32`); `Math.random` is lint-banned.
   A seed determines the output, byte for byte, on the same parser versions, and CI compares those
-  bytes across Node 22 and 24.
+  bytes across Node 22, 24, and 26.
 - **Immutable**, generated artifacts and the `Corpus` result are deep-frozen.
 - **Zero third-party runtime dependencies**, the parser peers are first-party Cosyte packages,
   installed from npm for the tests; dual ESM + CJS, validated with `attw`.

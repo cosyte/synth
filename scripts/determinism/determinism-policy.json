@@ -1,5 +1,5 @@
 {
-  "engines": [22, 24],
+  "engines": [22, 24, 26],
   "corpus": {
     "artifactsPerPair": 3,
     "seeds": [1001, 4242, 60501, 813377]

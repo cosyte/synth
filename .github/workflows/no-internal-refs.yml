@@ -39,7 +39,7 @@ name: Public-surface gate
 #
 #   Within synth, keeping it out of ci.yml also keeps it cheap: this job is a checkout and a
 #   handful of greps over 17 markdown/JSON files and 67 source files, while ci.yml drives
-#   the full Node 22 + 24 matrix plus coverage, attw and the dual ESM/CJS smoke.
+#   the full Node 22, 24 and 26 matrix plus coverage, attw and the dual ESM/CJS smoke.
 #
 # WHAT THIS DOES NOT CHECK, deliberately: the PR title, the PR body, and commit messages.
 # This rule says identifiers BELONG in the commit, the PR and the changeset, so a PR-text

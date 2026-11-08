@@ -247,10 +247,31 @@ jobs:
         id: digest
         run: pnpm run determinism:digest
 
+  determinism-digest-26:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      report: ${{ steps.digest.outputs.report }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "26"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Digest the declared corpus on this engine
+        id: digest
+        run: pnpm run determinism:digest
+
   determinism-verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [determinism-digest-22, determinism-digest-24]
+    needs: [determinism-digest-22, determinism-digest-24, determinism-digest-26]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -270,13 +291,16 @@ jobs:
         env:
           REPORT_NODE_22: ${{ needs.determinism-digest-22.outputs.report }}
           REPORT_NODE_24: ${{ needs.determinism-digest-24.outputs.report }}
+          REPORT_NODE_26: ${{ needs.determinism-digest-26.outputs.report }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .determinism/reports
           printf '%s' "$REPORT_NODE_22" > .determinism/reports/node-22.json
           printf '%s' "$REPORT_NODE_24" > .determinism/reports/node-24.json
-          wc -c .determinism/reports/node-22.json .determinism/reports/node-24.json
+          printf '%s' "$REPORT_NODE_26" > .determinism/reports/node-26.json
+          wc -c .determinism/reports/node-22.json .determinism/reports/node-24.json \
+            .determinism/reports/node-26.json
 
       - name: Compare the digests across engines
         run: pnpm run determinism:verify

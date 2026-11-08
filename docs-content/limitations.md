@@ -184,11 +184,11 @@ come from that parser's own builder and serializer, so upgrading a parser can ch
 `@cosyte/ccda`.
 
 **Which engines that is verified across, and how.** The seed→bytes mapping is verified
-**byte-identical across Node 22 and Node 24**, on every change. It is verified by **comparing
+**byte-identical across Node 22, Node 24, and Node 26**, on every change. It is verified by **comparing
 digests across separate runs**, not by generating twice in one process: a declared seed corpus
 covering all six formats is generated in its own job on each of those Node majors, each job carries
-out one digest per `(format, seed)` pair and nothing else, and a third job fails the build if two
-engines disagree. A mismatch is reported by seed, format, and engine, never by content. Each
+out one digest per `(format, seed)` pair and nothing else, and a comparison job fails the build if
+two engines disagree. A mismatch is reported by seed, format, and engine, never by content. Each
 per-engine run is also compared against a **committed baseline** for the current window, so a
 toolchain or dependency change that moves every engine together is caught as well.
 
