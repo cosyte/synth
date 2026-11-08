@@ -1,82 +1,30 @@
 name: Em-dash gate
 
-# The brand rule (founder directive 2026-07-24, widened by the operator on 2026-11-07;
-# knowledgebase 06-brand/voice-and-tone.md) bans the em dash (U+2014) and the en dash (U+2013)
-# outright across every Cosyte surface, and names commit messages explicitly.
+# The brand rule (ST8): no em dash (U+2014) and no en dash (U+2013) on any Cosyte surface, commit
+# messages included. This gate landed on 2026-08-06 with a sweep of 1,167 occurrences across 135
+# files, the npm description and the docs pages among them: a sweep without a gate grows back.
 #
-# Like astm, this gate did not arrive on a clean tree: the change that landed this
-# workflow also swept 1,167 occurrences out of 135 of the 223 tracked files, including
-# `package.json`'s published npm `description` (visible on the registry and in every npm
-# search result) and the `docs-content/` pages that publish to docs.cosyte.com. A sweep
-# without the gate grows back; a gate without the sweep would have red-flagged CI on
-# arrival. Both are one change.
-#
-# WHAT ACTUALLY SCANS, AND WHERE THE RULE LIVES. `pnpm check:no-emdash`, which is this
-# repository's own gate script. The jobs below delegate the plumbing (checkout, pnpm,
-# Node) to the shared gate workflow, and that workflow carries no pattern, no allow-list
-# and no file selection of its own: it prepares the tree, runs the command, and lets the
-# command's exit status decide the job. So the rule and every measurement above stay in
-# this repository, and only the machinery is shared.
+# The gate is the shared one (ST34): `pnpm check:no-emdash` runs `cosyte-no-emdash` from
+# @cosyte/script-utils, which matches the characters and every encoded form of them, in tracked
+# files and in their names. What this repository leaves out, and why, is in
+# `scripts/check-no-emdash.exclude`, which the gate reads for itself.
 #
 # TWO CONTEXTS, NOT ONE, AND THE JOB ID IS LOAD-BEARING. A called job's check run is named
 # `<caller job id> / <inner job id>`, so the job id `no-emdash` below publishes
-# `no-emdash / tracked-files` and `no-emdash / messages`. A branch ruleset binds to those
-# exact strings: renaming the job detaches the requirement with no error anywhere, and a
-# required context nothing emits blocks every pull request. Do not rename it.
+# `no-emdash / tracked-files` and `no-emdash / messages`. `tracked-files` is the half that is safe
+# to require. `messages` reads the pull request's title, body and commits, and is deliberately NOT
+# required: Dependabot composes some bodies from upstream release notes, dashes included. A
+# ruleset binds to those exact strings, so never rename the job.
 #
-#   `no-emdash / tracked-files` is the half that is safe to require and the one that blocks
-#   a merge. `no-emdash / messages` runs, reds its own context, and is deliberately NOT
-#   required: Dependabot composes a pull request body out of upstream release notes, em
-#   dashes included, and a gate that fails on someone else's clock becomes a tax. The
-#   detection is unchanged either way; only what blocks is narrowed.
+# WHY A SEPARATE WORKFLOW, and not a job in ci.yml: the trigger. The message half needs the
+# `edited` activity type, because with squash merges the title and body ARE the commit message
+# that lands, and re-running the whole CI ladder for a retitled pull request costs far more.
 #
-# WHY A SEPARATE WORKFLOW, and not a job in ci.yml. Same two reasons this repo's
-# `no-internal-refs.yml` gives, and the second is the deciding one here:
+# The installing form of the shared gate, because the gate lives in node_modules: it installs from
+# the committed lockfile before it scans. Nothing here may continue past a failure.
 #
-#   The shared ci pipeline is not an option. synth's `ci` job calls
-#   cosyte/.github's shared ci.yml, which runs a fixed ladder and no
-#   arbitrary repo script.
-#
-#   The trigger differs. The PR-text half below needs the `edited` activity type, which
-#   is not a default: without it, a title or body edited after the last push is never
-#   re-checked, and since this repo squash-merges, the PR title and body ARE the commit
-#   message that lands on main. But ci.yml's triggers drive the full Node 22 + 24 matrix
-#   (typecheck, lint, format, PHI scan, test, coverage, build, attw, dual ESM/CJS smoke).
-#   Re-running all of that every time someone fixes a typo in a PR description is a large
-#   cost for no extra safety. Same call hl7, astm and website made, for the same reason.
-#
-# ▶ THE TWO HALVES ARE TWO CONTEXTS, AND THAT SPLIT IS WHAT MAKES ONE OF THEM REQUIRABLE.
-#   The messages half scans the PR TITLE, BODY and COMMIT MESSAGES, and Dependabot
-#   composes a PR body by pasting the dependency's UPSTREAM RELEASE NOTES into it, em
-#   dashes included. Requiring that context would block a dependency bump on prose nobody
-#   in this org wrote and nobody in this org can edit without rewriting the PR by hand.
-#   That is the same refusal this ecosystem already made for a CI `pnpm audit`: a gate
-#   that fails on someone else's clock stops being a signal and starts being a tax.
-#   `website` reached the same conclusion and exempts its messages context on purpose.
-#
-#   THE COST OF BUNDLING, STATED BECAUSE IT WAS PAID HERE. While both halves were one job,
-#   exempting it un-required the tracked-file half as well, and that is the half that
-#   protects the published surface. The shared gate workflow this file now calls runs the
-#   halves as two jobs, so `no-emdash / tracked-files` is requirable on its own terms and
-#   `no-emdash / messages` stays exempt. That was the deferred fix; it is done.
-#
-#   `ci / verify` runs a FIXED ladder in `cosyte/.github` (typecheck, lint, format:check,
-#   phi-scan, test, coverage, build, attw, dual ESM/CJS smoke) and no arbitrary repo
-#   script, so it does NOT run `pnpm check:no-emdash`. This workflow is the only place
-#   that script runs in CI.
-#
-#   On the Dependabot case specifically, the exemption gives up nothing on the
-#   tracked-file half. Dependabot certainly DOES write tracked files (`package.json` and
-#   `pnpm-lock.yaml` are its entire job); what it cannot do is put an em dash in one,
-#   because it writes version specifiers and lockfile records, never prose. The upstream
-#   release notes it pastes go in the PR BODY and nowhere else.
-#
-#   Do not "fix" the Dependabot case by requiring the messages context and then adding an
-#   actor exemption. An `if: github.actor != 'dependabot[bot]'` on a REQUIRED context
-#   leaves the check permanently pending on exactly those PRs, which is worse than red:
-#   nothing says why.
-#
-# Run it locally with `pnpm check:no-emdash`.
+# Run either half locally: `pnpm check:no-emdash`, and
+# `pnpm check:no-emdash --stdin pr < body.md` for a title, body or commit message.
 
 on:
   push:
@@ -90,13 +38,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   # The check-run context prefix. See the note above before touching this id.
   no-emdash:
     # A published reference (ST37): a `workflows-*` release of cosyte/.github. Those releases
     # are immutable, so the tag is locked to one commit, and every caller in this repository
-    # moves to the next reference together. The non-installing form: this repository's gate is a script that needs nothing installed.
-    uses: cosyte/.github/.github/workflows/gate-no-emdash.yml@workflows-2026-11-07-498c7c13c886
+    # moves to the next reference together. The installing form: the gate lives in node_modules.
+    uses: cosyte/.github/.github/workflows/gate-no-emdash-install.yml@workflows-2026-11-07-498c7c13c886
     # No more than the scan needs. A called workflow's GITHUB_TOKEN can only be
     # downgraded by its caller, and this gate reads the tree and nothing else.
     permissions:

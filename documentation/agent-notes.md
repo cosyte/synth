@@ -499,6 +499,11 @@ ruleset.** Delete it and every test still passes, every gate still prints OK, an
 
 ### The `attw` false green, and why the script is a wrapper
 
+**Since 2026-11-07 (ST34) `pnpm attw` runs `cosyte-attw` from `@cosyte/script-utils`, which carries
+these nets and two more; `scripts/attw.exclude` names `node10`, which selects the node16 profile.
+`scripts/attw.mjs` and `test/scripts/attw-gate.test.ts` are gone. The measurements below still hold
+for the shared gate; the file names are history.**
+
 - **▶ `attw` SAYS "does not contain types" AND EXITS 0, SO THE `attw` SCRIPT IS A WRAPPER, NOT THE
   BARE CLI.** `getExitCode.js` in `@arethetypeswrong/cli@0.18.4` opens with
   `if (!analysis.types) return 0`: an untyped package is a legitimate npm package, so "no types at
@@ -699,8 +704,13 @@ the changeset, so a tree without history exercises a line shape no release write
 
 ### No em dash, anywhere
 
+**Since 2026-11-07 (ST34) the gate is the shared one: `pnpm check:no-emdash` runs `cosyte-no-emdash`
+from `@cosyte/script-utils`, which matches both dashes in every encoded form and in file names, and
+`scripts/check-no-emdash.exclude` leaves out `CHANGELOG.md` and the verbatim US Core profile that
+carries the character. What follows is the history of this repository's own gate.**
+
 Founder directive 2026-07-24, `knowledgebase/06-brand/voice-and-tone.md`: "No em dashes. Ever."
-It names commit messages explicitly. `scripts/check-no-emdash.sh` is what enforces it here, ported
+It names commit messages explicitly. `scripts/check-no-emdash.sh` was what enforced it here, ported
 from `astm`'s copy (the reference form, carrying the interposed-grep fix and the visibility probe
 that the older `hl7` copy lacks). Landed 2026-08-06 with the content sweep in the same change:
 **1,167 occurrences out of 1,296, across 135 of the 223 tracked files**, including
@@ -713,8 +723,8 @@ the sweep changed exactly fourteen `.md` files. Count pages, never directory ent
 
 **The census was taken by reading bytes in Python, not with `grep`.** In these containers `grep` is
 a shell function forcing `-G --ignore-files -I`, and under `xargs` it is bypassed for
-`/usr/bin/grep`, which in an empty locale fails with exit 2 and prints nothing for
-`-P '\x{2014}'`. Piped to `wc -l` that reads as a clean tree. **Every count in this section came
+`/usr/bin/grep`, which in an empty locale fails with exit 2 and prints nothing for a `-P` pattern
+that names the code point as a braced hex escape. Piped to `wc -l` that reads as a clean tree. **Every count in this section came
 from `open(path,'rb').read().count()`.** Measured at the same time and worth keeping: **zero**
 entity, numeric-entity, URL or backslash-u forms anywhere in the tree. The pattern still carries all
 six arms, because the reference sweep in `claude-containers` found the gate caught what the hand

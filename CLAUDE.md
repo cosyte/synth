@@ -23,11 +23,11 @@ pnpm check:test-selection     # test-selection.yml
 pnpm run determinism:digest && pnpm run check:determinism-window   # ci.yml; digest on 22 and 24
 pnpm run acquire:oracle && pnpm run oracle   # ci.yml oracle job: needs `java` and the network
 pnpm check:no-emdash && pnpm check:no-internal-refs   # no-emdash.yml, no-internal-refs.yml
-actionlint                    # ci / actionlint runs rhysd/actionlint's own release
+pnpm check:readme && pnpm check:claude-card && pnpm check:agent-notes   # documents job
 ```
 
-Only CI runs the shared prepublish checks and CodeQL. `no-emdash.yml` also reads the PR title, body
-and commits: check yours with `pnpm check:no-emdash --stdin pr < body.md` before pushing.
+Only CI runs the shared prepublish checks, actionlint and CodeQL. `no-emdash.yml` also reads the PR
+title, body and commits: check yours with `pnpm check:no-emdash --stdin pr < body.md` first.
 
 ## Hazard
 
@@ -44,8 +44,8 @@ Why each holds, in full: documentation/agent-notes.md#standing-disciplines-the-r
   resolve caller selectors with `resolveKind` / `resolveMix` first: one reached `err.message` (#29).
 - A package change adds `.changeset/<slug>.md`. The release writes `CHANGELOG.md` and `VERSION` in
   `src/index.ts`: never edit either or add `[Unreleased]` (0.0.1 to 0.0.7 shipped one, #45, #39).
-- `pnpm attw` is `scripts/attw.mjs`. Never use bare `attw` or add flags beyond `--profile` and
-  `--no-definitely-typed`: bare attw exits 0 on a pack with no types (#36).
+- `pnpm attw` is script-utils' `cosyte-attw`, its profile set by `scripts/attw.exclude`. Never use
+  bare `attw`, which exits 0 on a pack with no types (#36).
 - Never narrow `include` in `vitest.config.ts` or edit the `test` / `test:coverage` scripts: #25
   showed that drops the synthetic-safety suites with CI green. Stage a new test file before
   `pnpm check:test-selection`: it reads only tracked files.

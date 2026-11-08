@@ -1,0 +1,10 @@
+# What the shared em and en dash gate (@cosyte/script-utils, `cosyte-no-emdash`, ST34) leaves out of
+# this repository. One tracked path per line; an entry ending in `/` covers every path beneath it.
+#
+# CHANGELOG.md holds the release history written before the rule, already shipped in npm tarballs.
+# The gate leaves out whole files, so the sections the release generates go with it; their source,
+# `.changeset/`, is scanned in full, so a dash cannot reach a release section unseen.
+CHANGELOG.md
+# A US Core profile kept verbatim as the HL7 publishes it: the conformance tests read its exact
+# bytes, and its text quotes the standard, so it is not ours to rewrite.
+test/us-core-profiles/us-core-medicationrequest.json
