@@ -38,7 +38,7 @@ name: Test-selection gate
 # measured rather than guessed) are written out in the script header.
 #
 # WHY A SEPARATE WORKFLOW, and not a job in ci.yml. `ci.yml` is a thin caller of
-# cosyte/.github/.github/workflows/ci.yml@main, which runs a fixed ladder and no arbitrary repo
+# cosyte/.github's shared ci.yml, which runs a fixed ladder and no arbitrary repo
 # script. Landing this there would run it for every caller of the shared pipeline, and the sibling
 # repos with the same defect have not all fixed it yet, so a shared pipeline is the wrong place for
 # a rule most of its callers cannot yet satisfy. Same shape as `no-internal-refs` next door.

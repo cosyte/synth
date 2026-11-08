@@ -23,7 +23,7 @@ name: Release smoke
 # Keep both; this one does not replace it, and deleting the upstream step is not this job's call.
 #
 # WHY A SEPARATE WORKFLOW AND NOT A JOB IN ci.yml. `ci.yml` is a thin caller of
-# cosyte/.github/.github/workflows/ci.yml@main, which runs a fixed ladder and no arbitrary repo
+# cosyte/.github's shared ci.yml, which runs a fixed ladder and no arbitrary repo
 # script, so this cannot go upstream without landing on every other caller at once. Keeping it out
 # of ci.yml also keeps the two context-naming conventions from being mixed in one file: ci.yml's
 # contexts are `ci / <upstream job>` because `ci` is a reusable-workflow caller, and this one's is

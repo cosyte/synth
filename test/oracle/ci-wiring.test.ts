@@ -95,7 +95,10 @@ const packageScripts = (): Record<string, string> => {
 
 describe("the oracle runs in CI alongside the shared pipeline caller", () => {
   it("still calls the shared pipeline, so the universal gates are not replaced", () => {
-    expect(workflow()).toContain("uses: cosyte/.github/.github/workflows/ci.yml@main");
+    // At a published reference, never `@main` (ST37): the reference moves, the caller stays.
+    expect(workflow()).toMatch(
+      /^ {4}uses: cosyte\/\.github\/\.github\/workflows\/ci\.yml@workflows-\d{4}-\d{2}-\d{2}-[0-9a-f]{12}$/m,
+    );
     expect(workflow()).toContain("run-phi-scan: true");
   });
 

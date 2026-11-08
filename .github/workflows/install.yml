@@ -19,7 +19,7 @@ name: Consumer install
 # they need an install to observe. Keep both jobs.
 #
 # WHY A SEPARATE WORKFLOW AND NOT A JOB IN ci.yml. Same constraint smoke.yml records: `ci.yml` is a
-# thin caller of cosyte/.github/.github/workflows/ci.yml@main, which runs a fixed ladder and no
+# thin caller of cosyte/.github's shared ci.yml, which runs a fixed ladder and no
 # arbitrary repo script, so a job added there would land on every other caller in the org at once.
 #
 # IT RUNS ON EVERY PULL REQUEST, NOT ONLY ON ONES THAT TOUCH package.json. A `paths:` filter would
