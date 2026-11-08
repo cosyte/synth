@@ -31,7 +31,7 @@
  * console.log(VERSION);
  * ```
  */
-export const VERSION: string = "0.1.3";
+export const VERSION: string = "0.1.4";
 
 // ── Seeded, deterministic PRNG (the reproducibility contract, roadmap §5) ──
 export { createRng, type Rng } from "./rng/rng.js";
