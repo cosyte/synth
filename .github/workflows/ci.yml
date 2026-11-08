@@ -33,16 +33,20 @@ jobs:
   # The scanner is a floor, not the whole gate: the property suites are the real proof (see the
   # header of scripts/phi-scan.ts).
   #
-  # actionlint is skipped on the nightly `schedule` run, and only there. The shared pipeline runs it
-  # through reviewdog, which reads the repository's owner and name from the event payload. A
-  # `schedule` payload carries no `repository`, so reviewdog posts to `repos///check-runs`, gets a
-  # 404 and fails the job (reviewdog/reviewdog issues 832 and 1263, open). The workflow files change
-  # only by a push, and every push, pull request and manual run still lints them.
+  # actionlint runs on every event, the nightly run included. It used to be skipped on `schedule`,
+  # because the shared job reported through reviewdog, which fails without the repository in the
+  # event payload; since the reference below the shared job runs rhysd/actionlint's own release over
+  # every tracked workflow file and reads no payload. Never pass `run-actionlint: false`: a job
+  # skipped by a condition satisfies its required context, so the lint would stop gating while the
+  # ruleset still lists `ci / actionlint`.
+  #
+  # Called at a published reference, never `@main` (ST37): a `workflows-*` release of cosyte/.github.
+  # Those releases are immutable, so the tag names one commit, and every caller in this repository
+  # moves to the next one together. The shared matrix default is Node 22, 24 and 26.
   ci:
-    uses: cosyte/.github/.github/workflows/ci.yml@main
+    uses: cosyte/.github/.github/workflows/ci.yml@workflows-2026-11-07-498c7c13c886
     with:
       run-phi-scan: true
-      run-actionlint: ${{ github.event_name != 'schedule' }}
 
   # ── THE ORACLE GATE ──────────────────────────────────────────────────────────────────────────
   #
