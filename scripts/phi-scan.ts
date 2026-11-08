@@ -160,9 +160,8 @@
  *     at `4c9900f`, 20 of the 225 tracked files were markdown, and all 20 were
  *     read by hand on 2026-08-08 with no SSN shape and no email at all in any of
  *     them. DERIVE THE COUNT, DO NOT TRUST IT: every changeset adds a markdown
- *     file, so it moves on most commits, and the change that widened the scan
- *     wrote a cleared address into `documentation/agent-notes.md` itself, which
- *     the hand-read predates. `git ls-files | grep -ci '\.md$'` is the answer.
+ *     file, so it moves on most commits. `git ls-files | grep -ci '\.md$'` is
+ *     the answer.
  *     It stays out of scope because `phi-scan-overrides.md` exists to record WHY
  *     a value was tolerated, so scanning it makes the log that satisfies the gate
  *     red the gate. Lifting it is a separate decision with its own false-positive

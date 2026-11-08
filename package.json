@@ -186,7 +186,6 @@
     "acquire:oracle": "tsx scripts/oracle/acquire.ts",
     "check:no-emdash": "cosyte-no-emdash",
     "check:no-internal-refs": "bash scripts/check-no-internal-refs.sh",
-    "check:agent-notes": "cosyte-agent-notes",
     "check:readme": "cosyte-readme",
     "check:claude-card": "cosyte-claude-card",
     "check:catalog": "cosyte-catalog",

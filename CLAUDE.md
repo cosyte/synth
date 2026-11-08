@@ -23,7 +23,7 @@ pnpm check:test-selection     # test-selection.yml
 pnpm run determinism:digest && pnpm run check:determinism-window   # ci.yml; digest on 22, 24, 26
 pnpm run acquire:oracle && pnpm run oracle   # ci.yml oracle job: needs `java` and the network
 pnpm check:no-emdash && pnpm check:no-internal-refs   # no-emdash.yml, no-internal-refs.yml
-pnpm check:readme && pnpm check:claude-card && pnpm check:agent-notes && pnpm check:catalog
+pnpm check:readme && pnpm check:claude-card && pnpm check:catalog
 ```
 
 Only CI runs the shared prepublish checks, actionlint and CodeQL. `no-emdash.yml` also reads the PR
@@ -37,8 +37,6 @@ Luhn, DEAs failing their checksum, SSNs outside SSA and ITIN ranges (#52), `555-
 `example.*` domains, TEST-NET addresses. A Luhn-valid NPI or a valid DEA is a `pnpm phi-scan` hit.
 
 ## Rules (each cites the cosyte/synth PR that paid for it)
-
-Why each holds, in full: documentation/agent-notes.md#standing-disciplines-the-rationales.
 
 - A fatal is `SynthError(code)` with its text in `SYNTH_FATAL_MESSAGES`, never built from a value;
   resolve caller selectors with `resolveKind` / `resolveMix` first: one reached `err.message` (#29).
