@@ -222,15 +222,13 @@ export function buildCoverageDeclaration(
     };
   });
 
-  const exclusions = excluded.map(
-    (item): CoverageExclusion => ({
-      artifactId: item.artifact.id,
-      format: item.artifact.format,
-      kind: item.artifact.kind,
-      seed: item.artifact.seed,
-      reason: item.reason,
-    }),
-  );
+  const exclusions = excluded.map((item): CoverageExclusion => ({
+    artifactId: item.artifact.id,
+    format: item.artifact.format,
+    kind: item.artifact.kind,
+    seed: item.artifact.seed,
+    reason: item.reason,
+  }));
 
   return { ok: true, declaration: { formats, exclusions } };
 }

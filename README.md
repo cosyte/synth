@@ -402,19 +402,19 @@ Typo, link, and test fixes can go straight to a pull request.
 
 **What a contribution has to clear**, every one of them a script this package declares:
 
-| check                         | what it is                                               |
-| ----------------------------- | -------------------------------------------------------- |
-| `pnpm typecheck`              | `tsc --noEmit`, strict, over the source and the examples |
-| `pnpm lint`                   | ESLint, at `--max-warnings=0`                            |
-| `pnpm format:check`           | Prettier                                                 |
-| `pnpm phi-scan`               | no patient-shaped value anywhere in a tracked file       |
-| `pnpm test`                   | Vitest, including the synthetic-safety suites            |
-| `pnpm test:coverage`          | the coverage gate                                        |
-| `pnpm build`                  | the dual ESM and CJS bundle                              |
-| `pnpm attw`                   | per-condition type resolution for consumers              |
-| `pnpm run determinism:digest` | the bytes each seed produces, against the baseline       |
-| `pnpm check:no-emdash`        | the house punctuation rule                               |
-| `pnpm check:no-internal-refs` | no internal bookkeeping on the public surface            |
+| check                         | what it is                                            |
+| ----------------------------- | ----------------------------------------------------- |
+| `pnpm typecheck`              | `tsc --noEmit`, strict (the examples: in `pnpm test`) |
+| `pnpm lint`                   | ESLint, at `--max-warnings=0`                         |
+| `pnpm format:check`           | Prettier                                              |
+| `pnpm phi-scan`               | no patient-shaped value anywhere in a tracked file    |
+| `pnpm test`                   | Vitest, including the synthetic-safety suites         |
+| `pnpm test:coverage`          | the coverage gate                                     |
+| `pnpm build`                  | the dual ESM and CJS bundle                           |
+| `pnpm attw`                   | per-condition type resolution for consumers           |
+| `pnpm run determinism:digest` | the bytes each seed produces, against the baseline    |
+| `pnpm check:no-emdash`        | the house punctuation rule                            |
+| `pnpm check:no-internal-refs` | no internal bookkeeping on the public surface         |
 
 New behavior needs a test beside it, and a change a consumer would notice needs a changeset
 (`pnpm changeset`), whose summary becomes the changelog entry. A change to the bytes a seed produces

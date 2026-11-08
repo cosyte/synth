@@ -67,8 +67,7 @@ export interface AcquisitionCheck {
 
 /** The outcome of the whole pre-grading check. */
 export type AcquisitionVerdict =
-  | { readonly ok: true }
-  | { readonly ok: false; readonly refusals: readonly string[] };
+  { readonly ok: true } | { readonly ok: false; readonly refusals: readonly string[] };
 
 /** A sha256 as hex, case-insensitively, and nothing else. */
 const SHA256_HEX = /^[0-9a-f]{64}$/i;

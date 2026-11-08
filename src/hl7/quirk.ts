@@ -48,13 +48,7 @@ export type Hl7QuirkName = "unknown-zsegment" | "unknown-escape";
 
 /** The HL7 v2 message families a quirk can be injected into (the spec-clean base). */
 export type Hl7QuirkKind =
-  | "ADT^A01"
-  | "ADT^A04"
-  | "ADT^A08"
-  | "ORU^R01"
-  | "ORM^O01"
-  | "SIU^S12"
-  | "VXU^V04";
+  "ADT^A01" | "ADT^A04" | "ADT^A08" | "ORU^R01" | "ORM^O01" | "SIU^S12" | "VXU^V04";
 
 /**
  * The HL7 v2 quirk registry: each recipe bound to the exact `@cosyte/hl7` warning code it targets and

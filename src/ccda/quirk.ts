@@ -44,9 +44,7 @@ import { generateCcda, type CcdaDocumentType } from "./ccd.js";
 
 /** Every C-CDA quirk this package ships. */
 export type CcdaQuirkName =
-  | "template-extension-absent"
-  | "deprecated-loinc"
-  | "deprecated-code-system";
+  "template-extension-absent" | "deprecated-loinc" | "deprecated-code-system";
 
 /** The C-CDA quirk registry: each recipe bound to the exact `@cosyte/ccda` warning code it targets. */
 export const CCDA_QUIRKS: Readonly<Record<CcdaQuirkName, QuirkDescriptor>> = Object.freeze({
