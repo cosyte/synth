@@ -1,0 +1,42 @@
+name: Nightly fuzz
+
+# Continuous seed-sweep fuzzing of the generator (the inverted fuzz: `synth` feeds fuzzing more than
+# it is fuzzed). Every night, and on demand, this calls the shared nightly-fuzz.yml at the published
+# reference the other callers here name, and that workflow runs `pnpm fuzz`:
+# test/property/seed-sweep.fuzz.property.test.ts, which sweeps seeds, counts, and formats and holds
+# every output to the spec-clean and synthetic-safety gates. Here the sweep runs for a time budget
+# instead of its committed run count, from a seed that changes with every run, so each night
+# explores a different slice of the space. Each case does real generation and a round trip through
+# a parser builder, so the one target gets a longer budget than a byte-level parser's.
+#
+# The pull-request smoke run is `pnpm test`: the shared CI job runs the same sweep on every pull
+# request at its base count. This run is the deep search that would make a pull request slow.
+#
+# An unsanctioned throw, a hang, a non-spec-clean artifact, or a plausibly real value fails the
+# run. The log prints the counterexample, the seed, and the path. The seed is this run's id:
+# `SYNTH_FUZZ_SEED=<run id> pnpm fuzz` replays it, and test/property/_fuzz-config.ts says how to
+# step straight to the shrunk case.
+#
+# A job that calls a reusable workflow cannot set its own timeout. The shared job stops at 60
+# minutes; the command bounds itself tighter, and `timeout` fails a run that hangs.
+#
+# Schedule and dispatch only: never a required check.
+
+on:
+  schedule:
+    # 04:31 UTC daily. An odd minute: GitHub delays scheduled runs at the start of every hour.
+    - cron: "31 4 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    uses: cosyte/.github/.github/workflows/nightly-fuzz.yml@c0db8d8e5927269820de4401b3b5ad6141854b76 # workflows-2026-11-08-c0db8d8e5927
+    with:
+      fuzz-cmd: SYNTH_FUZZ_SEED="$GITHUB_RUN_ID" SYNTH_FUZZ_SECONDS=900 timeout --kill-after=1m 40m pnpm fuzz
