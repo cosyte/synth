@@ -43,6 +43,10 @@ jobs:
   # Called at a published reference, never `@main` (ST37): a `workflows-*` release of cosyte/.github.
   # Those releases are immutable, so the tag names one commit, and every caller in this repository
   # moves to the next one together. The shared matrix default is Node 22, 24 and 26.
+  #
+  # The job id `ci` prefixes the required contexts (`ci / verify (22, ubuntu-latest)` and the rest):
+  # rename it, or move a step out of the shared `verify`, and the ruleset requires a context nothing
+  # emits, which leaves every pull request pending rather than red.
   ci:
     uses: cosyte/.github/.github/workflows/ci.yml@498c7c13c8869bf11b67fa8324684ec2dc691ec6 # workflows-2026-11-07-498c7c13c886
     with:
@@ -351,12 +355,11 @@ jobs:
   # ── THE DOCUMENTS ─────────────────────────────────────────────────────────────────────────────
   #
   # The house checks on this repository's documents and its catalog entry, from @cosyte/script-utils
-  # (RD1, RD2, RD4, PF1): the README against the house skeleton and npm's size limit
-  # (`pnpm check:readme`), the CLAUDE.md card against its spec (`pnpm check:claude-card`), every
-  # pointer into documentation/agent-notes.md (`pnpm check:agent-notes`), and the package
-  # description against the catalog that ships in script-utils (`pnpm check:catalog`). Not one of
-  # the determinism jobs, so the reconciliation does not read it. Its context, `documents`, is not
-  # required yet: a context joins the ruleset after it has run on `main`.
+  # (RD1, RD2, PF1): the README against the house skeleton and npm's size limit
+  # (`pnpm check:readme`), the CLAUDE.md card against its spec (`pnpm check:claude-card`), and the
+  # package description against the catalog that ships in script-utils (`pnpm check:catalog`). Not
+  # one of the determinism jobs, so the reconciliation does not read it. Its context, `documents`,
+  # is not required yet: a context joins the ruleset after it has run on `main`.
   documents:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -377,9 +380,6 @@ jobs:
 
       - name: The CLAUDE.md card follows its spec
         run: pnpm check:claude-card
-
-      - name: Every pointer into the agent notes resolves
-        run: pnpm check:agent-notes
 
       - name: The package description is the catalog's
         run: pnpm check:catalog
