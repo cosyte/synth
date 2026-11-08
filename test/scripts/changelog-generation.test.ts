@@ -125,6 +125,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { applyOverride, BASELINE, loadOverrides } from "@cosyte/process";
 import prettier from "prettier";
 import { describe, it, expect, afterAll } from "vitest";
 
@@ -412,7 +413,12 @@ describe("changelog generation is on", () => {
     // measurement rather than a preference.
     expect(config.prettier).toBeUndefined();
     expect(existsSync(join(REPO_ROOT, ".prettierignore"))).toBe(false);
-    expect(pkg.scripts?.["format:check"] ?? "").toContain('"*.{json,md,yml}"');
+    // `format:check` delegates to `cosyte-process format --check`, so the globs it checks are the
+    // shared baseline as `cosyte-process.config.json` overrides it, read through the same functions
+    // the bin uses.
+    expect(pkg.scripts?.["format:check"]).toBe("cosyte-process format --check");
+    const formatGlobs = applyOverride(BASELINE.format, loadOverrides(REPO_ROOT).format).globs;
+    expect(formatGlobs).toContain("*.{json,md,yml}");
   });
 
   it("re-canonicalises CHANGELOG.md later in the same version chain, unlike the three repos this came from", () => {

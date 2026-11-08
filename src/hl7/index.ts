@@ -62,13 +62,7 @@ export {
  * carries its trigger; the other families have a single generated trigger each.
  */
 export type Hl7MessageKind =
-  | "ADT^A01"
-  | "ADT^A04"
-  | "ADT^A08"
-  | "ORU^R01"
-  | "ORM^O01"
-  | "SIU^S12"
-  | "VXU^V04";
+  "ADT^A01" | "ADT^A04" | "ADT^A08" | "ORU^R01" | "ORM^O01" | "SIU^S12" | "VXU^V04";
 
 /** Every kind {@link hl7Corpus} accepts, and the default mix: one of every family. */
 const ALL_KINDS: readonly Hl7MessageKind[] = Object.freeze([

@@ -7,7 +7,8 @@ seed gives the same bytes on the same parser versions. It has zero runtime depen
 
 ## Build and test
 
-Use the pnpm version that `packageManager` in `package.json` pins: run
+Use Node.js 22.22.2 or later (the floor `@cosyte/process` sets for the dev tools; the package itself
+runs on any Node 22) and the pnpm version that `packageManager` in `package.json` pins: run
 `corepack enable pnpm --install-directory <dir>` and put `<dir>` first on `PATH`.
 
 ```sh
@@ -28,6 +29,7 @@ pnpm test && pnpm test:coverage && pnpm build && pnpm attw   # ci.yml
 pnpm examples && pnpm smoke                        # ci.yml, smoke.yml
 pnpm check:install                                 # install.yml (needs the network)
 pnpm check:test-selection                          # test-selection.yml
+pnpm check:process                                 # ci.yml documents job
 pnpm run determinism:digest && pnpm run check:determinism-window   # ci.yml
 pnpm run acquire:oracle && pnpm run oracle         # ci.yml (needs java and the network)
 pnpm check:no-emdash && pnpm check:no-internal-refs

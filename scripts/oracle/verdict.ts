@@ -144,18 +144,16 @@ export function buildVerdict(input: VerdictInput): OracleVerdict {
     );
   }
 
-  const artifacts = input.decision.outcomes.map(
-    (outcome): VerdictArtifact => ({
-      id: outcome.artifact.id,
-      format: outcome.artifact.format,
-      kind: outcome.artifact.kind,
-      seed: outcome.artifact.seed,
-      profile: outcome.artifact.profile,
-      status: outcome.status,
-      counts: { ...outcome.counts },
-      issues: outcome.issues,
-    }),
-  );
+  const artifacts = input.decision.outcomes.map((outcome): VerdictArtifact => ({
+    id: outcome.artifact.id,
+    format: outcome.artifact.format,
+    kind: outcome.artifact.kind,
+    seed: outcome.artifact.seed,
+    profile: outcome.artifact.profile,
+    status: outcome.status,
+    counts: { ...outcome.counts },
+    issues: outcome.issues,
+  }));
 
   return {
     status: input.decision.passed ? "pass" : "fail",

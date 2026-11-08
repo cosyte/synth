@@ -24,7 +24,7 @@ describe("toolchain sanity", () => {
 
   it("package exports VERSION matching package.json", () => {
     // Compared against package.json, never a hardcoded literal. `changeset version` bumps
-    // package.json alone, so a release that skipped `scripts/sync-version.mjs` (wired into the
+    // package.json alone, so a release that skipped `cosyte-process sync-version` (wired into the
     // `version` script) publishes a VERSION export that lies about the release. That is not
     // hypothetical: 0.0.1 through 0.0.5 all went to the registry exporting "0.0.0", and the
     // shape-only assertions above stayed green through every one of them.
@@ -36,7 +36,7 @@ describe("toolchain sanity", () => {
     expect(VERSION).toMatch(/^\d+\.\d+\.\d+(?:[.-].+)?$/);
   });
 
-  it("keeps the declaration in the exact shape scripts/sync-version.mjs rewrites", () => {
+  it("keeps the declaration in the exact shape cosyte-process sync-version rewrites", () => {
     // The assertion above compares two VALUES, so it cannot see the sync step being disarmed. Drop
     // the `: string` annotation (it reads as redundant, which is exactly why someone tidies it away)
     // and every value here still agrees: the script only stops matching at the next `changeset
@@ -44,8 +44,9 @@ describe("toolchain sanity", () => {
     // no-opping, so the release fails loudly, but it fails on release day rather than in the pull
     // request that broke it. This moves that discovery forward to CI.
     //
-    // The pattern MIRRORS the one in scripts/sync-version.mjs and the two must move together. It is
-    // duplicated rather than imported because the script is an executable, not a module.
+    // The pattern MIRRORS the one `cosyte-process sync-version` matches (its condition 2: one
+    // column-0 `export const VERSION: string = "<value>";`) and the two must move together. It is
+    // duplicated rather than imported because @cosyte/process exports the command, not the pattern.
     const source = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
     const matches = source.match(/^export const VERSION: string = "[^"]*";$/gm);
 
