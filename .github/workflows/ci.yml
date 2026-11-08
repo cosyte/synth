@@ -44,7 +44,7 @@ jobs:
   # Those releases are immutable, so the tag names one commit, and every caller in this repository
   # moves to the next one together. The shared matrix default is Node 22, 24 and 26.
   ci:
-    uses: cosyte/.github/.github/workflows/ci.yml@workflows-2026-11-07-498c7c13c886
+    uses: cosyte/.github/.github/workflows/ci.yml@498c7c13c8869bf11b67fa8324684ec2dc691ec6 # workflows-2026-11-07-498c7c13c886
     with:
       run-phi-scan: true
 
