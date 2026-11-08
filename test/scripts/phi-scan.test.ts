@@ -1006,11 +1006,12 @@ describe("phi-scan: all-mode reconciles what it walked against what git tracks",
     expect(outside.stderr).toContain("outside.xml");
   });
 
-  it("exempts the vendored archives BY LITERAL PATH, and nothing else under vendor/", () => {
-    // A PREDICATE WOULD HAVE COVERED BOTH FILES BELOW. The list covers exactly the one
-    // it names, which is the whole reason it is a list.
+  it("exempts no path: nothing is vendored, so a file under vendor/ is scanned", () => {
+    // A PREDICATE WOULD HAVE COVERED THE FILE BELOW. The list covers exactly what it
+    // names, which is the whole reason it is a list, and it names nothing now that every
+    // sibling parser is a registry devDependency.
     const exempt = binaryExemptPaths();
-    expect(exempt.length).toBeGreaterThan(0);
+    expect(exempt).toEqual([]);
     const r = withRoot([], (root) => {
       put(root, "vendor/not-exempt.xml", VIOLATOR);
       git(root, ["add", "--", "vendor/not-exempt.xml"]);
@@ -1047,7 +1048,10 @@ describe("phi-scan: all-mode reconciles what it walked against what git tracks",
     for (let i = 0; i + 2 < fields.length; i += 3) {
       if (fields[i + 2] === "set") binaries.push(fields[i] ?? "");
     }
-    expect(binaries.length, "no file in this repo is declared binary").toBeGreaterThan(0);
+    // Every tracked path was answered, so an empty answer means nothing is declared binary,
+    // not that the query read nothing.
+    expect(attr.status).toBe(0);
+    expect(Math.floor(fields.length / 3)).toBe(tracked.length);
     expect([...binaryExemptPaths()].sort()).toEqual([...binaries].sort());
   });
 });

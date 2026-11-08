@@ -29,8 +29,8 @@ jobs:
     secrets: inherit
 
   # THE RELEASE IS NOT DONE UNTIL A CONSUMER CAN INSTALL WHAT IT SHIPPED. Everything upstream of
-  # this job runs against a tree whose seven `@cosyte` peers are already on disk as
-  # `file:vendor/*.tgz` devDependencies, so none of it has ever answered the only question a
+  # this job runs against a tree whose seven `@cosyte` peers are already installed as
+  # devDependencies, so none of it has ever answered the only question a
   # published package is judged by: does `npm install @cosyte/synth` work in an empty directory.
   # This job installs the version this tree declares, FROM THE PUBLIC REGISTRY, into a freshly
   # created empty project with npm and with pnpm, and reds the release run when it does not.

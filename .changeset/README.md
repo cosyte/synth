@@ -23,5 +23,8 @@ Pick the bump type from what the change does to the published package. On the `0
   and the break has to be spelled out in the summary, because the number alone tells a consumer on
   a `0.x` release nothing.
 
-One exception is enforced rather than chosen: a change to the bytes a seed maps to needs a
-**major** changeset, because `pnpm run check:determinism-window` refuses it without one.
+One rule is enforced rather than chosen: a change to the bytes a seed maps to has to be stated.
+`pnpm run check:determinism-window` accepts a **major** changeset, or (the operator's decision D57,
+2026-11-07) a changeset of any bump whose body carries an `Output change:` section, one paragraph,
+naming every format that moved (`C-CDA`, `HL7 v2`, `FHIR`, `X12`, `NCPDP`, `ASTM`) and saying what
+changed. It refuses a changed mapping stated only in prose.

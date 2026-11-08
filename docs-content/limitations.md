@@ -174,9 +174,10 @@ ssnOk && isSyntheticNpi(safe.npi(rng)) && isSyntheticDea(safe.dea(rng)); // => t
 
 ## Determinism holds within a version window
 
-A seed maps to the same bytes **within a documented compatibility window**, not across _major_
-`synth` versions. A version bump may change a value list or the algorithm and thus the seed→bytes
-mapping; that is a **documented breaking change**. For a long-lived golden fixture, **pin the `synth`
+A seed maps to the same bytes **within a release**, and across releases unless a release's
+changelog states an **output change** for that format. A version bump may change a value list, the
+algorithm, or a parser's builder and thus the seed→bytes mapping; that is always stated in the
+changelog entry, under "Output change", naming each format whose bytes moved. For a long-lived golden fixture, **pin the `synth`
 version, and the versions of the parsers you generate with, alongside the seed.** Each format's bytes
 come from that parser's own builder and serializer, so upgrading a parser can change them even when
 `synth` has not moved: measured, the same C-CDA seeds serialize differently under two releases of
@@ -191,9 +192,10 @@ engines disagree. A mismatch is reported by seed, format, and engine, never by c
 per-engine run is also compared against a **committed baseline** for the current window, so a
 toolchain or dependency change that moves every engine together is caught as well.
 
-**A change to that mapping is released as a breaking change.** The baseline is committed, and it
-cannot change without a release declaring a major version bump for the package, so a golden fixture
-pinned to a version inside the window keeps matching. Node majors outside the verified pair are not
+**A change to that mapping is always stated.** The baseline is committed, and it cannot change
+unless the release's changeset declares a major version bump or states the output change for every
+format that moved, so a golden fixture pinned to a `synth` version keeps matching, and one carried
+across releases matches unless a changelog entry says its format moved. Node majors outside the verified pair are not
 promised: `engines.node` says which ones are supported, and this check says which ones are
 measured.
 

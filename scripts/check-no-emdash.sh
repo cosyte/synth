@@ -330,12 +330,13 @@ refuse_if_incomplete
 # THE BINARY PARTITION IS A DECLARATION (divergences A and B at the top).
 # ---------------------------------------------------------------------------
 #
-# WHY A PARTITION EXISTS AT ALL, which astm's copy does not need: this repo tracks
-# seven vendored `.tgz` tarballs, and `vendor/cosyte-hl7-0.0.0.tgz` contains the
-# em dash's UTF-8 bytes (`E2 80 94`) by coincidence inside its DEFLATE stream.
-# Measured on this tree. A scan-everything form reds on it forever, because there is
-# no edit that removes a byte from a compressed stream without rebuilding someone
-# else's package. Same defect `cli` recorded.
+# WHY A PARTITION EXISTS AT ALL, which astm's copy does not need: this repo tracked
+# seven vendored `.tgz` tarballs, and `vendor/cosyte-hl7-0.0.0.tgz` contained the
+# em dash's UTF-8 bytes (`E2 80 94`) by coincidence inside its DEFLATE stream. A
+# scan-everything form reds on such a file forever, because there is no edit that
+# removes a byte from a compressed stream without rebuilding someone else's package.
+# Same defect `cli` recorded. The siblings now come from the registry and nothing is
+# declared binary today; the partition stays for the next archive that is.
 #
 # WHY IT IS `git check-attr` AND NOT A NUL TEST, which is the half that matters:
 # `test/property/seed-sweep.fuzz.property.test.ts` is a real UTF-8 TypeScript source
