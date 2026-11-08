@@ -95,8 +95,8 @@
  *          the same map.
  *
  *     (4b) THE FUZZ PATH, derived in two steps because that is how this repo spells it. The
- *          nightly `Fuzz` workflow runs `pnpm test:fuzz`, and the `test:fuzz` script body is a
- *          `vitest run <path>`. Both halves are committed files that exist to make the nightly
+ *          `Nightly fuzz` workflow hands `pnpm fuzz` to the shared fuzz workflow, and the `fuzz`
+ *          script body is a `vitest run <path>`. Both halves are committed files that exist to make the nightly
  *          fuzz run at all, and deleting either breaks that job rather than quietly shrinking this
  *          one. TODAY THIS SUBJECT IS REDUNDANT: the single module it names also imports a
  *          published entry, so (4a) already reaches it. It is kept because it is independently
@@ -105,7 +105,7 @@
  *          other literal path being left behind anywhere in a workflow. It is forgeable in the
  *          suppressing direction, because the extraction is text and does not distinguish a real
  *          `run:` command from prose that quotes one: leaving `# e.g. vitest run test/hl7` in a
- *          comment and then deleting `fuzz.yml` and the `test:fuzz` script yields a derived path of
+ *          comment and then deleting `nightly-fuzz.yml` and the `fuzz` script yields a derived path of
  *          `test/hl7`, whose two modules are selected, and this passes green. That generosity is
  *          the safe direction for KEEPING a subject alive and the unsafe one for the refusal, and
  *          calling it an unconditional tripwire would be an overclaim.
@@ -258,7 +258,7 @@
  * WHAT "THESE ROUTES ARE CLOSED" IS BOUNDED TO. Only the routes seeded one at a time and observed to
  * red: narrowing `include`; an `exclude` on the safety suites and on `test/property/`; both spellings
  * of a positional path filter; `--shard=`; `--config=`; bodies naming no vitest at all, including a
- * delegation to this repo's own `test:fuzz`; a suite renamed to `.ts`, `.spec.ts`, `_safety.ts`,
+ * delegation to this repo's own `fuzz`; a suite renamed to `.ts`, `.spec.ts`, `_safety.ts`,
  * `_helpers.ts`, `test/_helpers/load-fixture.ts`, `test/_x/parse.ts` or
  * `test/_helpers/fuzz-config.ts`; the PHI suite renamed; the fuzz subject renamed; `run-phi-scan:
  * false`; un-exporting `./astm` together with a narrowed include; and any suite relocated out of
@@ -598,7 +598,7 @@ function entryReferences(tracked: string[], entries: PublishedEntry[]): Map<stri
  * Paths this repo's workflows hand to a `vitest run`, directly or through a package script.
  *
  * THE TWO-STEP FORM IS WHY THIS IS NOT THE SIBLING'S RULE VERBATIM. No workflow here contains the
- * string `vitest run`; the nightly `Fuzz` job runs `pnpm test:fuzz`, and the path lives in that
+ * string `vitest run`; the `Nightly fuzz` job runs `pnpm fuzz`, and the path lives in that
  * script's body. Both halves are committed files that exist to make the nightly fuzz run at all.
  * The direct form is kept alongside it so a workflow that inlines the command in future is picked
  * up without an edit here.
@@ -648,8 +648,8 @@ function workflowDerivedPaths(): string[] {
   if (found.size === 0) {
     refuse(
       "no workflow hands a path to `vitest run`, directly or through a package script it names, so " +
-        "this gate has no derived fuzz subject to protect. The nightly Fuzz workflow runs " +
-        "`pnpm test:fuzz`, whose body names the seed-sweep suite. If that job or that script was " +
+        "this gate has no derived fuzz subject to protect. The Nightly fuzz workflow runs " +
+        "`pnpm fuzz`, whose body names the seed-sweep suite. If that job or that script was " +
         "removed on purpose, this derivation has to be re-grounded on whatever replaced it, " +
         "deliberately, rather than allowed to pass vacuously.",
     );
@@ -924,7 +924,7 @@ function selfTestInvocationRule(): void {
     // NO `vitest` TOKEN AT ALL. These are the ones that shipped green there.
     "pnpm run test:unit",
     // Delegation to this repo's OWN narrowing script, which runs one file of thirty-nine.
-    "pnpm run test:fuzz",
+    "pnpm run fuzz",
     "node node_modules/vitest/vitest.mjs run --coverage test/hl7",
     "sh -c 'vitest run --coverage test/hl7'",
     'bash -c "vitest run test/hl7"',
