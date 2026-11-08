@@ -175,7 +175,7 @@
  *     neither route. All-mode now reconciles against `git ls-files` and reads every
  *     tracked file the walk did not, which is a UNION with the walk and never a
  *     replacement of it. What is still in neither route is 20 markdown files (the
- *     bullet above) and the 7 literal paths in `BINARY_EXEMPT_PATHS`.
+ *     bullet above) and the literal paths in `BINARY_EXEMPT_PATHS` (none today).
  *   - `--staged` STILL NARROWS TO THE ROOTS, and that asymmetry is deliberate
  *     rather than an oversight to fix later in the same style. The widening above
  *     needs a corpus exemption (a compressed archive read as text produces
@@ -348,31 +348,16 @@ const SCAN_ROOTS: readonly string[] = ["src", "test", "scripts"];
 // answer is a full checkout, which is what CI and every hook here use. Fail-closed
 // either way, so it costs a run and never a false green.
 //
-// EXEMPTIONS ARE LITERAL PATHS, ONE PER LINE, AND THEY REACH `all` MODE ONLY.
-// A compressed archive read as UTF-8 produces name-shaped and email-shaped nonsense:
-// measured on this repo's base, scanning the seven vendored tarballs by path returned
-// 4 hits across 3 of them, none of which stands for anything. They are excluded here
-// rather than by a `.tgz` test, an "is it binary" heuristic or a `git check-attr`
-// query, because a corpus exemption written as a PREDICATE is the shape that has
-// already subtracted a real detection in a sibling repo: a predicate silently grows
-// to cover files nobody enumerated, and a list cannot.
-//
-// REFRESHING A VENDORED TARBALL MEANS EDITING THIS LIST, because the version is in the
-// filename. That is deliberate, and BOTH directions of drift are loud: an unlisted
-// archive is scanned and reds on nonsense hits, and a stale entry reds the test in
+// EXEMPTIONS ARE LITERAL PATHS, ONE PER LINE, AND THEY REACH `all` MODE ONLY, AND THERE ARE
+// NONE. They existed for the vendored sibling tarballs, compressed archives that read as
+// name-shaped and email-shaped nonsense; every sibling parser is now a registry
+// devDependency and nothing is tracked under `vendor/`. The list stays, empty, because a
+// corpus exemption written as a PREDICATE is the shape that has already subtracted a real
+// detection in a sibling repo: a predicate silently grows to cover files nobody
+// enumerated, and a list cannot. A path added here has to be a literal, and the test in
 // `test/scripts/phi-scan.test.ts` that reconciles this list against what git DECLARES
-// binary in `.gitattributes`. The reconciliation lives there rather than here because
-// it is a fact about this repo's corpus, not about the scanner: refusing here would
-// make the scanner unusable in any tree that has it and not the seven archives.
-const BINARY_EXEMPT_PATHS: readonly string[] = [
-  "vendor/cosyte-astm-0.0.0.tgz",
-  "vendor/cosyte-ccda-0.0.1.tgz",
-  "vendor/cosyte-deid-0.0.0.tgz",
-  "vendor/cosyte-fhir-0.0.0.tgz",
-  "vendor/cosyte-hl7-0.0.0.tgz",
-  "vendor/cosyte-ncpdp-0.0.1.tgz",
-  "vendor/cosyte-x12-0.0.1.tgz",
-];
+// binary in `.gitattributes` reds on any drift between the two.
+const BINARY_EXEMPT_PATHS: readonly string[] = [];
 
 /**
  * WHICH scan root a repo-relative path sits under, or `undefined` for none. The single

@@ -5,8 +5,8 @@ name: Consumer install
 # with pnpm, and the optional-peer degradation contract is exercised in that project.
 #
 # WHY THIS FILE EXISTS AT ALL, STATED PLAINLY. Every other job in this repo installs with
-# `pnpm install --frozen-lockfile`, which resolves the seven `@cosyte` peers from the
-# `file:vendor/*.tgz` devDependencies sitting in the tree. That is the dev install, and it is the
+# `pnpm install --frozen-lockfile`, which installs the seven `@cosyte` peers as the registry
+# devDependencies the lockfile pins. That is the dev install, and it is the
 # only install anything here has ever performed. Nothing in this repository has ever installed this
 # package the way a consumer installs it, so a fully green pipeline said nothing about whether
 # `npm install @cosyte/synth` works in an empty directory. It has not always worked, and the only

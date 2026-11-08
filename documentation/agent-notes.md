@@ -152,22 +152,18 @@ it. The standing rule is **relocate, never delete**: every paragraph below cost 
 
 ### Optional peer deps and how to refresh a vendored tarball
 
-- The six parsers **and `@cosyte/deid`** are **optional peer deps**, vendored for dev/test via the
-  `mllp` pattern (`vendor/cosyte-hl7-0.0.0.tgz`, `vendor/cosyte-fhir-0.0.0.tgz`,
-  `vendor/cosyte-ccda-0.0.1.tgz`, `vendor/cosyte-x12-0.0.1.tgz`, `vendor/cosyte-ncpdp-0.0.1.tgz`,
-  `vendor/cosyte-astm-0.0.0.tgz`, `vendor/cosyte-deid-0.0.0.tgz`). Refresh one by re-running, e.g.,
-  `pnpm -C ../deid build && pnpm -C ../deid pack --pack-destination ../synth/vendor` then
-  `pnpm add -D @cosyte/deid@file:vendor/cosyte-deid-0.0.0.tgz` (restore the `peerDependencies` entry
-  after if `pnpm remove` stripped it). **Third-party runtime deps stay at 0.** Quirk generation (Phase 7)
-  ships for HL7 v2/C-CDA/ASTM; FHIR/X12/NCPDP quirks are deferred, and the `deid` pairing loop (Phase 8)
-  ships for HL7/FHIR/C-CDA/X12/NCPDP Telecom.
+- The six parsers **and `@cosyte/deid`** are **optional peer deps** (`^0.1.0`), installed for dev/test
+  as registry devDependencies resolved through `pnpm-lock.yaml`; the vendored `vendor/*.tgz` tarballs
+  this section once described are gone (2026-11-07). Move one by changing its range and running
+  `pnpm install`, then `pnpm test` and `pnpm run determinism:digest`: a sibling bump can move the bytes
+  a seed produces, and the determinism window treats that as a breaking change. **Third-party runtime
+  deps stay at 0.** Quirk generation (Phase 7) ships for HL7 v2/C-CDA/ASTM; FHIR/X12/NCPDP quirks are
+  deferred, and the `deid` pairing loop (Phase 8) ships for HL7/FHIR/C-CDA/X12/NCPDP Telecom.
 
-- **REFRESHING ONE NOW MEANS EDITING `BINARY_EXEMPT_PATHS` IN `scripts/phi-scan.ts` TOO**, because the
-  version is in the filename and that list is seven literal paths. Both directions of drift are loud
-  and neither is silent: the new filename, unlisted, is scanned and reds on nonsense hits (a gzip
-  stream read as UTF-8 produces name-shaped and email-shaped garbage, measured: 4 hits across 3 of the
-  7 archives); the old filename, stale, reds the reconciliation test in `test/scripts/phi-scan.test.ts`
-  that compares the list against what `.gitattributes` declares `binary`.
+- **`BINARY_EXEMPT_PATHS` IN `scripts/phi-scan.ts` IS EMPTY NOW**, because nothing binary is tracked.
+  It held the seven tarballs' literal paths, and the reconciliation test in
+  `test/scripts/phi-scan.test.ts` still compares the list against what `.gitattributes` declares
+  `binary`, so a binary file added later has to be listed and declared together.
 
 ### The consumer install and the check that re-runs it
 

@@ -2,7 +2,7 @@
 
 A deterministic, seedable generator of synthetic healthcare fixtures (HL7 v2, FHIR R4 / US Core,
 C-CDA, X12, NCPDP, ASTM) for Node.js. Tooling, not a parser: each format is built through its
-sibling `@cosyte/*` parser's builder (optional peers, vendored in `vendor/`), so a seed gives the
+sibling `@cosyte/*` parser's builder (optional peers, `^0.1`, installed from npm for the tests), so a seed gives the
 same bytes on the same parser versions. Public, MIT, on npm, zero runtime dependencies.
 
 @AGENTS.md
@@ -52,9 +52,9 @@ valid: a Luhn-valid NPI or checksum-valid DEA in output is a `pnpm phi-scan` hit
   `pnpm check:test-selection`: it reads only tracked files.
 - Clear a flagged synthetic name or address with one exact `scripts/phi-allow-list.txt` entry
   (`NAME`, `EMAIL`; `EMAILDOMAIN` only for a reserved domain, #49). `--allow-fixture` exits 2 (#61).
-- A parser bump can change bytes with this package unchanged (#67). After refreshing a vendored
-  tarball, run `pnpm test` and `pnpm run determinism:digest`, and update `BINARY_EXEMPT_PATHS` in
-  `scripts/phi-scan.ts`. A moved determinism baseline is a breaking change.
+- A parser bump can change bytes with this package unchanged (#67). After moving a sibling's
+  version, run `pnpm test` and `pnpm run determinism:digest`. A moved determinism baseline is a
+  breaking change.
 - No item ids, phase names or internal paths in what a consumer reads: `README.md`, `docs-content/`,
   the npm `description`, `src/` doc comments and strings. Its gate sees ids, not prose (#18).
 - Say a thing works or is covered only after running it or reading the workflow's steps, and

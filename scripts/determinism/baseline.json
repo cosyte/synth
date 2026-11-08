@@ -2,7 +2,7 @@
   "schema": "cosyte-synth-determinism-baseline/1",
   "package": {
     "name": "@cosyte/synth",
-    "version": "0.0.9",
+    "version": "0.1.1",
     "window": "0.x"
   },
   "digestAlgorithm": "sha256",
@@ -31,22 +31,22 @@
     {
       "format": "ccda",
       "seed": 1001,
-      "digest": "5def10a706663f6476f9366a3110bab91f4db185fb24aeca17f4ad1725c2fa73"
+      "digest": "b9510c77139d2df2e09b845ab556635a445aa1654969a6e4343907e393bcedf0"
     },
     {
       "format": "ccda",
       "seed": 4242,
-      "digest": "8b59a3e4d953f1a9ee206786f99f865cd7962734e60de52c9c4092cf40c1e838"
+      "digest": "c396f68e77a407536e3c1196349d4fe2e556382b64736d65666ab80359d273d3"
     },
     {
       "format": "ccda",
       "seed": 60501,
-      "digest": "85547881a41849c6829402cb77cec6e9d42355e29d9277cdef67312b9cf54874"
+      "digest": "aba60878ae7ddeaabb110b1a371287a8fe778ab69ff20fcc36f71b0d8b599dc1"
     },
     {
       "format": "ccda",
       "seed": 813377,
-      "digest": "b212615b59704f66ee24c9d8446bbcfab6b328052d4c0e048a40787eb6b1171b"
+      "digest": "26467f0de64af40b6aa0e42488a25692eba8f2947752efc47367ce5a588e4da6"
     },
     {
       "format": "fhir",
