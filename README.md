@@ -9,6 +9,20 @@
 
 > Seeded, reproducible **synthetic healthcare fixtures** for Node.js and TypeScript: spec-clean, never real PHI.
 
+[![npm version](https://img.shields.io/npm/v/@cosyte/synth.svg)](https://www.npmjs.com/package/@cosyte/synth)
+[![CI](https://img.shields.io/github/actions/workflow/status/cosyte/synth/ci.yml?branch=main&label=CI)](https://github.com/cosyte/synth/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/cosyte/synth/blob/main/LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org)
+
+Deterministic, seedable synthetic healthcare test fixtures for Node.js and TypeScript: HL7 v2, FHIR R4 and US Core, C-CDA, X12, NCPDP, and ASTM, spec-clean by construction and never real PHI.
+
+## Why this exists
+
+A test suite for a healthcare integration needs messages and documents that look like what a
+sending system produces, and it must never hold a real patient's data. Copying production samples
+and scrubbing them by hand risks the second; writing fixtures by hand rarely gets the first. And a
+fixture that changes on every run cannot be committed as a golden file.
+
 `@cosyte/synth` generates reproducible synthetic test corpora across the six Cosyte formats (HL7 v2,
 FHIR R4 / US Core, C-CDA, X12, NCPDP, and ASTM). It is a **consumer** of the
 Cosyte parsers, not a parser: it builds each artifact **through the parser's own builder/serializer**
@@ -17,23 +31,25 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 **format/conformance generator, not a clinical simulator**: it does not model disease progression
 (that is Synthea).
 
-> **Status:** the 0.1 line, published to npm. The version shown on the npm package page is the one
-> that is live; this page never repeats it. Below 1.0, a breaking change raises the minor version and the
-> changelog says what broke. The generator is **feature-complete**: the
-> seeded-PRNG core, the synthetic-safety providers, and the round-trip harness; **generation across all
-> six formats**, HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`), FHIR R4 / US Core (the full clinical
-> set + `collection`/`transaction`/`document` Bundles), C-CDA R2.1 (CCD + Referral Note), X12 005010
-> (837P/I/D, 835, 271), NCPDP (SCRIPT NewRx / RxRenewal / RxChange + Telecom B1/B2/B3), and ASTM (E1394
-> record reports + E1381 framing), each built **through its parser's own builder/serializer**; **vendor-quirk
-> mode**, profile-driven off-spec fixtures for the three richest profile systems (**HL7 v2, C-CDA, ASTM**),
-> each round-tripping to exactly the intended parser warning (the intended-warning contract); and the
-> **`@cosyte/deid` pairing loop**, a closed-loop co-validation harness that de-identifies generated output
-> and proves every planted synthetic PHI sentinel is removed.
->
-> **Deferred (honestly out of scope for now):** quirk recipes for **FHIR / X12 / NCPDP** (and any quirk
-> needing a private vendor corpus); the X12 **270** eligibility _request_ and NCPDP SCRIPT lifecycle
-> **responses** (both track the parsers' builder surfaces); **NCPDP SCRIPT / ASTM / DICOM** de-identify
-> pairing (no `@cosyte/deid` adapter, or not generated); and optional **Synthea** clinical-content ingestion.
+## Status
+
+The 0.1 line, published to npm. The version shown on the npm package page is the one
+that is live; this page never repeats it. Below 1.0, a breaking change raises the minor version and the
+changelog says what broke. The generator is **feature-complete**: the
+seeded-PRNG core, the synthetic-safety providers, and the round-trip harness; **generation across all
+six formats**, HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`), FHIR R4 / US Core (the full clinical
+set + `collection`/`transaction`/`document` Bundles), C-CDA R2.1 (CCD + Referral Note), X12 005010
+(837P/I/D, 835, 271), NCPDP (SCRIPT NewRx / RxRenewal / RxChange + Telecom B1/B2/B3), and ASTM (E1394
+record reports + E1381 framing), each built **through its parser's own builder/serializer**; **vendor-quirk
+mode**, profile-driven off-spec fixtures for the three richest profile systems (**HL7 v2, C-CDA, ASTM**),
+each round-tripping to exactly the intended parser warning (the intended-warning contract); and the
+**`@cosyte/deid` pairing loop**, a closed-loop co-validation harness that de-identifies generated output
+and proves every planted synthetic PHI sentinel is removed.
+
+**Deferred (honestly out of scope for now):** quirk recipes for **FHIR / X12 / NCPDP** (and any quirk
+needing a private vendor corpus); the X12 **270** eligibility _request_ and NCPDP SCRIPT lifecycle
+**responses** (both track the parsers' builder surfaces); **NCPDP SCRIPT / ASTM / DICOM** de-identify
+pairing (no `@cosyte/deid` adapter, or not generated); and optional **Synthea** clinical-content ingestion.
 
 ## Install
 
@@ -41,7 +57,7 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cosyte/ncpdp @cosyte/astm
 ```
 
-Node.js 22 or later, tested on 22 and 24.
+Node.js 22 or later, tested on 22, 24, and 26.
 
 `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, `@cosyte/ncpdp`, `@cosyte/astm`, and
 `@cosyte/deid` are **optional peer dependencies**, each needed only for its subpath (`@cosyte/synth/hl7`,
@@ -50,7 +66,12 @@ Node.js 22 or later, tested on 22 and 24.
 the formats it pairs): install only the packages whose fixtures you generate. The package core has
 **zero third-party runtime dependencies**.
 
-## Generate a spec-clean HL7 v2 message
+## Usage
+
+Every value below is synthetic by construction. The full reference, with a guide per format, is
+on [docs.cosyte.com/synth](https://docs.cosyte.com/synth).
+
+### Generate a spec-clean HL7 v2 message
 
 The HL7 v2 set covers `ADT` (`A01`/`A04`/`A08`), `ORU^R01`, `ORM^O01`, `SIU^S12`, and `VXU^V04`:
 each built through `@cosyte/hl7`'s `buildMessage`, so it is spec-clean by construction.
@@ -74,7 +95,7 @@ console.log(corpus.artifacts.every((a) => a.warnings.length === 0)); // true, al
 console.log(roundTrip(generateHl7("VXU^V04", 12345)).content.split("\r")[0]); // its MSH segment
 ```
 
-## Generate a spec-clean FHIR R4 / US Core resource
+### Generate a spec-clean FHIR R4 / US Core resource
 
 The `@cosyte/synth/fhir` subpath builds resources **through `@cosyte/fhir`'s model constructors**, so
 they are spec-clean by construction: validating under `validateResource` and, against the **real US
@@ -108,7 +129,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
 
 `@cosyte/fhir` is an **optional peer dependency**, needed only for the `@cosyte/synth/fhir` subpath.
 
-## Generate a spec-clean C-CDA document
+### Generate a spec-clean C-CDA document
 
 The `@cosyte/synth/ccda` subpath builds Consolidated CDA R2.1 documents **through `@cosyte/ccda`'s
 `buildCcda`**, so template IDs, LOINC section codes, and structured/narrative agreement are the
@@ -137,7 +158,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true, all spec-clean
 
 `@cosyte/ccda` is an **optional peer dependency**, needed only for the `@cosyte/synth/ccda` subpath.
 
-## Generate an X12 transaction
+### Generate an X12 transaction
 
 The `@cosyte/synth/x12` subpath builds HIPAA **005010** transactions **through `@cosyte/x12`'s domain
 builders** (`build837P/I/D`, `build835`, `build271`), so the ISA/GS/ST…SE/GE/IEA envelope, the
@@ -168,7 +189,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true
 **Deferred:** the **270** eligibility _request_ (`@cosyte/x12` ships `build270` on its 0.1 line, but `synth`
 does not generate a 270 yet) and **vendor-quirk mode**.
 
-## Generate an NCPDP message
+### Generate an NCPDP message
 
 The `@cosyte/synth/ncpdp` subpath builds both NCPDP standards **through `@cosyte/ncpdp`'s own emit
 surface**, so each message round-trips through the parser with **zero warnings**. It emits **SCRIPT**
@@ -202,7 +223,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true
 **Deferred:** vendor-quirk mode. SCRIPT coverage tracks the parser's builder surface: the
 renewal/change _responses_ land as `@cosyte/ncpdp` grows builders.
 
-## Generate an ASTM message
+### Generate an ASTM message
 
 The `@cosyte/synth/astm` subpath builds ASTM laboratory messages **through `@cosyte/astm`'s own emit
 surface**: `buildAstmMessage` for the E1394 record layer, `composeAstmFrames` for the E1381 frame
@@ -235,7 +256,7 @@ corpus.artifacts.every((a) => a.warnings.length === 0); // true
 
 `@cosyte/astm` is an **optional peer dependency**, needed only for the `@cosyte/synth/astm` subpath.
 
-## Generate a vendor-quirk fixture
+### Generate a vendor-quirk fixture
 
 Spec-clean fixtures test that a parser reads a _correct_ message; **quirk mode** tests that it tolerates
 the realistic vendor deviations real traffic carries, and surfaces exactly the right diagnostic. The
@@ -274,7 +295,7 @@ nothing you passed. Every quirk is grounded in a **publicly-documented** deviati
 **Deferred:** quirk recipes for **FHIR, X12, and NCPDP**, and any quirk that would need a **private,
 vendor-attributed corpus** to ground.
 
-## Co-validate with `@cosyte/deid` (the pairing loop)
+### Co-validate with `@cosyte/deid` (the pairing loop)
 
 The `@cosyte/synth/deid` subpath is a deterministic **closed-loop co-validation harness** for the
 `synth` ⇄ `deid` pair: it **generates** an artifact, **plants** distinctive synthetic PHI
@@ -314,7 +335,7 @@ identity a de-identifier legitimately retains never reads as a false survivor. `
 **optional peer dependency**, needed only for this subpath. **Skipped and named** (`DEID_LOOP_SKIPPED`):
 NCPDP **SCRIPT** and **ASTM** (no `@cosyte/deid` adapter) and **DICOM** (not generated by `synth`).
 
-## Draw a synthetic value
+### Draw a synthetic value
 
 ```ts
 import { createRng, safe, isSyntheticSsn, isItinFormatted, isSyntheticNpi } from "@cosyte/synth";
@@ -336,11 +357,71 @@ isSyntheticNpi(safe.npi(rng)); // true, always a deliberately-invalid-Luhn NPI (
 - **Checked by the parser's own judgment**, built through the parser's conservative serializer and
   fed straight back in: each artifact re-parses with zero warnings.
 - **Deterministic**, a hand-rolled seeded PRNG (`sfc32`/`splitmix32`); `Math.random` is lint-banned.
-  A seed, and only the seed, determines the output, byte-for-byte, anywhere.
+  A seed determines the output, byte for byte, on the same parser versions, and CI compares those
+  bytes across Node 22 and 24.
 - **Immutable**, generated artifacts and the `Corpus` result are deep-frozen.
 - **Zero third-party runtime dependencies**, the parser peers are first-party Cosyte packages,
-  vendored for dev/test; dual ESM + CJS, validated with `attw`.
+  installed from npm for the tests; dual ESM + CJS, validated with `attw`.
+
+## Documentation
+
+The full reference is on [docs.cosyte.com/synth](https://docs.cosyte.com/synth):
+
+- [Installation](https://docs.cosyte.com/synth/installation) and the [quickstart](https://docs.cosyte.com/synth/quickstart).
+- Core concepts: [the archetype](https://docs.cosyte.com/synth/concepts-archetype) and the [limitations](https://docs.cosyte.com/synth/limitations).
+- Guides: [the overview](https://docs.cosyte.com/synth/guides-overview), [FHIR R4 and US Core](https://docs.cosyte.com/synth/guides-fhir),
+  [C-CDA](https://docs.cosyte.com/synth/guides-ccda), [X12](https://docs.cosyte.com/synth/guides-x12), [NCPDP](https://docs.cosyte.com/synth/guides-ncpdp),
+  [ASTM](https://docs.cosyte.com/synth/guides-astm), [vendor quirks](https://docs.cosyte.com/synth/guides-quirks), and
+  [the `@cosyte/deid` pairing loop](https://docs.cosyte.com/synth/guides-deid).
+- [Troubleshooting](https://docs.cosyte.com/synth/troubleshooting).
+- [`CHANGELOG.md`](https://github.com/cosyte/synth/blob/main/CHANGELOG.md): every release.
+
+## Support
+
+Questions, bug reports, and requests for a format or a quirk go in
+[GitHub issues](https://github.com/cosyte/synth/issues). Every fixture this package makes is
+synthetic: never attach a real patient's data to an issue. For help with an integration test suite,
+see our [integration services](https://cosyte.com/integration-services).
+
+## Security
+
+Report a vulnerability privately, never in a public issue, and with no real patient data in it. Our
+[security policy](https://github.com/cosyte/synth/security/policy) says how. A generated value that
+is real, or realistic enough to pass for real, is a vulnerability: report it that way.
+
+## Contributing
+
+**Where to ask:** open an issue at
+[https://github.com/cosyte/synth/issues](https://github.com/cosyte/synth/issues). A report is most
+useful with the seed, the generator call, and the parser warnings you got back.
+
+**Unsolicited pull requests are accepted.** For anything that changes the bytes a seed produces, adds
+a generator option, or moves the public API, open an issue first so the behavior can be agreed
+before you write it: a seed that maps to different bytes breaks every golden file built on it.
+Typo, link, and test fixes can go straight to a pull request.
+
+**What a contribution has to clear**, every one of them a script this package declares:
+
+| check                         | what it is                                               |
+| ----------------------------- | -------------------------------------------------------- |
+| `pnpm typecheck`              | `tsc --noEmit`, strict, over the source and the examples |
+| `pnpm lint`                   | ESLint, at `--max-warnings=0`                            |
+| `pnpm format:check`           | Prettier                                                 |
+| `pnpm phi-scan`               | no patient-shaped value anywhere in a tracked file       |
+| `pnpm test`                   | Vitest, including the synthetic-safety suites            |
+| `pnpm test:coverage`          | the coverage gate                                        |
+| `pnpm build`                  | the dual ESM and CJS bundle                              |
+| `pnpm attw`                   | per-condition type resolution for consumers              |
+| `pnpm run determinism:digest` | the bytes each seed produces, against the baseline       |
+| `pnpm check:no-emdash`        | the house punctuation rule                               |
+| `pnpm check:no-internal-refs` | no internal bookkeeping on the public surface            |
+
+New behavior needs a test beside it, and a change a consumer would notice needs a changeset
+(`pnpm changeset`), whose summary becomes the changelog entry. A change to the bytes a seed produces
+says so in its changeset.
 
 ## License
 
-MIT, copyright Cosyte LLC. See [LICENSE](https://github.com/cosyte/synth/blob/main/LICENSE).
+MIT, copyright Cosyte LLC. See [LICENSE](https://github.com/cosyte/synth/blob/main/LICENSE). The
+standards this package names belong to their owners; see
+[TRADEMARKS.md](https://github.com/cosyte/synth/blob/main/TRADEMARKS.md).
