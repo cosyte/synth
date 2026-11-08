@@ -14,7 +14,13 @@
 
 import { describe, expect, it } from "vitest";
 
-import { decideWindow, declaresMajorFor } from "../../scripts/determinism/window.js";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  decideWindow,
+  declaresMajorFor,
+  statesOutputChangeFor,
+} from "../../scripts/determinism/window.js";
 
 const PACKAGE = "@cosyte/synth";
 
@@ -190,5 +196,104 @@ describe("a major declaration is read from the changeset frontmatter and nowhere
 
   it("reads nothing out of a file with no frontmatter", () => {
     expect(declaresMajorFor(`"${PACKAGE}": major\n`, PACKAGE)).toBe(false);
+  });
+});
+
+/**
+ * THE SECOND DOOR: A STATED OUTPUT CHANGE, by the operator's decision D57 (2026-11-07). A changeset of
+ * any bump passes a moved mapping when its `Output change:` section names every format that moved.
+ * The two committed fixtures are the same change, once stated for the gate and once only in prose:
+ * the first must turn the check green and the second must leave it red.
+ */
+const fixture = (name: string): { name: string; text: string } => ({
+  name,
+  text: readFileSync(join(import.meta.dirname, "fixtures", name), "utf8"),
+});
+const STATED = fixture("changeset-output-stated.md");
+const UNSTATED = fixture("changeset-output-unstated.md");
+
+describe("a stated output change passes a moved mapping in a patch (D57)", () => {
+  it("PASSES when a patch changeset's Output change section names the format that moved", () => {
+    const verdict = decide(baseline({ ccda: B, hl7v2: A }), baseline({ ccda: A, hl7v2: A }), [
+      STATED,
+    ]);
+    expect(verdict.status).toBe("pass");
+    expect(verdict.message).toContain("changeset-output-stated.md");
+    expect(verdict.message).toContain("C-CDA");
+    expect(verdict.message).toContain("D57");
+  });
+
+  it("FAILS for the same change stated only in prose, with no Output change section", () => {
+    const verdict = decide(baseline({ ccda: B, hl7v2: A }), baseline({ ccda: A, hl7v2: A }), [
+      UNSTATED,
+    ]);
+    expect(verdict.status).toBe("fail");
+    expect(verdict.message).toContain("A CHANGED SEED-TO-BYTES MAPPING IS A BREAKING CHANGE");
+    expect(verdict.message).toContain("Output change:");
+  });
+
+  it("FAILS, naming the gap, when the section leaves out a format that also moved", () => {
+    const verdict = decide(baseline({ ccda: B, hl7v2: B }), baseline({ ccda: A, hl7v2: A }), [
+      STATED,
+    ]);
+    expect(verdict.status).toBe("fail");
+    expect(verdict.message).toContain("does not name HL7 v2");
+  });
+
+  it("does not cover a NARROWED corpus: that still needs a major", () => {
+    const verdict = decide(baseline({ ccda: A }), baseline({ ccda: A, hl7v2: A }), [STATED]);
+    expect(verdict.status).toBe("fail");
+    expect(verdict.message).toContain("came OUT of the graded set");
+  });
+
+  it("does not cover a moved window, which no section describes", () => {
+    const verdict = decide(
+      baseline({ ccda: B }, { window: "1.x" }),
+      baseline({ ccda: A }, { window: "0.x" }),
+      [STATED],
+    );
+    expect(verdict.status).toBe("fail");
+  });
+
+  it("still passes a major changeset with no section, the first door unchanged", () => {
+    const verdict = decide(baseline({ ccda: B }), baseline({ ccda: A }), [changeset("major")]);
+    expect(verdict.status).toBe("pass");
+  });
+});
+
+describe("an Output change section is read from the changeset body, for this package only", () => {
+  const body = (bump: string, section: string, pkg = PACKAGE): string =>
+    `---\n"${pkg}": ${bump}\n---\n\nSummary sentence.\n\n${section}\n`;
+
+  it("accepts the heading plain, bold, or as a list item", () => {
+    for (const section of [
+      "Output change: C-CDA documents gain a code.",
+      "**Output change:** C-CDA documents gain a code.",
+      "- **Output change:** C-CDA documents gain a code.",
+    ]) {
+      expect(statesOutputChangeFor(body("patch", section), PACKAGE, ["ccda"]).ok, section).toBe(
+        true,
+      );
+    }
+  });
+
+  it("reads only the paragraph the heading opens", () => {
+    const text = body(
+      "patch",
+      "Output change: FHIR resources gain a field.\n\nC-CDA is mentioned here.",
+    );
+    const stated = statesOutputChangeFor(text, PACKAGE, ["ccda"]);
+    expect(stated.ok).toBe(false);
+    expect(stated.missing).toEqual(["C-CDA"]);
+  });
+
+  it("is not satisfied by a section in a changeset for another package", () => {
+    const text = body("patch", "Output change: C-CDA documents gain a code.", "@cosyte/hl7");
+    expect(statesOutputChangeFor(text, PACKAGE, ["ccda"]).ok).toBe(false);
+  });
+
+  it("is not satisfied by a heading that only appears in the frontmatter", () => {
+    const text = `---\n"${PACKAGE}": patch\nOutput change: C-CDA\n---\n\nSummary.\n`;
+    expect(statesOutputChangeFor(text, PACKAGE, ["ccda"]).ok).toBe(false);
   });
 });

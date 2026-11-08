@@ -28,8 +28,19 @@
  *                               to compare against, so the toolchain-moved-everything case is
  *                               unguarded.
  *   present + equal             the mapping is unchanged. Passes.
- *   present + different         the mapping moved. Passes only with a major changeset for this
- *                               package, and fails saying why when there is not one.
+ *   present + different         the mapping moved. Passes with a major changeset for this
+ *                               package, or with a changeset that STATES the change (below), and
+ *                               fails saying why when there is neither.
+ *
+ * A STATED OUTPUT CHANGE IS THE SECOND DOOR, by the operator's decision D57 (plans/decisions.md in
+ * the umbrella, 2026-11-07: "Amend the gate to accept a stated output change in a patch, and release
+ * 0.1.2."). A changeset of any bump for this package passes a moved mapping when its body carries an
+ * `Output change:` section that names every format whose bytes moved, by its display name
+ * (`C-CDA`, `HL7 v2`, ...). The consumer's protection was never the version number; it is being told,
+ * in the changelog entry, which output moved, and the section is exactly that sentence. What it
+ * cannot do: cover a NARROWED corpus, a changed window, algorithm or artifact count, or a format the
+ * section leaves out. Those still need the major door, because none of them is an output change the
+ * section can describe.
  *
  * EQUALITY IS SEMANTIC, NOT TEXTUAL. Two baselines are the same when they agree about the window,
  * the algorithm, the corpus size and every (format, seed) digest. Reformatting a file is not a
@@ -105,6 +116,90 @@ export function declaresMajorFor(text: string, packageName: string): boolean {
   return declaration.test(frontmatter);
 }
 
+/** The display name an `Output change:` section has to use for each format the corpus grades. */
+export const FORMAT_DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  astm: "ASTM",
+  ccda: "C-CDA",
+  fhir: "FHIR",
+  hl7v2: "HL7 v2",
+  ncpdp: "NCPDP",
+  x12: "X12",
+};
+
+/** The heading a stated output change opens with, at the start of a line in a changeset's body. */
+const OUTPUT_CHANGE_HEADING = /^[ \t]*(?:[-*+][ \t]+)?(?:\*\*)?Output change:(?:\*\*)?/m;
+
+/** What a changeset says about a moved mapping. */
+export interface StatedOutputChange {
+  /** True when it names this package and its `Output change:` section names every moved format. */
+  readonly ok: boolean;
+  /** The moved formats the section does not name (every one, when there is no section). */
+  readonly missing: readonly string[];
+}
+
+/**
+ * Whether a changeset STATES an output change for a package: its frontmatter names the package
+ * (any bump), and its body carries an `Output change:` section, the paragraph that opens with that
+ * heading, naming every moved format by its display name.
+ *
+ * @param text - The changeset file's text.
+ * @param packageName - The package the frontmatter must name.
+ * @param movedFormats - The format labels whose digests moved (`ccda`, `hl7v2`, ...).
+ * @returns Whether the change is stated, and which moved formats the section leaves out.
+ * @example
+ * ```ts
+ * statesOutputChangeFor(
+ *   '---\n"@cosyte/synth": patch\n---\n\nSummary.\n\nOutput change: C-CDA documents gain a code.\n',
+ *   "@cosyte/synth",
+ *   ["ccda"],
+ * ).ok; // true
+ * ```
+ */
+export function statesOutputChangeFor(
+  text: string,
+  packageName: string,
+  movedFormats: readonly string[],
+): StatedOutputChange {
+  const fence = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/.exec(text);
+  const frontmatter = fence?.[1];
+  const names = movedFormats.map((format) => FORMAT_DISPLAY_NAMES[format] ?? format);
+  if (fence === null || frontmatter === undefined) return { ok: false, missing: names };
+  const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const declaration = new RegExp(
+    `^\\s*["']?${escaped}["']?\\s*:\\s*["']?(?:patch|minor|major)["']?\\s*$`,
+    "m",
+  );
+  if (!declaration.test(frontmatter)) return { ok: false, missing: names };
+  const body = text.slice(fence[0].length);
+  const heading = OUTPUT_CHANGE_HEADING.exec(body);
+  if (heading === null) return { ok: false, missing: names };
+  // The section is the paragraph the heading opens: everything up to the next blank line.
+  const rest = body.slice(heading.index);
+  const end = /\r?\n[ \t]*\r?\n/.exec(rest);
+  const section = end === null ? rest : rest.slice(0, end.index);
+  const missing = names.filter((name) => !section.toLowerCase().includes(name.toLowerCase()));
+  return { ok: missing.length === 0, missing };
+}
+
+/**
+ * The formats whose bytes moved between two baselines: a digest that changed or a pair that was
+ * added. `undefined` when the difference is not one a stated output change can describe: a changed
+ * window, algorithm or artifact count, or a pair that came out of the graded set.
+ */
+function movedFormats(current: Baseline, previous: Baseline): readonly string[] | undefined {
+  if (current.package.window !== previous.package.window) return undefined;
+  if (current.digestAlgorithm !== previous.digestAlgorithm) return undefined;
+  if (current.artifactsPerPair !== previous.artifactsPerPair) return undefined;
+  const before = new Map(previous.entries.map((e) => [pairKey(e.format, e.seed), e.digest]));
+  const after = new Set(current.entries.map((e) => pairKey(e.format, e.seed)));
+  for (const key of before.keys()) if (!after.has(key)) return undefined;
+  const moved = new Set<string>();
+  for (const entry of current.entries) {
+    if (before.get(pairKey(entry.format, entry.seed)) !== entry.digest) moved.add(entry.format);
+  }
+  return [...moved].sort();
+}
+
 /** Whether two baselines describe the same seed-to-bytes mapping. */
 function sameMapping(a: Baseline, b: Baseline): boolean {
   if (a.package.window !== b.package.window) return false;
@@ -147,7 +242,8 @@ const BREAKING_CHANGE_RULE =
   "A CHANGED SEED-TO-BYTES MAPPING IS A BREAKING CHANGE. A consumer is invited to commit a golden " +
   "fixture and diff against it, so a release that changes what a seed maps to has to say so in " +
   "that release's changelog entry. Add a changeset declaring a major change for this package, " +
-  "whose summary says which pairs moved and why.";
+  "whose summary says which pairs moved and why, or (operator decision D57) a changeset whose " +
+  "body carries an `Output change:` section naming every format that moved and what changed.";
 
 /** What is added to a refusal when the change is a narrowed corpus rather than a moved mapping. */
 const narrowingNote = (removed: readonly string[]): string =>
@@ -247,6 +343,37 @@ export function decideWindow(input: WindowInput): WindowVerdict {
         `${input.packageName}. The window is broken deliberately and the changelog entry for the ` +
         "release will say so.",
     };
+  }
+
+  const moved = movedFormats(currentRead.baseline, previousRead.baseline);
+  if (moved !== undefined && moved.length > 0) {
+    const verdicts = input.changesets.map((changeset) => ({
+      changeset,
+      stated: statesOutputChangeFor(changeset.text, input.packageName, moved),
+    }));
+    const stating = verdicts.filter((v) => v.stated.ok);
+    if (stating.length > 0) {
+      return {
+        status: "pass",
+        message:
+          `the committed determinism baseline differs from ${input.baseRef} for ` +
+          `${moved.map((f) => FORMAT_DISPLAY_NAMES[f] ?? f).join(", ")}, and ` +
+          `${stating.map((v) => v.changeset.name).join(", ")} states that output change in an ` +
+          "`Output change:` section naming every format that moved (operator decision D57). The " +
+          "changelog entry for the release will say so.",
+      };
+    }
+    const partial = verdicts.find((v) => v.stated.missing.length < moved.length);
+    if (partial !== undefined) {
+      return {
+        status: "fail",
+        message:
+          `the committed determinism baseline differs from ${input.baseRef}, and ` +
+          `${partial.changeset.name} has an \`Output change:\` section, but it does not name ` +
+          `${partial.stated.missing.join(", ")}, whose bytes moved too. Name every format that ` +
+          `moved.\n\n${BREAKING_CHANGE_RULE}`,
+      };
+    }
   }
 
   const narrowed = narrowedPairs(currentRead.baseline, previousRead.baseline);

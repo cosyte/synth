@@ -53,8 +53,9 @@ valid: a Luhn-valid NPI or checksum-valid DEA in output is a `pnpm phi-scan` hit
 - Clear a flagged synthetic name or address with one exact `scripts/phi-allow-list.txt` entry
   (`NAME`, `EMAIL`; `EMAILDOMAIN` only for a reserved domain, #49). `--allow-fixture` exits 2 (#61).
 - A parser bump can change bytes with this package unchanged (#67). After moving a sibling's
-  version, run `pnpm test` and `pnpm run determinism:digest`. A moved determinism baseline is a
-  breaking change.
+  version, run `pnpm test` and `pnpm run determinism:digest`. A moved determinism baseline has to be
+  stated: a major changeset, or (operator decision D57, 2026-11-07) a changeset whose `Output change:`
+  section names every format that moved. `pnpm run check:determinism-window` refuses anything else.
 - No item ids, phase names or internal paths in what a consumer reads: `README.md`, `docs-content/`,
   the npm `description`, `src/` doc comments and strings. Its gate sees ids, not prose (#18).
 - Say a thing works or is covered only after running it or reading the workflow's steps, and
