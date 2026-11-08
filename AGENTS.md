@@ -31,6 +31,7 @@ pnpm check:test-selection                          # test-selection.yml
 pnpm run determinism:digest && pnpm run check:determinism-window   # ci.yml
 pnpm run acquire:oracle && pnpm run oracle         # ci.yml (needs java and the network)
 pnpm check:no-emdash && pnpm check:no-internal-refs
+pnpm check:readme && pnpm check:claude-card && pnpm check:agent-notes   # ci.yml
 ```
 
 A package change adds a changeset (`pnpm changeset`). A change to the bytes a seed produces is a
