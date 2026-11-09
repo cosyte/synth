@@ -380,8 +380,8 @@ The full reference is on [docs.cosyte.com/synth](https://docs.cosyte.com/synth):
 
 Questions, bug reports, and requests for a format or a quirk go in
 [GitHub issues](https://github.com/cosyte/synth/issues). Every fixture this package makes is
-synthetic: never attach a real patient's data to an issue. For help with an integration test suite,
-see our [integration services](https://cosyte.com/integration-services).
+synthetic: never attach a real patient's data to an issue. Need an integration built and tested, or
+hosted and run for you? See our [integration services](https://cosyte.com/integration-services).
 
 ## Security
 
