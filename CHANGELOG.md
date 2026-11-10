@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.5
+
+### Patch Changes
+
+- 3d13238: The exported example-code pools and the fatal-code registry are now frozen all the way down. `EXAMPLE_ASTM_TESTS` (`@cosyte/synth/astm`), `EXAMPLE_DRUGS` (`@cosyte/synth/ncpdp`) and the X12 pools `PROFESSIONAL_PROCEDURES`, `INSTITUTIONAL_PROCEDURES`, `DENTAL_PROCEDURES`, `REVENUE_CODES` and `DIAGNOSES` (`@cosyte/synth/x12`) froze the array but left each entry writable, so a JavaScript caller could rewrite an entry and change what every later call with the same seed generated. `SYNTH_FATAL_CODES` was not frozen at all, so a caller could change the code a later `SynthError` carried. Each entry and the registry are now frozen, as the other pools already were, and a write to one throws in strict mode.
+
+  No generated value, export, warning code or seed mapping changes.
+
+- cbae766: Doc comments only. `luhnMod10` is exported from `@cosyte/synth`, so it is public: its doc comment no longer marks it internal, and it now carries an example like any other export. The comment on the fatal-code module that ships in the type declarations now says in plain words how a parser handles bad input.
+
+  No generated value, export, warning code or seed mapping changes.
+
 ## 0.1.4
 
 ### Patch Changes
