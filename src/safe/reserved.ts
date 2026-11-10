@@ -170,7 +170,11 @@ export const NPI_LUHN_PREFIX = "80840";
  *
  * @param digits - A string of decimal digits.
  * @returns The Luhn sum modulo 10 (0 ⇒ the string passes the Luhn check).
- * @internal
+ * @example
+ * ```ts
+ * import { luhnMod10 } from "@cosyte/synth";
+ * luhnMod10("79927398713"); // 0, a string that passes the Luhn check
+ * ```
  */
 export function luhnMod10(digits: string): number {
   let sum = 0;
