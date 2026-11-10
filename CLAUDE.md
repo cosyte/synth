@@ -16,7 +16,7 @@ on PATH, as AGENTS.md says: tests call `pnpm build`, and pnpm 12 refuses this re
 pnpm install --frozen-lockfile
 pnpm typecheck && pnpm lint && pnpm format:check   # ci.yml, the shared cosyte/.github ci.yml
 pnpm phi-scan                 # ci.yml; the pre-commit hook runs `pnpm phi-scan --staged`
-pnpm test && pnpm test:coverage && pnpm build && pnpm attw   # ci.yml; coverage floor 90%
+pnpm test && pnpm test:coverage && pnpm build && pnpm attw   # ci.yml; coverage floor 100%
 pnpm examples && pnpm smoke   # ci.yml examples job, smoke.yml
 pnpm check:install            # install.yml: packs this tree and installs it (needs the network)
 pnpm check:test-selection     # test-selection.yml

@@ -101,6 +101,22 @@ describe("FHIR round-trip: spec-clean by construction (zero errors, byte-stable)
     expect(corpus.manifest.counts["DiagnosticReport"]).toBe(1);
     expect(corpus.seed).toBe(42);
   });
+
+  it("a DocumentBundle mix entry yields a spec-clean document Bundle", () => {
+    const corpus = fhirCorpus({ seed: 9, count: 1, mix: ["DocumentBundle"] });
+    const [artifact] = corpus.artifacts;
+    expect(artifact?.kind).toBe("DocumentBundle");
+    expect(artifact?.warnings).toEqual([]);
+    const parsed = JSON.parse(artifact?.content ?? "{}") as { resourceType: string; type: string };
+    expect(parsed.resourceType).toBe("Bundle");
+    expect(parsed.type).toBe("document");
+  });
+
+  it("an empty mix falls back to the US Core Patient for every artifact", () => {
+    const corpus = fhirCorpus({ seed: 9, count: 2, mix: [] });
+    expect(corpus.artifacts.map((a) => a.kind)).toEqual(["USCorePatient", "USCorePatient"]);
+    expect(corpus.artifacts.every((a) => a.warnings.length === 0)).toBe(true);
+  });
 });
 
 describe("FHIR golden fixtures regenerate byte-for-byte (reproducibility contract)", () => {

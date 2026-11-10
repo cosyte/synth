@@ -22,6 +22,7 @@ import {
   SYNTHETIC_ASSIGNING_AUTHORITY,
   SYNTHETIC_GIVEN_NAMES,
   SYNTHETIC_FAMILY_NAMES,
+  luhnMod10,
 } from "../src/index.js";
 import { SSN_SYNTHETIC_GROUPS } from "../src/safe/reserved.js";
 
@@ -253,5 +254,16 @@ describe("reserved-range predicates reject real-looking values", () => {
   it("isSyntheticIp rejects a routable address", () => {
     expect(isSyntheticIp("8.8.8.8")).toBe(false);
     expect(isSyntheticIp("2001:db8::1")).toBe(true);
+  });
+});
+
+describe("luhnMod10", () => {
+  it("skips any character that is not a decimal digit", () => {
+    // 79927398713 is the textbook Luhn-valid number; separators and letters do not change its sum.
+    expect(luhnMod10("79927398713")).toBe(0);
+    expect(luhnMod10("7992-7398-713")).toBe(0);
+    expect(luhnMod10(" 79927 39871a3 ")).toBe(0);
+    expect(luhnMod10("7992-7398-714")).toBe(luhnMod10("79927398714"));
+    expect(luhnMod10("79927398714")).not.toBe(0);
   });
 });
