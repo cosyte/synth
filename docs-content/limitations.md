@@ -1,7 +1,7 @@
 ---
 id: limitations
 title: What it does and does not do
-sidebar_position: 1
+sidebar_label: What it does and does not do
 description: "What @cosyte/synth promises and does not, the sources every synthetic value comes from, and how the no-real-PHI rule is kept."
 ---
 
@@ -11,9 +11,9 @@ description: "What @cosyte/synth promises and does not, the sources every synthe
 value is synthetic-by-construction; output is deterministic per seed within a version window; no
 terminology is bundled; and there is no DICOM in v1.**
 
-That one sentence governs the whole library. This page is the honest, blunt shape of the promise and
-its edges, read it before you rely on `synth`. The **API Reference** is always the exact truth of what
-a given release ships; this page is the shape of the whole.
+That one sentence governs the whole library. This page sets out the promise and its edges; read it
+before you rely on `synth`. The [API reference](./api/README.md) is the exact list of what a release
+ships; this page is the shape of the whole.
 
 ## The promise (narrow, on purpose)
 
@@ -48,7 +48,7 @@ the floor, not the ceiling, and it is worth exactly what it says and no more.
 HL7-maintained FHIR validator (the `validator_cli` tool published with FHIR itself, pinned by
 version and by content digest so a verdict is attributable to a build) validates a seeded corpus of
 generated FHIR R4 resources against **US Core 6.1.0**. **Any issue it reports at severity `error` or
-`fatal` fails the build.** It is never recorded as a warning, never downgraded, and there is no
+`fatal` fails the `oracle` job, which runs on every pull request and every push to `main`.** It is never recorded as a warning, never downgraded, and there is no
 suppression list. If an artifact ever has to come out of the graded set, it is named, with its seed
 and its reason, in the coverage declaration the run publishes alongside the verdict.
 
@@ -94,8 +94,9 @@ These are **non-goals**, not missing features: named so nothing over-trusts the 
   values. The only external content it may consume (later, optionally) is Synthea output, itself
   synthetic and PHI-free by construction.
 - **No DICOM (or any format outside the six).** DICOM Part 10 is binary with a distinct pixel-data
-  hazard surface; v1 scopes the six text/EDI formats (HL7 v2, FHIR, C-CDA, X12, NCPDP, ASTM). A format
-  `synth` does not support is a typed `SYNTH_UNSUPPORTED_FORMAT`, never a hand-written byte fallback.
+  hazard surface; v1 scopes the six text/EDI formats (HL7 v2, FHIR, C-CDA, X12, NCPDP, ASTM). There is
+  no generator for another format to call, so there is no byte fallback to reach. The code
+  `SYNTH_UNSUPPORTED_FORMAT` is reserved for such a format, and no code path raises it today.
 
 ## The synthetic-safety posture (the floors)
 
@@ -118,10 +119,12 @@ source that is **not** the issuing agency and says what it is not.
 | **ZIP** | `00000` | [USPS Postal Facts, Lowest ZIP Code number](https://facts.usps.com/lowest-zip-code/): "The lowest ZIP Code number is 00501, unique for the Internal Revenue Service in Holtsville, NY." `00000` is below `00501`, from which **this project infers** that it is not an assigned ZIP Code. The inference is ours, not the Postal Service's: USPS states the lowest assigned number and says nothing about `00000`. |
 | **Names / streets / cities** | a shipped, curated **clearly-fake pool** | **No authority reserves this locus.** No registry reserves personal, street, or city names, so there is nothing external to cite and nothing is claimed. What the floor rests on instead is the pool itself: every token is an invented, fixture-flavored word (`Testina Testerson`, `Example Boulevard`, `Faketon`) that a reader can see at a glance names nobody, and no code path draws a name, street or city from anywhere else. |
 
-The floors are enforced two ways: a **union `phi-scan`** (the parsers' own PHI scanners) sweeps a
-representative generated corpus in CI and must report **zero** real-data hits, and a **property suite**
-asserts, for arbitrary seeds and every format, that no emitted value escapes these sources. A quirk
-fixture deviates _structure_, never _provenance_: the safety floor holds over quirk output too.
+The floors are enforced two ways. A **property suite** asserts, for arbitrary seeds and every
+format, that no emitted value escapes these sources; this is the proof. Under it, `pnpm phi-scan`
+reads every committed file outside Markdown, including the generated fixtures under `test/fixtures`,
+with format-aware checks for each of the six formats, and refuses a value that looks real; it runs
+on every commit and in CI. A quirk fixture deviates _structure_, never _provenance_: the safety floor
+holds over quirk output too.
 
 **The diagnostics have their own floor, and it is a different one.** The table above is about the
 values `synth` emits. A separate guarantee covers what `synth` says about your call:
@@ -144,7 +147,7 @@ has no value parameter, and a selector is resolved against its closed set in one
 except the `@cosyte/synth/deid` pairing loops. Those are the stated exception: `x12DeidLoop({ variant })`
 and `ncpdpTelecomDeidLoop({ transaction })` still surface an uncoded `TypeError` for an unrecognized
 value, and `ccdaDeidLoop({ documentType })` still generates a Referral Note for anything but `"ccd"`.
-None echoes your value into a message, and all three are tracked separately.
+None echoes your value into a message.
 
 **Three things it does not cover, stated rather than implied.** The **artifact** is not a diagnostic:
 `content` is what you asked to be built and carries what you asked for, and the same goes for a name
@@ -204,17 +207,19 @@ measured.
 The generation core is **feature-complete across all six formats**. Quirk mode and the
 `deid` pairing loop ship for a subset; the honest gaps:
 
-- **Vendor-quirk mode** ships for the three richest profile systems: **HL7 v2, C-CDA, ASTM**. Quirk
+- **Vendor-quirk mode** ships for the three richest profile systems: **HL7 v2, C-CDA, ASTM** (the
+  [quirk catalog](./quirk-catalog.md) lists each quirk). Quirk
   recipes for **FHIR / X12 / NCPDP are deferred**, as is any quirk needing a private vendor corpus
   (built-in quirks are grounded only on **public** vendor profiles).
 - **The `deid` pairing loop** ships for **HL7 v2, FHIR, C-CDA, X12, and NCPDP Telecom**. NCPDP
   **SCRIPT**, **ASTM**, and **DICOM** pairing are deferred (no adapter, or not generated:
-  `DEID_LOOP_SKIPPED` names each).
+  `DEID_LOOP_SKIPPED` names each). See [Check a de-identifier with the pairing loop](./guides-deid.md).
 - **Format-specific gaps flagged, never faked:** the X12 **270** request (`@cosyte/x12` ships
   `build270` on its 0.1 line; `synth` does not use it yet) and NCPDP **SCRIPT lifecycle responses** are not
   generated, a gap is surfaced, never hand-written.
-- **Built-in `synth` profiles.** `defineSynthProfile()` is the public growth-loop hook, and
-  ready-made quirk profiles ship for the three quirk formats; broader **named site/vendor** recipes
+- **Built-in `synth` profiles.** `defineSynthProfile()` names a set of quirks for a quirk corpus,
+  and ready-made quirk profiles ship for the three quirk formats. Its `givenNames` and
+  `familyNames` are stored on the profile, and no generator reads them yet. Broader **named site/vendor** recipes
   stay **consumer-authored** until a public spec grounds a built-in one (the same public-only
   discipline the parsers hold).
 - **Optional Synthea clinical-content ingestion** (re-serialize Synthea's coherent records through the
@@ -237,9 +242,9 @@ them:
 **Every other adopted profile refuses**, and it refuses with a code distinct from the one an
 unrecognized name gets, because the two are different facts about your request:
 
-- `SYNTH_PROFILE_NOT_GENERATED`: the guide publishes this profile and this build does not generate it
+- [`SYNTH_PROFILE_NOT_GENERATED`](./fatal-codes.md#synth_profile_not_generated): the guide publishes this profile and this build does not generate it
   yet. The other 38 adopted profiles are here.
-- `SYNTH_UNSUPPORTED_KIND`: the name is not in the adopted set at all: a typo, a blank, a value that
+- [`SYNTH_UNSUPPORTED_KIND`](./fatal-codes.md#synth_unsupported_kind): the name is not in the adopted set at all: a typo, a blank, a value that
   is not a string, or one of the guide's **extension definitions** (`us-core-race` and its nine
   siblings), which are not standalone artifacts and so are not addressable.
 
@@ -279,3 +284,11 @@ refusedCode; // => "SYNTH_PROFILE_NOT_GENERATED"
   it emits is drawn from the sources in the floor table above, and a `phi-scan` gate sweeps this project's own
   sources, fixtures, and tooling on every change. You can commit and log a generated corpus without a
   PHI review of its contents: that is the whole point.
+
+## Related
+
+- [How it works](./concepts-archetype.md): the design behind each promise.
+- [Testing and quality](./testing-and-quality.md): how each promise is tested.
+- How-to guides that apply it: [Pin a golden fixture](./guides-overview.md),
+  [Generate FHIR R4 and US Core resources](./guides-fhir.md), and
+  [Draw synthetic values for your own fixtures](./draw-synthetic-values.md).

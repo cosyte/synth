@@ -1,7 +1,7 @@
 ---
 id: troubleshooting
 title: Troubleshooting
-sidebar_position: 1
+sidebar_label: Troubleshooting
 description: "Why output can change between runs, a missing parser package, an unsupported request, and whether generated output is safe to commit and log."
 ---
 
@@ -11,9 +11,8 @@ Common questions when generating fixtures with `@cosyte/synth`.
 
 ## "I got a different message than last run"
 
-You almost certainly changed the **seed**, or let the format's builder fill a nondeterministic default.
-`synth` supplies a seeded control id and timestamp to `@cosyte/hl7` precisely so the bytes are
-reproducible. Pass the same `seed` and you get byte-identical output:
+Check the seed first. The same seed gives byte-identical output, and `synth` passes a seeded control
+ID and timestamp to each builder so nothing depends on the clock:
 
 ```ts runnable
 import { generateAdt } from "@cosyte/synth/hl7";
@@ -21,60 +20,80 @@ import { generateAdt } from "@cosyte/synth/hl7";
 generateAdt({ seed: 5 }).toString() === generateAdt({ seed: 5 }).toString(); // => true
 ```
 
-Note that a **`synth` version bump may change the seed→bytes mapping**: that is a documented breaking
-change, so pin the version alongside the seed for a long-lived golden fixture. Pin the parser peers
-too: each format's bytes come from that parser's own builder, so a parser upgrade can change them.
+If the seed is the same, a version moved. A `synth` release can change the bytes a seed maps to,
+and when it does, its changelog entry says so under "Output change" and names each format. A parser
+upgrade can change them with `synth` unchanged, because each format's bytes come from that parser's
+builder. Pin the seed, the `synth` version, and the parser versions together;
+[Pin a golden fixture](./guides-overview.md) shows how.
 
 ## "Cannot find module @cosyte/hl7"
 
-The `@cosyte/synth/hl7` subpath needs the optional peer `@cosyte/hl7` installed. The package **core**
-(`@cosyte/synth`) has no such requirement: import from there if you only need the PRNG and the safe
-providers.
+Each format subpath needs its parser installed, as an optional peer dependency:
+`@cosyte/synth/hl7` needs `@cosyte/hl7`, `@cosyte/synth/fhir` needs `@cosyte/fhir`, and so on. The
+package root (`@cosyte/synth`) needs none: import from there if you only need the seeded generator
+and the value providers.
+
+`@cosyte/synth/deid` loads `@cosyte/deid`, `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`,
+`@cosyte/x12`, and `@cosyte/ncpdp` as soon as it is imported, so all six must be installed even if
+you call one loop. [Installation](./installation.md) has the table.
 
 ## An unsupported request threw
 
-A generator has nothing to tolerate, so it **fails closed**. Asking for a format or quirk this build
-cannot produce throws a typed `SynthError` with a stable `SYNTH_FATAL_CODES` value, never a
-hand-written byte workaround:
+A generator has nothing to tolerate, so a request it cannot honor throws a `SynthError` with a
+stable code, rather than return a mislabelled fixture:
 
 ```ts runnable throws
 import { defineSynthProfile } from "@cosyte/synth";
 
-// A blank profile name is a programming error, and is rejected up front: this block is expected
-// to throw (a `SynthError` with code `SYNTH_INVALID_PROFILE`), and the docs gate asserts that it does.
+// A blank profile name is refused: this block throws a SynthError with the code
+// SYNTH_INVALID_PROFILE, and the docs test checks that it does.
 defineSynthProfile({ name: "" });
 ```
 
-Every fatal message comes from `SYNTH_FATAL_MESSAGES`, a frozen table keyed by code. It says which rule
-refused; it does **not** quote the request that tripped it, and there is no parameter through which it
-could: `SynthError` takes a code and nothing else. So a fatal tells you less about the specific call
-than it used to, on purpose. Branch on `err.code` and read the offending value off the arguments you
-passed; the stack frame names the call site.
+The codes you are most likely to see:
+
+- [`SYNTH_UNSUPPORTED_KIND`](./fatal-codes.md#synth_unsupported_kind): a message kind, document
+  type, `mix` entry, variant, Bundle type, or US Core profile name outside the set that option
+  accepts. The option's type in the [API reference](./api/README.md) lists the set.
+- [`SYNTH_UNSUPPORTED_QUIRK`](./fatal-codes.md#synth_unsupported_quirk): a quirk name outside the
+  format's registry. `Object.keys(HL7_QUIRKS)` (or `CCDA_QUIRKS`, `ASTM_QUIRKS`) lists them.
+- [`SYNTH_PROFILE_NOT_GENERATED`](./fatal-codes.md#synth_profile_not_generated): a US Core
+  profile the guide publishes and we do not generate yet.
+- [`SYNTH_INTENDED_WARNING_MISMATCH`](./fatal-codes.md#synth_intended_warning_mismatch): a quirk
+  fixture did not raise exactly its intended warning, which can happen when a parser version changes
+  what it reports.
+
+Every message comes from the frozen `SYNTH_FATAL_MESSAGES` table, keyed by code. It says which rule
+refused and does not quote the request: `SynthError` takes a code and nothing else. Branch on
+`err.code`, and read the value you passed off your own arguments; the stack names the call.
+[Fatal codes](./fatal-codes.md) lists every code.
+
+## A pairing loop threw a TypeError
+
+`x12DeidLoop({ variant })` and `ncpdpTelecomDeidLoop({ transaction })` throw a plain `TypeError` for
+a value outside their union, rather than a `SynthError`. Check the value against `X12DeidVariant`
+(`"837P"`, `"837I"`, `"837D"`, `"271"`, `"835"`) or `NcpdpTelecomVariant` (`"B1"`, `"B2"`, `"B3"`).
 
 ## Is the generated output safe to commit and log?
 
-Yes: that is the whole point. **Every** value is drawn from a reserved/synthetic source, proven by the
-synthetic-safety gate (the inverse of a de-identifier's leak test: `synth` proves plausibly-real PHI was
-_never generated_). You can commit a generated corpus as a fixture without a PHI review of its contents.
+Yes; that is the purpose of the package. Every value comes from a reserved range or the invented-name
+pool, and the test suite's synthetic-safety properties check that for arbitrary seeds and every
+format. You can commit a generated corpus as a fixture without a PHI review of its contents.
 
-The **diagnostics** are safe for a different reason, and the distinction is worth keeping straight.
-Output is safe because of where its values come from. A `@cosyte/synth` diagnostic is safe because it
-has no value in it at all: a fatal message is a fixed registry string, a selector you pass is resolved
-against its closed set before it can travel anywhere, and a round-trip result keeps only the parser's
-warning **codes**. Neither guarantee rests on the other.
+The diagnostics are safe for a different reason. Output is safe because of where its values come
+from. A diagnostic is safe because it holds no value at all: a fatal message is a fixed string, a
+selector you pass is checked against its closed set before it goes anywhere, and a round-trip result
+keeps only the parser's warning codes.
 
-What that does not cover: a value you pass to a generator is your value, and it goes into the artifact
-you asked for. `content` is the fixture, not a diagnostic. And if you hand a **document or a model** to
-a round-trip harness and the sibling parser cannot read it, what you catch is that parser's fatal,
-raised and worded by that package: `@cosyte/synth` re-throws it unchanged and adds nothing.
+What that does not cover: a value you pass to a generator is your value, and it goes into the
+artifact you asked for; `content` is the fixture, not a diagnostic. And if you hand a document you
+wrote to a round-trip helper and the sibling parser cannot read it, the error you catch is that
+parser's own, passed through unchanged.
 
-## Known limitations
+## Where the limits are
 
-All six formats are wired (HL7 v2, FHIR, C-CDA, X12, NCPDP, ASTM), with vendor-quirk mode for HL7
-v2 / C-CDA / ASTM and the `deid` pairing loop for HL7 v2 / FHIR / C-CDA / X12 / NCPDP Telecom. The
-honest shape of what `synth` does, does **not** do, and defers, plus the full synthetic-safety posture,
-lives in **[What it does and does not do](./limitations.md)**. The headline: `synth` is a
-**format/conformance generator, not a clinical simulator**; every value is synthetic-by-construction;
-output is deterministic per seed within a version window; and no terminology is bundled.
-
-The **API Reference** always reflects exactly what this release ships.
+All six formats generate (HL7 v2, FHIR, C-CDA, X12, NCPDP, and ASTM), with vendor quirks for HL7
+v2, C-CDA, and ASTM, and the pairing loop for HL7 v2, FHIR, C-CDA, X12, and NCPDP Telecom.
+[What it does and does not do](./limitations.md) is the full account: `synth` is a format and
+conformance generator, not a clinical simulator; every value is synthetic by construction; output
+is the same for a seed within a version window; and no terminology is bundled.

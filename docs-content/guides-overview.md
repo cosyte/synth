@@ -1,44 +1,33 @@
 ---
 id: guides-overview
-title: Guides
-sidebar_position: 1
-description: "What each guide covers, one per format, plus vendor-quirk fixtures and the @cosyte/deid pairing loop."
+title: Pin a golden fixture
+sidebar_label: Pin a golden fixture
+description: "Pin a seed and the package versions, write a generated corpus to disk as a golden file, and check later that it still regenerates the same."
 ---
 
-# Guides
+# Pin a golden fixture
 
-Task-oriented recipes ("how do I X?") for `@cosyte/synth`. Each guide is a short, copy-pasteable answer
-to one real fixture-generation question.
+A golden fixture is a file a test compares against. With `@cosyte/synth` it can come from a seed,
+so you can regenerate it at any time, and a change in its bytes tells you something moved.
 
-> **Status:** the seeded-PRNG core, the synthetic-safety providers, and the round-trip harness ship,
-> alongside the HL7 v2 message set (`ADT`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`); FHIR R4 /
-> US Core (see the [FHIR guide](./guides-fhir)); C-CDA generation (CCD + Referral Note via
-> `@cosyte/ccda`'s `buildCcda`, the [C-CDA guide](./guides-ccda)); X12 005010 (837P/I/D, 835, 271 via
-> `@cosyte/x12`, the [X12 guide](./guides-x12)); NCPDP (SCRIPT + Telecom via `@cosyte/ncpdp`, the
-> [NCPDP guide](./guides-ncpdp)); and ASTM (E1394 records + E1381 framing via `@cosyte/astm`, the
-> [ASTM guide](./guides-astm)), the generation core across all six formats. On top of it,
-> **vendor-quirk generation** for HL7 v2, C-CDA, and ASTM (see the [quirk guide](./guides-quirks)). A
-> guide is only written once the behavior it documents is shipped and its runnable example passes the
-> doc/code-agreement check.
+## 1. Pin the seed and the versions
 
-## Pin a seed for a reusable golden fixture
+A seed maps to the same bytes within a release, and across releases unless a changelog entry states
+an output change for that format. Each format's bytes come from its parser's builder, so a parser
+upgrade can move them too. Pin all three:
 
-A `Corpus` is a seed plus a manifest of what was generated: deep-frozen and self-describing. Pin the
-seed (and the versions of `synth` and the parsers you generate with) and every downstream run
-regenerates the identical set:
+- the seed, in your test;
+- the `@cosyte/synth` version, in your lockfile;
+- the version of each parser you generate with (`@cosyte/hl7`, `@cosyte/fhir`, and the others), in
+  your lockfile.
 
-```ts runnable
-import { hl7Corpus } from "@cosyte/synth/hl7";
+[Determinism holds within a version window](./limitations.md#determinism-holds-within-a-version-window)
+says how we state an output change.
 
-const corpus = hl7Corpus({ seed: 1867, count: 4 });
+## 2. Check the fixture reads back clean
 
-corpus.seed; // => 1867
-```
-
-## Verify an artifact round-trips before you trust it
-
-The round-trip harness checks an artifact by the parser's own judgment: it re-parses with zero
-warnings and re-serializes byte-identically:
+Before you trust a fixture, check its parser reads it with no warnings and serializes it back to the
+same bytes:
 
 ```ts runnable
 import { generateAdt, roundTrip } from "@cosyte/synth/hl7";
@@ -48,13 +37,50 @@ const { warnings, byteStable } = roundTrip(generateAdt({ seed: 21 }));
 [warnings.length, byteStable]; // => [0, true]
 ```
 
-## Planned guides
+Every artifact in a corpus has already been through this, and its `warnings` holds the result.
 
-Shipped: **[vendor-quirk generation](./guides-quirks)**, inject the deviations a parser tolerates, each
-round-tripping to exactly the intended warning code (HL7 v2, C-CDA, and ASTM). Expect recipes such as:
+## 3. Write the corpus to disk
 
-- **Feed a parser's three-tier conformance corpus**: tiers 1 and 2, mechanically and seedably.
-- **Pair with `@cosyte/deid`**: generate clean, plant tagged synthetic sentinels, de-identify, verify.
-- **Quirk recipes for FHIR, X12, and NCPDP**: available as those parsers' profile/quirk surface lands.
+A corpus carries its seed and a manifest, so the file says how to regenerate itself:
 
-Until then, the [Quickstart](./quickstart) covers the core primitives and the HL7 corpus.
+```ts runnable
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { hl7Corpus } from "@cosyte/synth/hl7";
+
+const dir = mkdtempSync(join(tmpdir(), "golden-"));
+const golden = join(dir, "hl7-corpus.json");
+
+writeFileSync(golden, JSON.stringify(hl7Corpus({ seed: 1867, count: 4 }), null, 2));
+
+const saved = JSON.parse(readFileSync(golden, "utf8")) as { seed: number };
+saved.seed; // => 1867
+
+rmSync(dir, { recursive: true });
+```
+
+In a real project, write the file into your repository and commit it. Every value in it is
+synthetic, so it needs no PHI review.
+
+## 4. Check it still regenerates the same
+
+Regenerate from the seed in the file and compare. A difference means the code or a pinned version
+changed the output:
+
+```ts runnable
+import { hl7Corpus } from "@cosyte/synth/hl7";
+
+const committed = JSON.stringify(hl7Corpus({ seed: 1867, count: 4 }));
+const regenerated = JSON.stringify(hl7Corpus({ seed: 1867, count: 4 }));
+
+regenerated === committed; // => true
+```
+
+## Related
+
+- [Test your HL7 handling with generated fixtures](./test-hl7-handling-with-fixtures.md): the same
+  ideas in a tutorial.
+- Reference: [`Corpus`](./api/src.md#corpus), [`makeCorpus`](./api/src.md#makecorpus), and
+  [`hl7Corpus`](./api/src/hl7.md#hl7corpus).

@@ -1,39 +1,41 @@
 ---
 id: guides-fhir
-title: FHIR R4 / US Core
-sidebar_position: 3
-description: "Generate FHIR R4 and US Core resources and Bundles, and check them against the published profiles."
+title: Generate FHIR R4 and US Core resources
+sidebar_label: FHIR R4 and US Core
+description: "Generate FHIR R4 and US Core resources and Bundles through @cosyte/fhir, ask for one by US Core profile name, and validate against the published profiles."
 ---
 
-# Generate FHIR R4 / US Core resources
+# Generate FHIR R4 and US Core resources
 
-The `@cosyte/synth/fhir` subpath builds FHIR resources **through `@cosyte/fhir`'s own model
-constructors and serializer**, so every resource is **spec-clean by construction**: it validates under
-`@cosyte/fhir.validateResource` and re-serializes byte-for-byte. `@cosyte/fhir` is an **optional peer
-dependency**, needed only for this subpath.
+The `@cosyte/synth/fhir` subpath builds FHIR R4 resources through `@cosyte/fhir`'s own model and
+serializer. Install `@cosyte/fhir` alongside it ([Installation](./installation.md)).
 
-The FHIR surface covers the **US Core clinical set**: `Patient` (base + US Core), `Condition`
-(problem-list item), `Observation` (US Core Laboratory Result + Vital Signs), `MedicationRequest`,
-`Encounter`, `DiagnosticReport` (Laboratory), `Immunization`, `AllergyIntolerance`, `Procedure`, and
-`Provenance`, assembled into a `collection`, `transaction`, or `document` `Bundle`.
+It covers this clinical set: `Patient` (base or US Core), `Condition` (a problem-list item),
+`Observation` (US Core Laboratory Result and Vital Signs), `MedicationRequest`, `Encounter`,
+`DiagnosticReport` (Laboratory), `Immunization`, `AllergyIntolerance`, `Procedure`, and
+`Provenance`, and it assembles them into a `collection`, `transaction`, or `document` Bundle.
+Each generator returns `@cosyte/fhir`'s resource model.
 
-## A US Core Patient, spec-clean by construction
+## Generate a US Core Patient
 
 ```ts runnable
 import { generatePatient, roundTrip } from "@cosyte/synth/fhir";
 
-// Same seed → byte-identical resource, on any machine, any run.
+// The same seed gives the same resource, on any machine and any run.
 const patient = generatePatient({ seed: 12345, profile: "us-core" });
 
-// Fed straight back into @cosyte/fhir: validates with zero errors and re-serializes byte-identically.
+// Serialized, parsed, and validated by @cosyte/fhir: no errors, and the same bytes again.
 const result = roundTrip(patient);
+result.errors; // => []
 result.specClean; // => true
 ```
 
-Every identity field (name, MRN, birth date, phone, email, address) is drawn from a
-guaranteed-non-colliding synthetic source, so **no generated value can be real or plausibly-real PHI**.
+`roundTrip` serializes the resource, parses it, validates it in strict mode, and serializes it again.
+`specClean` is true when validation passes and the bytes match. Every identity field (name, medical
+record number, birth date, phone, email, address) comes from a synthetic source; see
+[What it does and does not do](./limitations.md#the-synthetic-safety-posture-the-floors).
 
-## The clinical spine, wired to a patient
+## Generate clinical resources for a patient
 
 Each clinical generator takes a `subject` reference (and, for `MedicationRequest`, a `requester`):
 
@@ -47,13 +49,13 @@ roundTrip(condition).errors; // => []
 roundTrip(lab).errors; // => []
 ```
 
-## Validating against US Core (bring your own profile)
+## Validate against the US Core profiles
 
-`@cosyte/synth` bundles **no** US Core IG: matching `@cosyte/fhir`'s content-free posture. To assert US
-Core conformance, load the published US Core `StructureDefinition`s yourself and pass them to
-`roundTrip`:
+`@cosyte/synth` bundles no US Core implementation guide, and neither does `@cosyte/fhir`. To check
+US Core conformance, download the US Core 6.1.0 `StructureDefinition`s from the published guide,
+load the ones you need, and pass them to `roundTrip`:
 
-```ts
+```ts no-run it reads a StructureDefinition file you download from the US Core guide
 import { generatePatient, roundTrip } from "@cosyte/synth/fhir";
 import { loadStructureDefinition, parseResource } from "@cosyte/fhir";
 import { readFileSync } from "node:fs";
@@ -64,13 +66,16 @@ const usCorePatient = loadStructureDefinition(resource);
 const result = roundTrip(generatePatient({ seed: 1, profile: "us-core" }), {
   profiles: usCorePatient ? [usCorePatient] : [],
 });
-result.errors; // [], conformant to the real US Core 6.1.0 Patient profile
+result.errors; // [] against the US Core 6.1.0 Patient profile
 ```
 
-## The rest of the clinical set
+Our test suite runs this check for each of the 11 profiles we generate, against the US Core 6.1.0
+`StructureDefinition`s committed in the repository.
+
+## Generate the rest of the clinical set
 
 `Encounter`, `DiagnosticReport`, `Immunization`, `AllergyIntolerance`, and `Procedure` follow the same
-shape, a `subject`/`patient` reference and a US Core `meta.profile` by default:
+shape: a `subject` or `patient` reference, and a US Core `meta.profile` by default:
 
 ```ts runnable
 import {
@@ -100,13 +105,13 @@ const provenance = generateProvenance({ seed: 16, target: "Patient/syn-patient-1
 roundTrip(provenance).errors; // => []
 ```
 
-## Asking by profile name
+## Ask for a resource by US Core profile name
 
-A generator name is this library's vocabulary; a **US Core 6.1.0 profile name** is the regulation's.
-`generateUsCoreProfile` takes the second and resolves it against the profile set the adopted guide
-publishes **before** generating anything, so a name it cannot honor is a refusal rather than a
-mislabelled artifact. `usCoreCoverage` is the readable form of that set: one entry per adopted
-profile, with its canonical URL and whether this build generates it.
+A generator name is this library's vocabulary; a US Core 6.1.0 profile name is the guide's.
+`generateUsCoreProfile` takes the profile name and checks it against the profiles the guide
+publishes before it generates anything, so a name it cannot honor is a refusal, never a mislabelled
+resource. `usCoreCoverage` lists that set: one entry per profile, with its canonical URL and whether
+this build generates it.
 
 ```ts runnable
 import { usCoreCoverage, generateUsCoreProfile, roundTrip } from "@cosyte/synth/fhir";
@@ -118,15 +123,18 @@ const patient = generateUsCoreProfile({ profile: "us-core-patient", seed: 12345 
 roundTrip(patient).specClean; // => true
 ```
 
-Which profiles are covered, which refuse, and the two distinct refusal codes:
-[what it does and does not do](./limitations).
+A profile the guide publishes and we do not generate throws
+[`SYNTH_PROFILE_NOT_GENERATED`](./fatal-codes.md#synth_profile_not_generated); a name the guide does
+not publish throws [`SYNTH_UNSUPPORTED_KIND`](./fatal-codes.md#synth_unsupported_kind).
+[US Core 6.1.0 profile coverage](./limitations.md#us-core-610-profile-coverage) lists the profiles
+we generate.
 
-## A self-contained Bundle
+## Generate a Bundle
 
-`generateBundle` assembles a `Patient` and its full clinical spine into a `collection`, `transaction`,
-or `document` Bundle, wired by `urn:uuid:` references so **every reference resolves in-bundle**. A
-`document` Bundle leads with the FHIR-mandated `Composition` and carries the required `identifier` and
-`timestamp`:
+`generateBundle` assembles a `Patient` and its clinical resources into a `collection`,
+`transaction`, or `document` Bundle, linked by `urn:uuid:` references so every reference resolves
+inside the Bundle. A `document` Bundle starts with the `Composition` FHIR requires and carries the
+required `identifier` and `timestamp`:
 
 ```ts runnable
 import { generateBundle, fhirCorpus } from "@cosyte/synth/fhir";
@@ -134,12 +142,24 @@ import { generateBundle, fhirCorpus } from "@cosyte/synth/fhir";
 const doc = generateBundle({ seed: 42, type: "document" });
 doc.properties.some((p) => p.name === "entry"); // => true
 
-// Or a reproducible mixed corpus across the whole clinical set:
+// Or a corpus across the clinical set, one resource kind after another:
 const corpus = fhirCorpus({ seed: 2026, count: 11 });
 corpus.artifacts.length; // => 11
+corpus.artifacts.every((a) => a.warnings.length === 0); // => true
 ```
 
-## Next
+## Independent validation
 
-- [Core Concepts](./concepts-archetype): synthetic-by-construction, determinism, the round-trip gate.
-- **API Reference**: every export, generated from source.
+The FHIR output is the one format a validator we did not write also checks: on every pull request,
+the HL7 FHIR validator grades a seeded corpus against US Core 6.1.0.
+[Who checks the output](./limitations.md#who-checks-the-output-and-who-does-not) says what that
+covers and what it leaves out.
+
+## Related
+
+- Reference: [`generatePatient`](./api/src/fhir.md#generatepatient),
+  [`generateBundle`](./api/src/fhir.md#generatebundle),
+  [`generateUsCoreProfile`](./api/src/fhir.md#generateuscoreprofile),
+  [`usCoreCoverage`](./api/src/fhir.md#uscorecoverage), [`roundTrip`](./api/src/fhir.md#roundtrip),
+  and [`fhirCorpus`](./api/src/fhir.md#fhircorpus).
+- [How it works](./concepts-archetype.md): why a round trip is the check, and what it cannot see.

@@ -1,7 +1,7 @@
 /**
  * Stable diagnostic codes for `@cosyte/synth` and the {@link SynthError} they travel on.
  *
- * Unlike a parser (which recovers from bad *input* into Tier-2 warnings), a **generator** has no input
+ * Unlike a parser (which recovers from bad *input* and reports it as warnings), a **generator** has no input
  * to tolerate: its reflex is *synthetic-by-construction* and *fail-closed on impossibility*. So the
  * codes here are **fatal**: a caller asked for something the library cannot honor spec-clean, and the
  * only safe answer is to throw, never to silently fabricate a value or a byte workaround. Codes are `key ===

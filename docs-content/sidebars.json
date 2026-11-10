@@ -13,28 +13,41 @@
     },
     {
       "type": "category",
-      "label": "Core concepts",
-      "collapsed": false,
-      "items": ["concepts-archetype", "limitations"]
+      "label": "Tutorials",
+      "items": ["test-hl7-handling-with-fixtures"]
     },
     {
       "type": "category",
-      "label": "Guides",
+      "label": "How-to guides",
       "items": [
-        "guides-overview",
+        "guides-hl7",
         "guides-fhir",
         "guides-ccda",
         "guides-x12",
         "guides-ncpdp",
         "guides-astm",
         "guides-quirks",
-        "guides-deid"
+        "guides-deid",
+        "draw-synthetic-values",
+        "guides-overview"
       ]
+    },
+    {
+      "type": "category",
+      "label": "Explanation",
+      "items": ["concepts-archetype", "limitations"]
+    },
+    {
+      "type": "category",
+      "label": "Reference",
+      "items": ["fatal-codes", "quirk-catalog"]
     },
     {
       "type": "category",
       "label": "Troubleshooting",
       "items": ["troubleshooting"]
-    }
+    },
+    "testing-and-quality",
+    "performance"
   ]
 }

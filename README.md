@@ -62,8 +62,9 @@ Node.js 22 or later, tested on 22, 24, and 26.
 `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, `@cosyte/ncpdp`, `@cosyte/astm`, and
 `@cosyte/deid` are **optional peer dependencies**, each needed only for its subpath (`@cosyte/synth/hl7`,
 `@cosyte/synth/fhir`, `@cosyte/synth/ccda`, `@cosyte/synth/x12`, `@cosyte/synth/ncpdp`,
-`@cosyte/synth/astm`, and `@cosyte/synth/deid`: the last needs `@cosyte/deid` **plus** the parsers for
-the formats it pairs): install only the packages whose fixtures you generate. The package core has
+`@cosyte/synth/astm`, and `@cosyte/synth/deid`: the last loads `@cosyte/deid` **plus** the five
+parsers it pairs, `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, and `@cosyte/ncpdp`,
+as soon as it is imported): install only the packages whose fixtures you generate. The package core has
 **zero third-party runtime dependencies**.
 
 ## Usage
@@ -367,13 +368,16 @@ isSyntheticNpi(safe.npi(rng)); // true, always a deliberately-invalid-Luhn NPI (
 
 The full reference is on [docs.cosyte.com/synth](https://docs.cosyte.com/synth):
 
-- [Installation](https://docs.cosyte.com/synth/installation) and the [quickstart](https://docs.cosyte.com/synth/quickstart).
-- Core concepts: [the archetype](https://docs.cosyte.com/synth/concepts-archetype) and the [limitations](https://docs.cosyte.com/synth/limitations).
-- Guides: [the overview](https://docs.cosyte.com/synth/guides-overview), [FHIR R4 and US Core](https://docs.cosyte.com/synth/guides-fhir),
+- [Installation](https://docs.cosyte.com/synth/installation), the [quickstart](https://docs.cosyte.com/synth/quickstart), and
+  a tutorial: [test your HL7 handling with generated fixtures](https://docs.cosyte.com/synth/test-hl7-handling-with-fixtures).
+- How-to guides: [HL7 v2](https://docs.cosyte.com/synth/guides-hl7), [FHIR R4 and US Core](https://docs.cosyte.com/synth/guides-fhir),
   [C-CDA](https://docs.cosyte.com/synth/guides-ccda), [X12](https://docs.cosyte.com/synth/guides-x12), [NCPDP](https://docs.cosyte.com/synth/guides-ncpdp),
-  [ASTM](https://docs.cosyte.com/synth/guides-astm), [vendor quirks](https://docs.cosyte.com/synth/guides-quirks), and
-  [the `@cosyte/deid` pairing loop](https://docs.cosyte.com/synth/guides-deid).
-- [Troubleshooting](https://docs.cosyte.com/synth/troubleshooting).
+  [ASTM](https://docs.cosyte.com/synth/guides-astm), [vendor quirks](https://docs.cosyte.com/synth/guides-quirks),
+  [the `@cosyte/deid` pairing loop](https://docs.cosyte.com/synth/guides-deid), [synthetic values](https://docs.cosyte.com/synth/draw-synthetic-values),
+  and [pinning a golden fixture](https://docs.cosyte.com/synth/guides-overview).
+- Explanation: [how it works](https://docs.cosyte.com/synth/concepts-archetype) and [what it does and does not do](https://docs.cosyte.com/synth/limitations).
+- Reference: [fatal codes](https://docs.cosyte.com/synth/fatal-codes), the [quirk catalog](https://docs.cosyte.com/synth/quirk-catalog), and the API reference.
+- [Troubleshooting](https://docs.cosyte.com/synth/troubleshooting), [testing and quality](https://docs.cosyte.com/synth/testing-and-quality), and [performance](https://docs.cosyte.com/synth/performance).
 - [`CHANGELOG.md`](https://github.com/cosyte/synth/blob/main/CHANGELOG.md): every release.
 
 ## Support
