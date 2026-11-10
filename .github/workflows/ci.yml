@@ -47,10 +47,22 @@ jobs:
   # The job id `ci` prefixes the required contexts (`ci / verify (22, ubuntu-latest)` and the rest):
   # rename it, or move a step out of the shared `verify`, and the ruleset requires a context nothing
   # emits, which leaves every pull request pending rather than red.
+  #
+  # The performance standard's two jobs run beside `verify`, never after it, so a pull request
+  # waits for the slowest job rather than their sum:
+  # - `scaling-gate`: `pnpm test:perf`, the scaling gate of every corpus generator
+  #   (scripts/perf/), each with its self-check, never under coverage;
+  # - `bench-compare` (pull requests only): bench/synth.bench.mjs timed on the base build and the
+  #   head build, interleaved on one runner. Advisory: it never fails, so never require it.
+  # A skipped job satisfies a required check, so require `scaling-gate` only while its input below
+  # stays on. This caller moved to the first release with those two jobs on its own; the other
+  # callers here move at the next release that changes what they run.
   ci:
-    uses: cosyte/.github/.github/workflows/ci.yml@c0db8d8e5927269820de4401b3b5ad6141854b76 # workflows-2026-11-08-c0db8d8e5927
+    uses: cosyte/.github/.github/workflows/ci.yml@0be6757a773885cbd5165dbfa0f93772d907b3e8 # workflows-2026-11-10-0be6757a7738
     with:
       run-phi-scan: true
+      run-scaling-gate: true
+      run-bench-compare: true
 
   # ── THE ORACLE GATE ──────────────────────────────────────────────────────────────────────────
   #
