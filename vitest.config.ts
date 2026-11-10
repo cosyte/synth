@@ -2,16 +2,27 @@ import { cosyteVitest } from "@cosyte/vitest-config";
 
 /**
  * Vitest config for @cosyte/synth from the shared @cosyte/vitest-config standard, which owns the
- * coverage provider, reporters, coverage include and exclude sets and the 90% gate. What follows is
- * only what this repository adds.
+ * coverage provider, reporters, and coverage include and exclude sets. What follows is only what
+ * this repository adds.
  *
- * `coverageDirs` holds each of these `src/` directories to the 90% gate on its own, so a
- * well-covered directory cannot carry a poorly covered one: the seeded PRNG (`rng`), the
- * synthetic-by-construction value providers (`safe`), and the HL7 v2, FHIR, C-CDA and X12
- * generators.
+ * Coverage is gated at 100% for lines, branches, functions and statements across every file in
+ * `src/` (barrels excepted, per the shared standard), and `coverageDirs` holds each listed `src/`
+ * directory to the same 100% on its own, so a well-covered directory cannot carry a poorly covered
+ * one: the seeded PRNG (`rng`), the synthetic-by-construction value providers (`safe`), and the
+ * HL7 v2, FHIR, C-CDA and X12 generators. A threshold only rises: a line that truly cannot be
+ * reached carries an inline `v8 ignore` comment naming its reason, never a lowered number here.
  */
+const COVERAGE_DIRS = ["rng", "safe", "hl7", "fhir", "ccda", "x12"];
+
+/** Every metric at 100. */
+const FULL = { lines: 100, branches: 100, functions: 100, statements: 100 };
+
 export default cosyteVitest({
-  coverageDirs: ["rng", "safe", "hl7", "fhir", "ccda", "x12"],
+  coverageDirs: COVERAGE_DIRS,
+  coverageThresholds: {
+    ...FULL,
+    ...Object.fromEntries(COVERAGE_DIRS.map((dir) => [`src/${dir}/**`, FULL])),
+  },
   test: {
     // THE SOLE SELECTOR FOR EVERY TEST CI RUNS, and it is guarded: the shared config supplies no
     // `include` of its own, so narrowing this line silently drops the synthetic-safety suites

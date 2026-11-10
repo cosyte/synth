@@ -26,7 +26,7 @@
  * }
  * ```
  */
-export const SYNTH_FATAL_CODES = {
+export const SYNTH_FATAL_CODES = Object.freeze({
   /**
    * A format was requested that this build cannot generate through a real parser builder/serializer.
    * Fatal, never a hand-written byte fallback.
@@ -78,7 +78,7 @@ export const SYNTH_FATAL_CODES = {
    * mislabelled artifact is worse than no artifact.
    */
   SYNTH_PROFILE_NOT_GENERATED: "SYNTH_PROFILE_NOT_GENERATED",
-} as const;
+} as const);
 
 /**
  * A value from {@link SYNTH_FATAL_CODES}: the type carried by a thrown {@link SynthError}.

@@ -99,6 +99,7 @@ function applyQuirk(quirk: AstmQuirkName, records: string): string {
         if (line !== undefined && line.startsWith("R|")) {
           const fields = line.split("|");
           const units = fields[4];
+          /* v8 ignore else -- unreachable: every R record carries units, drawn from the deep-frozen EXAMPLE_ASTM_TESTS whose entries all have a non-empty units string */
           if (units !== undefined && units.length > 0) {
             fields[4] = `&Z&${units}`;
             lines[i] = fields.join("|");
@@ -106,6 +107,7 @@ function applyQuirk(quirk: AstmQuirkName, records: string): string {
           }
         }
       }
+      /* v8 ignore next -- unreachable: the result base always has at least one R record (resultCount is a seeded 1 to 4) and its units are never empty */
       return records;
     }
     case "unknown-record-type": {
@@ -117,6 +119,7 @@ function applyQuirk(quirk: AstmQuirkName, records: string): string {
           return lines.join(CR);
         }
       }
+      /* v8 ignore next -- unreachable: generateAstmQuirk builds its base without `comment: false`, so the stream always has a C record */
       return records;
     }
   }
@@ -153,6 +156,7 @@ export function generateAstmQuirk(options: GenerateAstmQuirkOptions): QuirkArtif
   const descriptor = resolveQuirk(ASTM_QUIRKS, "astm", options.quirk);
   const clean = generateAstmResult({ seed });
   const content = applyQuirk(options.quirk, clean);
+  /* v8 ignore if -- unreachable: the result base always carries both anchors (an R record with units and a C record), so each quirk changes the stream */
   if (content === clean) {
     throw new SynthError(SYNTH_FATAL_CODES.SYNTH_QUIRK_ANCHOR_ABSENT);
   }

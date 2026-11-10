@@ -51,6 +51,7 @@ export interface GenerateBundleOptions {
 /** The `resourceType` string of a generated resource (its `request.url` in a transaction Bundle). */
 function resourceTypeOf(resource: FhirComplex): string {
   const rt = resource.properties.find((p) => p.name === "resourceType");
+  /* v8 ignore next -- the "Resource" fallback is unreachable: every spine member is built here with a primitive resourceType */
   return rt !== undefined && rt.value.kind === "primitive" ? String(rt.value.value) : "Resource";
 }
 
@@ -160,6 +161,7 @@ function buildSpine(rng: Rng): Spine {
 
 /** The document sections summarizing the clinical spine (LOINC section codes → entry references). */
 function documentSections(urls: Readonly<Record<string, string>>): CompositionSection[] {
+  /* v8 ignore next -- the `[]` is unreachable: buildSpine sets every key documentSections asks for */
   const at = (k: string): string[] => (urls[k] !== undefined ? [urls[k]] : []);
   return [
     { code: "11450-4", title: "Problem List", entries: at("condition") },

@@ -274,10 +274,14 @@ export function recordTargetSentinels(xml: string): readonly DeidSentinel[] {
     seen.add(trimmed);
     out.push({ token: trimmed, locus, category: "names" });
   };
-  for (const m of scope.matchAll(/<given>([^<]+)<\/given>/g)) add(m[1] ?? "", "recordTarget/given");
+  for (const m of scope.matchAll(/<given>([^<]+)<\/given>/g))
+    /* v8 ignore next -- the `?? ""` is unreachable: the group is not optional, so a match sets m[1] */
+    add(m[1] ?? "", "recordTarget/given");
   for (const m of scope.matchAll(/<family>([^<]+)<\/family>/g))
+    /* v8 ignore next -- the `?? ""` is unreachable: the group is not optional, so a match sets m[1] */
     add(m[1] ?? "", "recordTarget/family");
   for (const m of scope.matchAll(/<id\b[^>]*\bextension="([^"]+)"/g))
+    /* v8 ignore next -- the `?? ""` is unreachable: the group is not optional, so a match sets m[1] */
     add(m[1] ?? "", "recordTarget/id");
   return out;
 }

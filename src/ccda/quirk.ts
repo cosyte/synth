@@ -238,6 +238,7 @@ export function ccdaQuirkRoundTrip(artifact: QuirkArtifact): QuirkRoundTripResul
     intendedWarnings: artifact.intendedWarnings,
     intendedWarningHeld: sameCodeSet(bare, artifact.intendedWarnings),
     withProfile: {
+      /* v8 ignore next -- the `?? profile.name` is unreachable: every descriptor in the frozen CCDA_QUIRKS names its toleratingProfile */
       profileName: descriptor.toleratingProfile ?? profile.name,
       disposition: descriptor.disposition,
       warnings: profiledWarnings,

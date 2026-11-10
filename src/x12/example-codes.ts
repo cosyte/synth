@@ -24,14 +24,16 @@ export interface X12ExampleCode {
  * HCPCS/CPT professional procedure codes (SV1-01-2, qualifier `HC`): office-visit / lab E&M codes
  * from the 837P TR3 examples. Structural placeholders only.
  */
-export const PROFESSIONAL_PROCEDURES: readonly X12ExampleCode[] = Object.freeze([
-  { code: "99213", label: "office/outpatient visit, established patient" },
-  { code: "99214", label: "office/outpatient visit, established patient, moderate" },
-  { code: "99203", label: "office/outpatient visit, new patient" },
-  { code: "85025", label: "complete blood count with differential" },
-  { code: "80053", label: "comprehensive metabolic panel" },
-  { code: "93000", label: "electrocardiogram, routine" },
-]);
+export const PROFESSIONAL_PROCEDURES: readonly X12ExampleCode[] = Object.freeze(
+  [
+    { code: "99213", label: "office/outpatient visit, established patient" },
+    { code: "99214", label: "office/outpatient visit, established patient, moderate" },
+    { code: "99203", label: "office/outpatient visit, new patient" },
+    { code: "85025", label: "complete blood count with differential" },
+    { code: "80053", label: "comprehensive metabolic panel" },
+    { code: "93000", label: "electrocardiogram, routine" },
+  ].map((entry) => Object.freeze(entry)),
+);
 
 /** Professional procedure modifiers (SV1-01-3..6). */
 export const PROCEDURE_MODIFIERS: readonly string[] = Object.freeze(["25", "59", "76", "GT"]);
@@ -43,35 +45,43 @@ export const PLACES_OF_SERVICE: readonly string[] = Object.freeze(["11", "22", "
  * ICD-10-CM diagnosis codes (HI qualifier `ABK` principal / `ABF` secondary): codes from the TR3
  * examples. Structural placeholders only.
  */
-export const DIAGNOSES: readonly X12ExampleCode[] = Object.freeze([
-  { code: "J20.9", label: "acute bronchitis, unspecified" },
-  { code: "E11.9", label: "type 2 diabetes mellitus without complications" },
-  { code: "I10", label: "essential (primary) hypertension" },
-  { code: "M54.5", label: "low back pain" },
-  { code: "R07.9", label: "chest pain, unspecified" },
-  { code: "Z00.00", label: "general adult medical exam without abnormal findings" },
-]);
+export const DIAGNOSES: readonly X12ExampleCode[] = Object.freeze(
+  [
+    { code: "J20.9", label: "acute bronchitis, unspecified" },
+    { code: "E11.9", label: "type 2 diabetes mellitus without complications" },
+    { code: "I10", label: "essential (primary) hypertension" },
+    { code: "M54.5", label: "low back pain" },
+    { code: "R07.9", label: "chest pain, unspecified" },
+    { code: "Z00.00", label: "general adult medical exam without abnormal findings" },
+  ].map((entry) => Object.freeze(entry)),
+);
 
 /** NUBC revenue codes (837I SV2-01): spec-example codes. */
-export const REVENUE_CODES: readonly X12ExampleCode[] = Object.freeze([
-  { code: "0120", label: "room & board, semi-private" },
-  { code: "0300", label: "laboratory, general" },
-  { code: "0450", label: "emergency room, general" },
-  { code: "0636", label: "drugs requiring detailed coding" },
-]);
+export const REVENUE_CODES: readonly X12ExampleCode[] = Object.freeze(
+  [
+    { code: "0120", label: "room & board, semi-private" },
+    { code: "0300", label: "laboratory, general" },
+    { code: "0450", label: "emergency room, general" },
+    { code: "0636", label: "drugs requiring detailed coding" },
+  ].map((entry) => Object.freeze(entry)),
+);
 
 /** Institutional procedure codes paired with revenue lines (837I SV2-02-2, qualifier `HC`). */
-export const INSTITUTIONAL_PROCEDURES: readonly X12ExampleCode[] = Object.freeze([
-  { code: "99221", label: "initial hospital care, per day" },
-  { code: "99231", label: "subsequent hospital care, per day" },
-]);
+export const INSTITUTIONAL_PROCEDURES: readonly X12ExampleCode[] = Object.freeze(
+  [
+    { code: "99221", label: "initial hospital care, per day" },
+    { code: "99231", label: "subsequent hospital care, per day" },
+  ].map((entry) => Object.freeze(entry)),
+);
 
 /** CDT dental procedure codes (837D SV3-01-2, qualifier `AD`): spec-example codes. */
-export const DENTAL_PROCEDURES: readonly X12ExampleCode[] = Object.freeze([
-  { code: "D2391", label: "resin-based composite, one surface, posterior" },
-  { code: "D1110", label: "prophylaxis, adult" },
-  { code: "D0120", label: "periodic oral evaluation" },
-]);
+export const DENTAL_PROCEDURES: readonly X12ExampleCode[] = Object.freeze(
+  [
+    { code: "D2391", label: "resin-based composite, one surface, posterior" },
+    { code: "D1110", label: "prophylaxis, adult" },
+    { code: "D0120", label: "periodic oral evaluation" },
+  ].map((entry) => Object.freeze(entry)),
+);
 
 /** ADA tooth codes (837D TOO-02, qualifier `JP`) + surfaces (TOO-03). */
 export const TOOTH_CODES: readonly string[] = Object.freeze(["14", "3", "19", "30"]);

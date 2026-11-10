@@ -28,13 +28,15 @@ function obxSegment(rng: Rng, setId: number): readonly (string | RawField)[] {
   const obs = rng.pick(EXAMPLE_LAB_OBSERVATIONS);
   const value = `${String(rng.int(1, 300))}.${String(rng.int(0, 9))}`;
   const observedAt = seededTimestamp(rng);
+  /* v8 ignore next -- the `?? ""` is unreachable: every entry of the deep-frozen EXAMPLE_LAB_OBSERVATIONS has units */
+  const units = obs.units ?? "";
   return [
     String(setId), // OBX-1 set id
     "NM", // OBX-2 value type (numeric)
     componentsField([obs.code, obs.text, obs.system]), // OBX-3 observation identifier (CE)
     "", // OBX-4 observation sub-id
     value, // OBX-5 observation value
-    obs.units ?? "", // OBX-6 units
+    units, // OBX-6 units
     "", // OBX-7 reference range
     "N", // OBX-8 abnormal flags (normal)
     "", // OBX-9
