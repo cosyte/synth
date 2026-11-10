@@ -1,36 +1,33 @@
 ---
 id: guides-quirks
-title: Vendor-quirk generation
-sidebar_position: 8
-description: "Generate off-spec fixtures from a parser's vendor profile, each round-tripping to exactly the warning it is meant to trigger."
+title: Generate vendor-quirk fixtures
+sidebar_label: Vendor quirks
+description: "Generate off-spec HL7 v2, C-CDA, and ASTM fixtures, each raising exactly the warning it is meant to, and check a parser profile tolerates it."
 ---
 
 # Generate vendor-quirk fixtures
 
-Spec-clean fixtures prove a parser reads a _correct_ message. The harder, more valuable test is whether
-a parser tolerates the **realistic vendor deviations** real-world traffic carries, and surfaces exactly
-the right diagnostic when it does. That is what quirk mode generates.
+A spec-clean fixture shows that a parser reads a correct message. A quirk fixture shows how it
+handles the deviations real vendor traffic carries: does it read the message, and does it raise the
+right warning?
 
-The load-bearing idea: **the quirk vocabulary _is_ the parsers' own profile systems.** A `synth` quirk
-deviates the _structure_ of a message that otherwise re-parses with zero warnings so it round-trips through the parser to
-**exactly one intended, stable warning code**, the tolerance the corresponding parser profile
-(`hl7.defineProfile`, `ccda.defineCcdaProfile`, `astm.defineAstmProfile`) encodes. This is the
-**intended-warning contract**: a quirk fixture is never a fiction, it exercises a documented, coded
-leniency, and where a built-in **public** parser profile claims the deviation, the quirk round-trips
-cleanly under it (suppressed, or re-badged to `PROFILE_QUIRK_APPLIED`).
+Each quirk changes the structure of a message that otherwise reads back with no warnings, so that a
+parse with no profile raises exactly one intended warning code. The quirks are the ones the Cosyte
+parsers' own profile systems (`defineProfile` in `@cosyte/hl7`, `defineCcdaProfile` in
+`@cosyte/ccda`, `defineAstmProfile` in `@cosyte/astm`) describe as tolerable. Where a built-in public
+profile claims the deviation, the round trip also parses under that profile and reports whether it
+was suppressed or re-badged to `PROFILE_QUIRK_APPLIED`. Every quirk generator checks the intended
+warning before it returns, so it never hands you a fixture that does not raise it.
 
-Every quirk changes the message _shape_, never the _provenance_ of the data, so a quirk fixture is still
-**synthetic-by-construction** and passes the same synthetic-safety gate.
+A quirk changes the shape of a message, never where its values come from, so a quirk fixture is as
+synthetic as any other. Quirks ship for HL7 v2, C-CDA, and ASTM; the
+[quirk catalog](./quirk-catalog.md) lists every one.
 
-Three formats ship quirks: **HL7 v2**, **C-CDA**, and **ASTM**, the parsers with the
-richest profile systems. A quirk a format's profile system does not support fails closed with a stable
-`SYNTH_UNSUPPORTED_QUIRK` diagnostic, never a silently-wrong fixture.
+## HL7 v2: a vendor Z segment
 
-## HL7 v2: a vendor Z-segment
-
-A site-defined `Z`-segment is the canonical HL7 v2 quirk. A receiver with no profile flags it
-`UNKNOWN_SEGMENT`; a `defineProfile` that declares the segment (here `@cosyte/hl7`'s public `visage`
-imaging profile, which grounds `ZDS` in the Visage 7 interface spec) **suppresses** it:
+A site-defined `Z` segment is the usual HL7 v2 quirk. A parse with no profile flags it
+`UNKNOWN_SEGMENT`; a profile that declares the segment suppresses it. Here that is
+`@cosyte/hl7`'s public `visage` imaging profile, which declares `ZDS`:
 
 ```ts runnable
 import { generateHl7Quirk, hl7QuirkRoundTrip } from "@cosyte/synth/hl7";
@@ -43,9 +40,8 @@ rt.withProfile?.tolerated; // => true
 
 ## C-CDA: a deprecated LOINC code
 
-C-CDA profiles **re-badge** a tolerated deviation to the value-free `PROFILE_QUIRK_APPLIED` marker. A
-deprecated result LOINC round-trips to `DEPRECATED_LOINC`, and `@cosyte/ccda`'s public `smartScorecard`
-profile (grounded in the SMART C-CDA Scorecard) re-badges it as expected:
+C-CDA profiles re-badge a tolerated deviation to `PROFILE_QUIRK_APPLIED`. A deprecated result LOINC
+code raises `DEPRECATED_LOINC`, and `@cosyte/ccda`'s public `smartScorecard` profile re-badges it:
 
 ```ts runnable
 import { generateCcdaQuirk, ccdaQuirkRoundTrip } from "@cosyte/synth/ccda";
@@ -58,9 +54,8 @@ rt.withProfile?.tolerated; // => true
 
 ## ASTM: a non-standard escape
 
-An ASTM `&Z&` escape body round-trips to `ASTM_UNKNOWN_ESCAPE_SEQUENCE`, and `@cosyte/astm`'s public
-`referenceCorpus` profile (grounded in the redistributable kxepal/python-astm + senaite OSS corpus)
-re-badges it:
+An ASTM `&Z&` escape raises `ASTM_UNKNOWN_ESCAPE_SEQUENCE`, and `@cosyte/astm`'s public
+`referenceCorpus` profile, grounded in the open-source python-astm and SENAITE corpora, re-badges it:
 
 ```ts runnable
 import { generateAstmQuirk, astmQuirkRoundTrip } from "@cosyte/synth/astm";
@@ -70,10 +65,11 @@ rt.warnings; // => ["ASTM_UNKNOWN_ESCAPE_SEQUENCE"]
 rt.withProfile?.tolerated; // => true
 ```
 
-## Unsupported quirks fail closed
+## An unknown quirk name throws
 
-A quirk the format's profile system does not support is a fatal `SYNTH_UNSUPPORTED_QUIRK`, never a
-silent no-op and never a fabricated quirk with a made-up warning:
+A quirk name outside the format's registry throws
+[`SYNTH_UNSUPPORTED_QUIRK`](./fatal-codes.md#synth_unsupported_quirk). It is never ignored, and no
+fixture is made up for it:
 
 ```ts runnable
 import { generateHl7Quirk } from "@cosyte/synth/hl7";
@@ -88,15 +84,15 @@ code; // => "SYNTH_UNSUPPORTED_QUIRK"
 ```
 
 Branch on `err.code`, never on `err.message`. The message is a fixed entry in the frozen
-`SYNTH_FATAL_MESSAGES` table and does **not** name the quirk you asked for: `SynthError` takes a code
-and no value parameter, so nothing you pass can reach the thrown object. To see what a format accepts,
+`SYNTH_FATAL_MESSAGES` table and does not name the quirk you asked for: `SynthError` takes a code
+and no value, so nothing you pass reaches the thrown object. To see what a format accepts,
 read its registry directly: `Object.keys(HL7_QUIRKS)`, `Object.keys(CCDA_QUIRKS)`,
 `Object.keys(ASTM_QUIRKS)`.
 
-## A reproducible quirk corpus
+## Build a quirk corpus
 
-Each format ships a quirk corpus that cycles every built-in quirk, seed-tagged and self-describing: its
-manifest lists the applied quirks:
+Each format has a quirk corpus that cycles through every quirk in its registry. Its manifest lists the
+quirks applied, and each artifact's `warnings` holds the intended codes:
 
 ```ts runnable
 import { ccdaQuirkCorpus } from "@cosyte/synth/ccda";
@@ -105,9 +101,40 @@ const corpus = ccdaQuirkCorpus({ seed: 42 });
 [...corpus.manifest.quirks].sort(); // => ["deprecated-code-system", "deprecated-loinc", "template-extension-absent"]
 ```
 
-## Grounding: public-only, never a private corpus
+## Choose the quirks with a profile
 
-Every shipped quirk is grounded in a **publicly-documented** deviation or a parser's **public** profile:
-a published IG, a vendor interface spec, or a redistributable OSS corpus. A quirk that would need a
-**private, vendor-attributed corpus** to ground is **not shipped**. Quirk recipes for FHIR, X12, and
-NCPDP are deferred.
+`defineSynthProfile` names a set of quirks once, and a quirk corpus takes it as `profile`. Each format
+also exports a profile with every quirk it ships (`hl7QuirkProfile`, `ccdaQuirkProfile`,
+`astmQuirkProfile`):
+
+```ts runnable
+import { defineSynthProfile } from "@cosyte/synth";
+import { hl7QuirkCorpus } from "@cosyte/synth/hl7";
+
+const labFeed = defineSynthProfile({ name: "lab-feed", quirks: ["unknown-escape"] });
+const corpus = hl7QuirkCorpus({ seed: 1, count: 2, profile: labFeed });
+
+corpus.manifest.quirks; // => ["unknown-escape"]
+corpus.artifacts.map((a) => a.warnings); // => [["UNKNOWN_ESCAPE_SEQUENCE"], ["UNKNOWN_ESCAPE_SEQUENCE"]]
+```
+
+A profile that names a quirk outside the format's registry throws `SYNTH_UNSUPPORTED_QUIRK`.
+`defineSynthProfile` also accepts `givenNames` and `familyNames` and stores them on the profile, but
+no generator reads them in this release.
+
+## Where each quirk comes from
+
+Every quirk is grounded in a deviation that is documented in public, or in a parser's public
+profile: a published implementation guide, a vendor interface specification, or an open-source
+corpus that may be redistributed. A quirk that would need a private, vendor-attributed corpus is not
+shipped. Quirks for FHIR, X12, and NCPDP are not generated yet.
+
+## Related
+
+- [Quirk catalog](./quirk-catalog.md): every quirk, its warning, and its profile.
+- Reference: [`generateHl7Quirk`](./api/src/hl7.md#generatehl7quirk),
+  [`hl7QuirkRoundTrip`](./api/src/hl7.md#hl7quirkroundtrip),
+  [`generateCcdaQuirk`](./api/src/ccda.md#generateccdaquirk),
+  [`generateAstmQuirk`](./api/src/astm.md#generateastmquirk),
+  [`QuirkRoundTripResult`](./api/src.md#quirkroundtripresult), and
+  [`defineSynthProfile`](./api/src.md#definesynthprofile).

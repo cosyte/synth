@@ -1,21 +1,20 @@
 ---
 id: quickstart
 title: Quickstart
-sidebar_position: 1
+sidebar_label: Quickstart
 description: "Generate a spec-clean HL7 v2 message, draw a synthetic value, check the round trip yourself, and build a reproducible corpus."
 ---
 
 # Quickstart
 
-Generate reproducible, synthetic-by-construction fixtures in a few lines. A **seed** determines the
-output entirely, so a fixture set regenerates identically anywhere.
+Generate a first message, draw a synthetic value, and build a fixture set you can regenerate. A
+seed decides the output entirely, so the same call gives the same bytes anywhere. You need
+`@cosyte/synth` and `@cosyte/hl7` installed; see [Installation](./installation.md).
 
 ## Generate a spec-clean HL7 v2 message
 
 This is the program the README opens with. The `@cosyte/synth/hl7` subpath builds each message
-**through `@cosyte/hl7`'s own `buildMessage`**, so it is spec-clean by construction, and `roundTrip`
-feeds it straight back to the parser. `@cosyte/hl7` is the optional peer this subpath needs; see
-[Installation](./installation.md):
+through `@cosyte/hl7`'s own `buildMessage`, and `roundTrip` feeds it back to the parser:
 
 ```ts runnable
 import { generateAdt, generateOru, generateHl7, hl7Corpus, roundTrip } from "@cosyte/synth/hl7";
@@ -37,13 +36,13 @@ console.log(roundTrip(generateHl7("VXU^V04", 12345)).content.split("\r")[0]); //
 ```
 
 The first three lines print `true`, and the last prints the `MSH` segment of a generated `VXU^V04`.
-Every identifier, name, and date in these messages is drawn from a reserved range or the shipped
-fake-name pool.
+Every identifier, name, and date in these messages comes from a reserved range or the shipped pool
+of invented names.
 
 ## Draw a synthetic value
 
-The `safe` providers each draw from a reserved, never-collide source. Everything is a pure function of
-an explicit seeded generator (`createRng`):
+The `safe` providers each draw from a reserved source, and each takes the seeded generator
+`createRng` returns, so the value depends only on the seed:
 
 ```ts runnable
 import { createRng, safe, isSyntheticSsn } from "@cosyte/synth";
@@ -51,14 +50,14 @@ import { createRng, safe, isSyntheticSsn } from "@cosyte/synth";
 const rng = createRng(42);
 const nationalId = safe.ssn(rng);
 
-// The SSN is always drawn from the SSA never-issued space: it cannot be a real SSN.
+// The SSN always has a 900-series area, which SSA lists as invalid: it cannot be a real SSN.
 isSyntheticSsn(nationalId); // => true
 ```
 
 ## Check the round trip yourself
 
-`roundTrip` returns more than the verdict: the warnings the parser raised on the way back, which for
-a spec-clean artifact is none at all:
+`roundTrip` returns more than the verdict: it also returns the warning codes the parser raised on
+the way back, which for a spec-clean message is none:
 
 ```ts runnable
 import { generateAdt, roundTrip } from "@cosyte/synth/hl7";
@@ -70,8 +69,8 @@ result.warnings; // => []
 
 ## Build a reproducible corpus
 
-`hl7Corpus` returns a deep-frozen, self-describing `Corpus`: a seed plus a manifest of what was
-generated. Pin the seed and every downstream test gets a stable fixture set:
+`hl7Corpus` returns a frozen `Corpus`: the seed, a manifest of what was generated, and the
+artifacts. Pin the seed and every test that uses it gets the same fixtures:
 
 ```ts runnable
 import { hl7Corpus } from "@cosyte/synth/hl7";
@@ -81,9 +80,9 @@ const corpus = hl7Corpus({ seed: 2026, count: 3 });
 corpus.artifacts.length; // => 3
 ```
 
-## Determinism is the contract
+## The same seed gives the same bytes
 
-The same seed yields byte-identical output. This is a tested invariant, not a nicety:
+Regenerating from a seed gives byte-identical output, and the test suite holds every format to it:
 
 ```ts runnable
 import { generateAdt } from "@cosyte/synth/hl7";
@@ -96,5 +95,12 @@ a === b; // => true
 
 ## Next
 
-- [Core Concepts](./concepts-archetype): synthetic-by-construction, determinism, the round-trip gate.
-- **API Reference**: every export, generated from source.
+- [Test your HL7 handling with generated fixtures](./test-hl7-handling-with-fixtures.md): a
+  tutorial that takes these fixtures into a test of your own code.
+- How-to guides for each format: [HL7 v2](./guides-hl7.md), [FHIR R4 and US Core](./guides-fhir.md),
+  [C-CDA](./guides-ccda.md), [X12](./guides-x12.md), [NCPDP](./guides-ncpdp.md), and
+  [ASTM](./guides-astm.md).
+- [Generate vendor-quirk fixtures](./guides-quirks.md) and
+  [Pin a golden fixture](./guides-overview.md).
+- [How it works](./concepts-archetype.md): why the output is synthetic, checked, and reproducible.
+- The [API reference](./api/README.md), generated from the source.

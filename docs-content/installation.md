@@ -1,38 +1,50 @@
 ---
 id: installation
 title: Installation
-sidebar_position: 1
+sidebar_label: Installation
 description: "Install @cosyte/synth and the parser packages for the formats you generate, and check the Node.js versions it supports."
 ---
 
 # Installation
 
-`@cosyte/synth` is a TypeScript package for Node.js with **zero third-party runtime dependencies** in
-its core. It ships dual **ESM + CJS** builds with per-condition type declarations, so it works from
-either module system without configuration.
-
-> **Status:** the 0.1 line, published to npm. The version shown on the npm package page is the one
-> that is live; this page never repeats it.
-
 ## Prerequisites
 
-- **Node.js 22 or later, tested on 22, 24, and 26** (the whole `@cosyte/*` suite targets ES2023).
-- A package manager: `pnpm`, `npm`, or `yarn`.
+- Node.js 22 or later. CI tests on Node.js 22, 24, and 26.
+- A package manager: npm, pnpm, or Yarn.
 
-## Install
+## Install the package and the parsers you need
+
+`@cosyte/synth` builds each format through its sibling parser, and each parser is an optional peer
+dependency. Install the package with the parsers for the formats you generate:
 
 ```bash
 npm install @cosyte/synth @cosyte/hl7
 ```
 
-`@cosyte/hl7` is an **optional peer dependency**, needed only for the `@cosyte/synth/hl7` subpath
-(HL7 v2 generation). Each format is a lazily-loaded subpath, so importing the package **core**
-(`@cosyte/synth`) never pulls a parser: a consumer who only needs the seeded PRNG and the safe
-providers installs nothing extra.
+| You import            | Install alongside `@cosyte/synth`                                        |
+| --------------------- | ------------------------------------------------------------------------ |
+| `@cosyte/synth`       | nothing: the seeded generator, the value providers, and the checks       |
+| `@cosyte/synth/hl7`   | `@cosyte/hl7`                                                            |
+| `@cosyte/synth/fhir`  | `@cosyte/fhir`                                                           |
+| `@cosyte/synth/ccda`  | `@cosyte/ccda`                                                           |
+| `@cosyte/synth/x12`   | `@cosyte/x12`                                                            |
+| `@cosyte/synth/ncpdp` | `@cosyte/ncpdp`                                                          |
+| `@cosyte/synth/astm`  | `@cosyte/astm`                                                           |
+| `@cosyte/synth/deid`  | `@cosyte/deid`, `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, and `@cosyte/ncpdp` |
 
-## Smoke test
+The `deid` subpath loads all five parsers it pairs as soon as it is imported, so all five must be
+installed even if you call only one of its loops. Each peer is declared at `^0.1`.
 
-Confirm the package resolves and its version symbol is present:
+To install every format at once:
+
+```bash
+npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cosyte/ncpdp @cosyte/astm @cosyte/deid
+```
+
+The package has no third-party runtime dependencies. It ships ESM and CommonJS builds, each with its
+own type declarations, so `import` and `require` both work without configuration.
+
+## Check the install
 
 ```ts runnable
 import { VERSION } from "@cosyte/synth";
@@ -40,9 +52,21 @@ import { VERSION } from "@cosyte/synth";
 typeof VERSION; // => "string"
 ```
 
-`VERSION` is the version of the package you installed. It is written from the manifest at release
-time, so it always names the release npm actually served you rather than a number left behind by an
-earlier one. This check asserts the value's **type** rather than the value itself, deliberately, so
-that this page never has to name a version and go stale on the next publish.
+`VERSION` is the version of the package you installed, written from its manifest at release. The
+check asserts its type rather than its value so this page never names a version.
 
-If that resolves, the install is good. Head to the [Quickstart](./quickstart).
+To check a format subpath, generate one artifact from it:
+
+```ts runnable
+import { generateAdt, roundTrip } from "@cosyte/synth/hl7";
+
+roundTrip(generateAdt({ seed: 1 })).specClean; // => true
+```
+
+If the import fails with "Cannot find module", the parser for that subpath is missing; see
+[Troubleshooting](./troubleshooting.md#cannot-find-module-cosytehl7).
+
+## Next
+
+The [Quickstart](./quickstart.md) generates a first message, draws a synthetic value, and builds a
+reproducible corpus.

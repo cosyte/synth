@@ -1,42 +1,41 @@
 ---
 id: guides-ccda
-title: C-CDA (CCD / Referral Note)
-sidebar_position: 4
-description: "Generate C-CDA R2.1 documents (a CCD and a Referral Note) through @cosyte/ccda's builder."
+title: Generate C-CDA documents
+sidebar_label: C-CDA
+description: "Generate C-CDA R2.1 documents, a Continuity of Care Document or a Referral Note, through @cosyte/ccda's builder."
 ---
 
 # Generate C-CDA documents
 
-The `@cosyte/synth/ccda` subpath builds Consolidated CDA R2.1 documents **through `@cosyte/ccda`'s
-`buildCcda`**, so template IDs, LOINC section codes, and structured/narrative agreement are the
-builder's own: every document is **spec-clean by construction** and round-trips through `parseCcda`
-with **zero warnings**. `@cosyte/ccda` is an **optional peer dependency**, needed only for this subpath.
+The `@cosyte/synth/ccda` subpath builds Consolidated CDA R2.1 documents through `@cosyte/ccda`'s
+`buildCcda`, so the template IDs, the LOINC section codes, and the agreement between structured
+entries and narrative are the builder's own. Install `@cosyte/ccda` alongside it
+([Installation](./installation.md)).
 
-The C-CDA surface emits a **Continuity of Care Document (CCD)** (`generateCcd`) or a **Referral Note**
-(`generateReferralNote`), each populating the CCD sections: Problems, Allergies, Medications, Results,
-Vital Signs, Immunizations, Procedures, and Social History (Smoking Status), from the reused,
-license-clean example-code pools. Every `recordTarget` identity is drawn from the synthetic-safety
-providers: the patient name from the shipped fake-name pool, the MRN under a synthetic
-assigning-authority OID, and every date from the seeded generator.
+It generates a Continuity of Care Document (`generateCcd`) or a Referral Note
+(`generateReferralNote`). Both carry the CCD sections: Problems, Allergies, Medications, Results,
+Vital Signs, Immunizations, Procedures, and Social History (smoking status), filled from small
+example code pools. The `recordTarget` patient has a name from the invented-name pool, a medical
+record number under a synthetic assigning-authority OID, and dates from the seeded generator.
 
-## A CCD, spec-clean by construction
+## Generate a CCD and check it reads back clean
 
-The round-trip harness proves spec-cleanliness by `@cosyte/ccda`'s own judgment: a spec-clean document
-re-parses with zero warnings and re-serializes byte-identically:
+`roundTrip` serializes the document, parses it with `@cosyte/ccda`, and serializes it again. A
+spec-clean document parses with no warnings and gives the same bytes:
 
 ```ts runnable
 import { generateCcd, roundTrip } from "@cosyte/synth/ccda";
 
-// Same seed → byte-identical document, on any machine, any run.
+// The same seed gives the same document, on any machine and any run.
 const { warnings, byteStable } = roundTrip(generateCcd({ seed: 12345 }));
 
 [warnings.length, byteStable]; // => [0, true]
 ```
 
-## A Referral Note
+## Generate a Referral Note
 
-`generateReferralNote` emits the second document type `buildCcda` supports: its own US Realm Header
-specialization plus the Reason-for-Referral and Assessment narrative sections:
+`generateReferralNote` builds the second document type `buildCcda` supports, with its own US
+Realm Header template and the Reason for Referral and Assessment sections:
 
 ```ts runnable
 import { generateReferralNote } from "@cosyte/synth/ccda";
@@ -46,15 +45,29 @@ const note = generateReferralNote({ seed: 7 });
 note.documentType; // => "referralNote"
 ```
 
-## A reproducible mixed corpus
+To choose the type at run time, `generateCcda({ seed, documentType })` takes `"ccd"` or
+`"referralNote"`.
 
-`ccdaCorpus` builds a deep-frozen, self-describing corpus (one CCD and one Referral Note by default),
-each document round-tripped through the parser so its `warnings` record the verdict:
+## Build a corpus
+
+`ccdaCorpus` alternates a CCD and a Referral Note, starting with a CCD; `count` defaults to `1`.
+Each document is round-tripped, and its `warnings` holds what the parser reported:
 
 ```ts runnable
 import { ccdaCorpus } from "@cosyte/synth/ccda";
 
-const corpus = ccdaCorpus({ seed: 1867, count: 4 });
+const corpus = ccdaCorpus({ seed: 1867, count: 3 });
 
+corpus.artifacts.map((a) => a.kind); // => ["ccd", "referralNote", "ccd"]
 corpus.artifacts.every((a) => a.warnings.length === 0); // => true
 ```
+
+A `mix` option takes the document types to cycle through instead.
+
+## Related
+
+- [Generate vendor-quirk fixtures](./guides-quirks.md#c-cda-a-deprecated-loinc-code): C-CDA
+  documents with a deprecated code or a missing template version.
+- Reference: [`generateCcd`](./api/src/ccda.md#generateccd),
+  [`generateReferralNote`](./api/src/ccda.md#generatereferralnote),
+  [`ccdaCorpus`](./api/src/ccda.md#ccdacorpus), and [`roundTrip`](./api/src/ccda.md#roundtrip).

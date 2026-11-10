@@ -1,45 +1,53 @@
 ---
 id: guides-x12
-title: X12 (837 / 835 / 271)
-sidebar_position: 5
-description: "Generate X12 005010 claims, remittances, and eligibility responses through @cosyte/x12's builders."
+title: Generate X12 transactions
+sidebar_label: X12
+description: "Generate X12 005010 claims (837P, 837I, 837D), remittances (835), and eligibility responses (271) through @cosyte/x12's builders."
 ---
 
-# Generate X12 EDI transactions
+# Generate X12 transactions
 
-The `@cosyte/synth/x12` subpath builds HIPAA **005010** transactions **through `@cosyte/x12`'s domain
-builders** (`build837P/I/D`, `build835`, `build271`), so the ISA/GS/ST…SE/GE/IEA envelope, the computed
-HL spine, the control numbers, and every segment are the builder's own: each transaction
-round-trips through `@cosyte/x12` with **zero warnings**.
-`@cosyte/x12` is an **optional peer dependency**, needed only for this subpath.
+The `@cosyte/synth/x12` subpath builds X12 005010 transactions through `@cosyte/x12`'s builders
+(`build837P`, `build837I`, `build837D`, `build835`, and `build271`), so the `ISA`, `GS`, and `ST`
+envelope, the `HL` hierarchy, the control numbers, and every segment are the builder's own. Install
+`@cosyte/x12` alongside it ([Installation](./installation.md)).
 
-The X12 surface emits:
+It generates:
 
-- **837** claims: Professional (`generate837P`), Institutional (`generate837I`), and Dental
-  (`generate837D`);
-- the **835** remittance (`generate835`): **balance-checked by construction** (the line, claim, and
-  remit balance identities are satisfied before the builder is called, so `build835` never refuses it);
-- the **271** eligibility response (`generate271`).
+- 837 claims: professional (`generate837P`), institutional (`generate837I`), and dental
+  (`generate837D`), or `generate837("P" | "I" | "D", options)` when the variant is data;
+- the 835 remittance (`generate835`), whose line, claim, and payment totals balance before the
+  builder is called, so `build835` never refuses it;
+- the 271 eligibility response (`generate271`).
 
-## A claim, spec-clean by construction
+Each returns `@cosyte/x12`'s interchange model.
 
-The round-trip harness checks an interchange by `@cosyte/x12`'s own judgment: it re-parses with
-zero warnings and re-serializes byte-identically:
+## Generate a claim and check it reads back clean
+
+`roundTrip` serializes the interchange, parses it with `@cosyte/x12`, and serializes it again:
 
 ```ts runnable
 import { generate837P, roundTrip } from "@cosyte/synth/x12";
 
-// Same seed → byte-identical EDI, on any machine, any run.
+// The same seed gives the same EDI, on any machine and any run.
 const result = roundTrip(generate837P({ seed: 12345 }));
 result.warnings; // => []
 result.byteStable; // => true
 result.specClean; // => true
 ```
 
-## A reproducible corpus
+The remittance and the eligibility response work the same way:
 
-`x12Corpus` builds a self-describing, deterministic corpus: one of each of 837P/I/D + 835 + 271 by
-default:
+```ts runnable
+import { generate271, generate835, roundTrip } from "@cosyte/synth/x12";
+
+roundTrip(generate835({ seed: 7 })).specClean; // => true
+roundTrip(generate271({ seed: 3 })).specClean; // => true
+```
+
+## Build a corpus
+
+`x12Corpus` generates one of each transaction by default, in this order:
 
 ```ts runnable
 import { x12Corpus } from "@cosyte/synth/x12";
@@ -49,29 +57,34 @@ corpus.artifacts.map((a) => a.kind); // => ["837P", "837I", "837D", "835", "271"
 corpus.artifacts.every((a) => a.warnings.length === 0); // => true
 ```
 
-## Synthetic-by-construction, hardest-attacked here
+`count` and `mix` change how many and which kinds it cycles through.
 
-An 837/271 is identity-dense: it carries subscriber and patient names, member ids, provider NPIs, a
-provider tax id, dates of birth, and addresses across two HL loops. Every value has a
-construction-level guarantee, not a heuristic:
+## What an 837 or a 271 carries
 
-- **NPI** (`NM1*XX`): a 10-digit National Provider Identifier with a **deliberately-invalid Luhn check
-  digit**. A real NPI must satisfy the CMS `80840`-prefixed Luhn check, so a `synth` NPI can **never** be
-  a NPPES-issued provider. (`safe.npi`, `isSyntheticNpi`.)
-- **Provider tax id** (`REF*SY`): an SSA **never-issued** (900-range) SSN, so it can never be a real
-  SSN or a sole-proprietor's real tax id.
-- **Member id** (`NM1*MI`): scoped to a synthetic assigning authority (there is no reserved member-id
-  range, so the _namespace_ is the guarantee).
-- **Names**: the shipped clearly-fake pool; **DOBs / dates**: the seeded generator (no real event
-  implied); **addresses**: a synthetic street + reserved ZIP.
+An 837 or a 271 carries subscriber and patient names, member IDs, provider NPIs, a provider tax ID,
+birth dates, and addresses. Each comes from a source chosen so it cannot be real:
 
-The repository's `phi-scan` gate runs X12-aware structured detection over every generated corpus: a
-Luhn-**valid** `NM1*XX` NPI, a real-area `REF*SY` SSN, or an `NM1*34` raw-SSN qualifier is a hard
-failure.
+- **NPI** (`NM1*XX`): 10 digits with a check digit that fails the Luhn check the NPI rule requires,
+  so it cannot be an issued NPI (`safe.npi`, `isSyntheticNpi`).
+- **Provider tax ID** (`REF*SY`): an SSN with a 900-series area, which SSA lists as invalid.
+- **Member ID** (`NM1*MI`): an ID under a synthetic assigning authority. No range of member IDs is
+  reserved, so the namespace is what keeps it from colliding with a real one.
+- **Names** come from the invented-name pool, **birth dates and other dates** from the seeded
+  generator, and **addresses** use an invented street and the ZIP Code `00000`.
 
-## Deferred
+The test suite's synthetic-safety properties check this for arbitrary seeds and every transaction:
+a Luhn-valid NPI, a tax ID outside the 900 series, or an `NM1` with the SSN qualifier `34` fails the
+suite. [What it does and does not do](./limitations.md#the-synthetic-safety-posture-the-floors)
+cites the rule behind each source.
 
-- The **270** eligibility _request_: `@cosyte/x12` ships `build270` on its 0.1 line, but `synth` does not
-  generate a 270 yet. `synth` builds every artifact through the parser's own builder or serializer and
-  never hand-writes the bytes.
-- **Vendor-quirk mode** (deliberately off-spec fixtures) is deferred for X12.
+## Not generated yet
+
+- The 270 eligibility request. `@cosyte/x12` has a `build270`, and we do not use it yet.
+- Vendor-quirk fixtures for X12.
+
+## Related
+
+- Reference: [`generate837P`](./api/src/x12.md#generate837p),
+  [`generate837`](./api/src/x12.md#generate837), [`generate835`](./api/src/x12.md#generate835),
+  [`generate271`](./api/src/x12.md#generate271), [`x12Corpus`](./api/src/x12.md#x12corpus), and
+  [`roundTrip`](./api/src/x12.md#roundtrip).
