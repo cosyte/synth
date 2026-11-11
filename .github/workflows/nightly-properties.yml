@@ -15,8 +15,6 @@ on:
     # 04:37 UTC. An odd minute: GitHub delays scheduled runs at the start of every hour.
     - cron: "37 4 * * *"
   workflow_dispatch:
-  push:
-    branches: [test/testing-standard]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
