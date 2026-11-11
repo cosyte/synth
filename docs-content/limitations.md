@@ -214,8 +214,10 @@ per-engine run is also compared against a **committed baseline** for the current
 toolchain or dependency change that moves every engine together is caught as well.
 
 **A change to that mapping is always stated.** The baseline is committed, and it cannot change
-unless the release's changeset states the output change for every format that moved, so a golden fixture pinned to a `synth` version keeps matching, and one carried
-across releases matches unless a changelog entry says its format moved. Node majors outside the verified pair are not
+unless the release's changeset states the output change for every format that moved. The check
+also passes a changeset that declares a major version without that statement; we release patch
+only, so that route is not used. A golden fixture pinned to a `synth` version keeps matching, and
+one carried across releases matches unless a changelog entry says its format moved. Node majors outside the verified pair are not
 promised: `engines.node` says which ones are supported, and this check says which ones are
 measured.
 
