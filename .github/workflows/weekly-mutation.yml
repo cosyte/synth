@@ -21,9 +21,6 @@ on:
     - cron: "53 6 * * 0"
     - cron: "53 6 * * 3"
   workflow_dispatch:
-  # Temporary: measures the full score on this branch; removed before merge.
-  push:
-    branches: [test/safe-providers]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
