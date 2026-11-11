@@ -43,16 +43,17 @@ export const PLACES_OF_SERVICE: readonly string[] = Object.freeze(["11", "22", "
 
 /**
  * ICD-10-CM diagnosis codes (HI qualifier `ABK` principal / `ABF` secondary): codes from the TR3
- * examples. Structural placeholders only.
+ * examples. Structural placeholders only. Each is written without its decimal point (`J209` for
+ * J20.9), as the 005010 claim guides transmit a diagnosis code.
  */
 export const DIAGNOSES: readonly X12ExampleCode[] = Object.freeze(
   [
-    { code: "J20.9", label: "acute bronchitis, unspecified" },
-    { code: "E11.9", label: "type 2 diabetes mellitus without complications" },
+    { code: "J209", label: "acute bronchitis, unspecified" },
+    { code: "E119", label: "type 2 diabetes mellitus without complications" },
     { code: "I10", label: "essential (primary) hypertension" },
-    { code: "M54.5", label: "low back pain" },
-    { code: "R07.9", label: "chest pain, unspecified" },
-    { code: "Z00.00", label: "general adult medical exam without abnormal findings" },
+    { code: "M545", label: "low back pain" },
+    { code: "R079", label: "chest pain, unspecified" },
+    { code: "Z0000", label: "general adult medical exam without abnormal findings" },
   ].map((entry) => Object.freeze(entry)),
 );
 

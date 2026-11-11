@@ -33,7 +33,8 @@ npm install @cosyte/synth @cosyte/hl7
 | `@cosyte/synth/deid`  | `@cosyte/deid`, `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, and `@cosyte/ncpdp` |
 
 The `deid` subpath loads all five parsers it pairs as soon as it is imported, so all five must be
-installed even if you call only one of its loops. Each peer is declared at `^0.1`.
+installed even if you call only one of its loops. Each parser peer is declared at `^0.1`, and
+`@cosyte/deid` at `^0.1.5 || ^0.2.0`, so either release line installs beside it.
 
 To install every format at once:
 

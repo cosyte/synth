@@ -1,0 +1,72 @@
+name: Peer range ends
+
+# Installs each end of the `@cosyte/deid` peer range in turn, the lowest version the range admits
+# and the highest published one, and runs the tests that go through that peer against it.
+#
+# WHY. Every other job installs the version the lockfile pins, so it proves one point of the range
+# and says nothing about the rest. `@cosyte/synth` 0.1.6 declared `^0.1.5` for `@cosyte/deid` while
+# deid was on 0.2.3, and npm refused to install the two together (ERESOLVE): no job here installed
+# anything but the pinned 0.1.5, so nothing went red. This job installs both ends, and the `latest`
+# end also fails when the release npm tags `latest` is outside the range
+# (`scripts/peer-ends.ts`), so the next release the range does not take is reported here first.
+#
+# WHAT IT RUNS. The deid pairing loop, the lazy peer loading and the X12 diagnosis code tests: the
+# behavior that depends on the peer. Not the output-equivalence digests, which pin the bytes the
+# lockfile's version produces, and which another deid release is free to move.
+#
+# It runs on every pull request, with no `paths:` filter, because a peer publishing moves the
+# latest end with no commit here. It is not a required check.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  peers:
+    strategy:
+      fail-fast: false
+      matrix:
+        end: ["lowest", "latest"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Resolve the ${{ matrix.end }} @cosyte/deid
+        id: end
+        env:
+          END: ${{ matrix.end }}
+        run: |
+          version="$(pnpm exec tsx scripts/peer-ends.ts @cosyte/deid "$END")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Install @cosyte/deid ${{ steps.end.outputs.version }}
+        env:
+          VERSION: ${{ steps.end.outputs.version }}
+        run: |
+          test -n "$VERSION"
+          pnpm add --save-dev --save-exact "@cosyte/deid@$VERSION"
+          installed="$(node -p 'require("./node_modules/@cosyte/deid/package.json").version')"
+          echo "installed @cosyte/deid $installed"
+          test "$installed" = "$VERSION"
+
+      - run: >-
+          pnpm exec vitest run test/deid test/lazy-peers.test.ts test/x12/diagnosis-codes.test.ts

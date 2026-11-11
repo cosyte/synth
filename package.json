@@ -142,7 +142,7 @@
   "peerDependencies": {
     "@cosyte/astm": "^0.1.6",
     "@cosyte/ccda": "^0.1.6",
-    "@cosyte/deid": "^0.1.5",
+    "@cosyte/deid": "^0.1.5 || ^0.2.0",
     "@cosyte/fhir": "^0.1.8",
     "@cosyte/hl7": "^0.1.8",
     "@cosyte/ncpdp": "^0.1.6",
@@ -221,7 +221,7 @@
     "@cosyte/astm": "^0.1.6",
     "@cosyte/bench": "^0.1.1",
     "@cosyte/ccda": "^0.1.6",
-    "@cosyte/deid": "^0.1.5",
+    "@cosyte/deid": "^0.2.3",
     "@cosyte/eslint-config": "^0.1.4",
     "@cosyte/fhir": "^0.1.8",
     "@cosyte/hl7": "^0.1.8",

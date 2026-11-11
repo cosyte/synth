@@ -2,8 +2,9 @@
 
 A deterministic, seedable generator of synthetic healthcare fixtures (HL7 v2, FHIR R4 / US Core,
 C-CDA, X12, NCPDP, and ASTM) for Node.js. Tooling, not a parser: each format is built through its
-sibling `@cosyte/*` parser's builder (optional peers, `^0.1`, installed from npm for the tests), so
-a seed gives the same bytes on the same parser versions. Public, MIT, on npm, no runtime deps.
+sibling `@cosyte/*` parser's builder (optional peers, `^0.1`, deid `^0.1.5 || ^0.2.0`, installed
+from npm for the tests), so a seed gives the same bytes on the same parser versions. Public, MIT,
+on npm, no runtime deps.
 
 @AGENTS.md
 

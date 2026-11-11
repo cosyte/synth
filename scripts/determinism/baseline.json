@@ -111,22 +111,22 @@
     {
       "format": "x12",
       "seed": 1001,
-      "digest": "b7e4b9e919a7eac2fd5019993e1743c1564c00f0b49090570a5b5970573e858e"
+      "digest": "dba781e0031b47865f5d3789f7b5f9284193dd47387df7179333686ed463de37"
     },
     {
       "format": "x12",
       "seed": 4242,
-      "digest": "b028335e8396b7d6114e8fd14452362a4d634cce18e7d3751c1484786582ee48"
+      "digest": "ec700cd500ecaf3582b6ba4a52639eb7ce59525162ad95ce2bf877c12babaf5b"
     },
     {
       "format": "x12",
       "seed": 60501,
-      "digest": "0db928fcf9b42b0f0aaff33a7cf7daa7a500b1f38dffb59a382dac29b428c814"
+      "digest": "a7a2ed72bb1cd29a7e70d4c1f1dd5237499c7cfc1d7d11f677705fb440513786"
     },
     {
       "format": "x12",
       "seed": 813377,
-      "digest": "6d72582a28cb92ff5b3f2b8a878780fa4dcf99989f4c975ca1b15e6745b30f53"
+      "digest": "aa4303b5755d432a3e51d7c201c478febe63b07dd593dd964921b33ac29f9046"
     }
   ]
 }
