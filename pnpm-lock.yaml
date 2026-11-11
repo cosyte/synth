@@ -23,6 +23,9 @@ importers:
       '@cosyte/astm':
         specifier: ^0.1.1
         version: 0.1.1
+      '@cosyte/bench':
+        specifier: ^0.1.1
+        version: 0.1.1
       '@cosyte/ccda':
         specifier: ^0.1.1
         version: 0.1.1
@@ -200,6 +203,11 @@ packages:
   '@cosyte/astm@0.1.1':
     resolution: {integrity: sha512-7A5JHrL8o9TTCGvNVlkD73Ut1QRbmHkE5Cg87BRfgj+oz5PFHNa1viyLLFrsqSslsAjZYx5UjevLvo3jmPDC5Q==}
     engines: {node: '>=22.0.0'}
+
+  '@cosyte/bench@0.1.1':
+    resolution: {integrity: sha512-wHd1lwEI0fao8w9ToJQSKIy28nbzYUumZ1+mkgXyIFjRHuwZFDA1O1DdjxmqIhxjQHzgDPNVDzeQPpkrGRAi1A==}
+    engines: {node: '>=22.15.0'}
+    hasBin: true
 
   '@cosyte/ccda@0.1.1':
     resolution: {integrity: sha512-fuybRn++xRtfpa1YjaM6ztUUh9slHVI1JiNG98QJBvAs94F19jmu3ZxrMVKYbz1KTnoW8Lj5vHgHjuTdGvT5dg==}
@@ -2324,6 +2332,8 @@ snapshots:
     optional: true
 
   '@cosyte/astm@0.1.1': {}
+
+  '@cosyte/bench@0.1.1': {}
 
   '@cosyte/ccda@0.1.1':
     dependencies:

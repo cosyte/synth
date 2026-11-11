@@ -16,10 +16,16 @@ The numbers for the current release are in [Current numbers](#current-numbers) b
 
 ## What we measure
 
-We do not run benchmarks on `@cosyte/synth` yet, and no CI job guards its speed. The performance
-standard names what a benchmark measures: throughput, latency at the 50th, 95th, and 99th
-percentiles, peak memory, import time, and bundle size. For this package, each of those reads "not
-measured" in the section below until a benchmark runs on it.
+The benchmark suite in the repository's `bench/` folder measures the built package on what callers
+ask of it: one artifact from a seed, and corpora of a hundred to tens of thousands of artifacts in
+each format, the synthetic patient identities under them, and the cost of a seed. It reads
+throughput, latency at the 50th, 95th, and 99th percentiles, allocations, peak memory, a long run
+for leaks, import time, and bundle size, on a GitHub-hosted runner.
+
+Two CI jobs run on every pull request. A scaling gate fails the pull request when a corpus
+generator's cost grows faster than the number of artifacts it builds. A comparison times the pull
+request's build against `main` on one runner and reports the change; it is advisory and fails
+nothing.
 
 ## What each call does
 

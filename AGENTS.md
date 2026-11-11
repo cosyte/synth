@@ -39,6 +39,33 @@ pnpm check:readme && pnpm check:claude-card && pnpm check:catalog   # ci.yml
 A package change adds a changeset (`pnpm changeset`). A change to the bytes a seed produces is a
 breaking change.
 
+CI's `scaling-gate` job runs `pnpm test:perf`, the scaling gates in
+`scripts/perf/scaling-gate.perf.ts`: they fail when a corpus generator's cost grows faster than the
+number of artifacts it builds. They run apart from `pnpm test` and never under coverage.
+
+## Benchmarks
+
+`bench/synth.bench.mjs` measures the built package on the work callers ask of it: one artifact from
+a seed, and corpora of a hundred to tens of thousands of artifacts in each format (HL7 v2, FHIR
+resources, US Core Patients and document Bundles, C-CDA, X12, NCPDP, ASTM), the synthetic patient
+identities underneath them, and the cost of a seed. Every input is a seed and a count, so every value
+is synthetic.
+
+```sh
+pnpm build
+pnpm bench:reading --out bench-results/reading.json --summary bench-results/reading.md
+node bench/budgets.mjs bench-results/reading.json
+pnpm bench:compare --base <base checkout>/dist/index.mjs --head dist/index.mjs
+pnpm bench:profile --out bench-results/profile
+```
+
+A reading reports throughput, latency p50/p95/p99, allocations, peak heap, a long run for leaks,
+and the cold import of the root entry with its gzip size. `pnpm bench:profile` adds the peak memory
+and single-call time of every size of a thousand artifacts or more, the cold import of each subpath,
+the cost of a seed, and a CPU and heap profile of the hottest paths. On a pull request CI compares
+the base build with the head at each shape's first size, and `.github/workflows/bench.yml` takes a
+reading and a profile on a hosted runner when `bench/` changes. Both are advisory.
+
 ## Data
 
 Synthetic data only, and that is this package's whole purpose: every identifier comes from a
