@@ -236,10 +236,13 @@ export interface Hl7QuirkCorpusOptions {
   readonly count?: number;
   /**
    * The quirk names to cycle through. Defaults to every HL7 quirk. Validated; unsupported ⇒ fatal.
-   * An empty list, or a `profile` that names no quirk, throws `SYNTH_EMPTY_POOL`.
+   * An empty list, or a `profile` whose `quirks` is an empty list, throws `SYNTH_EMPTY_POOL`.
    */
   readonly quirks?: readonly Hl7QuirkName[];
-  /** A {@link SynthProfile} whose `quirks` drive the corpus (validated). Takes precedence over `quirks`. */
+  /**
+   * A {@link SynthProfile} whose `quirks` drive the corpus (validated). Its `quirks`, when set, take
+   * precedence over `quirks`; a profile that leaves `quirks` out leaves the selection to `quirks`.
+   */
   readonly profile?: SynthProfile;
   /** The base message family each quirk is injected into. Defaults to `"ORU^R01"`. */
   readonly kind?: Hl7QuirkKind;
@@ -265,7 +268,7 @@ const ALL_HL7_QUIRKS: readonly Hl7QuirkName[] = Object.freeze(
  */
 export function hl7QuirkCorpus(options: Hl7QuirkCorpusOptions): Corpus {
   const names: readonly string[] = requireSelection(
-    options.profile
+    options.profile?.quirks !== undefined
       ? validateProfileQuirks(options.profile, HL7_QUIRKS, "hl7v2")
       : (options.quirks ?? ALL_HL7_QUIRKS),
   );

@@ -3,11 +3,20 @@ import { describe, expect, it } from "vitest";
 import { defineSynthProfile, SynthError, SYNTH_FATAL_CODES } from "../src/index.js";
 
 describe("defineSynthProfile: the growth-loop skeleton", () => {
-  it("returns a frozen profile with defaulted quirks", () => {
+  it("leaves quirks out of a profile whose spec leaves them out", () => {
+    // An omitted `quirks` field is not an empty list: the first leaves the quirk selection to the
+    // corpus default, the second selects nothing.
     const p = defineSynthProfile({ name: "acme-hospital" });
     expect(p.name).toBe("acme-hospital");
-    expect(p.quirks).toEqual([]);
+    expect("quirks" in p).toBe(false);
+    expect(p.quirks).toBeUndefined();
     expect(Object.isFrozen(p)).toBe(true);
+  });
+
+  it("keeps an empty quirks list as an empty list, frozen", () => {
+    const p = defineSynthProfile({ name: "acme-hospital", quirks: [] });
+    expect(p.quirks).toEqual([]);
+    expect(Object.isFrozen(p.quirks)).toBe(true);
   });
 
   it("carries value-pool overrides and quirks, frozen", () => {

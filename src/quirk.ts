@@ -243,7 +243,8 @@ export function assertIntendedWarnings(
  * @param profile - The synth profile whose `quirks` to validate.
  * @param registry - The format's quirk descriptors.
  * @param format - The format being generated.
- * @returns The validated quirk names (the profile's, in order).
+ * @returns The validated quirk names: the profile's, in order, or every quirk in `registry` when the
+ * profile leaves `quirks` out. An empty `quirks` list comes back empty.
  * @throws SynthError `SYNTH_UNSUPPORTED_QUIRK` for the first unsupported quirk.
  * @example
  * ```ts
@@ -258,6 +259,7 @@ export function validateProfileQuirks(
   registry: Readonly<Record<string, QuirkDescriptor>>,
   format: SynthFormat,
 ): readonly string[] {
+  if (profile.quirks === undefined) return Object.keys(registry);
   for (const name of profile.quirks) resolveQuirk(registry, format, name);
   return profile.quirks;
 }

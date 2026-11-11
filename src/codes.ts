@@ -60,8 +60,8 @@ export const SYNTH_FATAL_CODES = Object.freeze({
   SYNTH_INVALID_RANGE: "SYNTH_INVALID_RANGE",
   /**
    * A value was drawn from an empty pool. Fatal, never a fabricated substitute. A corpus given an
-   * empty `mix`, `triggers` or `quirks` list (or a profile that names no quirk) raises it too: there
-   * is no kind to cycle through, and an empty list is never read as the default.
+   * empty `mix`, `triggers` or `quirks` list (or a profile whose `quirks` is an empty list) raises it
+   * too: there is no kind to cycle through, and an empty list is never read as the default.
    */
   SYNTH_EMPTY_POOL: "SYNTH_EMPTY_POOL",
   /** A `defineSynthProfile` spec was not usable (a missing or blank `name`). Fatal. */
