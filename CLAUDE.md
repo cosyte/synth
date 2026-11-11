@@ -21,7 +21,7 @@ pnpm test && pnpm test:coverage && pnpm build && pnpm attw   # ci.yml; coverage 
 pnpm quality:check --base origin/main   # ci.yml coverage-ratchet; mutation job and weekly run in CI
 pnpm examples && pnpm smoke   # ci.yml examples job, smoke.yml
 pnpm check:install            # install.yml: packs this tree and installs it (needs the network)
-pnpm check:test-selection     # test-selection.yml
+pnpm check:test-selection && pnpm check:docs-reference   # test-selection.yml; ci.yml documents
 pnpm run determinism:digest && pnpm run check:determinism-window   # ci.yml; digest on 22, 24, 26
 pnpm run acquire:oracle && pnpm run oracle   # ci.yml oracle job: needs `java` and the network
 pnpm check:no-emdash && pnpm check:no-internal-refs   # no-emdash.yml, no-internal-refs.yml

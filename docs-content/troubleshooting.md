@@ -40,9 +40,13 @@ Each format subpath needs its parser installed, as an optional peer dependency:
 package root (`@cosyte/synth`) needs none: import from there if you only need the seeded generator
 and the value providers.
 
-`@cosyte/synth/deid` loads `@cosyte/deid`, `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`,
-`@cosyte/x12`, and `@cosyte/ncpdp` as soon as it is imported, so all six must be installed even if
-you call one loop. [Installation](./installation.md) has the table.
+Importing a subpath loads no parser. `@cosyte/synth/deid` loads `@cosyte/deid` and one format's
+parser on the first call of that format's loop, so a loop needs only those two installed:
+`hl7DeidLoop` needs `@cosyte/hl7`, and so on. [Installation](./installation.md) has the table.
+
+Under Bun, a project with no `node_modules` folder does not get this error. Bun installs a package
+it cannot find while the program runs, so the missing parser is downloaded and loaded instead.
+Install the parsers you use, so the versions that run are the ones you chose.
 
 ## "instanceof is false for a generated value"
 

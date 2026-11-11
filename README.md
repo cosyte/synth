@@ -54,7 +54,7 @@ pairing (no `@cosyte/deid` adapter, or not generated); and optional **Synthea** 
 ## Install
 
 ```bash
-npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cosyte/ncpdp @cosyte/astm
+npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cosyte/ncpdp @cosyte/astm @cosyte/deid
 ```
 
 Node.js 22.12 or later, tested on 22.12, 22, 24, and 26. A generator loads its parser on first use
@@ -68,10 +68,14 @@ Rollup and Vite `external`, webpack `externals`) and install them beside the bun
 `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, `@cosyte/ncpdp`, `@cosyte/astm`, and
 `@cosyte/deid` are **optional peer dependencies**, each needed only for its subpath (`@cosyte/synth/hl7`,
 `@cosyte/synth/fhir`, `@cosyte/synth/ccda`, `@cosyte/synth/x12`, `@cosyte/synth/ncpdp`,
-`@cosyte/synth/astm`, and `@cosyte/synth/deid`: the last loads `@cosyte/deid` **plus** the five
-parsers it pairs, `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, and `@cosyte/ncpdp`,
-as soon as it is imported): install only the packages whose fixtures you generate. The package core has
-**zero third-party runtime dependencies**.
+`@cosyte/synth/astm`, and `@cosyte/synth/deid`, whose peer is `@cosyte/deid`). Importing a subpath
+loads no parser: each loads the first time a generator needs it, so install only the packages whose
+fixtures you generate. A `@cosyte/synth/deid` loop also loads the parser of its own format, so
+`hl7DeidLoop` needs `@cosyte/deid` and `@cosyte/hl7`. A parser that is missing throws
+`SYNTH_PEER_NOT_INSTALLED` on first use, except under Bun in a project with no `node_modules` folder,
+where Bun downloads and loads it instead
+([Troubleshooting](https://docs.cosyte.com/synth/troubleshooting#a-parser-is-not-installed)). The
+package core has **zero third-party runtime dependencies**.
 
 ## Usage
 
@@ -382,7 +386,8 @@ The full reference is on [docs.cosyte.com/synth](https://docs.cosyte.com/synth):
   [the `@cosyte/deid` pairing loop](https://docs.cosyte.com/synth/guides-deid), [synthetic values](https://docs.cosyte.com/synth/draw-synthetic-values),
   and [pinning a golden fixture](https://docs.cosyte.com/synth/guides-overview).
 - Explanation: [how it works](https://docs.cosyte.com/synth/concepts-archetype) and [what it does and does not do](https://docs.cosyte.com/synth/limitations).
-- Reference: [fatal codes](https://docs.cosyte.com/synth/fatal-codes), the [quirk catalog](https://docs.cosyte.com/synth/quirk-catalog), and the API reference.
+- Reference: [fatal codes](https://docs.cosyte.com/synth/fatal-codes), the [quirk catalog](https://docs.cosyte.com/synth/quirk-catalog), and the
+  [API reference](https://github.com/cosyte/synth/blob/main/docs-content/api/README.md), generated from the source.
 - [Troubleshooting](https://docs.cosyte.com/synth/troubleshooting), [testing and quality](https://docs.cosyte.com/synth/testing-and-quality), and [performance](https://docs.cosyte.com/synth/performance).
 - [`CHANGELOG.md`](https://github.com/cosyte/synth/blob/main/CHANGELOG.md): every release.
 

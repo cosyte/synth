@@ -19,8 +19,10 @@ The typed error every fatal `@cosyte/synth` condition throws. Carries a stable
 [SynthFatalCode](#synthfatalcode) so callers branch on `err.code` without matching message text.
 
 It takes **no value parameter**. The message is whatever [SYNTH\_FATAL\_MESSAGES](#synth_fatal_messages) holds for the
-code, so no caller-supplied string can reach a diagnostic surface by any route, not `message`, not
-`stack`, not a field on the thrown object.
+code, or for a missing parser whatever [SYNTH\_PEER\_MESSAGES](#synth_peer_messages) holds for that package, so no
+caller-supplied string can reach a diagnostic surface by any route, not `message`, not `stack`,
+not a field on the thrown object. The options carry only an error this package caught (`cause`)
+and a package name from that closed set (`peer`).
 
 #### Example
 
@@ -47,6 +49,12 @@ throw new SynthError(SYNTH_FATAL_CODES.SYNTH_UNSUPPORTED_FORMAT);
 
 The stable [SynthFatalCode](#synthfatalcode). The message comes from the frozen registry.
 
+###### options?
+
+[`SynthErrorOptions`](#syntherroroptions) = `{}`
+
+The error that caused this one, and for a missing parser its package.
+
 ###### Returns
 
 [`SynthError`](#syntherror)
@@ -62,6 +70,12 @@ The stable [SynthFatalCode](#synthfatalcode). The message comes from the frozen 
 > `readonly` **code**: [`SynthFatalCode`](#synthfatalcode)
 
 The stable fatal code.
+
+##### peer?
+
+> `readonly` `optional` **peer?**: `"@cosyte/hl7"` \| `"@cosyte/fhir"` \| `"@cosyte/ccda"` \| `"@cosyte/x12"` \| `"@cosyte/ncpdp"` \| `"@cosyte/astm"` \| `"@cosyte/deid"`
+
+The missing parser package, on a SYNTH\_FATAL\_CODES.SYNTH\_PEER\_NOT\_INSTALLED error only.
 
 ## Interfaces
 
@@ -459,6 +473,27 @@ Counter word `d`.
 
 ***
 
+### SynthErrorOptions
+
+What a [SynthError](#syntherror) may carry beside its code.
+
+#### Properties
+
+##### cause?
+
+> `readonly` `optional` **cause?**: `unknown`
+
+The error that caused this one, kept on `cause`.
+
+##### peer?
+
+> `readonly` `optional` **peer?**: `"@cosyte/hl7"` \| `"@cosyte/fhir"` \| `"@cosyte/ccda"` \| `"@cosyte/x12"` \| `"@cosyte/ncpdp"` \| `"@cosyte/astm"` \| `"@cosyte/deid"`
+
+For SYNTH\_FATAL\_CODES.SYNTH\_PEER\_NOT\_INSTALLED: the parser package that is missing. Its
+message then comes from [SYNTH\_PEER\_MESSAGES](#synth_peer_messages).
+
+***
+
 ### SyntheticAddress
 
 A synthetic postal address: synthetic street + city, a fixed non-real ZIP.
@@ -648,6 +683,14 @@ A value from [SYNTH\_FATAL\_CODES](#synth_fatal_codes): the type carried by a th
 
 The format an artifact was generated for.
 
+***
+
+### SynthPeer
+
+> **SynthPeer** = keyof *typeof* [`SYNTH_PEER_MESSAGES`](#synth_peer_messages)
+
+A sibling parser package: a key of [SYNTH\_PEER\_MESSAGES](#synth_peer_messages).
+
 ## Variables
 
 ### DEA\_REGISTRANT\_TYPES
@@ -725,7 +768,7 @@ RFC 2606 / 6761 reserved email domains `@cosyte/synth` draws from.
 
 ### safe
 
-> `const` **safe**: `Readonly`\<\{ `address`: (`rng`) => [`SyntheticAddress`](#syntheticaddress); `dateYmd`: (`rng`, `minYear`, `maxYear`) => `string`; `dea`: (`rng`, `person?`) => `string`; `email`: (`rng`, `person?`) => `string`; `identifier`: (`rng`, `typeCode`) => [`SyntheticIdentifier`](#syntheticidentifier); `ipv4`: (`rng`) => `string`; `ipv6`: (`rng`) => `string`; `name`: (`rng`) => [`SyntheticName`](#syntheticname); `npi`: (`rng`) => `string`; `phone`: (`rng`) => `string`; `ssn`: (`rng`, `block`) => `string`; `uuid`: (`rng`) => `string`; \}\>
+> `const` **safe**: `Readonly`\<\{ `address`: (`rng`) => [`SyntheticAddress`](#syntheticaddress); `dateYmd`: (`rng`, `minYear`, `maxYear`) => `string`; `dea`: (`rng`, `person?`) => `string`; `email`: (`rng`, `person?`) => `string`; `identifier`: (`rng`, `typeCode`) => [`SyntheticIdentifier`](#syntheticidentifier); `ipv4`: (`rng`) => `string`; `ipv6`: (`rng`) => `string`; `name`: (`rng`) => [`SyntheticName`](#syntheticname); `npi`: (`rng`) => `string`; `phone`: (`rng`) => `string`; `ssn`: (`rng`, `block?`) => `string`; `uuid`: (`rng`) => `string`; \}\>
 
 The synthetic-safety provider namespace. Every function draws only from a reserved range or the
 shipped fake-name pool, no value it returns can be real or plausibly-real PHI.
@@ -783,6 +826,24 @@ holds the value it passed.
 ```ts
 import { SYNTH_FATAL_CODES, SYNTH_FATAL_MESSAGES } from "@cosyte/synth";
 SYNTH_FATAL_MESSAGES[SYNTH_FATAL_CODES.SYNTH_EMPTY_POOL]; // => "A value was drawn from an empty pool."
+```
+
+***
+
+### SYNTH\_PEER\_MESSAGES
+
+> `const` **SYNTH\_PEER\_MESSAGES**: `Readonly`\<\{ `@cosyte/astm`: `string`; `@cosyte/ccda`: `string`; `@cosyte/deid`: `string`; `@cosyte/fhir`: `string`; `@cosyte/hl7`: `string`; `@cosyte/ncpdp`: `string`; `@cosyte/x12`: `string`; \}\>
+
+The message a SYNTH\_FATAL\_CODES.SYNTH\_PEER\_NOT\_INSTALLED error carries for each sibling
+parser: which package is missing, and the command that installs it. Keyed by the closed set of
+parser packages this package builds through, so like [SYNTH\_FATAL\_MESSAGES](#synth_fatal_messages) it is a table
+of fixed strings, and no caller value can reach it.
+
+#### Example
+
+```ts
+import { SYNTH_PEER_MESSAGES } from "@cosyte/synth";
+SYNTH_PEER_MESSAGES["@cosyte/hl7"]; // => "@cosyte/hl7 is not installed, and this generator builds through it. Install it beside @cosyte/synth: npm install @cosyte/hl7"
 ```
 
 ***
@@ -850,7 +911,7 @@ RFC 5737 IPv4 documentation (TEST-NET) `/24` network prefixes.
 
 ### VERSION
 
-> `const` **VERSION**: `string` = `"0.1.4"`
+> `const` **VERSION**: `string` = `"0.1.9"`
 
 Library version string, equal to this package's published `package.json#version`.
 

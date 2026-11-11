@@ -1,7 +1,7 @@
 /**
  * Synthetic identity for ASTM (E1394 / CLSI LIS02) messages: every value `synth` puts into a `P`
- * (patient) record, an `O` (order) accession, or the `H` header is minted here, and **only** from the
- * synthetic-safety providers. ASTM's PHI-dense locus is the **`P` record**: it carries the
+ * (patient) record, an `O` (order) accession, or the `H` header's sender is minted here, and
+ * **only** from the synthetic-safety providers. ASTM's PHI-dense locus is the **`P` record**: it carries the
  * patient **name** (`Last^First^Middle`), **birthdate**, **sex**, and the **practice-assigned** and
  * **laboratory-assigned** patient IDs, which must stay
  * **distinct** (the parser keeps them distinct; a generator that let one default from the other would
@@ -27,14 +27,18 @@ const SYNTHETIC_MIDDLE_INITIALS: readonly string[] = Object.freeze([
   "T",
 ]);
 
-/** Clearly-synthetic sender / analyzer identifiers for the `H` header (never a real site or instrument). */
+/** Clearly-synthetic sender names for the `H` header's sender field, `H.5` (never a real site). */
 const SYNTHETIC_SENDERS: readonly string[] = Object.freeze([
   "SYNTH-LIS",
   "FIXTURE-HOST",
   "PLACEHOLDER-LAB",
 ]);
 
-/** Clearly-synthetic analyzer model strings for the `H` header (Universal Test ID sender component). */
+/**
+ * Clearly-synthetic analyzer model strings (never a real instrument). One is drawn after the sender so
+ * a seed keeps its draw order, and no generator writes it into a message: the `H` record carries only
+ * the sender.
+ */
 const SYNTHETIC_ANALYZERS: readonly string[] = Object.freeze([
   "SYNTH-ANALYZER^ModelS^1",
   "MOCK-CHEM^ModelC^2",
@@ -65,11 +69,17 @@ export interface AstmOrder {
   readonly priority: "R" | "S";
 }
 
-/** A synthetic ASTM header identity: the sender and analyzer strings for the `H` record. */
+/**
+ * A synthetic ASTM header identity: the sender name the `H` record carries in `H.5`, and an analyzer
+ * string that no generator writes into a message.
+ */
 export interface AstmHeaderIdentity {
-  /** The sending system id (clearly synthetic). */
+  /** The sending system's name, written to `H.5` (clearly synthetic). */
   readonly sender: string;
-  /** The analyzer / instrument string (clearly synthetic). */
+  /**
+   * An analyzer / instrument string (clearly synthetic). Drawn so a seed keeps its draw order; the
+   * generators leave it out of the message.
+   */
   readonly analyzer: string;
 }
 
@@ -116,7 +126,8 @@ export function astmOrder(rng: Rng): AstmOrder {
 }
 
 /**
- * Mint a synthetic header identity for the `H` record: a clearly-synthetic sender and analyzer.
+ * Mint a synthetic header identity: a clearly-synthetic sender for the `H` record's `H.5`, and an
+ * analyzer string, drawn after it, that the generators leave out of the message.
  *
  * @param rng - The seeded generator.
  * @returns A synthetic {@link AstmHeaderIdentity}.
