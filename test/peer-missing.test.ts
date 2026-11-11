@@ -177,5 +177,11 @@ describe("a parser that is not installed", () => {
     expect(plain.peer).toBeUndefined();
     expect(plain.cause).toBeUndefined();
     expect(Object.keys(plain)).not.toContain("peer");
+    expect("cause" in plain).toBe(false);
+    const named = new SynthError(SYNTH_FATAL_CODES.SYNTH_PEER_NOT_INSTALLED, {
+      peer: "@cosyte/x12",
+    });
+    expect(Object.keys(named)).toContain("peer");
+    expect(named.message).toBe(SYNTH_PEER_MESSAGES["@cosyte/x12"]);
   });
 });
