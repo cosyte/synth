@@ -20,19 +20,15 @@
  * @module
  */
 
-import {
-  buildNewRx,
-  serializeScript,
-  ScriptMessage,
-  type MedicationPrescribed,
-  type Patient,
-  type Pharmacy,
-  type Prescriber,
-  type ScriptHeader,
-  type RxRenewalRequest,
-  type RxChangeRequest,
+import type {
+  MedicationPrescribed,
+  Patient,
+  Pharmacy,
+  Prescriber,
+  ScriptHeader,
+  RxRenewalRequest,
+  RxChangeRequest,
 } from "@cosyte/ncpdp/script";
-import { decimalValue, codedValue } from "@cosyte/ncpdp/common";
 
 import { createRng, type Rng } from "../rng/rng.js";
 import {
@@ -43,6 +39,7 @@ import {
   type NcpdpScriptRouting,
 } from "./identity.js";
 import { EXAMPLE_DRUGS, EXAMPLE_SIG_TEXT } from "./example-codes.js";
+import { ncpdpCommonPeer, ncpdpScriptPeer } from "../peers.js";
 
 /** The SCRIPT version `synth` stamps generated messages with (a version `@cosyte/ncpdp` reads clean). */
 const SCRIPT_VERSION = "2017071";
@@ -87,13 +84,13 @@ function medicationModel(rng: Rng, routing: NcpdpScriptRouting): MedicationPresc
   const written = `${routing.date.slice(0, 4)}-${routing.date.slice(4, 6)}-${routing.date.slice(6, 8)}`;
   return {
     description: drug.description,
-    coded: { productCode: codedValue(drug.ndc, "ND") },
+    coded: { productCode: ncpdpCommonPeer().codedValue(drug.ndc, "ND") },
     quantity: {
-      value: decimalValue(String(rng.int(30, 90))),
+      value: ncpdpCommonPeer().decimalValue(String(rng.int(30, 90))),
       unitOfMeasure: drug.form,
       codeListQualifier: "38",
     },
-    daysSupply: decimalValue(String(rng.pick([30, 60, 90] as const))),
+    daysSupply: ncpdpCommonPeer().decimalValue(String(rng.pick([30, 60, 90] as const))),
     numberOfRefills: String(rng.int(0, 5)),
     substitutions: rng.pick(["0", "1"] as const),
     writtenDate: written,
@@ -133,14 +130,14 @@ export function generateNewRx(options: GenerateScriptOptions): string {
   const pharmacy = pharmacyModel(rng);
   const prescriber = prescriberModel(rng);
   const medication = medicationModel(rng, routing);
-  const message = buildNewRx({
+  const message = ncpdpScriptPeer().buildNewRx({
     header: headerModel(routing),
     patient,
     pharmacy,
     prescriber,
     medication,
   });
-  return serializeScript(message);
+  return ncpdpScriptPeer().serializeScript(message);
 }
 
 /** Assemble the shared lifecycle-request fields (request ref, parties, medication) from a seed. */
@@ -181,7 +178,9 @@ export function generateRxRenewalRequest(options: GenerateScriptOptions): string
   const rng = createRng(options.seed);
   const { header, ...fields } = lifecycleFields(rng);
   const body: RxRenewalRequest = { kind: "RxRenewalRequest", ...fields };
-  return serializeScript(new ScriptMessage({ header, body, warnings: [] }));
+  return ncpdpScriptPeer().serializeScript(
+    new (ncpdpScriptPeer().ScriptMessage)({ header, body, warnings: [] }),
+  );
 }
 
 /**
@@ -202,5 +201,7 @@ export function generateRxChangeRequest(options: GenerateScriptOptions): string 
   const rng = createRng(options.seed);
   const { header, ...fields } = lifecycleFields(rng);
   const body: RxChangeRequest = { kind: "RxChangeRequest", ...fields };
-  return serializeScript(new ScriptMessage({ header, body, warnings: [] }));
+  return ncpdpScriptPeer().serializeScript(
+    new (ncpdpScriptPeer().ScriptMessage)({ header, body, warnings: [] }),
+  );
 }

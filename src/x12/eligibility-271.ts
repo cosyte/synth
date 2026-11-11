@@ -13,7 +13,7 @@
  * @module
  */
 
-import { build271, type Build271Spec, type X12Interchange } from "@cosyte/x12";
+import type { Build271Spec, X12Interchange } from "@cosyte/x12";
 
 import { createRng } from "../rng/rng.js";
 
@@ -27,6 +27,7 @@ import {
   x12EnvelopeTiming,
 } from "./identity.js";
 import { SERVICE_TYPE_CODES } from "./example-codes.js";
+import { x12Peer } from "../peers.js";
 
 /** Options for {@link generate271}. */
 export interface Generate271Options {
@@ -130,5 +131,5 @@ export function generate271(options: Generate271Options): X12Interchange {
     ],
   };
 
-  return build271(spec);
+  return x12Peer().build271(spec);
 }

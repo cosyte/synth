@@ -19,15 +19,7 @@
  * @module
  */
 
-import { deidentifyHl7, extractHl7Loci } from "@cosyte/deid/hl7";
-import { deidentifyFhir, extractFhirLoci } from "@cosyte/deid/fhir";
-import { deidentifyX12, extractX12Loci } from "@cosyte/deid/x12";
-import { deidentifyTelecom, extractTelecomLoci } from "@cosyte/deid/ncpdp";
-import { deidentifyCcda } from "@cosyte/deid/ccda";
-import { serializeResource } from "@cosyte/fhir";
-import { serializeX12, parseX12, type X12Interchange } from "@cosyte/x12";
-import { serializeCcda } from "@cosyte/ccda";
-import { parseTelecom } from "@cosyte/ncpdp/telecom";
+import type { X12Interchange } from "@cosyte/x12";
 import type { GenericLocus } from "@cosyte/deid";
 
 import { generateHl7, type Hl7MessageKind } from "../hl7/index.js";
@@ -79,6 +71,17 @@ export {
   type DeidSentinel,
   type DeidLoopResult,
 } from "./loop.js";
+import {
+  ccdaPeer,
+  deidCcdaPeer,
+  deidFhirPeer,
+  deidHl7Peer,
+  deidNcpdpPeer,
+  deidX12Peer,
+  fhirPeer,
+  ncpdpTelecomPeer,
+  x12Peer,
+} from "../peers.js";
 
 /**
  * The cosyte formats the pairing loop covers: every format for which **both** `@cosyte/synth`
@@ -124,7 +127,9 @@ export const DEID_LOOP_SKIPPED = Object.freeze([
   }),
 ] as const);
 
-const POLICY = deidLoopPolicy();
+/** The loop's policy, built by the first loop, which is when `@cosyte/deid` loads. */
+let policy: ReturnType<typeof deidLoopPolicy> | undefined;
+const loopPolicy = (): ReturnType<typeof deidLoopPolicy> => (policy ??= deidLoopPolicy());
 
 /**
  * The **PHI-locus residue** of a de-identified artifact: the values that remain at the loci a
@@ -188,8 +193,8 @@ export function hl7DeidLoop(options: Hl7DeidLoopOptions = {}): DeidLoopResult {
   const kind: Hl7MessageKind = options.kind ?? "ORU^R01";
   const message = generateHl7(kind, seed);
   const original = message.toString();
-  const planted = identifierSentinels(extractHl7Loci(message).loci, original);
-  const deidDoc = deidentifyHl7(message, { policy: POLICY }).document;
+  const planted = identifierSentinels(deidHl7Peer().extractHl7Loci(message).loci, original);
+  const deidDoc = deidHl7Peer().deidentifyHl7(message, { policy: loopPolicy() }).document;
   const deidentified = deidDoc.toString();
   return assembleVerdict({
     format: "hl7",
@@ -198,7 +203,7 @@ export function hl7DeidLoop(options: Hl7DeidLoopOptions = {}): DeidLoopResult {
     planted,
     original,
     deidentified,
-    phiResidue: residue(extractHl7Loci(deidDoc).loci),
+    phiResidue: residue(deidHl7Peer().extractHl7Loci(deidDoc).loci),
     clinicalCodes: HL7_CLINICAL,
   });
 }
@@ -226,10 +231,10 @@ export interface FhirDeidLoopOptions {
 export function fhirDeidLoop(options: FhirDeidLoopOptions = {}): DeidLoopResult {
   const seed = options.seed ?? 0;
   const bundle = generateBundle({ seed });
-  const original = serializeResource(bundle);
-  const planted = identifierSentinels(extractFhirLoci(bundle).loci, original);
-  const deidDoc = deidentifyFhir(bundle, { policy: POLICY }).document;
-  const deidentified = serializeResource(deidDoc);
+  const original = fhirPeer().serializeResource(bundle);
+  const planted = identifierSentinels(deidFhirPeer().extractFhirLoci(bundle).loci, original);
+  const deidDoc = deidFhirPeer().deidentifyFhir(bundle, { policy: loopPolicy() }).document;
+  const deidentified = fhirPeer().serializeResource(deidDoc);
   return assembleVerdict({
     format: "fhir",
     artifact: "Bundle",
@@ -237,7 +242,7 @@ export function fhirDeidLoop(options: FhirDeidLoopOptions = {}): DeidLoopResult 
     planted,
     original,
     deidentified,
-    phiResidue: residue(extractFhirLoci(deidDoc).loci),
+    phiResidue: residue(deidFhirPeer().extractFhirLoci(deidDoc).loci),
     clinicalCodes: FHIR_CLINICAL,
   });
 }
@@ -286,9 +291,9 @@ export function x12DeidLoop(options: X12DeidLoopOptions = {}): DeidLoopResult {
   const seed = options.seed ?? 0;
   const variant: X12DeidVariant = options.variant ?? "837P";
   const interchange = generateX12(variant, seed);
-  const original = serializeX12(interchange);
-  const planted = identifierSentinels(extractX12Loci(interchange).loci, original);
-  const deidentified = deidentifyX12(interchange, { policy: POLICY }).x12;
+  const original = x12Peer().serializeX12(interchange);
+  const planted = identifierSentinels(deidX12Peer().extractX12Loci(interchange).loci, original);
+  const deidentified = deidX12Peer().deidentifyX12(interchange, { policy: loopPolicy() }).x12;
   return assembleVerdict({
     format: "x12",
     artifact: variant,
@@ -296,7 +301,7 @@ export function x12DeidLoop(options: X12DeidLoopOptions = {}): DeidLoopResult {
     planted,
     original,
     deidentified,
-    phiResidue: residue(extractX12Loci(parseX12(deidentified)).loci),
+    phiResidue: residue(deidX12Peer().extractX12Loci(x12Peer().parseX12(deidentified)).loci),
     clinicalCodes: X12_CLINICAL,
   });
 }
@@ -342,9 +347,9 @@ export function ncpdpTelecomDeidLoop(options: NcpdpTelecomDeidLoopOptions = {}):
   const seed = options.seed ?? 0;
   const transaction: NcpdpTelecomVariant = options.transaction ?? "B1";
   const original = generateTelecomWire(transaction, seed);
-  const tx = parseTelecom(original);
-  const planted = identifierSentinels(extractTelecomLoci(tx).loci, original);
-  const deidentified = deidentifyTelecom(tx, { policy: POLICY }).telecom;
+  const tx = ncpdpTelecomPeer().parseTelecom(original);
+  const planted = identifierSentinels(deidNcpdpPeer().extractTelecomLoci(tx).loci, original);
+  const deidentified = deidNcpdpPeer().deidentifyTelecom(tx, { policy: loopPolicy() }).telecom;
   return assembleVerdict({
     format: "ncpdp-telecom",
     artifact: transaction,
@@ -352,7 +357,9 @@ export function ncpdpTelecomDeidLoop(options: NcpdpTelecomDeidLoopOptions = {}):
     planted,
     original,
     deidentified,
-    phiResidue: residue(extractTelecomLoci(parseTelecom(deidentified)).loci),
+    phiResidue: residue(
+      deidNcpdpPeer().extractTelecomLoci(ncpdpTelecomPeer().parseTelecom(deidentified)).loci,
+    ),
     clinicalCodes: NCPDP_CLINICAL,
   });
 }
@@ -389,9 +396,11 @@ export function ccdaDeidLoop(options: CcdaDeidLoopOptions = {}): DeidLoopResult 
   const seed = options.seed ?? 0;
   const documentType: CcdaDeidDocumentType = options.documentType ?? "ccd";
   const doc = generateCcda({ seed, documentType: documentType === "ccd" ? "ccd" : "referralNote" });
-  const original = serializeCcda(doc);
+  const original = ccdaPeer().serializeCcda(doc);
   const planted = recordTargetSentinels(original);
-  const deidentified = deidentifyCcda(doc, { policy: POLICY }).document.toString();
+  const deidentified = deidCcdaPeer()
+    .deidentifyCcda(doc, { policy: loopPolicy() })
+    .document.toString();
   return assembleVerdict({
     format: "ccda",
     artifact: documentType === "ccd" ? "CCD" : "ReferralNote",

@@ -13,8 +13,8 @@
  * @module
  */
 
-import { parseResource, serializeResource, validateResource } from "@cosyte/fhir";
 import type { FhirComplex, StructureDefinition } from "@cosyte/fhir";
+import { fhirPeer } from "../peers.js";
 
 /** Options for {@link roundTrip}. */
 export interface RoundTripOptions {
@@ -60,10 +60,10 @@ export interface RoundTripResult {
  * ```
  */
 export function roundTrip(resource: FhirComplex, options: RoundTripOptions = {}): RoundTripResult {
-  const content = serializeResource(resource);
-  const { resource: reparsed } = parseResource(content);
-  const byteStable = serializeResource(reparsed) === content;
-  const result = validateResource(
+  const content = fhirPeer().serializeResource(resource);
+  const { resource: reparsed } = fhirPeer().parseResource(content);
+  const byteStable = fhirPeer().serializeResource(reparsed) === content;
+  const result = fhirPeer().validateResource(
     reparsed,
     options.profiles !== undefined
       ? { mode: "strict", profiles: options.profiles }

@@ -12,7 +12,8 @@
  * @module
  */
 
-import { parseCcda, serializeCcda, type CcdaDocument } from "@cosyte/ccda";
+import type { CcdaDocument } from "@cosyte/ccda";
+import { ccdaPeer } from "../peers.js";
 
 /** The verdict of one round-trip through `@cosyte/ccda`. */
 export interface RoundTripResult {
@@ -40,10 +41,10 @@ export interface RoundTripResult {
  * ```
  */
 export function roundTrip(doc: CcdaDocument): RoundTripResult {
-  const content = serializeCcda(doc);
-  const reparsed = parseCcda(content);
+  const content = ccdaPeer().serializeCcda(doc);
+  const reparsed = ccdaPeer().parseCcda(content);
   const warnings = reparsed.warnings.map((w) => String(w.code));
-  const byteStable = serializeCcda(reparsed) === content;
+  const byteStable = ccdaPeer().serializeCcda(reparsed) === content;
   return {
     content,
     warnings,

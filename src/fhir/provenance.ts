@@ -18,13 +18,13 @@
  * @module
  */
 
-import { complex, list } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng } from "../rng/rng.js";
 import { safe } from "../safe/index.js";
 import { coding, meta, narrative, prop, reference, str, toFhirDate, type Prop } from "./builder.js";
 import { SYSTEM, US_CORE_PROFILE } from "./us-core.js";
+import { fhirPeer } from "../peers.js";
 
 /** Options for {@link generateProvenance}. */
 export interface GenerateProvenanceOptions {
@@ -60,19 +60,19 @@ export function generateProvenance(options: GenerateProvenanceOptions = {}): Fhi
   ];
   if (usCore) props.push(prop("meta", meta([US_CORE_PROFILE.PROVENANCE])));
   props.push(prop("text", narrative("Synthetic provenance for a generated fixture.")));
-  props.push(prop("target", list([reference(target)])));
+  props.push(prop("target", fhirPeer().list([reference(target)])));
   props.push(prop("recorded", str(`${recorded}T10:00:00Z`)));
   props.push(
     prop(
       "agent",
-      list([
-        complex([
+      fhirPeer().list([
+        fhirPeer().complex([
           prop(
             "type",
-            complex([
+            fhirPeer().complex([
               prop(
                 "coding",
-                list([
+                fhirPeer().list([
                   coding({
                     system: SYSTEM.PROVENANCE_PARTICIPANT_TYPE,
                     code: "author",
@@ -93,5 +93,5 @@ export function generateProvenance(options: GenerateProvenanceOptions = {}): Fhi
       ]),
     ),
   );
-  return complex(props);
+  return fhirPeer().complex(props);
 }

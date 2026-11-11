@@ -12,7 +12,6 @@
  * @module
  */
 
-import { CVX, LOINC, NCI_ROUTE, RXNORM, SNOMED_CT } from "@cosyte/ccda";
 import type { BuildCode, BuildQuantity } from "@cosyte/ccda";
 
 import type { Rng } from "../rng/rng.js";
@@ -30,6 +29,24 @@ import {
   type CodeConcept,
   type QuantConcept,
 } from "../fhir/example-codes.js";
+
+// The code-system OIDs, written out so these tables are built without loading `@cosyte/ccda`, which
+// is loaded on the first document instead. A test holds each to the constant `@cosyte/ccda` exports.
+/** LOINC. */
+export const LOINC_OID = "2.16.840.1.113883.6.1";
+/** SNOMED CT. */
+export const SNOMED_CT_OID = "2.16.840.1.113883.6.96";
+/** RxNorm. */
+export const RXNORM_OID = "2.16.840.1.113883.6.88";
+/** CVX. */
+export const CVX_OID = "2.16.840.1.113883.12.292";
+/** NCI Thesaurus, the route of administration value set. */
+export const NCI_ROUTE_OID = "2.16.840.1.113883.3.26.1.1";
+const LOINC = LOINC_OID;
+const SNOMED_CT = SNOMED_CT_OID;
+const RXNORM = RXNORM_OID;
+const CVX = CVX_OID;
+const NCI_ROUTE = NCI_ROUTE_OID;
 
 /** Map a FHIR code-system `system` URI to the C-CDA OID `@cosyte/ccda` expects. */
 const URI_TO_OID: Readonly<Record<string, string>> = Object.freeze({

@@ -10,12 +10,11 @@
  * @module
  */
 
-import {
-  build835,
-  type Build835Spec,
-  type Build835ClaimSpec,
-  type Build835ServiceLineSpec,
-  type X12Interchange,
+import type {
+  Build835Spec,
+  Build835ClaimSpec,
+  Build835ServiceLineSpec,
+  X12Interchange,
 } from "@cosyte/x12";
 
 import { createRng } from "../rng/rng.js";
@@ -30,6 +29,7 @@ import {
   x12EnvelopeTiming,
 } from "./identity.js";
 import { PROFESSIONAL_PROCEDURES, PROCEDURE_MODIFIERS } from "./example-codes.js";
+import { x12Peer } from "../peers.js";
 
 /** Options for {@link generate835}. */
 export interface Generate835Options {
@@ -157,5 +157,5 @@ export function generate835(options: Generate835Options): X12Interchange {
     claims: [claim],
   };
 
-  return build835(spec);
+  return x12Peer().build835(spec);
 }

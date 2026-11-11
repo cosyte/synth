@@ -9,7 +9,7 @@
  * @module
  */
 
-import { buildMessage, type Hl7Message, type RawField } from "@cosyte/hl7";
+import type { Hl7Message, RawField } from "@cosyte/hl7";
 
 import { type Rng } from "../rng/rng.js";
 import {
@@ -20,6 +20,7 @@ import {
 } from "../safe/index.js";
 
 import { componentsField } from "./field.js";
+import { hl7Peer } from "../peers.js";
 
 /**
  * A seeded HL7 `YYYYMMDDHHMMSS` timestamp (message/event time; recent-year range). Strict HL7 DTM, so
@@ -68,7 +69,7 @@ export interface MessageScaffold {
 export function mshScaffold(rng: Rng, type: string): MessageScaffold {
   const timestamp = seededTimestamp(rng);
   const controlId = `SYNTH${rng.digits(10)}`;
-  const message = buildMessage({
+  const message = hl7Peer().buildMessage({
     type,
     sendingApp: "COSYTE-SYNTH",
     sendingFacility: "SYNTH-FAC",

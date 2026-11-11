@@ -8,7 +8,6 @@
  * @module
  */
 
-import { complex } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng } from "../rng/rng.js";
@@ -25,6 +24,7 @@ import {
 } from "./builder.js";
 import { EXAMPLE_PROCEDURES } from "./example-codes.js";
 import { US_CORE_PROFILE } from "./us-core.js";
+import { fhirPeer } from "../peers.js";
 
 /** Options for {@link generateProcedure}. */
 export interface GenerateProcedureOptions {
@@ -63,5 +63,5 @@ export function generateProcedure(options: GenerateProcedureOptions = {}): FhirC
   props.push(prop("code", codeableConcept(code)));
   props.push(prop("subject", reference(subject)));
   props.push(prop("performedDateTime", str(`${performed}T10:00:00Z`)));
-  return complex(props);
+  return fhirPeer().complex(props);
 }

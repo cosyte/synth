@@ -23,7 +23,7 @@
  * @module
  */
 
-import { parseCcda, serializeCcda, ccdaProfiles, type CcdaProfile } from "@cosyte/ccda";
+import type { CcdaProfile } from "@cosyte/ccda";
 
 import { createRng } from "../rng/rng.js";
 import { makeCorpus, type Corpus } from "../corpus.js";
@@ -41,6 +41,7 @@ import {
 } from "../quirk.js";
 
 import { generateCcda, type CcdaDocumentType } from "./ccd.js";
+import { ccdaPeer } from "../peers.js";
 
 /** Every C-CDA quirk this package ships. */
 export type CcdaQuirkName =
@@ -83,8 +84,8 @@ export const CCDA_QUIRKS: Readonly<Record<CcdaQuirkName, QuirkDescriptor>> = Obj
 /** The tolerating C-CDA profile object for a quirk. */
 function toleratingProfile(quirk: CcdaQuirkName): CcdaProfile {
   return quirk === "template-extension-absent"
-    ? ccdaProfiles.legacyR11
-    : ccdaProfiles.smartScorecard;
+    ? ccdaPeer().ccdaProfiles.legacyR11
+    : ccdaPeer().ccdaProfiles.smartScorecard;
 }
 
 /**
@@ -193,14 +194,16 @@ export function generateCcdaQuirk(options: GenerateCcdaQuirkOptions): QuirkArtif
   const seed = options.seed ?? 0;
   const documentType = options.documentType ?? "ccd";
   const descriptor = resolveQuirk(CCDA_QUIRKS, "ccda", options.quirk);
-  const clean = serializeCcda(generateCcda({ seed, documentType }));
+  const clean = ccdaPeer().serializeCcda(generateCcda({ seed, documentType }));
   const content = injectCcdaQuirk(options.quirk, clean);
   // Self-check the intended-warning contract at generation time: never emit a mislabeled fixture (a
   // transform can change bytes on the wrong template and still produce no warning, e.g. a document
   // type whose document-type root is not in DOC_TEMPLATE_ROOTS).
   assertIntendedWarnings(
     descriptor.intendedWarnings,
-    parseCcda(content).warnings.map((w) => String(w.code)),
+    ccdaPeer()
+      .parseCcda(content)
+      .warnings.map((w) => String(w.code)),
   );
   return Object.freeze({
     format: "ccda" as const,
@@ -227,11 +230,13 @@ export function generateCcdaQuirk(options: GenerateCcdaQuirkOptions): QuirkArtif
 export function ccdaQuirkRoundTrip(artifact: QuirkArtifact): QuirkRoundTripResult {
   const quirk = artifact.quirk as CcdaQuirkName;
   const descriptor = resolveQuirk(CCDA_QUIRKS, "ccda", quirk);
-  const bare = parseCcda(artifact.content).warnings.map((w) => String(w.code));
+  const bare = ccdaPeer()
+    .parseCcda(artifact.content)
+    .warnings.map((w) => String(w.code));
   const profile = toleratingProfile(quirk);
-  const profiledWarnings = parseCcda(artifact.content, { profile }).warnings.map((w) =>
-    String(w.code),
-  );
+  const profiledWarnings = ccdaPeer()
+    .parseCcda(artifact.content, { profile })
+    .warnings.map((w) => String(w.code));
   return {
     content: artifact.content,
     warnings: bare,

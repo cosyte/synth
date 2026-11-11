@@ -7,7 +7,6 @@
  * @module
  */
 
-import { complex } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng } from "../rng/rng.js";
@@ -25,6 +24,7 @@ import {
 } from "./builder.js";
 import { EXAMPLE_VACCINES } from "./example-codes.js";
 import { US_CORE_PROFILE } from "./us-core.js";
+import { fhirPeer } from "../peers.js";
 
 /** Options for {@link generateImmunization}. */
 export interface GenerateImmunizationOptions {
@@ -64,5 +64,5 @@ export function generateImmunization(options: GenerateImmunizationOptions = {}):
   props.push(prop("patient", reference(patient)));
   props.push(prop("occurrenceDateTime", str(occurrence)));
   props.push(prop("primarySource", bool(true)));
-  return complex(props);
+  return fhirPeer().complex(props);
 }

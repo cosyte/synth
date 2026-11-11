@@ -13,12 +13,7 @@
  * @module
  */
 
-import {
-  parseAstmRecords,
-  serializeAstmRecords,
-  parseFramedAstm,
-  serializeFramedAstm,
-} from "@cosyte/astm";
+import { astmPeer } from "../peers.js";
 
 /** The verdict of one round-trip through `@cosyte/astm`. */
 export interface AstmRoundTripResult {
@@ -45,9 +40,9 @@ export interface AstmRoundTripResult {
  * ```
  */
 export function astmRoundTrip(raw: string): AstmRoundTripResult {
-  const message = parseAstmRecords(raw);
+  const message = astmPeer().parseAstmRecords(raw);
   const warnings = message.warnings.map((w) => String(w.code));
-  const byteStable = serializeAstmRecords(message) === raw;
+  const byteStable = astmPeer().serializeAstmRecords(message) === raw;
   return { content: raw, warnings, byteStable, specClean: warnings.length === 0 && byteStable };
 }
 
@@ -66,12 +61,12 @@ export function astmRoundTrip(raw: string): AstmRoundTripResult {
  * ```
  */
 export function astmFramedRoundTrip(bytes: Uint8Array): AstmRoundTripResult {
-  const { message, frameWarnings } = parseFramedAstm(bytes);
+  const { message, frameWarnings } = astmPeer().parseFramedAstm(bytes);
   const warnings = [
     ...frameWarnings.map((w) => String(w.code)),
     ...message.warnings.map((w) => String(w.code)),
   ];
-  const reframed = serializeFramedAstm(message);
+  const reframed = astmPeer().serializeFramedAstm(message);
   const byteStable = bytesEqual(reframed, bytes);
   const content = latin1(bytes);
   return { content, warnings, byteStable, specClean: warnings.length === 0 && byteStable };

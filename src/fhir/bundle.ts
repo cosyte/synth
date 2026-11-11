@@ -10,7 +10,6 @@
  * @module
  */
 
-import { complex, list } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng, type Rng } from "../rng/rng.js";
@@ -29,6 +28,7 @@ import { generateDiagnosticReport } from "./diagnostic-report.js";
 import { roundTrip } from "./round-trip.js";
 import { safe } from "../safe/index.js";
 import { resolveKind, resolveMix } from "../select.js";
+import { fhirPeer } from "../peers.js";
 
 /** The Bundle shapes `@cosyte/synth` supports. */
 export type FhirBundleType = "collection" | "transaction" | "document";
@@ -58,14 +58,14 @@ function resourceTypeOf(resource: FhirComplex): string {
 /** A minimal synthetic `Organization` (author/custodian), no PHI, name is clearly synthetic. */
 function buildOrganization(rng: Rng): FhirComplex {
   const id = safe.identifier(rng, "AN");
-  return complex([
+  return fhirPeer().complex([
     prop("resourceType", str("Organization")),
     prop("id", str(`syn-org-${rng.digits(8)}`)),
     prop("text", narrative("Synthetic health organization.")),
     prop(
       "identifier",
-      list([
-        complex([
+      fhirPeer().list([
+        fhirPeer().complex([
           prop("system", str(`urn:oid:${id.assigningAuthorityOid}`)),
           prop("value", str(id.value)),
         ]),
@@ -223,11 +223,14 @@ export function generateBundle(options: GenerateBundleOptions = {}): FhirComplex
       entryProps.push(
         prop(
           "request",
-          complex([prop("method", str("POST")), prop("url", str(resourceTypeOf(member.resource)))]),
+          fhirPeer().complex([
+            prop("method", str("POST")),
+            prop("url", str(resourceTypeOf(member.resource))),
+          ]),
         ),
       );
     }
-    return complex(entryProps);
+    return fhirPeer().complex(entryProps);
   });
 
   const props: Prop[] = [
@@ -240,7 +243,7 @@ export function generateBundle(options: GenerateBundleOptions = {}): FhirComplex
     props.push(
       prop(
         "identifier",
-        complex([
+        fhirPeer().complex([
           prop("system", str(`urn:oid:${id.assigningAuthorityOid}`)),
           prop("value", str(`urn:uuid:${safe.uuid(rng)}`)),
         ]),
@@ -249,9 +252,9 @@ export function generateBundle(options: GenerateBundleOptions = {}): FhirComplex
   }
   props.push(prop("type", str(type)));
   if (type === "document") props.push(prop("timestamp", str(`${spine.date}T09:00:00.000Z`)));
-  props.push(prop("entry", list(entries)));
+  props.push(prop("entry", fhirPeer().list(entries)));
 
-  return complex(props);
+  return fhirPeer().complex(props);
 }
 
 /** A FHIR resource kind the {@link fhirCorpus} can generate. */

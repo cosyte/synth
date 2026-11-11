@@ -7,13 +7,13 @@
  * @module
  */
 
-import { complex } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng } from "../rng/rng.js";
 import { codeableConcept, meta, narrative, prop, reference, str, type Prop } from "./builder.js";
 import { EXAMPLE_MEDICATIONS } from "./example-codes.js";
 import { US_CORE_PROFILE } from "./us-core.js";
+import { fhirPeer } from "../peers.js";
 
 /** Options for {@link generateMedicationRequest}. */
 export interface GenerateMedicationRequestOptions {
@@ -65,5 +65,5 @@ export function generateMedicationRequest(
   props.push(prop("subject", reference(subject)));
   props.push(prop("authoredOn", str(`${String(y)}-${m}-${d}`)));
   props.push(prop("requester", reference(requester)));
-  return complex(props);
+  return fhirPeer().complex(props);
 }

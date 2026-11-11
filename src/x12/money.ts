@@ -7,9 +7,10 @@
  * @module
  */
 
-import { X12Decimal } from "@cosyte/x12";
+import type { X12Decimal } from "@cosyte/x12";
 
 import { SYNTH_FATAL_CODES, SynthError } from "../codes.js";
+import { x12Peer } from "../peers.js";
 
 /**
  * A non-null `X12Decimal` from a decimal string. Throws on an unparseable string: the generators only
@@ -26,7 +27,7 @@ import { SYNTH_FATAL_CODES, SynthError } from "../codes.js";
  * ```
  */
 export function dec(value: string): X12Decimal {
-  const d = X12Decimal.fromString(value);
+  const d = x12Peer().X12Decimal.fromString(value);
   if (d === undefined) throw new SynthError(SYNTH_FATAL_CODES.SYNTH_INVALID_DECIMAL);
   return d;
 }

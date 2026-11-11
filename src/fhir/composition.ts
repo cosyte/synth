@@ -8,12 +8,12 @@
  * @module
  */
 
-import { complex, list } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import type { Rng } from "../rng/rng.js";
 import { codeableConcept, narrative, prop, reference, str, type Prop } from "./builder.js";
 import { SYSTEM } from "./us-core.js";
+import { fhirPeer } from "../peers.js";
 
 /** A document section: a LOINC section code, a human title, and the entry references it summarizes. */
 export interface CompositionSection {
@@ -39,10 +39,10 @@ export interface BuildCompositionInput {
 
 /** One `Composition.section`: title, LOINC code, and its `entry` references (satisfies `cmp-1`). */
 function section(sec: CompositionSection): FhirComplex {
-  return complex([
+  return fhirPeer().complex([
     prop("title", str(sec.title)),
     prop("code", codeableConcept({ system: SYSTEM.LOINC, code: sec.code, display: sec.title })),
-    prop("entry", list(sec.entries.map((e) => reference(e)))),
+    prop("entry", fhirPeer().list(sec.entries.map((e) => reference(e)))),
   ]);
 }
 
@@ -75,10 +75,10 @@ export function buildComposition(rng: Rng, input: BuildCompositionInput): FhirCo
     ),
     prop("subject", reference(input.subject)),
     prop("date", str(`${input.date}T09:00:00Z`)),
-    prop("author", list([reference(input.organization)])),
+    prop("author", fhirPeer().list([reference(input.organization)])),
     prop("title", str("Synthetic Continuity of Care Document")),
     prop("custodian", reference(input.organization)),
-    prop("section", list(input.sections.map((s) => section(s)))),
+    prop("section", fhirPeer().list(input.sections.map((s) => section(s)))),
   ];
-  return complex(props);
+  return fhirPeer().complex(props);
 }

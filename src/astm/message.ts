@@ -18,16 +18,12 @@
  * @module
  */
 
-import {
-  buildAstmMessage,
-  composeAstmFrames,
-  type AstmRecordInput,
-  type MessageInput,
-} from "@cosyte/astm";
+import type { AstmRecordInput, MessageInput } from "@cosyte/astm";
 
 import { createRng, type Rng } from "../rng/rng.js";
 import { astmPatient, astmOrder, astmHeaderIdentity } from "./identity.js";
 import { EXAMPLE_ASTM_TESTS, ASTM_ABNORMAL_FLAGS, ASTM_COMMENT_TEXT } from "./example-codes.js";
+import { astmPeer } from "../peers.js";
 
 /** Options for the ASTM message generators. */
 export interface GenerateAstmOptions {
@@ -117,7 +113,7 @@ function buildResultInput(options: GenerateAstmOptions): MessageInput {
  * ```
  */
 export function generateAstmResult(options: GenerateAstmOptions): string {
-  return buildAstmMessage(buildResultInput(options));
+  return astmPeer().buildAstmMessage(buildResultInput(options));
 }
 
 /**
@@ -162,5 +158,5 @@ export function generateAstmResultFramed(options: GenerateAstmOptions): Uint8Arr
     .split("\r")
     .filter((line) => line.length > 0)
     .map((line) => `${line}\r`);
-  return composeAstmFrames(recordLines);
+  return astmPeer().composeAstmFrames(recordLines);
 }

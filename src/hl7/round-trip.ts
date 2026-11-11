@@ -8,7 +8,8 @@
  * @module
  */
 
-import { parseHL7, type Hl7Message } from "@cosyte/hl7";
+import type { Hl7Message } from "@cosyte/hl7";
+import { hl7Peer } from "../peers.js";
 
 /** The verdict of one round-trip through `@cosyte/hl7`. */
 export interface RoundTripResult {
@@ -37,7 +38,7 @@ export interface RoundTripResult {
  */
 export function roundTrip(message: Hl7Message): RoundTripResult {
   const content = message.toString();
-  const reparsed = parseHL7(content);
+  const reparsed = hl7Peer().parseHL7(content);
   const warnings = reparsed.warnings.map((w) => String(w.code));
   const byteStable = reparsed.toString() === content;
   return {

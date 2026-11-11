@@ -20,7 +20,7 @@
  * @module
  */
 
-import { parseHL7, profiles as hl7Profiles, type Hl7Message, type Profile } from "@cosyte/hl7";
+import type { Hl7Message, Profile } from "@cosyte/hl7";
 
 import { createRng } from "../rng/rng.js";
 import { makeCorpus, type Corpus } from "../corpus.js";
@@ -42,6 +42,7 @@ import { generateOrm } from "./orm.js";
 import { generateSiu } from "./siu.js";
 import { generateVxu } from "./vxu.js";
 import { resolveKind } from "../select.js";
+import { hl7Peer } from "../peers.js";
 
 /** Every HL7 v2 quirk this package ships. */
 export type Hl7QuirkName = "unknown-zsegment" | "unknown-escape";
@@ -78,7 +79,7 @@ export const HL7_QUIRKS: Readonly<Record<Hl7QuirkName, QuirkDescriptor>> = Objec
 
 /** The tolerating HL7 profile object for a quirk (only the `unknown-zsegment` quirk has one). */
 function toleratingProfile(quirk: Hl7QuirkName): Profile | undefined {
-  return quirk === "unknown-zsegment" ? hl7Profiles.visage : undefined;
+  return quirk === "unknown-zsegment" ? hl7Peer().profiles.visage : undefined;
 }
 
 /** Split a serialized HL7 message into non-empty segment lines (tolerating any newline convention). */
@@ -162,7 +163,9 @@ export function generateHl7Quirk(options: GenerateHl7QuirkOptions): QuirkArtifac
   // Self-check the intended-warning contract at generation time, never emit a mislabeled fixture.
   assertIntendedWarnings(
     descriptor.intendedWarnings,
-    parseHL7(content).warnings.map((w) => String(w.code)),
+    hl7Peer()
+      .parseHL7(content)
+      .warnings.map((w) => String(w.code)),
   );
   return Object.freeze({
     format: "hl7v2" as const,
@@ -190,14 +193,18 @@ export function generateHl7Quirk(options: GenerateHl7QuirkOptions): QuirkArtifac
 export function hl7QuirkRoundTrip(artifact: QuirkArtifact): QuirkRoundTripResult {
   const quirk = artifact.quirk as Hl7QuirkName;
   const descriptor = resolveQuirk(HL7_QUIRKS, "hl7v2", quirk);
-  const bare = parseHL7(artifact.content).warnings.map((w) => String(w.code));
+  const bare = hl7Peer()
+    .parseHL7(artifact.content)
+    .warnings.map((w) => String(w.code));
   const profile = toleratingProfile(quirk);
   const withProfile =
     profile !== undefined && descriptor.toleratingProfile !== undefined
       ? {
           profileName: descriptor.toleratingProfile,
           disposition: descriptor.disposition,
-          warnings: parseHL7(artifact.content, profile).warnings.map((w) => String(w.code)),
+          warnings: hl7Peer()
+            .parseHL7(artifact.content, profile)
+            .warnings.map((w) => String(w.code)),
           tolerated: false,
         }
       : undefined;

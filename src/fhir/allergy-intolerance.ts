@@ -8,13 +8,13 @@
  * @module
  */
 
-import { complex, list } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng } from "../rng/rng.js";
 import { codeableConcept, meta, narrative, prop, reference, str, type Prop } from "./builder.js";
 import { EXAMPLE_ALLERGENS, EXAMPLE_ALLERGY_MANIFESTATIONS } from "./example-codes.js";
 import { SYSTEM, US_CORE_PROFILE } from "./us-core.js";
+import { fhirPeer } from "../peers.js";
 
 /** Options for {@link generateAllergyIntolerance}. */
 export interface GenerateAllergyIntoleranceOptions {
@@ -73,8 +73,12 @@ export function generateAllergyIntolerance(
   props.push(
     prop(
       "reaction",
-      list([complex([prop("manifestation", list([codeableConcept(manifestation)]))])]),
+      fhirPeer().list([
+        fhirPeer().complex([
+          prop("manifestation", fhirPeer().list([codeableConcept(manifestation)])),
+        ]),
+      ]),
     ),
   );
-  return complex(props);
+  return fhirPeer().complex(props);
 }

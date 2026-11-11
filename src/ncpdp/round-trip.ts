@@ -11,8 +11,7 @@
  * @module
  */
 
-import { parseScript, serializeScript } from "@cosyte/ncpdp/script";
-import { parseTelecom, serializeTelecom } from "@cosyte/ncpdp/telecom";
+import { ncpdpScriptPeer, ncpdpTelecomPeer } from "../peers.js";
 
 /** The verdict of one round-trip through `@cosyte/ncpdp`. */
 export interface RoundTripResult {
@@ -39,9 +38,9 @@ export interface RoundTripResult {
  * ```
  */
 export function scriptRoundTrip(xml: string): RoundTripResult {
-  const message = parseScript(xml);
+  const message = ncpdpScriptPeer().parseScript(xml);
   const warnings = message.warnings.map((w) => String(w.code));
-  const byteStable = serializeScript(message) === xml;
+  const byteStable = ncpdpScriptPeer().serializeScript(message) === xml;
   return { content: xml, warnings, byteStable, specClean: warnings.length === 0 && byteStable };
 }
 
@@ -58,8 +57,8 @@ export function scriptRoundTrip(xml: string): RoundTripResult {
  * ```
  */
 export function telecomRoundTrip(wire: string): RoundTripResult {
-  const transaction = parseTelecom(wire);
+  const transaction = ncpdpTelecomPeer().parseTelecom(wire);
   const warnings = transaction.warnings.map((w) => String(w.code));
-  const byteStable = serializeTelecom(transaction) === wire;
+  const byteStable = ncpdpTelecomPeer().serializeTelecom(transaction) === wire;
   return { content: wire, warnings, byteStable, specClean: warnings.length === 0 && byteStable };
 }

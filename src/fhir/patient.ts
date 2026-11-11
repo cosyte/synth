@@ -8,7 +8,6 @@
  * @module
  */
 
-import { complex, list } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng } from "../rng/rng.js";
@@ -31,6 +30,7 @@ import {
   US_CORE_RACE_EXTENSION,
 } from "./us-core.js";
 import { resolveKind } from "../select.js";
+import { fhirPeer } from "../peers.js";
 
 /** Every value {@link GeneratePatientOptions.profile} admits. Erased at run time, so it is resolved. */
 const PATIENT_PROFILES: readonly ("base" | "us-core")[] = Object.freeze(["base", "us-core"]);
@@ -52,13 +52,16 @@ function ombExtension(
   url: string,
   category: { system: string; code: string; display: string },
 ): FhirComplex {
-  return complex([
+  return fhirPeer().complex([
     prop("url", str(url)),
     prop(
       "extension",
-      list([
-        complex([prop("url", str("ombCategory")), prop("valueCoding", coding(category))]),
-        complex([prop("url", str("text")), prop("valueString", str(category.display))]),
+      fhirPeer().list([
+        fhirPeer().complex([
+          prop("url", str("ombCategory")),
+          prop("valueCoding", coding(category)),
+        ]),
+        fhirPeer().complex([prop("url", str("text")), prop("valueString", str(category.display))]),
       ]),
     ),
   ]);
@@ -105,25 +108,28 @@ export function generatePatient(options: GeneratePatientOptions = {}): FhirCompl
     props.push(
       prop(
         "extension",
-        list([
+        fhirPeer().list([
           ombExtension(US_CORE_RACE_EXTENSION, race),
           ombExtension(US_CORE_ETHNICITY_EXTENSION, ethnicity),
-          complex([prop("url", str(US_CORE_BIRTHSEX_EXTENSION)), prop("valueCode", str(birthsex))]),
+          fhirPeer().complex([
+            prop("url", str(US_CORE_BIRTHSEX_EXTENSION)),
+            prop("valueCode", str(birthsex)),
+          ]),
         ]),
       ),
     );
   }
 
-  props.push(prop("identifier", list([mrnIdentifier(id.mrn)])));
+  props.push(prop("identifier", fhirPeer().list([mrnIdentifier(id.mrn)])));
   props.push(prop("active", bool(true)));
   props.push(
     prop(
       "name",
-      list([
-        complex([
+      fhirPeer().list([
+        fhirPeer().complex([
           prop("use", str("official")),
           prop("family", str(id.person.family)),
-          prop("given", list([str(id.person.given)])),
+          prop("given", fhirPeer().list([str(id.person.given)])),
         ]),
       ]),
     ),
@@ -131,13 +137,13 @@ export function generatePatient(options: GeneratePatientOptions = {}): FhirCompl
   props.push(
     prop(
       "telecom",
-      list([
-        complex([
+      fhirPeer().list([
+        fhirPeer().complex([
           prop("system", str("phone")),
           prop("value", str(id.phone)),
           prop("use", str("home")),
         ]),
-        complex([prop("system", str("email")), prop("value", str(id.email))]),
+        fhirPeer().complex([prop("system", str("email")), prop("value", str(id.email))]),
       ]),
     ),
   );
@@ -146,10 +152,10 @@ export function generatePatient(options: GeneratePatientOptions = {}): FhirCompl
   props.push(
     prop(
       "address",
-      list([
-        complex([
+      fhirPeer().list([
+        fhirPeer().complex([
           prop("use", str("home")),
-          prop("line", list([str(id.address.street)])),
+          prop("line", fhirPeer().list([str(id.address.street)])),
           prop("city", str(id.address.city)),
           prop("state", str(id.address.state)),
           prop("postalCode", str(id.address.zip)),
@@ -157,5 +163,5 @@ export function generatePatient(options: GeneratePatientOptions = {}): FhirCompl
       ]),
     ),
   );
-  return complex(props);
+  return fhirPeer().complex(props);
 }

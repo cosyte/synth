@@ -10,7 +10,6 @@
  * @module
  */
 
-import { complex, list } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng } from "../rng/rng.js";
@@ -27,6 +26,7 @@ import {
 } from "./builder.js";
 import { EXAMPLE_DIAGNOSTIC_REPORTS } from "./example-codes.js";
 import { SYSTEM, US_CORE_PROFILE } from "./us-core.js";
+import { fhirPeer } from "../peers.js";
 
 /** Options for {@link generateDiagnosticReport}. */
 export interface GenerateDiagnosticReportOptions {
@@ -70,7 +70,7 @@ export function generateDiagnosticReport(
   props.push(
     prop(
       "category",
-      list([
+      fhirPeer().list([
         codeableConcept({
           system: SYSTEM.DIAGNOSTIC_SERVICE_SECTION,
           code: "LAB",
@@ -84,7 +84,7 @@ export function generateDiagnosticReport(
   props.push(prop("effectiveDateTime", str(`${day}T08:30:00Z`)));
   props.push(prop("issued", str(`${day}T09:00:00.000Z`)));
   if (results.length > 0) {
-    props.push(prop("result", list(results.map((r) => reference(r)))));
+    props.push(prop("result", fhirPeer().list(results.map((r) => reference(r)))));
   }
-  return complex(props);
+  return fhirPeer().complex(props);
 }
