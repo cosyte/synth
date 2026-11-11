@@ -1,0 +1,36 @@
+name: Nightly properties
+
+# The property tests at depth: every property runs through `test/support/property.ts`, 100 cases on
+# a pull request (or the larger count a sweep names) and 10,000 here (COSYTE_PROPERTY_RUNS). Each
+# property prints its name, its depth and its seed, so the log records the seed of every property,
+# and a failure prints the seed and path that replay it. The shared job keeps each printed seed in
+# its summary and in the `property-run` artifact: set COSYTE_PROPERTY_SEED and COSYTE_PROPERTY_PATH
+# to them and run the one test file to get the same case, already shrunk. The shared job is
+# cosyte/.github's nightly-properties.yml.
+#
+# The seed-sweep fuzz target is not here: it keeps its own time-budgeted run, nightly-fuzz.yml.
+
+on:
+  schedule:
+    # 04:37 UTC. An odd minute: GitHub delays scheduled runs at the start of every hour.
+    - cron: "37 4 * * *"
+  workflow_dispatch:
+  push:
+    branches: [test/testing-standard]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  nightly:
+    uses: cosyte/.github/.github/workflows/nightly-properties.yml@398cd4ded647dddd9f2e220ceb042840f59e1426 # workflows-2026-11-10-398cd4ded647
+    with:
+      # The files that hold properties only: nothing else reads the depth, so the rest of the suite
+      # would add time and no cases. `pnpm test:property` lifts the 10 s default test timeout, and a
+      # sweep with a ceiling of its own scales it with the depth, so the job's own bound decides.
+      test-cmd: "pnpm test:property"
+      property-runs: "10000"

@@ -48,6 +48,7 @@ import {
   DEID_LOOP_SKIPPED,
   type DeidLoopResult,
 } from "../../src/deid/index.js";
+import { checkProperty } from "../support/property.js";
 
 const SEEDS = [0, 1, 42, 999, 2024, 123456] as const;
 
@@ -112,7 +113,7 @@ describe("the deid pairing loop: removal + over-scrub, every covered format", ()
 
 describe("the deid pairing loop: seed-determinism", () => {
   it("the same seed yields the byte-identical spec-clean artifact, de-identified output, and sentinels", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.integer({ min: 0, max: 2 ** 31 - 1 }), (seed) => {
         const a = hl7DeidLoop({ seed, kind: "ORU^R01" });
         const b = hl7DeidLoop({ seed, kind: "ORU^R01" });
@@ -120,7 +121,6 @@ describe("the deid pairing loop: seed-determinism", () => {
         expect(b.deidentified).toBe(a.deidentified);
         expect(b.planted.map((s) => s.token)).toStrictEqual(a.planted.map((s) => s.token));
       }),
-      { numRuns: 100 },
     );
   });
 

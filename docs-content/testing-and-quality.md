@@ -31,8 +31,8 @@ the two.
 | External validator | a FHIR resource the HL7 FHIR validator rejects against US Core 6.1.0, on a seeded corpus, without a terminology server | terminology checks; anything in the other five formats, for which no public validator that runs offline from a file was found |
 | Quirk self-checks | a quirk fixture that does not raise exactly its intended warning: every quirk generator parses its own output before it returns | a parser version that changes what it reports, until the fixture is regenerated |
 | Diagnostic probes | a value that reaches an error message, a stack, or a result field: a marker is planted in each selector and option on the list of probes, and every diagnostic is searched for it | a position nobody added to the list |
-| Coverage gate | code no test runs: lines, branches, functions, and statements, held at a floor overall and for each core folder | a test that runs code without checking what it returns |
-| Mutation testing | a test that runs code but would not notice it changing | not yet run on this package; the numbers below say "not measured" until it is |
+| Coverage gate | code no test runs: lines, branches, functions, and statements, held at 100 overall and for each generator folder, and on a pull request every changed line must have run | a test that runs code without checking what it returns |
+| Mutation testing | a test that runs code but would not notice it changing: small changes are made to the source one at a time, and a test must fail for each | a change that does not alter behavior; a mutant only a test outside the mutation suite (the doc samples, the tooling tests) would notice |
 | Doc samples | a sample on these pages that no longer matches the code: every TypeScript sample is compiled against the package's types and run against the built package, and its `// =>` values are checked | prose that is wrong beside a sample that is right |
 | Package checks | a broken published package: every subpath is imported as ESM and required as CommonJS from the build and must give the same output, the type declarations are checked for each module system, and the packed tarball is installed in a clean project | a runtime other than Node.js |
 | PHI scan | a realistic patient identifier in a committed file: format-aware checks of the fields that carry identity in all six formats, against a declared allow list of synthetic values | anything in Markdown, which it does not read; it finds a value after it is written, it does not prevent one |
@@ -41,8 +41,16 @@ the two.
 
 - **Unit tests, round trips, committed fixtures, properties, quirk self-checks, diagnostic probes,
   and doc samples** run in one Vitest suite on every pull request and on `main`, on Node.js 22, 24,
-  and 26. Each property runs a fixed number of cases.
+  and 26, on Linux, macOS, and Windows, and under Bun and Deno on Linux.
+- **Properties** run 100 cases each on a pull request (a few synthetic-safety and determinism
+  sweeps name more), and 10,000 each every night. Each property prints its seed, and a failure
+  prints the seed and path that replay it:
+  `COSYTE_PROPERTY_SEED=<seed> COSYTE_PROPERTY_PATH=<path>` and the one test file.
 - **The coverage gate** runs with the suite, and a floor that is not met fails the pull request.
+  `quality-floor.json` records the coverage and mutation floors, and a floor only rises.
+- **Mutation testing** runs on a pull request over the source files it changes, and every mutant in
+  a changed line must be killed. The whole package is mutated twice a week, and the score is held to
+  its floor.
 - **Fuzzing** runs at its committed size on every pull request, as part of the suite, and every
   night for a time budget, from a seed that changes each night. A failure prints the seed that
   replays it.
@@ -62,8 +70,16 @@ pnpm install --frozen-lockfile
 pnpm test                    # unit tests, round trips, properties, fuzzing at base size, doc samples
 pnpm test:coverage           # the same suite with the coverage gate
 pnpm phi-scan                # the PHI scan over the repository
+pnpm quality:check           # coverage against quality-floor.json, after test:coverage
 pnpm run determinism:digest  # this engine's digests of the declared corpus
 pnpm build && pnpm smoke     # ESM and CommonJS import of every subpath
+
+# Every property at the nightly depth:
+COSYTE_PROPERTY_RUNS=10000 pnpm test:property
+
+# Mutation testing: the files a change touched, or the whole package (hours on one machine):
+pnpm mutate changed --base origin/main
+pnpm mutate:full && pnpm quality:mutation
 
 # A longer fuzzing run from a seed you choose:
 SYNTH_FUZZ_SEED=1 SYNTH_FUZZ_SECONDS=60 pnpm fuzz

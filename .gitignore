@@ -47,6 +47,10 @@ yarn-error.log*
 # reports are measured against is committed, deliberately, and lives in scripts/determinism/.
 .determinism/
 
+# Mutation testing (StrykerJS): the reports and the sandbox it runs in
+reports/
+.stryker-tmp/
+
 # Local
 .cache/
 .turbo/

@@ -42,19 +42,20 @@ import { astmCorpus } from "../../src/astm/index.js";
 import { hl7QuirkCorpus } from "../../src/hl7/index.js";
 import { ccdaQuirkCorpus } from "../../src/ccda/index.js";
 import { astmQuirkCorpus } from "../../src/astm/index.js";
+import { checkProperty, propertyTimeout } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 const count = (): fc.Arbitrary<number> => fc.integer({ min: 1, max: 4 });
 
 /**
  * This is the cross-format **union** suite: its value is uniform coverage (every format exercised
- * through every mandatory property), not a high case count (each format's own
- * `test/<fmt>/*.property.test.ts` carries the deep sweeps). `synth` generation through a full parser
- * builder + round-trip is heavy per case: C-CDA XML and FHIR validation especially, so the heavy
- * formats run fewer cases and every property test carries an explicit long timeout.
+ * through every mandatory property), and each format's own `test/<fmt>/*.property.test.ts` carries
+ * the deeper sweeps. Every property runs at the shared depth (`test/support/property.ts`). `synth`
+ * generation through a full parser builder + round-trip is heavy per case, C-CDA XML and FHIR
+ * validation especially, so every property test carries an explicit long timeout, scaled with the
+ * depth a run asks for.
  */
-const RUNS_FOR = (format: string): number => (format === "ccda" || format === "fhir" ? 25 : 100);
-const TEST_TIMEOUT_MS = 120_000;
+const TEST_TIMEOUT_MS = propertyTimeout(120_000);
 
 /** A uniform corpus factory: `{ seed, count }` in, a {@link Corpus} out. Every format ships one. */
 type CorpusFactory = (opts: { seed: number; count?: number }) => Corpus;
@@ -133,7 +134,7 @@ describe("consolidated property suite: every format satisfies the three mandator
       it(
         "round-trip: every artifact is spec-clean (zero parser warnings) and the corpus is non-empty",
         () => {
-          fc.assert(
+          checkProperty(
             fc.property(seed(), count(), (s, n) => {
               const corpus = makeCorpusFor({ seed: s, count: n });
               expect(corpus.artifacts.length, "non-vacuous corpus").toBeGreaterThan(0);
@@ -145,7 +146,6 @@ describe("consolidated property suite: every format satisfies the three mandator
                 );
               }
             }),
-            { numRuns: RUNS_FOR(format) },
           );
         },
         TEST_TIMEOUT_MS,
@@ -154,13 +154,12 @@ describe("consolidated property suite: every format satisfies the three mandator
       it(
         "seed-determinism: the same seed yields byte-identical artifacts, twice",
         () => {
-          fc.assert(
+          checkProperty(
             fc.property(seed(), count(), (s, n) => {
               const a = makeCorpusFor({ seed: s, count: n }).artifacts.map((x) => x.content);
               const b = makeCorpusFor({ seed: s, count: n }).artifacts.map((x) => x.content);
               expect(a).toEqual(b);
             }),
-            { numRuns: RUNS_FOR(format) },
           );
         },
         TEST_TIMEOUT_MS,
@@ -169,13 +168,12 @@ describe("consolidated property suite: every format satisfies the three mandator
       it(
         "synthetic-safety: no artifact leaks a plausibly-real value (must be ZERO)",
         () => {
-          fc.assert(
+          checkProperty(
             fc.property(seed(), count(), (s, n) => {
               for (const artifact of makeCorpusFor({ seed: s, count: n }).artifacts) {
                 expect(realDataHits(artifact.content), `${format}/${artifact.kind}`).toEqual([]);
               }
             }),
-            { numRuns: RUNS_FOR(format) },
           );
         },
         TEST_TIMEOUT_MS,
@@ -195,7 +193,7 @@ describe("intended-warning property: quirk corpora are non-vacuous and stay synt
     it(
       `${format}: every quirk artifact carries a non-empty intended-warning set and leaks nothing`,
       () => {
-        fc.assert(
+        checkProperty(
           fc.property(seed(), count(), (s, n) => {
             const corpus = makeQuirkCorpus({ seed: s, count: n });
             expect(corpus.artifacts.length).toBeGreaterThan(0);
@@ -210,7 +208,6 @@ describe("intended-warning property: quirk corpora are non-vacuous and stay synt
               expect(realDataHits(artifact.content), `${format}/${artifact.kind}`).toEqual([]);
             }
           }),
-          { numRuns: RUNS_FOR(format) },
         );
       },
       TEST_TIMEOUT_MS,

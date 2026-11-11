@@ -39,6 +39,25 @@ pnpm check:readme && pnpm check:claude-card && pnpm check:catalog   # ci.yml
 A package change adds a changeset (`pnpm changeset`). A change to the bytes a seed produces is a
 breaking change.
 
+## The testing standard
+
+`quality-floor.json` holds the coverage and the mutation score CI measures, and they only rise.
+`pnpm quality:check` holds coverage to it (after `pnpm test:coverage`); with `--base origin/main`
+every changed line coverage counts must also have run, and no floor may be lowered. On a pull
+request CI's `mutation` job mutates the changed source files with `stryker.config.mjs`
+(`pnpm mutate changed --base origin/main`, then `pnpm quality:mutation --base origin/main`) and
+every mutant in the changed lines must be killed. `.github/workflows/weekly-mutation.yml` runs the
+full run (`pnpm mutate:full`) twice a week, in eight shards, and holds its score to the floor. To
+raise a floor, run `pnpm quality:raise` after a full run and open a pull request.
+
+Every property test runs through `test/support/property.ts`: 100 cases a property on a pull
+request (a sweep may name more, never fewer), and 10,000 each night
+(`.github/workflows/nightly-properties.yml`, which runs `pnpm test:property`). Each property prints
+its seed. Never call `fc.assert` directly: `test/quality-standard.test.ts` refuses it. The seed-sweep
+fuzz target keeps its own nightly run, `pnpm fuzz`. CI runs the suite on Linux and macOS, on
+Windows in the `windows` job (every step of `verify` but attw, which cannot start there yet), and
+under Bun and Deno.
+
 CI's `scaling-gate` job runs `pnpm test:perf`, the scaling gates in
 `scripts/perf/scaling-gate.perf.ts`: they fail when a corpus generator's cost grows faster than the
 number of artifacts it builds. They run apart from `pnpm test` and never under coverage.

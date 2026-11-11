@@ -25,6 +25,7 @@ import {
   SYNTHETIC_FAMILY_NAMES,
   SYNTHETIC_GIVEN_NAMES,
 } from "../../src/index.js";
+import { checkProperty, propertyTimeout } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
@@ -80,40 +81,50 @@ function structuredHits(xml: string): string[] {
 // than a FHIR/HL7 one: these sweeps are sized (and given a generous per-test timeout) so the gate stays
 // meaningful without timing out under v8 coverage instrumentation.
 describe("synthetic-safety gate, generated C-CDA output (must be ZERO)", () => {
-  it("no document leaks a real-data SSN or non-reserved email shape", () => {
-    fc.assert(
-      fc.property(seed(), (s) => {
-        for (const doc of [generateCcd({ seed: s }), generateReferralNote({ seed: s })]) {
-          expect(realDataHits(serializeCcda(doc))).toEqual([]);
-        }
-      }),
-      { numRuns: 60 },
-    );
-  }, 60_000);
+  it(
+    "no document leaks a real-data SSN or non-reserved email shape",
+    () => {
+      checkProperty(
+        fc.property(seed(), (s) => {
+          for (const doc of [generateCcd({ seed: s }), generateReferralNote({ seed: s })]) {
+            expect(realDataHits(serializeCcda(doc))).toEqual([]);
+          }
+        }),
+      );
+    },
+    propertyTimeout(60_000),
+  );
 
-  it("the sweep FAILS on an ITIN-formatted SSN in a document (true positive, not vacuous)", () => {
-    // The sweeps above only ever see values the (fixed) generator emits, so the ITIN arm is never
-    // exercised by real output. Inject a known-bad value into a real serialized document and
-    // require the sweep itself to report a hit.
-    const ITIN_SHAPED = "987-65-4320"; // area 987 (SSA never issues it) + group 65, inside 50-65
-    expect(isSyntheticSsn(ITIN_SHAPED), "the pre-existing area rule passes it").toBe(true);
-    const xml = serializeCcda(generateCcd({ seed: 5150 }));
-    expect(realDataHits(xml)).toEqual([]);
-    expect(realDataHits(`${xml}<!-- ${ITIN_SHAPED} -->`)).toEqual([`itin:${ITIN_SHAPED}`]);
-  }, 60_000);
+  it(
+    "the sweep FAILS on an ITIN-formatted SSN in a document (true positive, not vacuous)",
+    () => {
+      // The sweeps above only ever see values the (fixed) generator emits, so the ITIN arm is never
+      // exercised by real output. Inject a known-bad value into a real serialized document and
+      // require the sweep itself to report a hit.
+      const ITIN_SHAPED = "987-65-4320"; // area 987 (SSA never issues it) + group 65, inside 50-65
+      expect(isSyntheticSsn(ITIN_SHAPED), "the pre-existing area rule passes it").toBe(true);
+      const xml = serializeCcda(generateCcd({ seed: 5150 }));
+      expect(realDataHits(xml)).toEqual([]);
+      expect(realDataHits(`${xml}<!-- ${ITIN_SHAPED} -->`)).toEqual([`itin:${ITIN_SHAPED}`]);
+    },
+    propertyTimeout(60_000),
+  );
 
-  it("every C-CDA identity locus is provably synthetic", () => {
-    fc.assert(
-      fc.property(seed(), (s) => {
-        for (const doc of [generateCcd({ seed: s }), generateReferralNote({ seed: s })]) {
-          const xml = serializeCcda(doc);
-          expect(structuredHits(xml)).toEqual([]);
-          // The MRN lives under the synthetic assigning-authority OID, never a real facility namespace.
-          const patientId = /<patientRole><id root="([^"]+)"/.exec(xml);
-          expect(patientId?.[1]).toBe(SYNTH_OID);
-        }
-      }),
-      { numRuns: 60 },
-    );
-  }, 60_000);
+  it(
+    "every C-CDA identity locus is provably synthetic",
+    () => {
+      checkProperty(
+        fc.property(seed(), (s) => {
+          for (const doc of [generateCcd({ seed: s }), generateReferralNote({ seed: s })]) {
+            const xml = serializeCcda(doc);
+            expect(structuredHits(xml)).toEqual([]);
+            // The MRN lives under the synthetic assigning-authority OID, never a real facility namespace.
+            const patientId = /<patientRole><id root="([^"]+)"/.exec(xml);
+            expect(patientId?.[1]).toBe(SYNTH_OID);
+          }
+        }),
+      );
+    },
+    propertyTimeout(60_000),
+  );
 });

@@ -21,6 +21,7 @@ import {
   type Hl7QuirkKind,
 } from "../../src/hl7/index.js";
 import { SynthError, SYNTH_FATAL_CODES } from "../../src/index.js";
+import { checkProperty } from "../support/property.js";
 
 const QUIRKS = Object.keys(HL7_QUIRKS) as Hl7QuirkName[];
 const KINDS: readonly Hl7QuirkKind[] = [
@@ -47,7 +48,7 @@ describe("HL7 quirk registry", () => {
 
 describe("HL7 intended-warning contract (mandatory)", () => {
   it("every quirk, every kind, every seed → exactly the intended warning (bare parse)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         seed(),
         fc.constantFrom(...QUIRKS),
@@ -81,13 +82,12 @@ describe("HL7 intended-warning contract (mandatory)", () => {
 
 describe("HL7 quirk seed-determinism (mandatory)", () => {
   it("same seed + quirk + kind ⇒ byte-identical", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.constantFrom(...QUIRKS), (s, quirk) => {
         expect(generateHl7Quirk({ seed: s, quirk }).content).toBe(
           generateHl7Quirk({ seed: s, quirk }).content,
         );
       }),
-      { numRuns: 60 },
     );
   });
   it("a different seed generally changes the bytes", () => {
@@ -99,14 +99,13 @@ describe("HL7 quirk seed-determinism (mandatory)", () => {
 
 describe("HL7 quirk synthetic-safety (mandatory): the quirk only adds structure", () => {
   it("the quirked message is the spec-clean message plus one appended structural segment", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.constantFrom(...QUIRKS), (s, quirk) => {
         const artifact = generateHl7Quirk({ seed: s, quirk });
         // The appended segment carries no identity locus (PID is untouched, no new name/ssn/phone).
         const added = quirk === "unknown-zsegment" ? "ZDS|1|SYNTHETIC-Z-SEGMENT" : "NTE|1||";
         expect(artifact.content).toContain(added);
       }),
-      { numRuns: 40 },
     );
   });
 });

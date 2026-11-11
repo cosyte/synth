@@ -31,6 +31,7 @@ import { ccdaCorpus } from "../../src/ccda/index.js";
 import { x12Corpus } from "../../src/x12/index.js";
 import { ncpdpCorpus } from "../../src/ncpdp/index.js";
 import { astmCorpus, astmQuirkCorpus } from "../../src/astm/index.js";
+import { checkProperty, propertyTimeout } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 const count = (): fc.Arbitrary<number> => fc.integer({ min: 1, max: 4 });
@@ -129,21 +130,20 @@ const MARKERS: Readonly<Record<SynthFormat, Marker>> = {
 type CorpusFactory = (seed: number, count: number) => Corpus;
 
 /** Every corpus this package generates, spec-clean and quirk, and the format each one emits. */
-const CORPORA: ReadonlyArray<readonly [string, SynthFormat, CorpusFactory, number]> = [
-  ["hl7Corpus", "hl7v2", (s, n) => hl7Corpus({ seed: s, count: n }), 50],
-  ["hl7QuirkCorpus", "hl7v2", (s, n) => hl7QuirkCorpus({ seed: s, count: n }), 50],
-  ["fhirCorpus", "fhir", (s, n) => fhirCorpus({ seed: s, count: n, mix: FHIR_KINDS }), 10],
+const CORPORA: ReadonlyArray<readonly [string, SynthFormat, CorpusFactory]> = [
+  ["hl7Corpus", "hl7v2", (s, n) => hl7Corpus({ seed: s, count: n })],
+  ["hl7QuirkCorpus", "hl7v2", (s, n) => hl7QuirkCorpus({ seed: s, count: n })],
+  ["fhirCorpus", "fhir", (s, n) => fhirCorpus({ seed: s, count: n, mix: FHIR_KINDS })],
   [
     "fhirCorpus (every kind)",
     "fhir",
     (s) => fhirCorpus({ seed: s, count: FHIR_KINDS.length, mix: FHIR_KINDS }),
-    3,
   ],
-  ["x12Corpus", "x12", (s, n) => x12Corpus({ seed: s, count: n }), 50],
-  ["astmCorpus", "astm", (s, n) => astmCorpus({ seed: s, count: n }), 50],
-  ["astmQuirkCorpus", "astm", (s, n) => astmQuirkCorpus({ seed: s, count: n }), 50],
-  ["ccdaCorpus", "ccda", (s, n) => ccdaCorpus({ seed: s, count: n }), 5],
-  ["ncpdpCorpus", "ncpdp", (s, n) => ncpdpCorpus({ seed: s, count: n }), 20],
+  ["x12Corpus", "x12", (s, n) => x12Corpus({ seed: s, count: n })],
+  ["astmCorpus", "astm", (s, n) => astmCorpus({ seed: s, count: n })],
+  ["astmQuirkCorpus", "astm", (s, n) => astmQuirkCorpus({ seed: s, count: n })],
+  ["ccdaCorpus", "ccda", (s, n) => ccdaCorpus({ seed: s, count: n })],
+  ["ncpdpCorpus", "ncpdp", (s, n) => ncpdpCorpus({ seed: s, count: n })],
 ];
 
 const ALL_FORMATS: readonly SynthFormat[] = ["hl7v2", "fhir", "ccda", "x12", "ncpdp", "astm"];
@@ -191,13 +191,13 @@ describe("every artifact says it is test data, where its standard has a field fo
     ).toEqual(["Patient"]);
   });
 
-  for (const [name, format, make, numRuns] of CORPORA) {
+  for (const [name, format, make] of CORPORA) {
     const marker = MARKERS[format];
     if (marker.kind === "none") continue;
     it(
       `${name}: every artifact carries the test marker`,
       () => {
-        fc.assert(
+        checkProperty(
           fc.property(seed(), count(), (s, n) => {
             const corpus = make(s, n);
             expect(corpus.artifacts.length).toBeGreaterThan(0);
@@ -206,10 +206,9 @@ describe("every artifact says it is test data, where its standard has a field fo
               expect(marker.unmarked(artifact.content), `${name}/${artifact.kind}`).toEqual([]);
             }
           }),
-          { numRuns },
         );
       },
-      TEST_TIMEOUT_MS,
+      propertyTimeout(TEST_TIMEOUT_MS),
     );
   }
 });
