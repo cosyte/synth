@@ -1,6 +1,6 @@
 /**
  * The quirk generators' optional inputs and the round trip's honesty about a caller-built artifact. An
- * omitted `seed` is seed `0`, an empty quirk list means every quirk (the same as omitting it), and a
+ * omitted `seed` is seed `0`, an empty quirk list is refused (an omitted one means every quirk), and a
  * round trip of an artifact the matching profile does not cover reports `tolerated: false` with the
  * warning the profile left standing.
  */
@@ -19,8 +19,13 @@ import {
   astmQuirkRoundTrip,
   ASTM_QUIRKS,
 } from "../src/astm/index.js";
-import { generateCcdaQuirk } from "../src/ccda/index.js";
-import type { QuirkArtifact } from "../src/index.js";
+import { ccdaQuirkCorpus, generateCcdaQuirk } from "../src/ccda/index.js";
+import {
+  defineSynthProfile,
+  SYNTH_FATAL_CODES,
+  SynthError,
+  type QuirkArtifact,
+} from "../src/index.js";
 
 describe("an omitted seed is seed 0", () => {
   it("HL7 v2", () => {
@@ -50,17 +55,38 @@ describe("ASTM quirk kind", () => {
   });
 });
 
-describe("an empty quirk list selects every quirk", () => {
-  it("HL7 v2", () => {
-    const corpus = hl7QuirkCorpus({ seed: 5, quirks: [] });
-    expect(corpus.manifest.quirks).toEqual(Object.keys(HL7_QUIRKS));
-    expect(corpus).toEqual(hl7QuirkCorpus({ seed: 5 }));
-  });
+describe("an empty quirk list is refused", () => {
+  // An empty `quirks` list, or a profile that names no quirk, selects nothing. Each quirk corpus
+  // throws `SYNTH_EMPTY_POOL` before it generates anything, whatever the count, and never reads the
+  // empty list as every quirk.
+  const empty = defineSynthProfile({ name: "no-quirks", quirks: [] });
+  const counts = { omitted: {}, "0": { count: 0 }, "2": { count: 2 } } as const;
+  const cases: ReadonlyArray<readonly [string, (count: { readonly count?: number }) => unknown]> = [
+    ["HL7 v2 quirks", (c) => hl7QuirkCorpus({ seed: 5, quirks: [], ...c })],
+    ["HL7 v2 profile", (c) => hl7QuirkCorpus({ seed: 5, profile: empty, ...c })],
+    ["C-CDA quirks", (c) => ccdaQuirkCorpus({ seed: 5, quirks: [], ...c })],
+    ["C-CDA profile", (c) => ccdaQuirkCorpus({ seed: 5, profile: empty, ...c })],
+    ["ASTM quirks", (c) => astmQuirkCorpus({ seed: 5, quirks: [], ...c })],
+    ["ASTM profile", (c) => astmQuirkCorpus({ seed: 5, profile: empty, ...c })],
+  ];
+  for (const [label, make] of cases) {
+    for (const [countLabel, count] of Object.entries(counts)) {
+      it(`${label}: throws SYNTH_EMPTY_POOL with the count ${countLabel}`, () => {
+        let thrown: unknown;
+        try {
+          make(count);
+        } catch (error) {
+          thrown = error;
+        }
+        expect(thrown).toBeInstanceOf(SynthError);
+        expect((thrown as SynthError).code).toBe(SYNTH_FATAL_CODES.SYNTH_EMPTY_POOL);
+      });
+    }
+  }
 
-  it("ASTM", () => {
-    const corpus = astmQuirkCorpus({ seed: 5, quirks: [] });
-    expect(corpus.manifest.quirks).toEqual(Object.keys(ASTM_QUIRKS));
-    expect(corpus).toEqual(astmQuirkCorpus({ seed: 5 }));
+  it("an omitted quirk list still selects every quirk", () => {
+    expect(hl7QuirkCorpus({ seed: 5 }).manifest.quirks).toEqual(Object.keys(HL7_QUIRKS));
+    expect(astmQuirkCorpus({ seed: 5 }).manifest.quirks).toEqual(Object.keys(ASTM_QUIRKS));
   });
 });
 

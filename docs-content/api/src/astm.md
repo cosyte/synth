@@ -36,7 +36,7 @@ How many messages to generate. Defaults to the length of the mix.
 
 > `readonly` `optional` **mix?**: readonly [`AstmCorpusKind`](#astmcorpuskind)[]
 
-The message kinds to cycle through. Defaults to one of each.
+The message kinds to cycle through. Defaults to one of each. An empty list throws `SYNTH_EMPTY_POOL`.
 
 ##### seed
 
@@ -219,6 +219,7 @@ A [SynthProfile](../src.md#synthprofile) whose `quirks` drive the corpus (valida
 > `readonly` `optional` **quirks?**: readonly [`AstmQuirkName`](#astmquirkname)[]
 
 The quirk names to cycle through. Defaults to every ASTM quirk. Validated; unsupported ⇒ fatal.
+An empty list, or a `profile` that names no quirk, throws `SYNTH_EMPTY_POOL`.
 
 ##### seed
 

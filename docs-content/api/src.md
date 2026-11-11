@@ -1875,7 +1875,8 @@ It substitutes the default **only** when the caller supplied nothing, which is e
 of this function also treated `[]` as "nothing supplied", on the stated grounds that it matched the
 previous behaviour; it did not: `??` fires on `undefined` and never on `[]`, and it changed the
 result of six published entry points, turning an explicit empty selection into "generate one of
-everything". A convenience that fails open is not a convenience.
+everything". A convenience that fails open is not a convenience. Every corpus then refuses the empty
+mix with `SYNTH_EMPTY_POOL`, before it generates anything.
 
 #### Type Parameters
 

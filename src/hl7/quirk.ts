@@ -41,7 +41,7 @@ import { generateOru } from "./oru.js";
 import { generateOrm } from "./orm.js";
 import { generateSiu } from "./siu.js";
 import { generateVxu } from "./vxu.js";
-import { resolveKind } from "../select.js";
+import { requireSelection, resolveKind } from "../select.js";
 import { hl7Peer } from "../peers.js";
 
 /** Every HL7 v2 quirk this package ships. */
@@ -234,7 +234,10 @@ export interface Hl7QuirkCorpusOptions {
   readonly seed: number;
   /** How many quirk artifacts to generate. Defaults to the number of quirks. */
   readonly count?: number;
-  /** The quirk names to cycle through. Defaults to every HL7 quirk. Validated; unsupported ⇒ fatal. */
+  /**
+   * The quirk names to cycle through. Defaults to every HL7 quirk. Validated; unsupported ⇒ fatal.
+   * An empty list, or a `profile` that names no quirk, throws `SYNTH_EMPTY_POOL`.
+   */
   readonly quirks?: readonly Hl7QuirkName[];
   /** A {@link SynthProfile} whose `quirks` drive the corpus (validated). Takes precedence over `quirks`. */
   readonly profile?: SynthProfile;
@@ -261,10 +264,11 @@ const ALL_HL7_QUIRKS: readonly Hl7QuirkName[] = Object.freeze(
  * ```
  */
 export function hl7QuirkCorpus(options: Hl7QuirkCorpusOptions): Corpus {
-  const quirks: readonly string[] = options.profile
-    ? validateProfileQuirks(options.profile, HL7_QUIRKS, "hl7v2")
-    : (options.quirks ?? ALL_HL7_QUIRKS);
-  const names = quirks.length > 0 ? quirks : ALL_HL7_QUIRKS;
+  const names: readonly string[] = requireSelection(
+    options.profile
+      ? validateProfileQuirks(options.profile, HL7_QUIRKS, "hl7v2")
+      : (options.quirks ?? ALL_HL7_QUIRKS),
+  );
   // Resolve the WHOLE list here, not lazily per generated artifact. `count` can be below
   // `names.length`, and the tail then never reaches `generateHl7Quirk`'s own `resolveQuirk`
   // while still landing on `manifest.quirks` verbatim. A manifest that names a quirk the

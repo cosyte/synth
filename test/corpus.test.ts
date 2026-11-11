@@ -1,10 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { makeCorpus, type Artifact, type Corpus } from "../src/index.js";
+import {
+  makeCorpus,
+  SYNTH_FATAL_CODES,
+  SynthError,
+  type Artifact,
+  type Corpus,
+} from "../src/index.js";
 import { astmCorpus } from "../src/astm/index.js";
 import { ccdaCorpus } from "../src/ccda/index.js";
+import { fhirCorpus } from "../src/fhir/index.js";
+import { hl7Corpus } from "../src/hl7/index.js";
 import { ncpdpCorpus } from "../src/ncpdp/index.js";
 import { x12Corpus } from "../src/x12/index.js";
+
+/** Assert that `call` throws a `SynthError` carrying `SYNTH_EMPTY_POOL`. */
+function expectEmptyPool(call: () => unknown): void {
+  let thrown: unknown;
+  try {
+    call();
+  } catch (error) {
+    thrown = error;
+  }
+  expect(thrown).toBeInstanceOf(SynthError);
+  expect((thrown as SynthError).code).toBe(SYNTH_FATAL_CODES.SYNTH_EMPTY_POOL);
+}
 
 const artifact = (kind: string): Artifact => ({
   format: "hl7v2",
@@ -44,37 +64,25 @@ describe("makeCorpus: reproducible, self-describing, deep-frozen", () => {
   });
 });
 
-describe("a corpus asked for a count over an empty mix", () => {
-  // An empty `mix` names no kind, so each slot falls back to the format's first kind.
-  const cases: ReadonlyArray<readonly [string, () => Corpus, () => Corpus]> = [
-    [
-      "astm",
-      () => astmCorpus({ seed: 5, mix: [], count: 2 }),
-      () => astmCorpus({ seed: 5, mix: ["Result"], count: 2 }),
-    ],
-    [
-      "ccda",
-      () => ccdaCorpus({ seed: 5, mix: [], count: 2 }),
-      () => ccdaCorpus({ seed: 5, mix: ["ccd"], count: 2 }),
-    ],
-    [
-      "ncpdp",
-      () => ncpdpCorpus({ seed: 5, mix: [], count: 2 }),
-      () => ncpdpCorpus({ seed: 5, mix: ["NewRx"], count: 2 }),
-    ],
-    [
-      "x12",
-      () => x12Corpus({ seed: 5, mix: [], count: 2 }),
-      () => x12Corpus({ seed: 5, mix: ["837P"], count: 2 }),
-    ],
+describe("a corpus given an empty mix is refused", () => {
+  // An empty `mix` names no kind, so there is nothing to cycle through. Every format throws
+  // `SYNTH_EMPTY_POOL` before it generates anything, whatever the count, and never fills the corpus
+  // with a kind the caller did not ask for.
+  const counts = { omitted: {}, "0": { count: 0 }, "2": { count: 2 } } as const;
+  const cases: ReadonlyArray<readonly [string, (count: { readonly count?: number }) => Corpus]> = [
+    ["hl7", (c) => hl7Corpus({ seed: 5, mix: [], ...c })],
+    ["hl7 triggers", (c) => hl7Corpus({ seed: 5, triggers: [], ...c })],
+    ["fhir", (c) => fhirCorpus({ seed: 5, mix: [], ...c })],
+    ["ccda", (c) => ccdaCorpus({ seed: 5, mix: [], ...c })],
+    ["x12", (c) => x12Corpus({ seed: 5, mix: [], ...c })],
+    ["ncpdp", (c) => ncpdpCorpus({ seed: 5, mix: [], ...c })],
+    ["astm", (c) => astmCorpus({ seed: 5, mix: [], ...c })],
   ];
-  for (const [format, make, expected] of cases) {
-    it(`${format}: builds that many artifacts of its first kind`, () => {
-      const corpus = make();
-      expect(corpus.artifacts).toHaveLength(2);
-      expect(corpus.artifacts.map((a) => [a.kind, a.content])).toStrictEqual(
-        expected().artifacts.map((a) => [a.kind, a.content]),
-      );
-    });
+  for (const [format, make] of cases) {
+    for (const [label, count] of Object.entries(counts)) {
+      it(`${format}: throws SYNTH_EMPTY_POOL with the count ${label}`, () => {
+        expectEmptyPool(() => make(count));
+      });
+    }
   }
 });

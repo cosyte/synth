@@ -27,7 +27,7 @@ import { generateProcedure } from "./procedure.js";
 import { generateDiagnosticReport } from "./diagnostic-report.js";
 import { fhirCorpusArtifact } from "./round-trip.js";
 import { safe } from "../safe/index.js";
-import { resolveKind, resolveMix } from "../select.js";
+import { requireSelection, resolveKind, resolveMix } from "../select.js";
 import { fhirPeer } from "../peers.js";
 
 /** The Bundle shapes `@cosyte/synth` supports. */
@@ -345,7 +345,10 @@ export interface FhirCorpusOptions {
   readonly seed: number;
   /** How many resources to generate. Defaults to `1`. */
   readonly count?: number;
-  /** The resource kinds to cycle through. Defaults to the full US Core clinical spine + a Bundle. */
+  /**
+   * The resource kinds to cycle through. Defaults to the full US Core clinical spine + a Bundle. An
+   * empty list throws `SYNTH_EMPTY_POOL`.
+   */
   readonly mix?: readonly FhirResourceKind[];
   /**
    * Whether each artifact is read back through its parser and the parser's findings recorded as its
@@ -373,10 +376,10 @@ export interface FhirCorpusOptions {
  */
 export function fhirCorpus(options: FhirCorpusOptions): Corpus {
   const { seed, count = 1, verify = true } = options;
-  const kinds = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
+  const kinds = requireSelection(resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX));
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {
-    const kind = kinds[i % kinds.length] ?? "USCorePatient";
+    const kind = kinds[i % kinds.length] as FhirResourceKind;
     const rt = fhirCorpusArtifact(generateKind(kind, seedStream.nextUint32()), verify);
     // The artifact records the findings that break spec-cleanliness: validator **errors** (empty ⇒
     // spec-clean). Advisory warnings a legal resource may carry (e.g. `REFERENCE_UNRESOLVED` on a

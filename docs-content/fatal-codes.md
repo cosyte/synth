@@ -85,7 +85,11 @@ Message: "An integer range was requested with its maximum below its minimum."
 
 ### `SYNTH_EMPTY_POOL`
 
-The seeded generator's `pick` was called with an empty list.
+The seeded generator's `pick` was called with an empty list, or a corpus was given an empty list to
+cycle through: an empty `mix` in any of the six corpora, an empty `triggers` list in `hl7Corpus`,
+or an empty `quirks` list (or a `profile` that names no quirk) in `hl7QuirkCorpus`,
+`ccdaQuirkCorpus` or `astmQuirkCorpus`. The corpus throws before it generates anything, whatever
+the `count`.
 
 Message: "A value was drawn from an empty pool."
 

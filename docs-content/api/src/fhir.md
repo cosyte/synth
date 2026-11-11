@@ -126,7 +126,8 @@ How many resources to generate. Defaults to `1`.
 
 > `readonly` `optional` **mix?**: readonly [`FhirResourceKind`](#fhirresourcekind)[]
 
-The resource kinds to cycle through. Defaults to the full US Core clinical spine + a Bundle.
+The resource kinds to cycle through. Defaults to the full US Core clinical spine + a Bundle. An
+empty list throws `SYNTH_EMPTY_POOL`.
 
 ##### seed
 

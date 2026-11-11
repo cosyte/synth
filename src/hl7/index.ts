@@ -22,7 +22,7 @@ import { generateOrm } from "./orm.js";
 import { generateSiu } from "./siu.js";
 import { generateVxu } from "./vxu.js";
 import { hl7CorpusArtifact } from "./round-trip.js";
-import { resolveKind, resolveMix } from "../select.js";
+import { requireSelection, resolveKind, resolveMix } from "../select.js";
 
 export { generateAdt, type AdtTrigger, type GenerateAdtOptions } from "./adt.js";
 export { generateOru, type GenerateOruOptions } from "./oru.js";
@@ -119,12 +119,14 @@ export interface Hl7CorpusOptions {
   readonly count?: number;
   /**
    * The message kinds to cycle through. Defaults to one of every family
-   * (`ADT^A01/A04/A08`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`).
+   * (`ADT^A01/A04/A08`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`). An empty list throws
+   * `SYNTH_EMPTY_POOL`.
    */
   readonly mix?: readonly Hl7MessageKind[];
   /**
    * ADT-only convenience: the triggers to cycle through, kept for back-compat. When
-   * supplied it takes precedence over `mix` and restricts the corpus to `ADT` messages.
+   * supplied it takes precedence over `mix` and restricts the corpus to `ADT` messages. An empty
+   * list throws `SYNTH_EMPTY_POOL`.
    */
   readonly triggers?: readonly AdtTrigger[];
   /**
@@ -152,16 +154,17 @@ export interface Hl7CorpusOptions {
  */
 export function hl7Corpus(options: Hl7CorpusOptions): Corpus {
   const { seed, count = 1, verify = true } = options;
-  const kinds: readonly Hl7MessageKind[] =
+  const kinds: readonly Hl7MessageKind[] = requireSelection(
     options.triggers !== undefined
       ? options.triggers.map(
           (t): Hl7MessageKind => `ADT^${resolveKind(ADT_TRIGGERS, t)}` as Hl7MessageKind,
         )
-      : resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
+      : resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX),
+  );
   // A seed stream derives one deterministic per-message seed from the corpus seed.
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {
-    const kind = kinds[i % kinds.length] ?? "ADT^A01";
+    const kind = kinds[i % kinds.length] as Hl7MessageKind;
     const messageSeed = seedStream.nextUint32();
     const rt = hl7CorpusArtifact(generateHl7(kind, messageSeed), verify);
     return {

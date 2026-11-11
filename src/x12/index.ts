@@ -27,7 +27,7 @@ import { generate837 } from "./claim-837.js";
 import { generate835 } from "./remit-835.js";
 import { generate271 } from "./eligibility-271.js";
 import { x12CorpusArtifact } from "./round-trip.js";
-import { resolveMix } from "../select.js";
+import { requireSelection, resolveMix } from "../select.js";
 
 export {
   generate837,
@@ -82,7 +82,10 @@ export interface X12CorpusOptions {
   readonly seed: number;
   /** How many transactions to generate. Defaults to the length of the mix. */
   readonly count?: number;
-  /** The transaction kinds to cycle through. Defaults to one of each. */
+  /**
+   * The transaction kinds to cycle through. Defaults to one of each. An empty list throws
+   * `SYNTH_EMPTY_POOL`.
+   */
   readonly mix?: readonly X12CorpusKind[];
   /**
    * Whether each artifact is read back through its parser and the parser's findings recorded as its
@@ -124,11 +127,11 @@ function generateKind(kind: X12CorpusKind, seed: number): X12Interchange {
  */
 export function x12Corpus(options: X12CorpusOptions): Corpus {
   const { seed, verify = true } = options;
-  const mix = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
+  const mix = requireSelection(resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX));
   const count = options.count ?? mix.length;
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {
-    const kind = mix[i % mix.length] ?? "837P";
+    const kind = mix[i % mix.length] as X12CorpusKind;
     const txSeed = seedStream.nextUint32();
     const rt = x12CorpusArtifact(generateKind(kind, txSeed), verify);
     return {

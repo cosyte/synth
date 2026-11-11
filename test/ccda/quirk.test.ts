@@ -189,10 +189,6 @@ describe("C-CDA quirk corpus", () => {
     expect(corpus.manifest.quirks).toEqual(["deprecated-loinc"]);
     expect(corpus.artifacts).toHaveLength(2);
   });
-  it("falls back to every quirk when given an empty quirk list", () => {
-    const corpus = ccdaQuirkCorpus({ seed: 7, quirks: [] });
-    expect([...corpus.manifest.quirks].sort()).toEqual([...QUIRKS].sort());
-  });
 });
 
 describe("C-CDA committed quirk fixtures round-trip to their intended warning", () => {
