@@ -92,7 +92,7 @@ export type SsnBlock = "never-issued" | "advertising";
  * ssn(createRng(1)); // e.g. a 900-area, never-issued, never-ITIN-formatted SSN
  * ```
  */
-export function ssn(rng: Rng, block: SsnBlock = "never-issued"): string {
+export function ssn(rng: Rng, block?: SsnBlock): string {
   if (block === "advertising") {
     // The fixed display block: last digit 0..9 within -4320..-4329, group 00 so no value here is
     // ITIN-formatted (the previous group, 65, sat inside the published ITIN range 50-65).

@@ -2048,7 +2048,7 @@ The seeded generator.
 
 ##### block?
 
-[`SsnBlock`](#ssnblock) = `"never-issued"`
+[`SsnBlock`](#ssnblock)
 
 Which reserved space to draw from. Defaults to `"never-issued"`.
 
