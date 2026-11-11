@@ -30,8 +30,8 @@ importers:
         specifier: ^0.1.6
         version: 0.1.6
       '@cosyte/deid':
-        specifier: ^0.1.5
-        version: 0.1.5(@cosyte/ccda@0.1.6)(@cosyte/fhir@0.1.8)(@cosyte/hl7@0.1.8(fast-check@4.10.2))(@cosyte/ncpdp@0.1.6)(@cosyte/x12@0.1.10(fast-check@4.10.2))
+        specifier: ^0.2.3
+        version: 0.2.3(@cosyte/ccda@0.1.6)(@cosyte/fhir@0.1.8)(@cosyte/hl7@0.1.8(fast-check@4.10.2))(@cosyte/ncpdp@0.1.6)(@cosyte/x12@0.1.10(fast-check@4.10.2))
       '@cosyte/eslint-config':
         specifier: ^0.1.4
         version: 0.1.4(eslint@10.14.0)(typescript@5.9.3)
@@ -213,8 +213,8 @@ packages:
     resolution: {integrity: sha512-3ZheOAuUufIVWo5oTdLayb6ClJYV72lWcmg865cPD2IQyh/CtFVcKsb7s3jfbEVxOX7xMCp9DOv7g470vhkMRg==}
     engines: {node: '>=22.0.0'}
 
-  '@cosyte/deid@0.1.5':
-    resolution: {integrity: sha512-HvysfaMtJt+tqjAr4SSupGNfSsTW02bASucvkdPM+BZlNVa2XarxOJLcUgek/iso9zl4fEisn96LzcgN4xhvIA==}
+  '@cosyte/deid@0.2.3':
+    resolution: {integrity: sha512-ST7MvKdf3PEuluj6L1c0xkQNnV30rGMXj0A2LpzBB1JqUFNGi4Xy8wlBxGRSBBKm6oGou2OpS9xULKV41VlwOg==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@cosyte/ccda': ^0.1.0
@@ -2349,7 +2349,7 @@ snapshots:
     dependencies:
       '@xmldom/xmldom': 0.9.12
 
-  '@cosyte/deid@0.1.5(@cosyte/ccda@0.1.6)(@cosyte/fhir@0.1.8)(@cosyte/hl7@0.1.8(fast-check@4.10.2))(@cosyte/ncpdp@0.1.6)(@cosyte/x12@0.1.10(fast-check@4.10.2))':
+  '@cosyte/deid@0.2.3(@cosyte/ccda@0.1.6)(@cosyte/fhir@0.1.8)(@cosyte/hl7@0.1.8(fast-check@4.10.2))(@cosyte/ncpdp@0.1.6)(@cosyte/x12@0.1.10(fast-check@4.10.2))':
     optionalDependencies:
       '@cosyte/ccda': 0.1.6
       '@cosyte/fhir': 0.1.8
