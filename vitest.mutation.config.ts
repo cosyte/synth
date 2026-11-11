@@ -21,7 +21,8 @@ const config = shared as ViteUserConfig;
  * - `test/quality-standard.test.ts` reads this repository's configuration and workflow files, and
  *   imports no source file.
  *
- * What they prove is proved by `pnpm test` on every pull request. The instrumented code runs
+ * What they prove is proved by `pnpm test` on every pull request. `SYNTH_MUTATION_RUN` tells a test
+ * that reads `src/` as text that it is reading the instrumented copy, so it can skip by name. The instrumented code runs
  * several times slower than the plain build, so a test's budget here is 60 s rather than 10 s;
  * StrykerJS sets each mutant's own timeout from the time the test took in its first run, so this
  * budget does not slow the mutant runs.
@@ -37,6 +38,7 @@ const mutation: ViteUserConfig = {
       "test/quality-standard.test.ts",
       "test/scripts/**",
     ],
+    env: { ...config.test?.env, SYNTH_MUTATION_RUN: "1" },
     testTimeout: 60_000,
     hookTimeout: 60_000,
   },

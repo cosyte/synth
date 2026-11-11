@@ -794,28 +794,35 @@ describe("the fatal message registry is the only source of a diagnostic message"
    * against its set), nor a fatal an optional peer parser raises on input `synth` forwarded to it.
    * Those two routes are covered by the slot table above and by the raw-text harness assertions,
    * respectively, and neither is covered here.
+   *
+   * Skipped in the mutation run only (`vitest.mutation.config.ts` sets `SYNTH_MUTATION_RUN`): there
+   * `src/` is StrykerJS's instrumented copy, whose switching code throws its own errors, so the
+   * text read is not the source this asserts over. `pnpm test` runs it on every pull request.
    */
-  it("no `throw new` in src/ names anything but SynthError", () => {
-    const detect = (source: string): string[] =>
-      [...source.matchAll(/throw\s+new\s+([A-Za-z_$][\w$]*)/g)]
-        .map((match) => match[1] ?? "")
-        .filter((constructor) => constructor !== "SynthError");
+  it.skipIf(process.env["SYNTH_MUTATION_RUN"] === "1")(
+    "no `throw new` in src/ names anything but SynthError",
+    () => {
+      const detect = (source: string): string[] =>
+        [...source.matchAll(/throw\s+new\s+([A-Za-z_$][\w$]*)/g)]
+          .map((match) => match[1] ?? "")
+          .filter((constructor) => constructor !== "SynthError");
 
-    // Positive control, constructed rather than borrowed: a control that does not contain the thing
-    // being hunted returns zero and proves nothing.
-    expect(detect('throw new Error("x");')).toStrictEqual(["Error"]);
-    expect(detect("throw new TypeError(m); throw new RangeError(m);")).toStrictEqual([
-      "TypeError",
-      "RangeError",
-    ]);
-    expect(detect("throw new SynthError(CODE);")).toStrictEqual([]);
+      // Positive control, constructed rather than borrowed: a control that does not contain the thing
+      // being hunted returns zero and proves nothing.
+      expect(detect('throw new Error("x");')).toStrictEqual(["Error"]);
+      expect(detect("throw new TypeError(m); throw new RangeError(m);")).toStrictEqual([
+        "TypeError",
+        "RangeError",
+      ]);
+      expect(detect("throw new SynthError(CODE);")).toStrictEqual([]);
 
-    const offenders = sourceFiles().flatMap((file) => {
-      const found = detect(readFileSync(file, "utf8"));
-      return found.map((constructor) => `${file}: throw new ${constructor}`);
-    });
-    expect(offenders).toStrictEqual([]);
-  });
+      const offenders = sourceFiles().flatMap((file) => {
+        const found = detect(readFileSync(file, "utf8"));
+        return found.map((constructor) => `${file}: throw new ${constructor}`);
+      });
+      expect(offenders).toStrictEqual([]);
+    },
+  );
 
   it("no src/ file interpolates into a SynthError construction", () => {
     // `SynthError` takes one argument by type, but a template literal reaching the call would be the
