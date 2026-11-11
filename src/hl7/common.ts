@@ -78,7 +78,9 @@ export function mshScaffold(rng: Rng, type: string): MessageScaffold {
     controlId,
     timestamp,
     version: "2.5",
-    processingId: "P",
+    // MSH-11 processing ID `T` (HL7 table 0103: training), never `P` (production): every message
+    // says it is test data in the field the standard gives for it.
+    processingId: "T",
   });
   return { message, timestamp, controlId };
 }

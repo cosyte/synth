@@ -59,7 +59,7 @@ export function generateEncounter(options: GenerateEncounterOptions = {}): FhirC
     prop("resourceType", str("Encounter")),
     prop("id", str(`syn-enc-${rng.digits(8)}`)),
   ];
-  if (usCore) props.push(prop("meta", meta([US_CORE_PROFILE.ENCOUNTER])));
+  props.push(prop("meta", meta(usCore ? [US_CORE_PROFILE.ENCOUNTER] : [])));
   props.push(prop("text", narrative(`Synthetic encounter: ${type.display}.`)));
   props.push(
     prop(

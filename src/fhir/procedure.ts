@@ -57,7 +57,7 @@ export function generateProcedure(options: GenerateProcedureOptions = {}): FhirC
     prop("resourceType", str("Procedure")),
     prop("id", str(`syn-proc-${rng.digits(8)}`)),
   ];
-  if (usCore) props.push(prop("meta", meta([US_CORE_PROFILE.PROCEDURE])));
+  props.push(prop("meta", meta(usCore ? [US_CORE_PROFILE.PROCEDURE] : [])));
   props.push(prop("text", narrative(`Synthetic procedure: ${code.display}.`)));
   props.push(prop("status", str("completed")));
   props.push(prop("code", codeableConcept(code)));

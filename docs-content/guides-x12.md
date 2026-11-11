@@ -72,6 +72,9 @@ birth dates, and addresses. Each comes from a source chosen so it cannot be real
 - **Names** come from the invented-name pool, **birth dates and other dates** from the seeded
   generator, and **addresses** use an invented street and the ZIP Code `00000`.
 
+Every interchange, the 835 included, sets the usage indicator `ISA-15` to `T` (test), never `P`
+(production).
+
 The test suite's synthetic-safety properties check this for arbitrary seeds and every transaction:
 a Luhn-valid NPI, a tax ID outside the 900 series, or an `NM1` with the SSN qualifier `34` fails the
 suite. [What it does and does not do](./limitations.md#the-synthetic-safety-posture-the-floors)

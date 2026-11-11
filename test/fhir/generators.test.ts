@@ -22,6 +22,13 @@ import {
   type FhirResourceKind,
 } from "../../src/fhir/index.js";
 
+/** The security label every generated resource carries: it says the resource is test data. */
+const HTEST_LABEL = {
+  system: "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+  code: "HTEST",
+  display: "test health data",
+};
+
 describe("FHIR generator option branches", () => {
   it("usCore:false omits meta.profile on the clinical resources", () => {
     for (const json of [
@@ -35,14 +42,19 @@ describe("FHIR generator option branches", () => {
       serializeResource(generateProcedure({ seed: 1, usCore: false })),
       serializeResource(generateDiagnosticReport({ seed: 1, usCore: false })),
     ]) {
-      expect(json).not.toContain('"meta"');
+      const parsed = JSON.parse(json) as { meta?: { profile?: unknown; security?: unknown } };
+      expect(parsed.meta?.profile).toBeUndefined();
+      // The test-data label is not a profile claim: it stays on with US Core off.
+      expect(parsed.meta?.security).toEqual([HTEST_LABEL]);
       expect(json).not.toContain("us-core");
     }
   });
 
   it("usCore:false omits a Provenance's meta.profile, and only that", () => {
     const json = serializeResource(generateProvenance({ seed: 1, usCore: false }));
-    expect(json).not.toContain('"meta"');
+    const parsed = JSON.parse(json) as { meta?: { profile?: unknown; security?: unknown } };
+    expect(parsed.meta?.profile).toBeUndefined();
+    expect(parsed.meta?.security).toEqual([HTEST_LABEL]);
     expect(json).not.toContain("StructureDefinition/us-core-provenance");
     // The transmitter participation code is a US Core CODE SYSTEM identifier, not a profile claim,
     // so dropping the profile claim must not drop it: this resource is still shaped for US Core.

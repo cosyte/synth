@@ -64,7 +64,7 @@ export function generateDiagnosticReport(
     prop("resourceType", str("DiagnosticReport")),
     prop("id", str(`syn-dr-${rng.digits(8)}`)),
   ];
-  if (usCore) props.push(prop("meta", meta([US_CORE_PROFILE.DIAGNOSTIC_REPORT_LAB])));
+  props.push(prop("meta", meta(usCore ? [US_CORE_PROFILE.DIAGNOSTIC_REPORT_LAB] : [])));
   props.push(prop("text", narrative(`Synthetic laboratory report: ${code.display}.`)));
   props.push(prop("status", str("final")));
   props.push(

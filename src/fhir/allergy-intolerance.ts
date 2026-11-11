@@ -50,7 +50,7 @@ export function generateAllergyIntolerance(
     prop("resourceType", str("AllergyIntolerance")),
     prop("id", str(`syn-allergy-${rng.digits(8)}`)),
   ];
-  if (usCore) props.push(prop("meta", meta([US_CORE_PROFILE.ALLERGY_INTOLERANCE])));
+  props.push(prop("meta", meta(usCore ? [US_CORE_PROFILE.ALLERGY_INTOLERANCE] : [])));
   props.push(prop("text", narrative(`Synthetic allergy: ${allergen.display}.`)));
   props.push(
     prop(

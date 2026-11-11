@@ -57,7 +57,7 @@ export function generateImmunization(options: GenerateImmunizationOptions = {}):
     prop("resourceType", str("Immunization")),
     prop("id", str(`syn-imm-${rng.digits(8)}`)),
   ];
-  if (usCore) props.push(prop("meta", meta([US_CORE_PROFILE.IMMUNIZATION])));
+  props.push(prop("meta", meta(usCore ? [US_CORE_PROFILE.IMMUNIZATION] : [])));
   props.push(prop("text", narrative(`Synthetic immunization: ${vaccine.display}.`)));
   props.push(prop("status", str("completed")));
   props.push(prop("vaccineCode", codeableConcept(vaccine)));

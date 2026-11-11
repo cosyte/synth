@@ -14,7 +14,7 @@ import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng, type Rng } from "../rng/rng.js";
 import { makeCorpus, type Corpus } from "../corpus.js";
-import { bool, narrative, prop, str, toFhirDate, type Prop } from "./builder.js";
+import { bool, meta, narrative, prop, str, toFhirDate, type Prop } from "./builder.js";
 import { buildComposition, type CompositionSection } from "./composition.js";
 import { generatePatient } from "./patient.js";
 import { generateCondition } from "./condition.js";
@@ -61,6 +61,7 @@ function buildOrganization(rng: Rng): FhirComplex {
   return fhirPeer().complex([
     prop("resourceType", str("Organization")),
     prop("id", str(`syn-org-${rng.digits(8)}`)),
+    prop("meta", meta([])),
     prop("text", narrative("Synthetic health organization.")),
     prop(
       "identifier",
@@ -236,6 +237,7 @@ export function generateBundle(options: GenerateBundleOptions = {}): FhirComplex
   const props: Prop[] = [
     prop("resourceType", str("Bundle")),
     prop("id", str(`syn-bundle-${rng.digits(8)}`)),
+    prop("meta", meta([])),
   ];
   // A document Bundle requires an identifier (bdl-9) and a timestamp (bdl-10).
   if (type === "document") {

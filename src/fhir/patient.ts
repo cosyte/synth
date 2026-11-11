@@ -91,7 +91,7 @@ export function generatePatient(options: GeneratePatientOptions = {}): FhirCompl
     prop("resourceType", str("Patient")),
     prop("id", str(`syn-patient-${id.id}`)),
   ];
-  if (usCore) props.push(prop("meta", meta([US_CORE_PROFILE.PATIENT])));
+  props.push(prop("meta", meta(usCore ? [US_CORE_PROFILE.PATIENT] : [])));
   props.push(
     prop(
       "text",

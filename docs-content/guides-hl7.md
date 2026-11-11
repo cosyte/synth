@@ -98,6 +98,8 @@ hl7Corpus({ seed: 7, count: 2, triggers: ["A08"] }).artifacts.map((a) => a.kind)
 ## What a message holds
 
 - `MSH-3` and `MSH-4` name the sender as `COSYTE-SYNTH` and `SYNTH-FAC`; the version is `2.5`.
+- `MSH-11`, the processing ID, is `T`, never `P` (production), so every message says it is test
+  data.
 - `MSH-7` and the other timestamps come from the seeded generator, never the clock. `MSH-10`, the
   control ID, is seeded too.
 - `PID` carries a name from the invented-name pool, a medical record number under the assigning
