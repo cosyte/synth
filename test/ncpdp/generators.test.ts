@@ -85,3 +85,18 @@ describe("NCPDP corpus", () => {
     expect(corpus.artifacts.map((a) => a.kind)).toEqual(["B1", "B1", "B1"]);
   });
 });
+
+describe("NCPDP Telecom: 442-E7 implied decimals", () => {
+  it("writes Quantity Dispensed with its three implied decimals (whole units times 1000)", () => {
+    for (let seed = 0; seed < 40; seed += 1) {
+      const wire = generateTelecom("B1", { seed });
+      const m = /\x1cE7(\d+)(?=\x1c|\x1d|\x1e|$)/.exec(wire);
+      expect(m, `seed ${String(seed)} carries E7`).not.toBeNull();
+      const digits = m?.[1] ?? "";
+      expect(digits.endsWith("000")).toBe(true);
+      const units = Number(digits) / 1000;
+      expect(units).toBeGreaterThanOrEqual(30);
+      expect(units).toBeLessThanOrEqual(90);
+    }
+  });
+});

@@ -120,7 +120,7 @@ export function generate271(options: Generate271Options): X12Interchange {
                     serviceTypeCodes: serviceTypes,
                     inPlanNetwork: "Y",
                     monetaryAmount: dec(money(rng.int(500, 5000))),
-                    percent: dec(String(rng.pick([80, 90, 100] as const))),
+                    percent: dec(rng.pick([".8", ".9", "1"] as const)), // EB-08 is a decimal fraction
                   },
                 ],
               },

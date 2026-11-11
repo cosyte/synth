@@ -92,7 +92,8 @@ function buildResultInput(options: GenerateAstmOptions): MessageInput {
   }
 
   return {
-    header: { fields: [head.sender, head.analyzer] },
+    // H.3 (message control id) and H.4 (access password) stay empty; H.5 is the sender name.
+    header: { fields: ["", "", head.sender] },
     records,
     terminationCode: "N",
   };
