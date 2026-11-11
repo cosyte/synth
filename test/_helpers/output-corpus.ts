@@ -552,7 +552,7 @@ function deidObservations(): Observation[] {
     for (const variant of ["B1", "B2", "B3"] as const) {
       out.push({
         label: `deid:ncpdp:${variant}:${String(seed)}`,
-        text: () => stable(deid.ncpdpTelecomDeidLoop({ seed, variant })),
+        text: () => stable(deid.ncpdpTelecomDeidLoop({ seed, transaction: variant })),
       });
     }
     for (const documentType of ["ccd", "referral"] as const) {
