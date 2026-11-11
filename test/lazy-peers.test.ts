@@ -169,6 +169,23 @@ describe("loadPeer and lazyPeer", () => {
     expect(required).toEqual(["@cosyte/x"]);
   });
 
+  it("throws on a `file:` URL that names no path, rather than load a second copy", () => {
+    // `fileURLToPath` refuses an encoded slash on every system. A resolver that answers with such
+    // a URL is broken; requiring the specifier instead would load the CommonJS copy of the parser.
+    const required: string[] = [];
+    const host: PeerHost = {
+      require: (id) => {
+        required.push(id);
+        return { id };
+      },
+      resolve: () => "file:///peers/a%2Fb/index.mjs",
+    };
+    expect(() => loadPeer("@cosyte/x", host)).toThrow(
+      expect.objectContaining({ code: "ERR_INVALID_FILE_URL_PATH" }),
+    );
+    expect(required).toEqual([]);
+  });
+
   it("passes on a failure to load the specifier after resolving failed", () => {
     const host: PeerHost = {
       require: () => {

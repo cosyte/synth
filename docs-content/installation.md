@@ -24,15 +24,15 @@ dependency. Install the package with the parsers for the formats you generate:
 npm install @cosyte/synth @cosyte/hl7
 ```
 
-| You import            | Install alongside `@cosyte/synth`                                        |
-| --------------------- | ------------------------------------------------------------------------ |
-| `@cosyte/synth`       | nothing: the seeded generator, the value providers, and the checks       |
-| `@cosyte/synth/hl7`   | `@cosyte/hl7`                                                            |
-| `@cosyte/synth/fhir`  | `@cosyte/fhir`                                                           |
-| `@cosyte/synth/ccda`  | `@cosyte/ccda`                                                           |
-| `@cosyte/synth/x12`   | `@cosyte/x12`                                                            |
-| `@cosyte/synth/ncpdp` | `@cosyte/ncpdp`                                                          |
-| `@cosyte/synth/astm`  | `@cosyte/astm`                                                           |
+| You import            | Install alongside `@cosyte/synth`                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| `@cosyte/synth`       | nothing: the seeded generator, the value providers, and the checks                                |
+| `@cosyte/synth/hl7`   | `@cosyte/hl7`                                                                                     |
+| `@cosyte/synth/fhir`  | `@cosyte/fhir`                                                                                    |
+| `@cosyte/synth/ccda`  | `@cosyte/ccda`                                                                                    |
+| `@cosyte/synth/x12`   | `@cosyte/x12`                                                                                     |
+| `@cosyte/synth/ncpdp` | `@cosyte/ncpdp`                                                                                   |
+| `@cosyte/synth/astm`  | `@cosyte/astm`                                                                                    |
 | `@cosyte/synth/deid`  | `@cosyte/deid`, `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, and `@cosyte/ncpdp` |
 
 The `deid` subpath loads all five parsers it pairs as soon as it is imported, so all five must be
@@ -61,8 +61,8 @@ name the bundler does not see. If you bundle code that imports `@cosyte/synth`, 
 
 If the bundle inlines a parser while the generator loads the installed one, your code and the
 generator hold two copies of that parser, and `instanceof` against its classes is false. If the
-parser is not installed beside the bundle at all, the first generator call that needs it throws
-"Cannot find module".
+parser is not installed beside the bundle at all, the first generator call that needs it throws a
+`SynthError` with the code `SYNTH_PEER_NOT_INSTALLED`, naming the parser and its install command.
 
 ## Check the install
 
@@ -83,8 +83,9 @@ import { generateAdt, roundTrip } from "@cosyte/synth/hl7";
 roundTrip(generateAdt({ seed: 1 })).specClean; // => true
 ```
 
-If the import fails with "Cannot find module", the parser for that subpath is missing; see
-[Troubleshooting](./troubleshooting.md#cannot-find-module-cosytehl7).
+If the call throws a `SynthError` with the code `SYNTH_PEER_NOT_INSTALLED`, the parser for that
+subpath is missing; the message names it and the command that installs it. See
+[Troubleshooting](./troubleshooting.md#a-parser-is-not-installed).
 
 ## Next
 
