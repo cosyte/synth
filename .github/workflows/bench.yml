@@ -19,6 +19,8 @@ name: Bench
 
 on:
   workflow_dispatch: {}
+  push:
+    branches: [perf/benchmark-audit]
   pull_request:
     branches: [main]
     paths:
