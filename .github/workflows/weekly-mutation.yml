@@ -38,4 +38,4 @@ jobs:
       mutate-cmd: "pnpm mutate:full"
       # About seventy source files, and a suite that builds whole corpora through the parser
       # builders, so eight shards; a file is in exactly one shard, by the hash of its path.
-      shard-count: 8
+      shard-count: 7
