@@ -145,6 +145,7 @@ function residue(loci: readonly GenericLocus[]): string {
 
 /** The de-identified `<recordTarget>` block of a C-CDA document: the patient PHI residue. @internal */
 function recordTargetResidue(xml: string): string {
+  /* v8 ignore next -- the `?? ""` is reached only when the de-identified document has no recordTarget, and @cosyte/deid replaces values inside it rather than dropping the element */
   return /<recordTarget[\s\S]*?<\/recordTarget>/i.exec(xml)?.[0] ?? "";
 }
 

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { makeCorpus, type Artifact } from "../src/index.js";
+import { makeCorpus, type Artifact, type Corpus } from "../src/index.js";
+import { astmCorpus } from "../src/astm/index.js";
+import { ccdaCorpus } from "../src/ccda/index.js";
+import { ncpdpCorpus } from "../src/ncpdp/index.js";
+import { x12Corpus } from "../src/x12/index.js";
 
 const artifact = (kind: string): Artifact => ({
   format: "hl7v2",
@@ -38,4 +42,39 @@ describe("makeCorpus: reproducible, self-describing, deep-frozen", () => {
     expect(corpus.artifacts).toHaveLength(0);
     expect(corpus.manifest.formats).toEqual([]);
   });
+});
+
+describe("a corpus asked for a count over an empty mix", () => {
+  // An empty `mix` names no kind, so each slot falls back to the format's first kind.
+  const cases: ReadonlyArray<readonly [string, () => Corpus, () => Corpus]> = [
+    [
+      "astm",
+      () => astmCorpus({ seed: 5, mix: [], count: 2 }),
+      () => astmCorpus({ seed: 5, mix: ["Result"], count: 2 }),
+    ],
+    [
+      "ccda",
+      () => ccdaCorpus({ seed: 5, mix: [], count: 2 }),
+      () => ccdaCorpus({ seed: 5, mix: ["ccd"], count: 2 }),
+    ],
+    [
+      "ncpdp",
+      () => ncpdpCorpus({ seed: 5, mix: [], count: 2 }),
+      () => ncpdpCorpus({ seed: 5, mix: ["NewRx"], count: 2 }),
+    ],
+    [
+      "x12",
+      () => x12Corpus({ seed: 5, mix: [], count: 2 }),
+      () => x12Corpus({ seed: 5, mix: ["837P"], count: 2 }),
+    ],
+  ];
+  for (const [format, make, expected] of cases) {
+    it(`${format}: builds that many artifacts of its first kind`, () => {
+      const corpus = make();
+      expect(corpus.artifacts).toHaveLength(2);
+      expect(corpus.artifacts.map((a) => [a.kind, a.content])).toStrictEqual(
+        expected().artifacts.map((a) => [a.kind, a.content]),
+      );
+    });
+  }
 });

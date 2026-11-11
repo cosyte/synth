@@ -134,6 +134,16 @@ describe("the deid pairing loop: seed-determinism", () => {
       expect(ccdaDeidLoop({ seed }).deidentified).toBe(ccdaDeidLoop({ seed }).deidentified);
     }
   });
+
+  it("with no options, each loop takes seed 0 and its default artifact", () => {
+    expect(hl7DeidLoop().original).toBe(hl7DeidLoop({ seed: 0, kind: "ORU^R01" }).original);
+    expect(fhirDeidLoop().original).toBe(fhirDeidLoop({ seed: 0 }).original);
+    expect(x12DeidLoop().original).toBe(x12DeidLoop({ seed: 0, variant: "837P" }).original);
+    expect(ncpdpTelecomDeidLoop().original).toBe(
+      ncpdpTelecomDeidLoop({ seed: 0, transaction: "B1" }).original,
+    );
+    expect(ccdaDeidLoop().original).toBe(ccdaDeidLoop({ seed: 0, documentType: "ccd" }).original);
+  });
 });
 
 describe("the deid pairing loop: non-vacuity (it genuinely detects a surviving sentinel)", () => {
