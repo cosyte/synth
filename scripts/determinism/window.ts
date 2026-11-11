@@ -1,26 +1,29 @@
 /**
  * scripts/determinism/window.ts
  *
- * THE COMPATIBILITY-WINDOW CHECK: A CHANGED MAPPING IS A BREAKING CHANGE, DECLARED AS ONE.
+ * THE COMPATIBILITY-WINDOW CHECK: A CHANGED MAPPING IS STATED IN THE CHANGELOG ENTRY.
  *
  * A consumer is invited to commit a golden fixture and diff against it forever. That invitation is
- * worth exactly as much as the promise that the mapping behind it does not move inside a release
- * window, and the only thing that makes a move survivable for the consumer is being TOLD, in the
- * changelog entry for the release that moves it.
+ * worth exactly as much as the promise that the mapping behind it does not move unannounced, and
+ * the only thing that makes a move survivable for the consumer is being TOLD, in the changelog
+ * entry for the release that moves it.
  *
- * So: if the committed baseline in this working tree differs from the one on the default branch,
- * some (format, seed) pair maps to different bytes than it did, and a changeset in the tree must
- * declare a MAJOR change for this package. No changeset, no landing. `.changeset/config.json` names
- * a changelog generator, so the changeset summary IS the changelog entry, which is why the
- * changeset is the thing checked rather than a hand-edited file.
+ * So: if the committed baseline in this working tree differs from the one on the default branch, a
+ * changeset in the tree must STATE every kind of difference, each in its own named section. No
+ * statement, no landing. `.changeset/config.json` names a changelog generator, so the changeset
+ * summary IS the changelog entry, which is why the changeset is the thing checked rather than a
+ * hand-edited file.
+ *
+ * EVERY RELEASE IS A PATCH, so the version number tells a consumer nothing about which output
+ * moved, and a bump of any size is not a statement. A major changeset that states nothing is
+ * refused like a patch changeset that states nothing. Every change this check allows can be made
+ * with a patch changeset.
  *
  * THE FIVE STATES, and the two that are easy to get wrong:
  *
  *   present + absent upstream   the window is being ESTABLISHED, not broken. Nothing mapped to
- *                               anything before, so nothing changed, so no breaking change is
- *                               declared. This is the state the first commit of a baseline is in,
- *                               and calling it a break would force a major version bump to ship a
- *                               check that changes no output at all.
+ *                               anything before, so nothing changed, so nothing has to be stated.
+ *                               This is the state the first commit of a baseline is in.
  *   absent + present upstream   the baseline was DELETED. That fails, and it fails harder than a
  *                               changed one: a deleted baseline is a mapping change that removed
  *                               its own evidence, and there is no changeset that makes it fine.
@@ -28,19 +31,26 @@
  *                               to compare against, so the toolchain-moved-everything case is
  *                               unguarded.
  *   present + equal             the mapping is unchanged. Passes.
- *   present + different         the mapping moved. Passes with a major changeset for this
- *                               package, or with a changeset that STATES the change (below), and
- *                               fails saying why when there is neither.
+ *   present + different         the mapping moved. Passes when the changesets for this package
+ *                               state every kind of difference (below), and fails saying which
+ *                               section is missing when they do not.
  *
- * A STATED OUTPUT CHANGE IS THE SECOND DOOR, by the operator's decision D57 (plans/decisions.md in
- * the umbrella, 2026-11-07: "Amend the gate to accept a stated output change in a patch, and release
- * 0.1.2."). A changeset of any bump for this package passes a moved mapping when its body carries an
- * `Output change:` section that names every format whose bytes moved, by its display name
- * (`C-CDA`, `HL7 v2`, ...). The consumer's protection was never the version number; it is being told,
- * in the changelog entry, which output moved, and the section is exactly that sentence. What it
- * cannot do: cover a NARROWED corpus, a changed window, algorithm or artifact count, or a format the
- * section leaves out. Those still need the major door, because none of them is an output change the
- * section can describe.
+ * THE SECTIONS. Each is a paragraph in a changeset's body that opens with its heading, in a
+ * changeset whose frontmatter names this package. One changeset may carry several, and several
+ * changesets may share them out, but each section has to name everything of its kind on its own:
+ *
+ *   `Output change:`            a digest moved or a pair was added. Names every such format by its
+ *                               display name (`C-CDA`, `HL7 v2`, ...).
+ *   `Corpus narrowed:`          a (format, seed) pair came OUT of the graded set. Names every
+ *                               format that lost a pair.
+ *   `Window change:`            the baseline's compatibility window moved. Names the new window.
+ *   `Digest algorithm change:`  the digest algorithm changed. Names the new algorithm.
+ *   `Artifact count change:`    the artifacts digested per pair changed. Names the new count.
+ *
+ * A changed algorithm or artifact count moves every digest without a byte of output moving, so
+ * while either changes this check cannot tell a moved output from a re-taken digest and asks only
+ * for the section that names the change. Make such a change on its own: the next change is measured
+ * against the new baseline in full.
  *
  * EQUALITY IS SEMANTIC, NOT TEXTUAL. Two baselines are the same when they agree about the window,
  * the algorithm, the corpus size and every (format, seed) digest. Reformatting a file is not a
@@ -54,10 +64,10 @@
  * VERDICT is unchanged, deliberately: what a consumer was promised is not only that the mapping
  * holds but that it is VERIFIED across the declared engines, and a pair that is no longer graded is
  * that promise quietly withdrawn. Widening a promise is easy and narrowing one is consumer-visible,
- * so both go through the same door. What changes is only that the refusal describes the change it
- * is refusing: a gate that reds correctly and then explains itself with a falsehood teaches the
- * next reader the wrong story, and that reader is the one walking the narrowing procedure with a
- * real cross-engine divergence in hand.
+ * so it has to be stated too, in its own section. What changes is only that the refusal describes
+ * the change it is refusing: a gate that reds correctly and then explains itself with a falsehood
+ * teaches the next reader the wrong story, and that reader is the one walking the narrowing
+ * procedure with a real cross-engine divergence in hand.
  */
 
 import { parseBaseline, type Baseline } from "./baseline.js";
@@ -93,29 +103,6 @@ export interface WindowVerdict {
   readonly message: string;
 }
 
-/**
- * Whether a changeset declares a major (breaking) change for a package.
- *
- * A changeset's frontmatter is a YAML block between the first two `---` fences, holding one
- * `"<package>": <bump>` line per affected package. This reads that block only, so a package name
- * mentioned in the prose summary cannot be mistaken for a declaration.
- *
- * @param text - The changeset file's text.
- * @param packageName - The package the declaration must name.
- * @returns True when the frontmatter declares `major` for that package.
- * @example
- * ```ts
- * declaresMajorFor('---\n"@cosyte/synth": major\n---\n\nSummary\n', "@cosyte/synth"); // true
- * ```
- */
-export function declaresMajorFor(text: string, packageName: string): boolean {
-  const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1];
-  if (frontmatter === undefined) return false;
-  const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const declaration = new RegExp(`^\\s*["']?${escaped}["']?\\s*:\\s*["']?major["']?\\s*$`, "m");
-  return declaration.test(frontmatter);
-}
-
 /** The display name an `Output change:` section has to use for each format the corpus grades. */
 export const FORMAT_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   astm: "ASTM",
@@ -126,21 +113,90 @@ export const FORMAT_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   x12: "X12",
 };
 
-/** The heading a stated output change opens with, at the start of a line in a changeset's body. */
-const OUTPUT_CHANGE_HEADING = /^[ \t]*(?:[-*+][ \t]+)?(?:\*\*)?Output change:(?:\*\*)?/m;
+/** The kinds of difference a changed baseline can show, each stated in its own section. */
+export type ChangeKind = "output" | "narrowed" | "window" | "algorithm" | "artifacts";
 
-/** What a changeset says about a moved mapping. */
+/** The heading that opens the section stating each kind of change, in the order they are asked for. */
+export const SECTION_HEADINGS: Readonly<Record<ChangeKind, string>> = {
+  output: "Output change:",
+  narrowed: "Corpus narrowed:",
+  window: "Window change:",
+  algorithm: "Digest algorithm change:",
+  artifacts: "Artifact count change:",
+};
+
+/** What a changeset says in one section. */
 export interface StatedOutputChange {
-  /** True when it names this package and its `Output change:` section names every moved format. */
+  /** True when it names this package and its section names everything it has to. */
   readonly ok: boolean;
-  /** The moved formats the section does not name (every one, when there is no section). */
+  /** The names the section does not carry (every one, when there is no section). */
   readonly missing: readonly string[];
 }
 
+/** A regular expression's special characters, escaped. */
+const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /**
- * Whether a changeset STATES an output change for a package: its frontmatter names the package
- * (any bump), and its body carries an `Output change:` section, the paragraph that opens with that
- * heading, naming every moved format by its display name.
+ * Whether a changeset STATES one kind of change for a package: its frontmatter names the package
+ * (any bump), and its body carries a section, the paragraph that opens with the heading, naming
+ * every one of the given names.
+ *
+ * A format name is matched anywhere in the section. A window, an algorithm or a count is matched
+ * only as a whole token, so `5` is not found inside `15`.
+ *
+ * @param text - The changeset file's text.
+ * @param packageName - The package the frontmatter must name.
+ * @param heading - The heading the section opens with (`Output change:`, ...).
+ * @param names - What the section has to name.
+ * @param wholeToken - Whether each name has to stand as a whole token.
+ * @returns Whether the change is stated, and which names the section leaves out.
+ * @example
+ * ```ts
+ * statesSectionFor(
+ *   '---\n"@cosyte/synth": patch\n---\n\nSummary.\n\nWindow change: now 1.x.\n',
+ *   "@cosyte/synth",
+ *   "Window change:",
+ *   ["1.x"],
+ *   true,
+ * ).ok; // true
+ * ```
+ */
+export function statesSectionFor(
+  text: string,
+  packageName: string,
+  heading: string,
+  names: readonly string[],
+  wholeToken: boolean,
+): StatedOutputChange {
+  const fence = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/.exec(text);
+  const frontmatter = fence?.[1];
+  if (fence === null || frontmatter === undefined) return { ok: false, missing: names };
+  const declaration = new RegExp(
+    `^\\s*["']?${escape(packageName)}["']?\\s*:\\s*["']?(?:patch|minor|major)["']?\\s*$`,
+    "m",
+  );
+  if (!declaration.test(frontmatter)) return { ok: false, missing: names };
+  const body = text.slice(fence[0].length);
+  const opening = new RegExp(
+    `^[ \\t]*(?:[-*+][ \\t]+)?(?:\\*\\*)?${escape(heading)}(?:\\*\\*)?`,
+    "m",
+  ).exec(body);
+  if (opening === null) return { ok: false, missing: names };
+  // The section is the paragraph the heading opens: everything up to the next blank line.
+  const rest = body.slice(opening.index);
+  const end = /\r?\n[ \t]*\r?\n/.exec(rest);
+  const section = end === null ? rest : rest.slice(0, end.index);
+  const carries = (name: string): boolean =>
+    wholeToken
+      ? new RegExp(`(?<![A-Za-z0-9.])${escape(name)}(?![A-Za-z0-9])`, "i").test(section)
+      : section.toLowerCase().includes(name.toLowerCase());
+  const missing = names.filter((name) => !carries(name));
+  return { ok: missing.length === 0, missing };
+}
+
+/**
+ * Whether a changeset STATES an output change for a package: its `Output change:` section names
+ * every moved format by its display name.
  *
  * @param text - The changeset file's text.
  * @param packageName - The package the frontmatter must name.
@@ -160,44 +216,62 @@ export function statesOutputChangeFor(
   packageName: string,
   movedFormats: readonly string[],
 ): StatedOutputChange {
-  const fence = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/.exec(text);
-  const frontmatter = fence?.[1];
-  const names = movedFormats.map((format) => FORMAT_DISPLAY_NAMES[format] ?? format);
-  if (fence === null || frontmatter === undefined) return { ok: false, missing: names };
-  const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const declaration = new RegExp(
-    `^\\s*["']?${escaped}["']?\\s*:\\s*["']?(?:patch|minor|major)["']?\\s*$`,
-    "m",
+  return statesSectionFor(
+    text,
+    packageName,
+    SECTION_HEADINGS.output,
+    displayNames(movedFormats),
+    false,
   );
-  if (!declaration.test(frontmatter)) return { ok: false, missing: names };
-  const body = text.slice(fence[0].length);
-  const heading = OUTPUT_CHANGE_HEADING.exec(body);
-  if (heading === null) return { ok: false, missing: names };
-  // The section is the paragraph the heading opens: everything up to the next blank line.
-  const rest = body.slice(heading.index);
-  const end = /\r?\n[ \t]*\r?\n/.exec(rest);
-  const section = end === null ? rest : rest.slice(0, end.index);
-  const missing = names.filter((name) => !section.toLowerCase().includes(name.toLowerCase()));
-  return { ok: missing.length === 0, missing };
+}
+
+/** Display names for format labels, in the order given. */
+const displayNames = (formats: Iterable<string>): readonly string[] =>
+  [...formats].map((format) => FORMAT_DISPLAY_NAMES[format] ?? format);
+
+/** One section a changed baseline needs, and what it has to name. */
+interface Requirement {
+  readonly kind: ChangeKind;
+  readonly names: readonly string[];
 }
 
 /**
- * The formats whose bytes moved between two baselines: a digest that changed or a pair that was
- * added. `undefined` when the difference is not one a stated output change can describe: a changed
- * window, algorithm or artifact count, or a pair that came out of the graded set.
+ * Every section the difference between two baselines needs, in the order of `SECTION_HEADINGS`.
+ *
+ * A pair that was added is an output change. A digest that moved on a surviving pair is one too,
+ * but only while the algorithm and the artifact count hold: when either changes, every digest moves
+ * with no output moving, so the digests are not compared and only the section naming that change is
+ * asked for.
  */
-function movedFormats(current: Baseline, previous: Baseline): readonly string[] | undefined {
-  if (current.package.window !== previous.package.window) return undefined;
-  if (current.digestAlgorithm !== previous.digestAlgorithm) return undefined;
-  if (current.artifactsPerPair !== previous.artifactsPerPair) return undefined;
-  const before = new Map(previous.entries.map((e) => [pairKey(e.format, e.seed), e.digest]));
+function requirements(current: Baseline, previous: Baseline): readonly Requirement[] {
+  const comparable =
+    current.digestAlgorithm === previous.digestAlgorithm &&
+    current.artifactsPerPair === previous.artifactsPerPair;
+  const before = new Map(previous.entries.map((e) => [pairKey(e.format, e.seed), e]));
   const after = new Set(current.entries.map((e) => pairKey(e.format, e.seed)));
-  for (const key of before.keys()) if (!after.has(key)) return undefined;
   const moved = new Set<string>();
   for (const entry of current.entries) {
-    if (before.get(pairKey(entry.format, entry.seed)) !== entry.digest) moved.add(entry.format);
+    const earlier = before.get(pairKey(entry.format, entry.seed));
+    if (earlier === undefined || (comparable && earlier.digest !== entry.digest)) {
+      moved.add(entry.format);
+    }
   }
-  return [...moved].sort();
+  const removed = new Set<string>();
+  for (const [key, entry] of before) if (!after.has(key)) removed.add(entry.format);
+
+  const needed: Requirement[] = [];
+  if (moved.size > 0) needed.push({ kind: "output", names: displayNames([...moved].sort()) });
+  if (removed.size > 0) needed.push({ kind: "narrowed", names: displayNames([...removed].sort()) });
+  if (current.package.window !== previous.package.window) {
+    needed.push({ kind: "window", names: [current.package.window] });
+  }
+  if (current.digestAlgorithm !== previous.digestAlgorithm) {
+    needed.push({ kind: "algorithm", names: [current.digestAlgorithm] });
+  }
+  if (current.artifactsPerPair !== previous.artifactsPerPair) {
+    needed.push({ kind: "artifacts", names: [String(current.artifactsPerPair)] });
+  }
+  return needed;
 }
 
 /** Whether two baselines describe the same seed-to-bytes mapping. */
@@ -237,13 +311,17 @@ function narrowedPairs(current: Baseline, previous: Baseline): readonly string[]
   return remaining.size > 0 ? [...remaining.keys()].sort() : undefined;
 }
 
-/** The sentence that has to be said whenever a mapping change is refused. */
-const BREAKING_CHANGE_RULE =
-  "A CHANGED SEED-TO-BYTES MAPPING IS A BREAKING CHANGE. A consumer is invited to commit a golden " +
-  "fixture and diff against it, so a release that changes what a seed maps to has to say so in " +
-  "that release's changelog entry. Add a changeset declaring a major change for this package, " +
-  "whose summary says which pairs moved and why, or (operator decision D57) a changeset whose " +
-  "body carries an `Output change:` section naming every format that moved and what changed.";
+/** The sentence that has to be said whenever a changed baseline is refused. */
+const MAPPING_RULE =
+  "A CHANGED SEED-TO-BYTES MAPPING HAS TO BE STATED. A consumer is invited to commit a golden " +
+  "fixture and diff against it, so a release that changes the committed baseline has to say how " +
+  "in that release's changelog entry, which is the changeset summary. Every release is a patch, " +
+  "so add a patch changeset for this package whose body carries one section for each kind of " +
+  "change, a paragraph that opens with its heading: `Output change:` naming every format whose " +
+  "bytes moved or that gained a pair, `Corpus narrowed:` naming every format that lost a pair " +
+  "and saying why, `Window change:` naming the new window, `Digest algorithm change:` naming the " +
+  "new algorithm, and `Artifact count change:` naming the new count. A major changeset does not " +
+  "pass this check: the version number tells a consumer nothing about which output moved.";
 
 /** What is added to a refusal when the change is a narrowed corpus rather than a moved mapping. */
 const narrowingNote = (removed: readonly string[]): string =>
@@ -251,11 +329,11 @@ const narrowingNote = (removed: readonly string[]): string =>
   `DIFFERENT BYTES. Every (format, seed) pair present in both baselines carries the same digest, ` +
   `and ${String(removed.length)} pair(s) came OUT of the graded set (${removed.join(", ")}). That ` +
   "is what the sanctioned narrowing looks like: an exclusion declared with its reason, never a " +
-  "tolerated difference. It is still refused without a major declaration, because the promise is " +
-  "not only that the mapping holds but that it is VERIFIED across the declared engines, and a " +
-  "pair that is no longer graded is that promise withdrawn without the consumer being told. " +
-  "Widening a promise is easy; narrowing one is consumer-visible, so it goes through this door " +
-  "too, and the changeset summary is where the consumer reads about it.";
+  "tolerated difference. It is still refused until a `Corpus narrowed:` section states it, " +
+  "because the promise is not only that the mapping holds but that it is VERIFIED across the " +
+  "declared engines, and a pair that is no longer graded is that promise withdrawn without the " +
+  "consumer being told. Widening a promise is easy; narrowing one is consumer-visible, so it is " +
+  "stated too, and the changeset summary is where the consumer reads about it.";
 
 /**
  * Decide the compatibility-window check.
@@ -287,7 +365,8 @@ export function decideWindow(input: WindowInput): WindowVerdict {
         `the committed determinism baseline exists on ${input.baseRef} and has been REMOVED in ` +
         "this tree. Deleting the baseline is a mapping change that takes its own evidence with " +
         "it, and there is no changeset that makes that acceptable. Restore it, or regenerate it " +
-        `and declare the change.\n\n${BREAKING_CHANGE_RULE}`,
+        "with `pnpm run determinism:digest --update-baseline` and state the change." +
+        `\n\n${MAPPING_RULE}`,
     };
   }
 
@@ -305,8 +384,8 @@ export function decideWindow(input: WindowInput): WindowVerdict {
       message:
         `${input.baseRef} carries no determinism baseline, so this change ESTABLISHES the window ` +
         `for ${currentRead.baseline.package.window} rather than breaking one. Nothing mapped to ` +
-        "anything before, so no mapping has changed and no breaking change is declared. Every " +
-        "later change to it is measured against this one.",
+        "anything before, so no mapping has changed and nothing has to be stated. Every later " +
+        "change to it is measured against this one.",
     };
   }
 
@@ -331,61 +410,57 @@ export function decideWindow(input: WindowInput): WindowVerdict {
     };
   }
 
-  const declaring = input.changesets.filter((changeset) =>
-    declaresMajorFor(changeset.text, input.packageName),
-  );
-  if (declaring.length > 0) {
+  const stated: string[] = [];
+  const unstated: string[] = [];
+  for (const requirement of requirements(currentRead.baseline, previousRead.baseline)) {
+    const heading = SECTION_HEADINGS[requirement.kind];
+    const verdicts = input.changesets.map((changeset) => ({
+      changeset,
+      section: statesSectionFor(
+        changeset.text,
+        input.packageName,
+        heading,
+        requirement.names,
+        requirement.kind !== "output" && requirement.kind !== "narrowed",
+      ),
+    }));
+    const naming = requirement.names.join(", ");
+    const stating = verdicts.filter((v) => v.section.ok);
+    if (stating.length > 0) {
+      stated.push(`${heading} (${naming}) in ${stating.map((v) => v.changeset.name).join(", ")}`);
+      continue;
+    }
+    const partial = verdicts.find((v) => v.section.missing.length < requirement.names.length);
+    unstated.push(
+      `${heading} naming ${naming}` +
+        (partial === undefined
+          ? ""
+          : ` (${partial.changeset.name} has the section, but it does not name ` +
+            `${partial.section.missing.join(", ")})`),
+    );
+  }
+
+  if (unstated.length === 0) {
     return {
       status: "pass",
       message:
-        `the committed determinism baseline differs from ${input.baseRef}, and ` +
-        `${declaring.map((c) => c.name).join(", ")} declares a major change for ` +
-        `${input.packageName}. The window is broken deliberately and the changelog entry for the ` +
-        "release will say so.",
+        `the committed determinism baseline differs from ${input.baseRef}, and the changesets ` +
+        `state every change: ${stated.join("; ")}. The changelog entry for the release will say ` +
+        "so.",
     };
-  }
-
-  const moved = movedFormats(currentRead.baseline, previousRead.baseline);
-  if (moved !== undefined && moved.length > 0) {
-    const verdicts = input.changesets.map((changeset) => ({
-      changeset,
-      stated: statesOutputChangeFor(changeset.text, input.packageName, moved),
-    }));
-    const stating = verdicts.filter((v) => v.stated.ok);
-    if (stating.length > 0) {
-      return {
-        status: "pass",
-        message:
-          `the committed determinism baseline differs from ${input.baseRef} for ` +
-          `${moved.map((f) => FORMAT_DISPLAY_NAMES[f] ?? f).join(", ")}, and ` +
-          `${stating.map((v) => v.changeset.name).join(", ")} states that output change in an ` +
-          "`Output change:` section naming every format that moved (operator decision D57). The " +
-          "changelog entry for the release will say so.",
-      };
-    }
-    const partial = verdicts.find((v) => v.stated.missing.length < moved.length);
-    if (partial !== undefined) {
-      return {
-        status: "fail",
-        message:
-          `the committed determinism baseline differs from ${input.baseRef}, and ` +
-          `${partial.changeset.name} has an \`Output change:\` section, but it does not name ` +
-          `${partial.stated.missing.join(", ")}, whose bytes moved too. Name every format that ` +
-          `moved.\n\n${BREAKING_CHANGE_RULE}`,
-      };
-    }
   }
 
   const narrowed = narrowedPairs(currentRead.baseline, previousRead.baseline);
   return {
     status: "fail",
     message:
-      `the committed determinism baseline differs from ${input.baseRef} and no changeset in this ` +
-      `tree declares a major change for ${input.packageName}` +
+      `the committed determinism baseline differs from ${input.baseRef} and the changesets for ` +
+      `${input.packageName} do not state every change` +
       (input.changesets.length === 0
         ? " (there are no changesets at all)"
-        : ` (${String(input.changesets.length)} changeset(s) present, none declaring major)`) +
-      `.\n\n${BREAKING_CHANGE_RULE}` +
+        : ` (${String(input.changesets.length)} changeset(s) present)`) +
+      `. Missing:\n${unstated.map((line) => `  - ${line}`).join("\n")}` +
+      `\n\n${MAPPING_RULE}` +
       (narrowed === undefined ? "" : narrowingNote(narrowed)),
   };
 }

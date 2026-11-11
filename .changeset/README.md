@@ -20,8 +20,16 @@ a fix, a documentation change and a breaking change are all released as a patch.
 A patch that breaks a caller says so in its summary: what changed, and what a caller must change to
 keep working. The version number alone tells a consumer nothing, so the summary has to.
 
-One rule is enforced rather than chosen: a change to the bytes a seed maps to has to be stated.
-`pnpm run check:determinism-window` accepts a changeset whose body carries an `Output change:`
-section, one paragraph, naming every format that moved (`C-CDA`, `HL7 v2`, `FHIR`, `X12`, `NCPDP`,
-`ASTM`) and saying what changed. It refuses a changed mapping stated only in prose. The check also
-accepts a major changeset, but we release patch only, so state the output change instead.
+One rule is enforced rather than chosen: a change to the committed determinism baseline has to be
+stated. `pnpm run check:determinism-window` reads the changesets for this package for one section
+per kind of change, each a paragraph that opens with its heading:
+
+- `Output change:` names every format whose bytes moved or that gained a graded pair (`C-CDA`,
+  `HL7 v2`, `FHIR`, `X12`, `NCPDP`, `ASTM`) and says what changed.
+- `Corpus narrowed:` names every format that lost a graded pair and says why.
+- `Window change:` names the new compatibility window.
+- `Digest algorithm change:` names the new digest algorithm.
+- `Artifact count change:` names the new number of artifacts digested per pair.
+
+It refuses a change stated only in prose, and it refuses a major changeset that carries no
+section: the version number is not the statement, the section is.

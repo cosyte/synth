@@ -1,28 +1,28 @@
 /**
- * THE COMPATIBILITY-WINDOW CHECK: A CHANGED SEED-TO-BYTES MAPPING IS A DECLARED BREAKING CHANGE.
+ * THE COMPATIBILITY-WINDOW CHECK: A CHANGED SEED-TO-BYTES MAPPING IS STATED IN THE CHANGELOG.
  *
  * The published promise is that a consumer can commit a golden fixture and diff against it. That
  * promise survives a deliberate change to the mapping only if the release that makes it SAYS SO,
  * and the changeset summary is the changelog entry for this package, so the changeset is the thing
- * checked.
+ * checked. Every release is a patch, so the statement is a named section in a patch changeset, one
+ * for each kind of change the baseline shows, and a major bump alone is no statement.
  *
  * The two states that are easy to get wrong are asserted first. Establishing a baseline where none
- * existed is NOT a break: nothing mapped to anything before, and calling it one would force a major
- * version bump to ship a check that changes no output at all. Deleting a baseline that DOES exist
- * upstream is a break that took its own evidence with it, and no changeset makes it acceptable.
+ * existed is NOT a change: nothing mapped to anything before, and calling it one would force a
+ * statement to ship a check that changes no output at all. Deleting a baseline that DOES exist
+ * upstream is a change that took its own evidence with it, and no changeset makes it acceptable.
  */
 
 import { describe, expect, it } from "vitest";
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  decideWindow,
-  declaresMajorFor,
-  statesOutputChangeFor,
-} from "../../scripts/determinism/window.js";
+import { decideWindow, statesOutputChangeFor } from "../../scripts/determinism/window.js";
 
 const PACKAGE = "@cosyte/synth";
+
+/** The headline every refusal of a changed baseline opens its rule with. */
+const MAPPING_RULE = "A CHANGED SEED-TO-BYTES MAPPING HAS TO BE STATED";
 
 /** A committed baseline carrying one digest per named pair. */
 const baseline = (
@@ -65,7 +65,7 @@ describe("the two states that are easy to get wrong", () => {
   });
 });
 
-describe("an unchanged mapping passes and a changed one needs a declared breaking change", () => {
+describe("an unchanged mapping passes and a changed one has to be stated", () => {
   it("passes when the baseline is unchanged", () => {
     const verdict = decide(baseline({ hl7v2: A }), baseline({ hl7v2: A }));
     expect(verdict.status).toBe("pass");
@@ -78,28 +78,28 @@ describe("an unchanged mapping passes and a changed one needs a declared breakin
     expect(verdict.status).toBe("pass");
   });
 
-  it("FAILS with the breaking-change rule when a digest moved and no changeset declares major", () => {
+  it("FAILS with the rule when a digest moved and there is no changeset", () => {
     const verdict = decide(baseline({ hl7v2: B }), baseline({ hl7v2: A }));
     expect(verdict.status).toBe("fail");
-    expect(verdict.message).toContain("A CHANGED SEED-TO-BYTES MAPPING IS A BREAKING CHANGE");
+    expect(verdict.message).toContain(MAPPING_RULE);
     expect(verdict.message).toContain("no changesets at all");
   });
 
-  it("passes when a changeset declares a major change for this package", () => {
-    const verdict = decide(baseline({ hl7v2: B }), baseline({ hl7v2: A }), [changeset("major")]);
-    expect(verdict.status).toBe("pass");
-    expect(verdict.message).toContain("brave-pandas-shout.md");
-  });
-
-  it("is not satisfied by a patch or a minor changeset", () => {
-    for (const bump of ["patch", "minor"]) {
+  it("is not satisfied by a changeset of any bump that states nothing", () => {
+    for (const bump of ["patch", "minor", "major"]) {
       const verdict = decide(baseline({ hl7v2: B }), baseline({ hl7v2: A }), [changeset(bump)]);
       expect(verdict.status, bump).toBe("fail");
-      expect(verdict.message).toContain("none declaring major");
+      expect(verdict.message).toContain("Output change: naming HL7 v2");
     }
   });
 
-  it("fails when the corpus grew or shrank without the mapping being declared changed", () => {
+  it("FAILS a major changeset alone, and says a major is no route", () => {
+    const verdict = decide(baseline({ hl7v2: B }), baseline({ hl7v2: A }), [changeset("major")]);
+    expect(verdict.status).toBe("fail");
+    expect(verdict.message).toContain("A major changeset does not pass this check");
+  });
+
+  it("fails when the corpus grew or shrank without the change being stated", () => {
     expect(decide(baseline({ hl7v2: A, fhir: B }), baseline({ hl7v2: A })).status).toBe("fail");
     expect(decide(baseline({ hl7v2: A }), baseline({ hl7v2: A, fhir: B })).status).toBe("fail");
   });
@@ -112,15 +112,15 @@ describe("an unchanged mapping passes and a changed one needs a declared breakin
     // moved one is. What the diagnostic must not do is describe it wrongly.
     const verdict = decide(baseline({ hl7v2: A }), baseline({ hl7v2: A, fhir: B }));
     expect(verdict.status).toBe("fail");
-    expect(verdict.message).toContain("A CHANGED SEED-TO-BYTES MAPPING IS A BREAKING CHANGE");
+    expect(verdict.message).toContain(MAPPING_RULE);
     expect(verdict.message).toContain("NO SEED MAPS TO DIFFERENT BYTES");
     expect(verdict.message).toContain("1 pair(s) came OUT of the graded set");
-    expect(verdict.message).toContain("fhir");
+    expect(verdict.message).toContain("Corpus narrowed: naming FHIR");
 
-    // A major changeset still clears it, by the same route as any other declared break.
+    // A major changeset alone no longer clears it.
     expect(
       decide(baseline({ hl7v2: A }), baseline({ hl7v2: A, fhir: B }), [changeset("major")]).status,
-    ).toBe("pass");
+    ).toBe("fail");
   });
 
   it("does not call a MOVED digest a narrowing, even when the corpus also shrank", () => {
@@ -135,21 +135,133 @@ describe("an unchanged mapping passes and a changed one needs a declared breakin
     expect(verdict.message).not.toContain("NO SEED MAPS TO DIFFERENT BYTES");
   });
 
-  it("fails when the window itself moved, which is not something a comparison can absorb", () => {
+  it("fails when the window itself moved and nothing states it", () => {
     const verdict = decide(
       baseline({ hl7v2: A }, { window: "1.x" }),
       baseline({ hl7v2: A }, { window: "0.x" }),
+      [changeset("major")],
     );
+    expect(verdict.status).toBe("fail");
+    expect(verdict.message).toContain("Window change: naming 1.x");
+  });
+
+  it("fails when the digest algorithm or the corpus size changed and nothing states it", () => {
+    const algorithm = decide(
+      baseline({ hl7v2: A }, { algorithm: "sha512" }),
+      baseline({ hl7v2: A }),
+    );
+    expect(algorithm.status).toBe("fail");
+    expect(algorithm.message).toContain("Digest algorithm change: naming sha512");
+    const perPair = decide(baseline({ hl7v2: A }, { perPair: 5 }), baseline({ hl7v2: A }));
+    expect(perPair.status).toBe("fail");
+    expect(perPair.message).toContain("Artifact count change: naming 5");
+  });
+});
+
+/** A patch changeset for this package whose body carries the given sections, one paragraph each. */
+const stating = (...sections: string[]) => ({
+  name: "quiet-otters-say.md",
+  text: `---\n"${PACKAGE}": patch\n---\n\nSummary sentence.\n\n${sections.join("\n\n")}\n`,
+});
+
+describe("every change the check allows lands with a patch changeset that states it", () => {
+  it("passes a NARROWED corpus with a Corpus narrowed section naming the format", () => {
+    const verdict = decide(baseline({ hl7v2: A }), baseline({ hl7v2: A, fhir: B }), [
+      stating("Corpus narrowed: FHIR seed 1 is no longer graded, because it diverged."),
+    ]);
+    expect(verdict.status).toBe("pass");
+    expect(verdict.message).toContain("quiet-otters-say.md");
+    expect(verdict.message).toContain("Corpus narrowed:");
+  });
+
+  it("passes a moved window with a Window change section naming the new window", () => {
+    const verdict = decide(
+      baseline({ hl7v2: A }, { window: "1.x" }),
+      baseline({ hl7v2: A }, { window: "0.x" }),
+      [stating("Window change: the baseline now covers 1.x.")],
+    );
+    expect(verdict.status).toBe("pass");
+  });
+
+  it("passes a changed algorithm with a Digest algorithm change section naming it", () => {
+    const verdict = decide(
+      baseline({ hl7v2: B }, { algorithm: "sha512" }),
+      baseline({ hl7v2: A }),
+      [stating("Digest algorithm change: the baseline is now taken with sha512.")],
+    );
+    expect(verdict.status).toBe("pass");
+  });
+
+  it("passes a changed artifact count with an Artifact count change section naming it", () => {
+    const verdict = decide(baseline({ hl7v2: B }, { perPair: 5 }), baseline({ hl7v2: A }), [
+      stating("Artifact count change: each pair now digests 5 artifacts."),
+    ]);
+    expect(verdict.status).toBe("pass");
+  });
+
+  it("does not take a number inside another number as the artifact count", () => {
+    const verdict = decide(baseline({ hl7v2: A }, { perPair: 5 }), baseline({ hl7v2: A }), [
+      stating("Artifact count change: each pair now digests 15 artifacts."),
+    ]);
     expect(verdict.status).toBe("fail");
   });
 
-  it("fails when the digest algorithm or the corpus size changed", () => {
-    expect(
-      decide(baseline({ hl7v2: A }, { algorithm: "sha512" }), baseline({ hl7v2: A })).status,
-    ).toBe("fail");
-    expect(decide(baseline({ hl7v2: A }, { perPair: 5 }), baseline({ hl7v2: A })).status).toBe(
-      "fail",
-    );
+  it("needs a section for EVERY kind of change the baseline shows", () => {
+    const current = baseline({ ccda: B }, { window: "1.x" });
+    const previous = baseline({ ccda: A, hl7v2: A }, { window: "0.x" });
+    const partial = decide(current, previous, [
+      stating("Output change: C-CDA documents gain a code."),
+    ]);
+    expect(partial.status).toBe("fail");
+    expect(partial.message).toContain("Corpus narrowed: naming HL7 v2");
+    expect(partial.message).toContain("Window change: naming 1.x");
+    expect(partial.message).not.toContain("Output change: naming");
+
+    const whole = decide(current, previous, [
+      stating(
+        "Output change: C-CDA documents gain a code.",
+        "Corpus narrowed: HL7 v2 seed 1 is no longer graded.",
+        "Window change: the baseline now covers 1.x.",
+      ),
+    ]);
+    expect(whole.status).toBe("pass");
+  });
+
+  it("takes the sections from more than one changeset", () => {
+    const verdict = decide(baseline({ ccda: B }), baseline({ ccda: A, hl7v2: A }), [
+      stating("Output change: C-CDA documents gain a code."),
+      { ...stating("Corpus narrowed: HL7 v2 seed 1 is no longer graded."), name: "b.md" },
+    ]);
+    expect(verdict.status).toBe("pass");
+  });
+
+  it("does not read a section from a changeset for another package", () => {
+    const other = {
+      name: "other.md",
+      text: '---\n"@cosyte/hl7": patch\n---\n\nCorpus narrowed: FHIR.\n',
+    };
+    const verdict = decide(baseline({ hl7v2: A }), baseline({ hl7v2: A, fhir: B }), [other]);
+    expect(verdict.status).toBe("fail");
+  });
+});
+
+describe("the check's own words name no major route and no internal reference", () => {
+  const scripts = ["window.ts", "digest.ts", "check-window.ts"].map((name) => ({
+    name,
+    text: readFileSync(join(import.meta.dirname, "../../scripts/determinism", name), "utf8"),
+  }));
+
+  it("never tells a contributor to declare a major", () => {
+    for (const { name, text } of scripts) {
+      expect(text, name).not.toMatch(/declar\w*\s+(?:a\s+)?major/i);
+    }
+  });
+
+  it("cites no decision id and no path into a private plan", () => {
+    for (const { name, text } of scripts) {
+      expect(text, name).not.toMatch(/\bD\d{1,3}\b/);
+      expect(text, name).not.toContain("decisions.md");
+    }
   });
 });
 
@@ -172,36 +284,9 @@ describe("the check refuses rather than passing when it cannot tell", () => {
   });
 });
 
-describe("a major declaration is read from the changeset frontmatter and nowhere else", () => {
-  it("reads a declaration with or without quotes", () => {
-    expect(declaresMajorFor(`---\n"${PACKAGE}": major\n---\n\nx\n`, PACKAGE)).toBe(true);
-    expect(declaresMajorFor(`---\n${PACKAGE}: major\n---\n\nx\n`, PACKAGE)).toBe(true);
-    expect(declaresMajorFor(`---\n'${PACKAGE}': "major"\n---\n\nx\n`, PACKAGE)).toBe(true);
-  });
-
-  it("is not fooled by prose in the summary", () => {
-    const text = `---\n"${PACKAGE}": patch\n---\n\nThis is a major change to ${PACKAGE}: major.\n`;
-    expect(declaresMajorFor(text, PACKAGE)).toBe(false);
-  });
-
-  it("is not satisfied by another package declaring major", () => {
-    const text = `---\n"@cosyte/hl7": major\n"${PACKAGE}": patch\n---\n\nx\n`;
-    expect(declaresMajorFor(text, PACKAGE)).toBe(false);
-  });
-
-  it("is satisfied when this package is one of several", () => {
-    const text = `---\n"@cosyte/hl7": patch\n"${PACKAGE}": major\n---\n\nx\n`;
-    expect(declaresMajorFor(text, PACKAGE)).toBe(true);
-  });
-
-  it("reads nothing out of a file with no frontmatter", () => {
-    expect(declaresMajorFor(`"${PACKAGE}": major\n`, PACKAGE)).toBe(false);
-  });
-});
-
 /**
- * THE SECOND DOOR: A STATED OUTPUT CHANGE, by the operator's decision D57 (2026-11-07). A changeset of
- * any bump passes a moved mapping when its `Output change:` section names every format that moved.
+ * A STATED OUTPUT CHANGE. A changeset passes a moved mapping when its `Output change:` section names
+ * every format that moved.
  * The two committed fixtures are the same change, once stated for the gate and once only in prose:
  * the first must turn the check green and the second must leave it red.
  */
@@ -212,7 +297,7 @@ const fixture = (name: string): { name: string; text: string } => ({
 const STATED = fixture("changeset-output-stated.md");
 const UNSTATED = fixture("changeset-output-unstated.md");
 
-describe("a stated output change passes a moved mapping in a patch (D57)", () => {
+describe("a stated output change passes a moved mapping in a patch", () => {
   it("PASSES when a patch changeset's Output change section names the format that moved", () => {
     const verdict = decide(baseline({ ccda: B, hl7v2: A }), baseline({ ccda: A, hl7v2: A }), [
       STATED,
@@ -220,7 +305,6 @@ describe("a stated output change passes a moved mapping in a patch (D57)", () =>
     expect(verdict.status).toBe("pass");
     expect(verdict.message).toContain("changeset-output-stated.md");
     expect(verdict.message).toContain("C-CDA");
-    expect(verdict.message).toContain("D57");
   });
 
   it("FAILS for the same change stated only in prose, with no Output change section", () => {
@@ -228,7 +312,7 @@ describe("a stated output change passes a moved mapping in a patch (D57)", () =>
       UNSTATED,
     ]);
     expect(verdict.status).toBe("fail");
-    expect(verdict.message).toContain("A CHANGED SEED-TO-BYTES MAPPING IS A BREAKING CHANGE");
+    expect(verdict.message).toContain(MAPPING_RULE);
     expect(verdict.message).toContain("Output change:");
   });
 
@@ -240,13 +324,14 @@ describe("a stated output change passes a moved mapping in a patch (D57)", () =>
     expect(verdict.message).toContain("does not name HL7 v2");
   });
 
-  it("does not cover a NARROWED corpus: that still needs a major", () => {
+  it("does not cover a NARROWED corpus: that has its own section", () => {
     const verdict = decide(baseline({ ccda: A }), baseline({ ccda: A, hl7v2: A }), [STATED]);
     expect(verdict.status).toBe("fail");
     expect(verdict.message).toContain("came OUT of the graded set");
+    expect(verdict.message).toContain("Corpus narrowed: naming HL7 v2");
   });
 
-  it("does not cover a moved window, which no section describes", () => {
+  it("does not cover a moved window: that has its own section", () => {
     const verdict = decide(
       baseline({ ccda: B }, { window: "1.x" }),
       baseline({ ccda: A }, { window: "0.x" }),
@@ -255,9 +340,10 @@ describe("a stated output change passes a moved mapping in a patch (D57)", () =>
     expect(verdict.status).toBe("fail");
   });
 
-  it("still passes a major changeset with no section, the first door unchanged", () => {
+  it("does not pass a major changeset with no section", () => {
     const verdict = decide(baseline({ ccda: B }), baseline({ ccda: A }), [changeset("major")]);
-    expect(verdict.status).toBe("pass");
+    expect(verdict.status).toBe("fail");
+    expect(verdict.message).toContain("Output change: naming C-CDA");
   });
 });
 

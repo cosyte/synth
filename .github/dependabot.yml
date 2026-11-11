@@ -7,7 +7,7 @@ version: 2
 # within hours out of this repository. Security updates are not delayed.
 #
 # Every commit message, and so every pull request title, is `chore(deps): bump ...` or
-# `chore(deps-dev): bump ...`: Conventional Commits, which `pr-title.yml` checks (ST24). Without a
+# `chore(deps-dev): bump ...`: Conventional Commits, which `pr-title.yml` checks. Without a
 # prefix Dependabot guesses one from the history, and a guess is not a title rule.
 #
 # What the npm entry sees. The seven `@cosyte` siblings this package generates through (`hl7`,
@@ -15,14 +15,14 @@ version: 2
 # `pnpm-lock.yaml`, so this entry watches the versions the tests and the determinism digest
 # exercise. The siblings ARE the builders every generator emits through, so a bump can move the
 # bytes a seed produces: the determinism check reds a bump that does, and the bump then needs a
-# changeset that states the output change (D57). There are ZERO runtime `dependencies` (the parsers
+# changeset that states the output change. There are ZERO runtime `dependencies` (the parsers
 # are optional peers), so the production group stays empty until one is added.
 #
 # `pnpm.overrides` pins esbuild and js-yaml above advisory ranges, and Dependabot does not manage
 # overrides: when a bump makes one redundant, remove it by hand.
 #
 # The cosyte/.github callers name a published `workflows-*` reference, which moves by hand with every
-# caller here (ST37), not through this file.
+# caller here, not through this file.
 updates:
   - package-ecosystem: npm
     directory: "/"
@@ -69,7 +69,7 @@ updates:
       # shared CI runs the official rhysd/actionlint release, checked by its SHA-256, instead.
       - dependency-name: "reviewdog/action-actionlint"
       # The cosyte/.github reusable workflows are pinned to the commit of a published `workflows-*`
-      # reference and move by hand, with every caller here, together (ST37). Left to Dependabot, a
+      # reference and move by hand, with every caller here, together. Left to Dependabot, a
       # commit pin with no version tag is offered the newest commit on cosyte/.github's main, which is
       # not a published reference.
       - dependency-name: "cosyte/.github*"

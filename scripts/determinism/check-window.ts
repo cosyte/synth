@@ -5,9 +5,9 @@
  * THE COMPATIBILITY-WINDOW CHECK. Reached by `pnpm run check:determinism-window`.
  *
  * A changed committed baseline means some seed maps to different bytes than it did on the default
- * branch. A consumer is invited to commit a golden fixture and diff against it, so that is a
- * BREAKING CHANGE and it has to be declared as one in the changeset whose summary becomes the
- * changelog entry for the release.
+ * branch, or that the graded corpus or the way it is digested changed. A consumer is invited to
+ * commit a golden fixture and diff against it, so every such change has to be STATED, in a named
+ * section of the patch changeset whose summary becomes the changelog entry for the release.
  *
  * This file is the impure half: it resolves the default branch, reads two files out of git, lists
  * the changesets, and hands all of it to `decideWindow`, which is where the decision lives and
