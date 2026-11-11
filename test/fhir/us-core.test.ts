@@ -39,6 +39,7 @@ import {
   roundTrip,
   usCoreCoverage,
 } from "../../src/fhir/index.js";
+import { checkProperty } from "../support/property.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SD_DIR = join(HERE, "..", "us-core-profiles");
@@ -78,7 +79,7 @@ const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 }
 
 describe("US Core conformance: validated against the real US Core 6.1.0 profiles (zero errors)", () => {
   it("US Core Patient validates clean against us-core-patient", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rt = roundTrip(generatePatient({ seed: s, profile: "us-core" }), {
           profiles: [SD.patient],
@@ -91,7 +92,7 @@ describe("US Core conformance: validated against the real US Core 6.1.0 profiles
   });
 
   it("US Core Condition (problem-list item) validates clean", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rt = roundTrip(generateCondition({ seed: s }), { profiles: [SD.condition] });
         expect(rt.errors, `condition seed ${String(s)}`).toEqual([]);
@@ -102,7 +103,7 @@ describe("US Core conformance: validated against the real US Core 6.1.0 profiles
   });
 
   it("US Core Laboratory Result Observation validates clean", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rt = roundTrip(generateObservationLab({ seed: s }), {
           profiles: [SD.observationLab],
@@ -115,7 +116,7 @@ describe("US Core conformance: validated against the real US Core 6.1.0 profiles
   });
 
   it("US Core Vital Signs Observation validates clean", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rt = roundTrip(generateVitalSign({ seed: s }), { profiles: [SD.vitalSigns] });
         expect(rt.errors, `vital-sign seed ${String(s)}`).toEqual([]);
@@ -126,7 +127,7 @@ describe("US Core conformance: validated against the real US Core 6.1.0 profiles
   });
 
   it("US Core MedicationRequest validates clean (incl. the us-core-21 requester invariant)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rt = roundTrip(generateMedicationRequest({ seed: s }), {
           profiles: [SD.medicationRequest],
@@ -139,7 +140,7 @@ describe("US Core conformance: validated against the real US Core 6.1.0 profiles
   });
 
   it("US Core Encounter validates clean against us-core-encounter", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rt = roundTrip(generateEncounter({ seed: s }), { profiles: [SD.encounter] });
         expect(rt.errors, `encounter seed ${String(s)}`).toEqual([]);
@@ -150,7 +151,7 @@ describe("US Core conformance: validated against the real US Core 6.1.0 profiles
   });
 
   it("US Core Immunization validates clean against us-core-immunization", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rt = roundTrip(generateImmunization({ seed: s }), { profiles: [SD.immunization] });
         expect(rt.errors, `immunization seed ${String(s)}`).toEqual([]);
@@ -161,7 +162,7 @@ describe("US Core conformance: validated against the real US Core 6.1.0 profiles
   });
 
   it("US Core AllergyIntolerance validates clean (incl. ait-1/ait-2)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rt = roundTrip(generateAllergyIntolerance({ seed: s }), {
           profiles: [SD.allergyIntolerance],
@@ -174,7 +175,7 @@ describe("US Core conformance: validated against the real US Core 6.1.0 profiles
   });
 
   it("US Core Procedure validates clean against us-core-procedure", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rt = roundTrip(generateProcedure({ seed: s }), { profiles: [SD.procedure] });
         expect(rt.errors, `procedure seed ${String(s)}`).toEqual([]);
@@ -185,7 +186,7 @@ describe("US Core conformance: validated against the real US Core 6.1.0 profiles
   });
 
   it("US Core Laboratory DiagnosticReport validates clean (incl. LAB category + us-core-8/9)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rt = roundTrip(generateDiagnosticReport({ seed: s }), {
           profiles: [SD.diagnosticReportLab],
@@ -198,7 +199,7 @@ describe("US Core conformance: validated against the real US Core 6.1.0 profiles
   });
 
   it("US Core Provenance validates clean against us-core-provenance", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rt = roundTrip(generateProvenance({ seed: s }), { profiles: [SD.provenance] });
         expect(rt.errors, `provenance seed ${String(s)}`).toEqual([]);
@@ -258,7 +259,7 @@ describe("profile-addressed generation validates against the profile it claims",
       expect(sd.url).toBe(entry.canonical);
       expect(sd.snapshot?.length ?? 0).toBeGreaterThan(0);
 
-      fc.assert(
+      checkProperty(
         fc.property(seed(), (s) => {
           const rt = roundTrip(generateUsCoreProfile({ profile: entry.profile, seed: s }), {
             profiles: [sd],
@@ -267,7 +268,6 @@ describe("profile-addressed generation validates against the profile it claims",
           expect(rt.specClean).toBe(true);
           expect(claimedProfiles(rt.content)).toContain(entry.canonical);
         }),
-        { numRuns: 40 },
       );
     });
   }

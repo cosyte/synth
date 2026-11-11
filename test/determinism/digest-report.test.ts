@@ -178,20 +178,26 @@ describe("a report that cannot be written is a failed run, not a quiet one", () 
     expect(existsSync(destination)).toBe(false);
   });
 
-  it("fails naming the destination when permission is denied, and writes nothing", () => {
-    const { rendered } = reportOverRealArtifacts();
-    const read = parseReport(rendered);
-    expect(read.ok).toBe(true);
-    if (!read.ok) return;
+  // Skipped on Windows only: a directory's POSIX mode bits do not stop a write there, since
+  // `chmodSync` sets nothing but the read-only attribute, which Windows ignores on a directory. So no
+  // permission is ever denied and the case would test nothing.
+  it.skipIf(process.platform === "win32")(
+    "fails naming the destination when permission is denied, and writes nothing",
+    () => {
+      const { rendered } = reportOverRealArtifacts();
+      const read = parseReport(rendered);
+      expect(read.ok).toBe(true);
+      if (!read.ok) return;
 
-    const dir = scratch();
-    chmodSync(dir, 0o500);
-    const destination = join(dir, "node-22.json");
-    expect(() => {
-      writeReport(destination, read.report);
-    }).toThrow(destination);
-    expect(existsSync(destination)).toBe(false);
-  });
+      const dir = scratch();
+      chmodSync(dir, 0o500);
+      const destination = join(dir, "node-22.json");
+      expect(() => {
+        writeReport(destination, read.report);
+      }).toThrow(destination);
+      expect(existsSync(destination)).toBe(false);
+    },
+  );
 
   it("writes the report when the destination is writable", () => {
     const { rendered } = reportOverRealArtifacts();

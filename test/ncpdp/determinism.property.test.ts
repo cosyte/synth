@@ -18,12 +18,13 @@ import {
   generateB3,
   ncpdpCorpus,
 } from "../../src/ncpdp/index.js";
+import { checkProperty } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
 describe("NCPDP seed-determinism (mandatory property)", () => {
   it("each generator is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         for (const g of [
           generateNewRx,
@@ -36,7 +37,6 @@ describe("NCPDP seed-determinism (mandatory property)", () => {
           expect(g({ seed: s })).toBe(g({ seed: s }));
         }
       }),
-      { numRuns: 80 },
     );
   });
 
@@ -46,13 +46,12 @@ describe("NCPDP seed-determinism (mandatory property)", () => {
   });
 
   it("an NCPDP corpus is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.integer({ min: 1, max: 6 }), (s, count) => {
         const c1 = ncpdpCorpus({ seed: s, count }).artifacts.map((a) => a.content);
         const c2 = ncpdpCorpus({ seed: s, count }).artifacts.map((a) => a.content);
         expect(c1).toEqual(c2);
       }),
-      { numRuns: 40 },
     );
   });
 });

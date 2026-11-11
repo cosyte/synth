@@ -25,6 +25,7 @@ import {
   astmFramedRoundTrip,
 } from "../../src/astm/index.js";
 import { SYNTHETIC_GIVEN_NAMES, SYNTHETIC_FAMILY_NAMES } from "../../src/index.js";
+import { checkProperty } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
@@ -63,7 +64,7 @@ function assertAstmSynthetic(text: string): void {
 
 describe("ASTM synthetic-safety (mandatory property)", () => {
   it("every record message draws all P-record identity from synthetic sources", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         assertAstmSynthetic(generateAstmResult({ seed: s }));
         assertAstmSynthetic(generateAstmOrder({ seed: s }));
@@ -73,21 +74,20 @@ describe("ASTM synthetic-safety (mandatory property)", () => {
   });
 
   it("the framed twin carries the same synthetic P-record identity", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const bytes = generateAstmResultFramed({ seed: s });
         let text = "";
         for (const b of bytes) text += String.fromCharCode(b);
         assertAstmSynthetic(text);
       }),
-      { numRuns: 80 },
     );
   });
 });
 
 describe("ASTM spec-clean round-trip (mandatory property: the first head of the hazard)", () => {
   it("every generated record message round-trips spec-clean (zero warnings, byte-stable)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         expect(astmRoundTrip(generateAstmResult({ seed: s })).specClean).toBe(true);
         expect(astmRoundTrip(generateAstmOrder({ seed: s })).specClean).toBe(true);
@@ -97,11 +97,10 @@ describe("ASTM spec-clean round-trip (mandatory property: the first head of the 
   });
 
   it("every generated framed message round-trips spec-clean (zero frame + record warnings)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         expect(astmFramedRoundTrip(generateAstmResultFramed({ seed: s })).specClean).toBe(true);
       }),
-      { numRuns: 100 },
     );
   });
 });

@@ -38,6 +38,7 @@ import {
   generateProvenance,
   generateVitalSign,
 } from "../../src/fhir/index.js";
+import { checkProperty, propertyTimeout } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
@@ -126,31 +127,35 @@ function structuredHits(json: unknown): string[] {
 //
 // A ceiling and not a smaller `numRuns`: the case count IS the strength of a synthetic-safety sweep.
 describe("synthetic-safety gate, generated FHIR output (must be ZERO)", () => {
-  it("no resource leaks a real-data SSN or non-reserved email shape", () => {
-    fc.assert(
-      fc.property(seed(), (s) => {
-        const resources = [
-          generatePatient({ seed: s, profile: "us-core" }),
-          generateCondition({ seed: s }),
-          generateObservationLab({ seed: s }),
-          generateVitalSign({ seed: s }),
-          generateMedicationRequest({ seed: s }),
-          generateEncounter({ seed: s }),
-          generateImmunization({ seed: s }),
-          generateAllergyIntolerance({ seed: s }),
-          generateProcedure({ seed: s }),
-          generateDiagnosticReport({ seed: s }),
-          generateProvenance({ seed: s }),
-          generateBundle({ seed: s, type: "transaction" }),
-          generateBundle({ seed: s, type: "document" }),
-        ];
-        for (const r of resources) {
-          expect(realDataHits(serializeResource(r))).toEqual([]);
-        }
-      }),
-      { numRuns: 250 },
-    );
-  }, 60_000);
+  it(
+    "no resource leaks a real-data SSN or non-reserved email shape",
+    () => {
+      checkProperty(
+        fc.property(seed(), (s) => {
+          const resources = [
+            generatePatient({ seed: s, profile: "us-core" }),
+            generateCondition({ seed: s }),
+            generateObservationLab({ seed: s }),
+            generateVitalSign({ seed: s }),
+            generateMedicationRequest({ seed: s }),
+            generateEncounter({ seed: s }),
+            generateImmunization({ seed: s }),
+            generateAllergyIntolerance({ seed: s }),
+            generateProcedure({ seed: s }),
+            generateDiagnosticReport({ seed: s }),
+            generateProvenance({ seed: s }),
+            generateBundle({ seed: s, type: "transaction" }),
+            generateBundle({ seed: s, type: "document" }),
+          ];
+          for (const r of resources) {
+            expect(realDataHits(serializeResource(r))).toEqual([]);
+          }
+        }),
+        { numRuns: 250 },
+      );
+    },
+    propertyTimeout(60_000),
+  );
 
   it("the sweep FAILS on an ITIN-formatted SSN in a resource (true positive, not vacuous)", () => {
     // The sweeps above only ever see values the (fixed) generator emits, so the ITIN arm is never
@@ -163,42 +168,54 @@ describe("synthetic-safety gate, generated FHIR output (must be ZERO)", () => {
     expect(realDataHits(`${json} ${ITIN_SHAPED}`)).toEqual([`itin:${ITIN_SHAPED}`]);
   });
 
-  it("every Patient identity locus is provably synthetic", () => {
-    fc.assert(
-      fc.property(seed(), (s) => {
-        const json = JSON.parse(
-          serializeResource(generatePatient({ seed: s, profile: "us-core" })),
-        ) as {
-          identifier: { system: string }[];
-        };
-        expect(structuredHits(json)).toEqual([]);
-        // The MRN lives under the synthetic assigning-authority OID, never a real facility namespace.
-        expect(json.identifier[0]?.system).toBe(SYNTH_OID);
-      }),
-      { numRuns: 250 },
-    );
-  }, 60_000);
+  it(
+    "every Patient identity locus is provably synthetic",
+    () => {
+      checkProperty(
+        fc.property(seed(), (s) => {
+          const json = JSON.parse(
+            serializeResource(generatePatient({ seed: s, profile: "us-core" })),
+          ) as {
+            identifier: { system: string }[];
+          };
+          expect(structuredHits(json)).toEqual([]);
+          // The MRN lives under the synthetic assigning-authority OID, never a real facility namespace.
+          expect(json.identifier[0]?.system).toBe(SYNTH_OID);
+        }),
+        { numRuns: 250 },
+      );
+    },
+    propertyTimeout(60_000),
+  );
 
-  it("a Bundle's every contained resource is synthetic at every identity locus", () => {
-    fc.assert(
-      fc.property(seed(), (s) => {
-        const json: unknown = JSON.parse(
-          serializeResource(generateBundle({ seed: s, type: "collection" })),
-        );
-        expect(structuredHits(json)).toEqual([]);
-      }),
-      { numRuns: 200 },
-    );
-  }, 60_000);
+  it(
+    "a Bundle's every contained resource is synthetic at every identity locus",
+    () => {
+      checkProperty(
+        fc.property(seed(), (s) => {
+          const json: unknown = JSON.parse(
+            serializeResource(generateBundle({ seed: s, type: "collection" })),
+          );
+          expect(structuredHits(json)).toEqual([]);
+        }),
+        { numRuns: 200 },
+      );
+    },
+    propertyTimeout(60_000),
+  );
 
-  it("a document Bundle (Composition + full spine) is synthetic at every identity locus", () => {
-    fc.assert(
-      fc.property(seed(), (s) => {
-        const content = serializeResource(generateBundle({ seed: s, type: "document" }));
-        expect(realDataHits(content)).toEqual([]);
-        expect(structuredHits(JSON.parse(content))).toEqual([]);
-      }),
-      { numRuns: 200 },
-    );
-  }, 60_000);
+  it(
+    "a document Bundle (Composition + full spine) is synthetic at every identity locus",
+    () => {
+      checkProperty(
+        fc.property(seed(), (s) => {
+          const content = serializeResource(generateBundle({ seed: s, type: "document" }));
+          expect(realDataHits(content)).toEqual([]);
+          expect(structuredHits(JSON.parse(content))).toEqual([]);
+        }),
+        { numRuns: 200 },
+      );
+    },
+    propertyTimeout(60_000),
+  );
 });

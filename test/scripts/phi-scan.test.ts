@@ -118,7 +118,12 @@ const REPO_ROOT = process.cwd();
 const SCANNER_PATH = join(REPO_ROOT, "scripts", "phi-scan.ts");
 const ALLOW_LIST_PATH = join(REPO_ROOT, "scripts", "phi-allow-list.txt");
 const OVERRIDES_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
-const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
+/**
+ * tsx's own command-line entry, which the `node_modules/.bin/tsx` shim starts. The test starts it
+ * with this runtime directly: on Windows that shim is a `.cmd` file, which a process cannot start
+ * without a shell.
+ */
+const TSX_CLI = join(REPO_ROOT, "node_modules", "tsx", "dist", "cli.mjs");
 
 /**
  * WHY THE SWEEP SPAWNS `node` AND NOT `tsx`, THOUGH `pnpm phi-scan` USES `tsx`.
@@ -199,7 +204,7 @@ function runScannerIn(cwd: string, args: string[], extraEnv: NodeJS.ProcessEnv =
 
 /** The `tsx` invocation `pnpm phi-scan` actually uses, kept for the one test that pins it. */
 function runScannerViaTsx(args: string[]): RunResult {
-  const r = spawnSync(TSX_BIN, [SCANNER_PATH, ...args], {
+  const r = spawnSync(process.execPath, [TSX_CLI, SCANNER_PATH, ...args], {
     cwd: REPO_ROOT,
     encoding: "utf8",
     shell: false,
@@ -1921,19 +1926,24 @@ describe("phi-scan: a non-regular in-scope entry refuses the scan, on both route
     expect(r.stderr).toMatch(/for a symbolic link it hands back the target path/);
   });
 
-  it("refuses a FIFO with its own kind token: the rule is not keyed on symlinks", () => {
-    // A FIFO is the case that would BLOCK the gate forever if anything followed it.
-    const r = withGitRoot((root) => {
-      mkdirSync(join(root, "src"), { recursive: true });
-      const made = spawnSync("mkfifo", [join(root, "src", "pipe.xml")], { shell: false });
-      // NO SILENT SKIP. A case that quietly no-ops when its setup fails is a green
-      // test over nothing, which is the shape this whole slice exists to refuse.
-      if (made.status !== 0) throw new Error(`mkfifo failed: ${String(made.stderr)}`);
-      return runScannerIn(root, []);
-    });
-    expect(r.code, `stdout: ${r.stdout}`).toBe(2);
-    expect(r.stderr).toContain("src/pipe.xml (a FIFO)");
-  });
+  // Skipped on Windows only: its file systems have no FIFO, and the `mkfifo` that Git for Windows
+  // ships makes an ordinary file, so there is no FIFO for the scanner to refuse.
+  it.skipIf(process.platform === "win32")(
+    "refuses a FIFO with its own kind token: the rule is not keyed on symlinks",
+    () => {
+      // A FIFO is the case that would BLOCK the gate forever if anything followed it.
+      const r = withGitRoot((root) => {
+        mkdirSync(join(root, "src"), { recursive: true });
+        const made = spawnSync("mkfifo", [join(root, "src", "pipe.xml")], { shell: false });
+        // NO SILENT SKIP. A case that quietly no-ops when its setup fails is a green
+        // test over nothing, which is the shape this whole slice exists to refuse.
+        if (made.status !== 0) throw new Error(`mkfifo failed: ${String(made.stderr)}`);
+        return runScannerIn(root, []);
+      });
+      expect(r.code, `stdout: ${r.stdout}`).toBe(2);
+      expect(r.stderr).toContain("src/pipe.xml (a FIFO)");
+    },
+  );
 
   it("--staged REFUSES a staged symlink, whose blob is the target PATH and not content", () => {
     const { scanned, blob } = withGitRoot((root) => {
@@ -2225,132 +2235,139 @@ function withToctouRoot<T>(
 /** A build-tool transient, seeded INSIDE a scan root (`scripts/`), never at the root. */
 const DECOY = "scripts/zz-toctou-transient.mjs";
 
-describe("phi-scan: the enumeration TOCTOU window", () => {
-  it("tolerates an UNTRACKED file gone between enumeration and read, and says so", () => {
-    const r = withToctouRoot(
-      { git: true },
-      (root) => `rm -f '${join(root, DECOY)}'`,
-      (root, shim) => {
-        put(root, DECOY, 'export default { entry: ["src/index.ts"] };\n');
-        return runScannerShimmed(root, shim);
-      },
-    );
-    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
-    expect(r.stdout).toMatch(/OK, no hits/);
-    // Never silent: the skip is named, with the path that went away.
-    expect(r.stderr).toMatch(/skipped 1 untracked file\(s\) gone between enumeration and read/);
-    expect(r.stderr).toContain(DECOY);
-    // And the denominator does not count it. A well-formed throwaway root observes
-    // exactly its three seeded files, so a tolerated skip must leave the count at 3,
-    // not 4.
-    expect(scannedCount(r)).toBe(SEEDED_ROOT_FILES.length);
-  });
+// Skipped on Windows only: the hook into the window is a POSIX shell script named `git` placed
+// first on `PATH`, and Windows starts neither a shell script nor a file without an `.exe` or `.cmd`
+// extension when the scanner runs `git`, so the shim never runs and the window is never hit.
+describe.skipIf(process.platform === "win32")(
+  "phi-scan: the enumeration TOCTOU window",
+  () => {
+    it("tolerates an UNTRACKED file gone between enumeration and read, and says so", () => {
+      const r = withToctouRoot(
+        { git: true },
+        (root) => `rm -f '${join(root, DECOY)}'`,
+        (root, shim) => {
+          put(root, DECOY, 'export default { entry: ["src/index.ts"] };\n');
+          return runScannerShimmed(root, shim);
+        },
+      );
+      expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+      expect(r.stdout).toMatch(/OK, no hits/);
+      // Never silent: the skip is named, with the path that went away.
+      expect(r.stderr).toMatch(/skipped 1 untracked file\(s\) gone between enumeration and read/);
+      expect(r.stderr).toContain(DECOY);
+      // And the denominator does not count it. A well-formed throwaway root observes
+      // exactly its three seeded files, so a tolerated skip must leave the count at 3,
+      // not 4.
+      expect(scannedCount(r)).toBe(SEEDED_ROOT_FILES.length);
+    });
 
-  it("still REFUSES when a TRACKED file vanishes in the same window", () => {
-    // The committed corpus is what the gate promises to have observed, so a tracked
-    // file that cannot be read is an incomplete scan, not a transient.
-    const r = withToctouRoot(
-      { git: true },
-      (root) => `rm -f '${join(root, "src/committed.xml")}'`,
-      (root, shim) => {
-        put(root, "src/committed.xml", CLEAN_DOC);
-        git(root, ["add", "--", "src/committed.xml"]);
-        return runScannerShimmed(root, shim);
-      },
-    );
-    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toMatch(/could not read src\/committed\.xml/);
-    expect(r.stderr).toMatch(/ENOENT/);
-  });
+    it("still REFUSES when a TRACKED file vanishes in the same window", () => {
+      // The committed corpus is what the gate promises to have observed, so a tracked
+      // file that cannot be read is an incomplete scan, not a transient.
+      const r = withToctouRoot(
+        { git: true },
+        (root) => `rm -f '${join(root, "src/committed.xml")}'`,
+        (root, shim) => {
+          put(root, "src/committed.xml", CLEAN_DOC);
+          git(root, ["add", "--", "src/committed.xml"]);
+          return runScannerShimmed(root, shim);
+        },
+      );
+      expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+      expect(r.stderr).toMatch(/could not read src\/committed\.xml/);
+      expect(r.stderr).toMatch(/ENOENT/);
+    });
 
-  it("still REFUSES a non-ENOENT read failure on an untracked file", () => {
-    // Replaced by a directory rather than deleted: EISDIR is a scan that failed, not
-    // a file that went away, so the tolerance must not swallow it.
-    const r = withToctouRoot(
-      { git: true },
-      (root) => `rm -f '${join(root, DECOY)}'\nmkdir -p '${join(root, DECOY)}'`,
-      (root, shim) => {
-        put(root, DECOY, "export default {};\n");
-        return runScannerShimmed(root, shim);
-      },
-    );
-    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toMatch(/could not read/);
-    expect(r.stderr).toMatch(/EISDIR/);
-  });
+    it("still REFUSES a non-ENOENT read failure on an untracked file", () => {
+      // Replaced by a directory rather than deleted: EISDIR is a scan that failed, not
+      // a file that went away, so the tolerance must not swallow it.
+      const r = withToctouRoot(
+        { git: true },
+        (root) => `rm -f '${join(root, DECOY)}'\nmkdir -p '${join(root, DECOY)}'`,
+        (root, shim) => {
+          put(root, DECOY, "export default {};\n");
+          return runScannerShimmed(root, shim);
+        },
+      );
+      expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+      expect(r.stderr).toMatch(/could not read/);
+      expect(r.stderr).toMatch(/EISDIR/);
+    });
 
-  it("REFUSES the tolerance outright when git cannot say what is tracked", () => {
-    // Fail closed: with no tracked set there is no way to tell a transient from
-    // committed content, so nothing is tolerated.
-    const r = withToctouRoot(
-      { git: false },
-      (root) => `rm -f '${join(root, DECOY)}'`,
-      (root, shim) => {
-        put(root, DECOY, "export default {};\n");
-        // The ceiling stops git walking out of the temp dir into some enclosing repo.
-        return runScannerShimmed(root, shim, { GIT_CEILING_DIRECTORIES: tmpdir() });
-      },
-    );
-    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toMatch(/could not read/);
-  });
+    it("REFUSES the tolerance outright when git cannot say what is tracked", () => {
+      // Fail closed: with no tracked set there is no way to tell a transient from
+      // committed content, so nothing is tolerated.
+      const r = withToctouRoot(
+        { git: false },
+        (root) => `rm -f '${join(root, DECOY)}'`,
+        (root, shim) => {
+          put(root, DECOY, "export default {};\n");
+          // The ceiling stops git walking out of the temp dir into some enclosing repo.
+          return runScannerShimmed(root, shim, { GIT_CEILING_DIRECTORIES: tmpdir() });
+        },
+      );
+      expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+      expect(r.stderr).toMatch(/could not read/);
+    });
 
-  it("REFUSES the tolerance when git answers with an EMPTY tracked set", () => {
-    // A REMOVED index exits 0 with no output (a corrupt one exits 128 and was
-    // already caught). An empty set would make every file untracked, which is the
-    // one state in which the tracked-file bound silently stops existing.
-    const r = withToctouRoot(
-      { git: true, track: false },
-      (root) => `rm -f '${join(root, DECOY)}'`,
-      (root, shim) => {
-        put(root, DECOY, "export default {};\n");
-        return runScannerShimmed(root, shim);
-      },
-    );
-    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toMatch(/could not read/);
-  });
+    it("REFUSES the tolerance when git answers with an EMPTY tracked set", () => {
+      // A REMOVED index exits 0 with no output (a corrupt one exits 128 and was
+      // already caught). An empty set would make every file untracked, which is the
+      // one state in which the tracked-file bound silently stops existing.
+      const r = withToctouRoot(
+        { git: true, track: false },
+        (root) => `rm -f '${join(root, DECOY)}'`,
+        (root, shim) => {
+          put(root, DECOY, "export default {};\n");
+          return runScannerShimmed(root, shim);
+        },
+      );
+      expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+      expect(r.stderr).toMatch(/could not read/);
+    });
 
-  it("REFUSES an all-mode sweep that ENUMERATED files but OBSERVED none", () => {
-    // The refuse-a-scan-that-observes-nothing rule, one step later than
-    // `enforceObservation`: tolerating a vanished file must never be able to decay
-    // into a clean report of a tree nothing was read from. The in-scope corpus here
-    // is the three UNTRACKED seeded files, which the shim removes after the walk has
-    // listed them; a tracked out-of-scope file keeps `git ls-files` non-empty so the
-    // tolerance stays switched on and this branch is the one that fires.
-    //
-    // ALL THREE, NOT JUST THE ALLOW-LIST. Removing one would now refuse under the
-    // PER-ROOT arm instead, which is a different assertion: this test is the
-    // ALL-starved case, and it is kept genuinely all-starved so that the global rule
-    // stays pinned as the special case of the per-root one that it is.
-    const r = withToctouRoot(
-      { git: true, track: false },
-      (root) => SEEDED_ROOT_FILES.map((rel) => `rm -f '${join(root, rel)}'`).join("\n"),
-      (root, shim) => {
-        put(root, "README.md", "# throwaway\n");
-        git(root, ["add", "--", "README.md"]);
-        return runScannerShimmed(root, shim);
-      },
-    );
-    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toMatch(/observed no files/);
-    // Zero files read names EVERY root, which is what "the global rule is the
-    // all-starved case of the per-root rule" means in the output.
-    expect(r.stderr).toMatch(/under 3 of its 3 scan roots \(src, test, scripts\)/);
-  });
+    it("REFUSES an all-mode sweep that ENUMERATED files but OBSERVED none", () => {
+      // The refuse-a-scan-that-observes-nothing rule, one step later than
+      // `enforceObservation`: tolerating a vanished file must never be able to decay
+      // into a clean report of a tree nothing was read from. The in-scope corpus here
+      // is the three UNTRACKED seeded files, which the shim removes after the walk has
+      // listed them; a tracked out-of-scope file keeps `git ls-files` non-empty so the
+      // tolerance stays switched on and this branch is the one that fires.
+      //
+      // ALL THREE, NOT JUST THE ALLOW-LIST. Removing one would now refuse under the
+      // PER-ROOT arm instead, which is a different assertion: this test is the
+      // ALL-starved case, and it is kept genuinely all-starved so that the global rule
+      // stays pinned as the special case of the per-root one that it is.
+      const r = withToctouRoot(
+        { git: true, track: false },
+        (root) => SEEDED_ROOT_FILES.map((rel) => `rm -f '${join(root, rel)}'`).join("\n"),
+        (root, shim) => {
+          put(root, "README.md", "# throwaway\n");
+          git(root, ["add", "--", "README.md"]);
+          return runScannerShimmed(root, shim);
+        },
+      );
+      expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+      expect(r.stderr).toMatch(/observed no files/);
+      // Zero files read names EVERY root, which is what "the global rule is the
+      // all-starved case of the per-root rule" means in the output.
+      expect(r.stderr).toMatch(/under 3 of its 3 scan roots \(src, test, scripts\)/);
+    });
 
-  it("still CATCHES a violator in an untracked file that does NOT vanish", () => {
-    // The tolerance is about a file that is gone. It is not about untracked files,
-    // and an untracked violator is exactly what this gate exists to refuse.
-    const r = withToctouRoot(
-      { git: true },
-      () => ":",
-      (root, shim) => {
-        put(root, "src/leak.xml", VIOLATOR);
-        return runScannerShimmed(root, shim);
-      },
-    );
-    expect(r.code, `stdout: ${r.stdout}`).toBe(1);
-    expect(r.stderr).toContain("src/leak.xml");
-  });
-}, 60_000);
+    it("still CATCHES a violator in an untracked file that does NOT vanish", () => {
+      // The tolerance is about a file that is gone. It is not about untracked files,
+      // and an untracked violator is exactly what this gate exists to refuse.
+      const r = withToctouRoot(
+        { git: true },
+        () => ":",
+        (root, shim) => {
+          put(root, "src/leak.xml", VIOLATOR);
+          return runScannerShimmed(root, shim);
+        },
+      );
+      expect(r.code, `stdout: ${r.stdout}`).toBe(1);
+      expect(r.stderr).toContain("src/leak.xml");
+    });
+  },
+  60_000,
+);

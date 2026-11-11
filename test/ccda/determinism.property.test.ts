@@ -11,6 +11,7 @@ import fc from "fast-check";
 import { serializeCcda } from "@cosyte/ccda";
 
 import { ccdaCorpus, generateCcd, generateReferralNote } from "../../src/ccda/index.js";
+import { checkProperty, propertyTimeout } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
@@ -18,30 +19,36 @@ describe("C-CDA seed-determinism (mandatory property)", () => {
   // `buildCcda` parses XML through @xmldom/xmldom on every build, so a C-CDA build is materially
   // heavier than a FHIR/HL7 one: the seed sweeps here are sized (and given a generous per-test
   // timeout) so the property stays meaningful without timing out under v8 coverage instrumentation.
-  it("each document generator is byte-identical for the same seed", () => {
-    fc.assert(
-      fc.property(seed(), (s) => {
-        expect(serializeCcda(generateCcd({ seed: s }))).toBe(
-          serializeCcda(generateCcd({ seed: s })),
-        );
-        expect(serializeCcda(generateReferralNote({ seed: s }))).toBe(
-          serializeCcda(generateReferralNote({ seed: s })),
-        );
-      }),
-      { numRuns: 60 },
-    );
-  }, 60_000);
+  it(
+    "each document generator is byte-identical for the same seed",
+    () => {
+      checkProperty(
+        fc.property(seed(), (s) => {
+          expect(serializeCcda(generateCcd({ seed: s }))).toBe(
+            serializeCcda(generateCcd({ seed: s })),
+          );
+          expect(serializeCcda(generateReferralNote({ seed: s }))).toBe(
+            serializeCcda(generateReferralNote({ seed: s })),
+          );
+        }),
+      );
+    },
+    propertyTimeout(60_000),
+  );
 
-  it("a C-CDA corpus is byte-identical for the same seed", () => {
-    fc.assert(
-      fc.property(seed(), fc.integer({ min: 1, max: 4 }), (s, count) => {
-        const c1 = ccdaCorpus({ seed: s, count }).artifacts.map((x) => x.content);
-        const c2 = ccdaCorpus({ seed: s, count }).artifacts.map((x) => x.content);
-        expect(c1).toEqual(c2);
-      }),
-      { numRuns: 30 },
-    );
-  }, 60_000);
+  it(
+    "a C-CDA corpus is byte-identical for the same seed",
+    () => {
+      checkProperty(
+        fc.property(seed(), fc.integer({ min: 1, max: 4 }), (s, count) => {
+          const c1 = ccdaCorpus({ seed: s, count }).artifacts.map((x) => x.content);
+          const c2 = ccdaCorpus({ seed: s, count }).artifacts.map((x) => x.content);
+          expect(c1).toEqual(c2);
+        }),
+      );
+    },
+    propertyTimeout(60_000),
+  );
 
   it("a different seed produces different output", () => {
     expect(serializeCcda(generateCcd({ seed: 1 }))).not.toBe(

@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, sep } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import ts from "typescript";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -46,10 +47,23 @@ const ENTRY_POINTS: Readonly<Record<string, string>> = {
   "@cosyte/synth/astm": join(root, "dist", "astm", "index.mjs"),
   "@cosyte/synth/deid": join(root, "dist", "deid", "index.mjs"),
 };
-const resolve = (specifier: string): string | undefined => ENTRY_POINTS[specifier];
+/**
+ * The entry a sample's specifier imports, as a `file:` URL: on Windows the ES module loader takes
+ * no drive-letter path.
+ */
+const resolve = (specifier: string): string | undefined => {
+  const entry = ENTRY_POINTS[specifier];
+  return entry === undefined ? undefined : pathToFileURL(entry).href;
+};
 
 beforeAll(() => {
-  execFileSync("pnpm", ["build"], { cwd: root, stdio: "inherit" });
+  // Through a shell on Windows only, where `pnpm` is a `.cmd` file a process cannot start without
+  // one. The command and its arguments are fixed here, so the shell reads nothing from outside.
+  execFileSync("pnpm", ["build"], {
+    cwd: root,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
 }, 120_000);
 
 /** The hand-written pages: every `.md` file at the top of `docs-content/`, not the generated `api/`. */
@@ -168,7 +182,12 @@ describe("every sample on a hand-written page", () => {
       const virtual = new Map<string, string>();
       for (const sample of samples) {
         const name = `${sample.page.replace(/\.md$/, "")}-${String(sample.line)}.ts`;
-        virtual.set(join(root, "examples", `.docs-sample-${name}`), sample.body);
+        // With forward slashes, as the compiler host names every file it reads, so the lookups
+        // below find each sample on Windows too.
+        virtual.set(
+          join(root, "examples", `.docs-sample-${name}`).split(sep).join("/"),
+          sample.body,
+        );
       }
       const host = ts.createCompilerHost(parsed.options, true);
       const getSourceFile = host.getSourceFile.bind(host);

@@ -20,6 +20,7 @@ import {
   type AstmQuirkName,
 } from "../../src/astm/index.js";
 import { PROFILE_QUIRK_APPLIED, SynthError, SYNTH_FATAL_CODES } from "../../src/index.js";
+import { checkProperty } from "../support/property.js";
 
 const QUIRKS = Object.keys(ASTM_QUIRKS) as AstmQuirkName[];
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
@@ -44,7 +45,7 @@ describe("ASTM quirk registry", () => {
 
 describe("ASTM intended-warning contract (mandatory)", () => {
   it("every quirk, every seed → exactly the intended warning (bare parse)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.constantFrom(...QUIRKS), (s, quirk) => {
         const rt = astmQuirkRoundTrip(generateAstmQuirk({ seed: s, quirk }));
         expect(rt.intendedWarningHeld, `${quirk}@${s}: bare=${JSON.stringify(rt.warnings)}`).toBe(
@@ -72,20 +73,19 @@ describe("ASTM intended-warning contract (mandatory)", () => {
 
 describe("ASTM quirk seed-determinism (mandatory)", () => {
   it("same seed + quirk + kind ⇒ byte-identical", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.constantFrom(...QUIRKS), (s, quirk) => {
         expect(generateAstmQuirk({ seed: s, quirk }).content).toBe(
           generateAstmQuirk({ seed: s, quirk }).content,
         );
       }),
-      { numRuns: 60 },
     );
   });
 });
 
 describe("ASTM quirk synthetic-safety: the deviation is an escape/type, never the P record", () => {
   it("the P record (name + practice/lab ids) is byte-identical to the clean report", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.constantFrom(...QUIRKS), (s, quirk) => {
         const artifact = generateAstmQuirk({ seed: s, quirk });
         const pRecord = /(?:^|\r)P\|[^\r]*/.exec(artifact.content)?.[0] ?? "";
@@ -93,7 +93,6 @@ describe("ASTM quirk synthetic-safety: the deviation is an escape/type, never th
         // The quirk never touches a P-record field, no name/id was introduced.
         expect(pRecord).not.toMatch(/&Z&/);
       }),
-      { numRuns: 40 },
     );
   });
 });

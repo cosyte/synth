@@ -10,6 +10,7 @@ import fc from "fast-check";
 
 import { createRng } from "../../src/index.js";
 import { generateAdt, generateHl7, hl7Corpus, type Hl7MessageKind } from "../../src/hl7/index.js";
+import { checkProperty } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
@@ -25,7 +26,7 @@ const ALL_KINDS: readonly Hl7MessageKind[] = [
 
 describe("seed-determinism (mandatory property)", () => {
   it("the raw RNG stream is identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const a = createRng(s);
         const b = createRng(s);
@@ -36,7 +37,7 @@ describe("seed-determinism (mandatory property)", () => {
   });
 
   it("HL7 ADT generation is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.constantFrom(...(["A01", "A04", "A08"] as const)), (s, trigger) => {
         const a = generateAdt({ seed: s, trigger }).toString();
         const b = generateAdt({ seed: s, trigger }).toString();
@@ -47,7 +48,7 @@ describe("seed-determinism (mandatory property)", () => {
   });
 
   it("every HL7 v2 family is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.constantFrom(...ALL_KINDS), (s, kind) => {
         expect(generateHl7(kind, s).toString()).toBe(generateHl7(kind, s).toString());
       }),
@@ -56,7 +57,7 @@ describe("seed-determinism (mandatory property)", () => {
   });
 
   it("an HL7 corpus is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.integer({ min: 1, max: 8 }), (s, count) => {
         const c1 = hl7Corpus({ seed: s, count }).artifacts.map((x) => x.content);
         const c2 = hl7Corpus({ seed: s, count }).artifacts.map((x) => x.content);

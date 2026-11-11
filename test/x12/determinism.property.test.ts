@@ -11,12 +11,13 @@ import fc from "fast-check";
 import { serializeX12 } from "@cosyte/x12";
 
 import { generate837, generate835, generate271, x12Corpus } from "../../src/x12/index.js";
+import { checkProperty } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
 describe("X12 seed-determinism (mandatory property)", () => {
   it("each transaction generator is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         for (const v of ["P", "I", "D"] as const) {
           expect(serializeX12(generate837(v, { seed: s }))).toBe(
@@ -26,7 +27,6 @@ describe("X12 seed-determinism (mandatory property)", () => {
         expect(serializeX12(generate835({ seed: s }))).toBe(serializeX12(generate835({ seed: s })));
         expect(serializeX12(generate271({ seed: s }))).toBe(serializeX12(generate271({ seed: s })));
       }),
-      { numRuns: 80 },
     );
   });
 
@@ -38,13 +38,12 @@ describe("X12 seed-determinism (mandatory property)", () => {
   });
 
   it("an X12 corpus is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.integer({ min: 1, max: 5 }), (s, count) => {
         const c1 = x12Corpus({ seed: s, count }).artifacts.map((a) => a.content);
         const c2 = x12Corpus({ seed: s, count }).artifacts.map((a) => a.content);
         expect(c1).toEqual(c2);
       }),
-      { numRuns: 40 },
     );
   });
 });
