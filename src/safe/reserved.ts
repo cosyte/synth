@@ -188,8 +188,7 @@ export function luhnMod10(digits: string): number {
     if (d < 0 || d > 9) continue;
     if (double) {
       d *= 2;
-      // Stryker disable next-line EqualityOperator: a doubled digit is even, so it is never 9
-      if (d > 9) d -= 9;
+      if (d >= 10) d -= 9;
     }
     sum += d;
     double = !double;
