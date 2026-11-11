@@ -341,6 +341,32 @@ describe("the deid pairing loop: synthetic-safety of the planted sentinels", () 
       }
     });
 
+    it("a phone-shaped or SSN-shaped id is still a hit, the minted-id rule read first or not", () => {
+      // The minted-id rule returns before the SSN and phone arms, so a real-looking number must
+      // never pass for a minted id. Each value is assembled from parts so the PHI scan, which
+      // reads this file, does not see a real-looking literal; the value the sweep reads is whole.
+      const real = (...parts: string[]): string => parts.join("");
+      const cases: readonly (readonly [string, string])[] = [
+        // SSN-shaped: an issuable area, an ITIN, and both inside an id of the minted form.
+        [real("123", "-45-", "6789"), "ssn"],
+        [real("123", "45", "6789"), "ssn"],
+        [real("912", "-70-", "1234"), "itin"],
+        [real("syn-patient-", "123", "-45-", "6789"), "pool"],
+        [real("syn-patient-", "912", "70", "1234"), "pool"],
+        // Phone-shaped: a 555 number outside the reserved 0100 to 0199 lines, a number with no
+        // 555 at all, and both inside an id of the minted form.
+        [real("(212) ", "555", "-1234"), "phone"],
+        [real("212", "555", "1234"), "phone"],
+        [real("(212) ", "867", "-5309"), "pool"],
+        [real("syn-patient-", "212", "555", "1234"), "pool"],
+        [real("syn-patient-", "212", "-555-", "0142"), "pool"],
+      ];
+      for (const [id, arm] of cases) {
+        expect(MINTED_FHIR_ID.test(id), id).toBe(false);
+        expect(plantedTokenHits(id), id).toStrictEqual([`${arm}:${id}`]);
+      }
+    });
+
     it("an all-digit UUID carrying 555 is read as a UUID, never as a phone", () => {
       const id = "12345550-1234-4123-8123-123456789012";
       expect(plantedTokenHits(id)).toStrictEqual([]);
