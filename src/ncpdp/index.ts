@@ -25,11 +25,11 @@
  */
 
 import { createRng } from "../rng/rng.js";
-import { makeCorpus, type Corpus } from "../corpus.js";
+import { makeCorpus, type CheckedArtifact, type Corpus } from "../corpus.js";
 
 import { generateNewRx, generateRxRenewalRequest, generateRxChangeRequest } from "./script.js";
 import { generateTelecom } from "./telecom.js";
-import { scriptRoundTrip, telecomRoundTrip } from "./round-trip.js";
+import { scriptCorpusArtifact, telecomCorpusArtifact } from "./round-trip.js";
 import { resolveMix } from "../select.js";
 
 export {
@@ -81,18 +81,18 @@ const ALL_KINDS: readonly NcpdpCorpusKind[] = Object.freeze([
 const DEFAULT_MIX = ALL_KINDS;
 
 /** Generate one transaction of the given kind from a sub-seed, returning the round-trip verdict. */
-function generateKind(kind: NcpdpCorpusKind, seed: number): ReturnType<typeof scriptRoundTrip> {
+function generateKind(kind: NcpdpCorpusKind, seed: number, verify: boolean): CheckedArtifact {
   switch (kind) {
     case "NewRx":
-      return scriptRoundTrip(generateNewRx({ seed }));
+      return scriptCorpusArtifact(generateNewRx({ seed }), verify);
     case "RxRenewalRequest":
-      return scriptRoundTrip(generateRxRenewalRequest({ seed }));
+      return scriptCorpusArtifact(generateRxRenewalRequest({ seed }), verify);
     case "RxChangeRequest":
-      return scriptRoundTrip(generateRxChangeRequest({ seed }));
+      return scriptCorpusArtifact(generateRxChangeRequest({ seed }), verify);
     case "B1":
     case "B2":
     case "B3":
-      return telecomRoundTrip(generateTelecom(kind, { seed }));
+      return telecomCorpusArtifact(generateTelecom(kind, { seed }), verify);
   }
 }
 
@@ -104,6 +104,12 @@ export interface NcpdpCorpusOptions {
   readonly count?: number;
   /** The transaction kinds to cycle through. Defaults to one of each. */
   readonly mix?: readonly NcpdpCorpusKind[];
+  /**
+   * Whether each artifact is read back through its parser and the parser's findings recorded as its
+   * `warnings`. Defaults to `true`. `false` skips the read, a large share of a corpus's time; every
+   * artifact's `warnings` is then empty without having been checked.
+   */
+  readonly verify?: boolean;
 }
 
 /**
@@ -121,14 +127,14 @@ export interface NcpdpCorpusOptions {
  * ```
  */
 export function ncpdpCorpus(options: NcpdpCorpusOptions): Corpus {
-  const { seed } = options;
+  const { seed, verify = true } = options;
   const mix = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
   const count = options.count ?? mix.length;
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {
     const kind = mix[i % mix.length] ?? "NewRx";
     const txSeed = seedStream.nextUint32();
-    const rt = generateKind(kind, txSeed);
+    const rt = generateKind(kind, txSeed, verify);
     return {
       format: "ncpdp" as const,
       kind,

@@ -12,6 +12,7 @@
  */
 
 import { ncpdpScriptPeer, ncpdpTelecomPeer } from "../peers.js";
+import { UNCHECKED, type CheckedArtifact } from "../corpus.js";
 
 /** The verdict of one round-trip through `@cosyte/ncpdp`. */
 export interface RoundTripResult {
@@ -61,4 +62,48 @@ export function telecomRoundTrip(wire: string): RoundTripResult {
   const warnings = transaction.warnings.map((w) => String(w.code));
   const byteStable = ncpdpTelecomPeer().serializeTelecom(transaction) === wire;
   return { content: wire, warnings, byteStable, specClean: warnings.length === 0 && byteStable };
+}
+
+/**
+ * What a corpus keeps of one SCRIPT message: its text, and, when `verify` is on, the warning codes the
+ * parser reports reading it back. It reads the text back once and does not serialize it a second
+ * time: a corpus records no byte-stability verdict, which {@link scriptRoundTrip} still gives.
+ *
+ * @param xml - The SCRIPT message.
+ * @param verify - Whether to read it back through the parser.
+ * @returns Its text and warnings (none when `verify` is off).
+ * @example
+ * ```ts
+ * scriptCorpusArtifact(generateNewRx({ seed: 1 }), true).warnings; // []
+ * ```
+ * @internal
+ */
+export function scriptCorpusArtifact(xml: string, verify: boolean): CheckedArtifact {
+  if (!verify) return { content: xml, warnings: UNCHECKED };
+  const warnings = ncpdpScriptPeer()
+    .parseScript(xml)
+    .warnings.map((w) => String(w.code));
+  return { content: xml, warnings };
+}
+
+/**
+ * What a corpus keeps of one Telecom transaction: its text, and, when `verify` is on, the warning codes the
+ * parser reports reading it back. It reads the text back once and does not serialize it a second
+ * time: a corpus records no byte-stability verdict, which {@link telecomRoundTrip} still gives.
+ *
+ * @param wire - The Telecom transaction.
+ * @param verify - Whether to read it back through the parser.
+ * @returns Its text and warnings (none when `verify` is off).
+ * @example
+ * ```ts
+ * telecomCorpusArtifact(generateB1({ seed: 1 }), true).warnings; // []
+ * ```
+ * @internal
+ */
+export function telecomCorpusArtifact(wire: string, verify: boolean): CheckedArtifact {
+  if (!verify) return { content: wire, warnings: UNCHECKED };
+  const warnings = ncpdpTelecomPeer()
+    .parseTelecom(wire)
+    .warnings.map((w) => String(w.code));
+  return { content: wire, warnings };
 }

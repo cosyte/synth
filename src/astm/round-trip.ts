@@ -14,6 +14,7 @@
  */
 
 import { astmPeer } from "../peers.js";
+import { UNCHECKED, type CheckedArtifact } from "../corpus.js";
 
 /** The verdict of one round-trip through `@cosyte/astm`. */
 export interface AstmRoundTripResult {
@@ -84,4 +85,26 @@ function latin1(bytes: Uint8Array): string {
   let out = "";
   for (const b of bytes) out += String.fromCharCode(b);
   return out;
+}
+
+/**
+ * What a corpus keeps of one message: its text, and, when `verify` is on, the warning codes the
+ * parser reports reading it back. It reads the text back once and does not serialize it a second
+ * time: a corpus records no byte-stability verdict, which {@link astmRoundTrip} still gives.
+ *
+ * @param raw - The message.
+ * @param verify - Whether to read it back through the parser.
+ * @returns Its text and warnings (none when `verify` is off).
+ * @example
+ * ```ts
+ * astmCorpusArtifact(generateAstmResult({ seed: 1 }), true).warnings; // []
+ * ```
+ * @internal
+ */
+export function astmCorpusArtifact(raw: string, verify: boolean): CheckedArtifact {
+  if (!verify) return { content: raw, warnings: UNCHECKED };
+  const warnings = astmPeer()
+    .parseAstmRecords(raw)
+    .warnings.map((w) => String(w.code));
+  return { content: raw, warnings };
 }
