@@ -72,6 +72,18 @@ function readChangesets(): readonly ChangesetFile[] {
     .map((name) => ({ name, text: readFileSync(join(directory, name), "utf8") }));
 }
 
+/**
+ * Every path the working tree changes against the base ref, tracked or untracked, or `null` when
+ * git cannot say. The window check reads it only to make sure a re-digest lands by itself, and
+ * reads `null` as "cannot see the paths", which it handles more strictly, never as "nothing changed".
+ */
+function changedPaths(baseRef: string): readonly string[] | null {
+  const tracked = git(["diff", "--name-only", "--no-renames", "-z", baseRef, "--"]);
+  const untracked = git(["ls-files", "--others", "--exclude-standard", "-z"]);
+  if (tracked === undefined || untracked === undefined) return null;
+  return `${tracked}${untracked}`.split("\0").filter((path) => path.length > 0);
+}
+
 /** The working tree's baseline, or `null` when there is none. */
 function currentBaseline(): string | null {
   try {
@@ -105,6 +117,7 @@ function main(): void {
     baseRef,
     changesets: readChangesets(),
     packageName: facts.name,
+    changedPaths: changedPaths(baseRef),
   });
 
   if (verdict.status === "pass") {

@@ -47,10 +47,14 @@
  *   `Digest algorithm change:`  the digest algorithm changed. Names the new algorithm.
  *   `Artifact count change:`    the artifacts digested per pair changed. Names the new count.
  *
- * A changed algorithm or artifact count moves every digest without a byte of output moving, so
- * while either changes this check cannot tell a moved output from a re-taken digest and asks only
- * for the section that names the change. Make such a change on its own: the next change is measured
- * against the new baseline in full.
+ * A RE-DIGEST LANDS BY ITSELF. A changed algorithm or artifact count moves every digest without a
+ * byte of output moving, so across one this check cannot tell a moved output from a re-taken digest.
+ * It does not try. It refuses a re-digest that comes with anything that could move output: a graded
+ * pair added or removed, a moved window, or (when it can see the paths the change touches against
+ * the default branch) a path under `src/` or a change to `package.json`, `pnpm-lock.yaml` or
+ * `pnpm-workspace.yaml`, which carry the parser versions the bytes come from. When it cannot see the
+ * paths, it refuses a re-digest whose changesets also carry an `Output change:`, `Corpus narrowed:`
+ * or `Window change:` section. The next change is then measured against the new baseline in full.
  *
  * EQUALITY IS SEMANTIC, NOT TEXTUAL. Two baselines are the same when they agree about the window,
  * the algorithm, the corpus size and every (format, seed) digest. Reformatting a file is not a
@@ -93,6 +97,11 @@ export interface WindowInput {
   readonly changesets: readonly ChangesetFile[];
   /** The package name a changeset has to name. */
   readonly packageName: string;
+  /**
+   * Every path this tree changes against the default branch, or `null` (or absent) when that could
+   * not be read. Read only when the digest algorithm or the artifact count changed.
+   */
+  readonly changedPaths?: readonly string[] | null;
 }
 
 /** The window check's verdict. */
@@ -141,14 +150,13 @@ const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\
  * (any bump), and its body carries a section, the paragraph that opens with the heading, naming
  * every one of the given names.
  *
- * A format name is matched anywhere in the section. A window, an algorithm or a count is matched
- * only as a whole token, so `5` is not found inside `15`.
+ * Every name is matched as a whole word, case aside: `X12` is not found inside `AX12` or `X125`,
+ * and `5` is not found inside `15` or `5.5`. A full stop after a name ends it (`now 5.`).
  *
  * @param text - The changeset file's text.
  * @param packageName - The package the frontmatter must name.
  * @param heading - The heading the section opens with (`Output change:`, ...).
  * @param names - What the section has to name.
- * @param wholeToken - Whether each name has to stand as a whole token.
  * @returns Whether the change is stated, and which names the section leaves out.
  * @example
  * ```ts
@@ -157,7 +165,6 @@ const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\
  *   "@cosyte/synth",
  *   "Window change:",
  *   ["1.x"],
- *   true,
  * ).ok; // true
  * ```
  */
@@ -166,7 +173,6 @@ export function statesSectionFor(
   packageName: string,
   heading: string,
   names: readonly string[],
-  wholeToken: boolean,
 ): StatedOutputChange {
   const fence = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/.exec(text);
   const frontmatter = fence?.[1];
@@ -186,10 +192,13 @@ export function statesSectionFor(
   const rest = body.slice(opening.index);
   const end = /\r?\n[ \t]*\r?\n/.exec(rest);
   const section = end === null ? rest : rest.slice(0, end.index);
+  // A letter or a digit touching the name, or one joined to it by a dot, would make the name part of
+  // a longer word or number.
   const carries = (name: string): boolean =>
-    wholeToken
-      ? new RegExp(`(?<![A-Za-z0-9.])${escape(name)}(?![A-Za-z0-9])`, "i").test(section)
-      : section.toLowerCase().includes(name.toLowerCase());
+    new RegExp(
+      `(?<![A-Za-z0-9]|[A-Za-z0-9]\\.)${escape(name)}(?![A-Za-z0-9]|\\.[A-Za-z0-9])`,
+      "i",
+    ).test(section);
   const missing = names.filter((name) => !carries(name));
   return { ok: missing.length === 0, missing };
 }
@@ -216,13 +225,7 @@ export function statesOutputChangeFor(
   packageName: string,
   movedFormats: readonly string[],
 ): StatedOutputChange {
-  return statesSectionFor(
-    text,
-    packageName,
-    SECTION_HEADINGS.output,
-    displayNames(movedFormats),
-    false,
-  );
+  return statesSectionFor(text, packageName, SECTION_HEADINGS.output, displayNames(movedFormats));
 }
 
 /** Display names for format labels, in the order given. */
@@ -241,7 +244,8 @@ interface Requirement {
  * A pair that was added is an output change. A digest that moved on a surviving pair is one too,
  * but only while the algorithm and the artifact count hold: when either changes, every digest moves
  * with no output moving, so the digests are not compared and only the section naming that change is
- * asked for.
+ * asked for. That is sound only because such a change is refused unless it lands by itself (see
+ * `companionsOfRedigest`), which runs first.
  */
 function requirements(current: Baseline, previous: Baseline): readonly Requirement[] {
   const comparable =
@@ -311,6 +315,74 @@ function narrowedPairs(current: Baseline, previous: Baseline): readonly string[]
   return remaining.size > 0 ? [...remaining.keys()].sort() : undefined;
 }
 
+/** Whether a change to a path can move the bytes a seed produces: the generators and the parsers. */
+const movesOutput = (path: string): boolean =>
+  path.startsWith("src/") ||
+  path === "package.json" ||
+  path === "pnpm-lock.yaml" ||
+  path === "pnpm-workspace.yaml";
+
+/** The sections that state a change other than a re-digest. */
+const OTHER_SECTIONS: readonly ChangeKind[] = ["output", "narrowed", "window"];
+
+/**
+ * When the digest algorithm or the artifact count changed, everything else in this change that
+ * could move output, one line each: empty when the re-digest lands by itself, and `undefined` when
+ * there is no re-digest.
+ */
+function companionsOfRedigest(
+  current: Baseline,
+  previous: Baseline,
+  input: WindowInput,
+): readonly string[] | undefined {
+  if (
+    current.digestAlgorithm === previous.digestAlgorithm &&
+    current.artifactsPerPair === previous.artifactsPerPair
+  ) {
+    return undefined;
+  }
+  const before = new Set(previous.entries.map((e) => pairKey(e.format, e.seed)));
+  const after = new Set(current.entries.map((e) => pairKey(e.format, e.seed)));
+  const added = [...after].filter((key) => !before.has(key)).sort();
+  const removed = [...before].filter((key) => !after.has(key)).sort();
+  const found: string[] = [];
+  if (added.length > 0) found.push(`graded pair(s) added: ${added.join(", ")}`);
+  if (removed.length > 0) found.push(`graded pair(s) removed: ${removed.join(", ")}`);
+  if (current.package.window !== previous.package.window) {
+    found.push(`the window moved from ${previous.package.window} to ${current.package.window}`);
+  }
+  const paths = input.changedPaths;
+  if (paths === undefined || paths === null) {
+    // The paths could not be read, so the changesets are the only witness left: a section for any
+    // other kind of change says something else moved with the re-digest. Asking a section for no
+    // names finds whether it is there at all.
+    for (const changeset of input.changesets) {
+      for (const kind of OTHER_SECTIONS) {
+        const heading = SECTION_HEADINGS[kind];
+        if (statesSectionFor(changeset.text, input.packageName, heading, []).ok) {
+          found.push(`${changeset.name} carries a \`${heading}\` section`);
+        }
+      }
+    }
+  } else {
+    const moving = paths.filter(movesOutput).sort();
+    if (moving.length > 0) {
+      found.push(`this change also touches what generates output: ${moving.join(", ")}`);
+    }
+  }
+  return found;
+}
+
+/** Why a re-digest has to land by itself. */
+const LANDS_ALONE_RULE =
+  "A CHANGE TO THE DIGEST ALGORITHM OR THE ARTIFACT COUNT must land by itself. It moves every " +
+  "digest with no output moving, so across it this check cannot compare outputs and cannot see a " +
+  "format whose bytes moved in the same change. Land it on its own, stated in its " +
+  "`Digest algorithm change:` or `Artifact count change:` section, with no change under `src/`, " +
+  "to `package.json`, `pnpm-lock.yaml` or `pnpm-workspace.yaml`, to the graded pairs or to the " +
+  "window, so the next baseline can prove outputs did not move. Then make the other change " +
+  "against the new baseline, where it is measured in full.";
+
 /** The sentence that has to be said whenever a changed baseline is refused. */
 const MAPPING_RULE =
   "A CHANGED SEED-TO-BYTES MAPPING HAS TO BE STATED. A consumer is invited to commit a golden " +
@@ -321,7 +393,8 @@ const MAPPING_RULE =
   "bytes moved or that gained a pair, `Corpus narrowed:` naming every format that lost a pair " +
   "and saying why, `Window change:` naming the new window, `Digest algorithm change:` naming the " +
   "new algorithm, and `Artifact count change:` naming the new count. A major changeset does not " +
-  "pass this check: the version number tells a consumer nothing about which output moved.";
+  "pass this check: the version number tells a consumer nothing about which output moved. A " +
+  "change to the digest algorithm or the artifact count must land by itself.";
 
 /** What is added to a refusal when the change is a narrowed corpus rather than a moved mapping. */
 const narrowingNote = (removed: readonly string[]): string =>
@@ -410,19 +483,24 @@ export function decideWindow(input: WindowInput): WindowVerdict {
     };
   }
 
+  const companions = companionsOfRedigest(currentRead.baseline, previousRead.baseline, input);
+  if (companions !== undefined && companions.length > 0) {
+    return {
+      status: "fail",
+      message:
+        `the committed determinism baseline differs from ${input.baseRef} by a new digest ` +
+        "algorithm or artifact count, and something else that could move output comes with it:\n" +
+        `${companions.map((line) => `  - ${line}`).join("\n")}\n\n${LANDS_ALONE_RULE}`,
+    };
+  }
+
   const stated: string[] = [];
   const unstated: string[] = [];
   for (const requirement of requirements(currentRead.baseline, previousRead.baseline)) {
     const heading = SECTION_HEADINGS[requirement.kind];
     const verdicts = input.changesets.map((changeset) => ({
       changeset,
-      section: statesSectionFor(
-        changeset.text,
-        input.packageName,
-        heading,
-        requirement.names,
-        requirement.kind !== "output" && requirement.kind !== "narrowed",
-      ),
+      section: statesSectionFor(changeset.text, input.packageName, heading, requirement.names),
     }));
     const naming = requirement.names.join(", ");
     const stating = verdicts.filter((v) => v.section.ok);

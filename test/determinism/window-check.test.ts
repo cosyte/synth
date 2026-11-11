@@ -245,6 +245,162 @@ describe("every change the check allows lands with a patch changeset that states
   });
 });
 
+/** Decide with the paths the change touches against the default branch. */
+const decideWithPaths = (
+  current: string,
+  previous: string,
+  changesets: readonly { name: string; text: string }[],
+  changedPaths: readonly string[] | null,
+) =>
+  decideWindow({
+    current,
+    previous,
+    baseRef: "origin/main",
+    changesets,
+    packageName: PACKAGE,
+    changedPaths,
+  });
+
+/** The sentence every refusal of a re-digest that did not land alone carries. */
+const LANDS_ALONE = "must land by itself";
+
+describe("a changed digest algorithm or artifact count lands by itself", () => {
+  // Either change moves every digest with no output moving, so across it the check cannot tell a
+  // moved output from a re-taken digest. It can only make sure nothing else rides along.
+  const algorithm = stating("Digest algorithm change: the baseline is now taken with sha512.");
+
+  it("REFUSES a re-digest whose pull request also changes the generator under src/", () => {
+    // The review's reproduction: the algorithm moves and the C-CDA generator changes with it,
+    // and the only section names the algorithm. The C-CDA move would ship unstated.
+    const verdict = decideWithPaths(
+      baseline({ ccda: B, hl7v2: B }, { algorithm: "sha512" }),
+      baseline({ ccda: A, hl7v2: A }),
+      [algorithm],
+      ["scripts/determinism/corpus.ts", "scripts/determinism/baseline.json", "src/ccda/ccd.ts"],
+    );
+    expect(verdict.status).toBe("fail");
+    expect(verdict.message).toContain(LANDS_ALONE);
+    expect(verdict.message).toContain("src/ccda/ccd.ts");
+    expect(verdict.message).not.toContain("scripts/determinism/corpus.ts");
+  });
+
+  it("REFUSES a re-digest that comes with a moved parser in the lockfile or the manifest", () => {
+    for (const path of ["pnpm-lock.yaml", "package.json", "pnpm-workspace.yaml"]) {
+      const verdict = decideWithPaths(
+        baseline({ hl7v2: B }, { perPair: 5 }),
+        baseline({ hl7v2: A }),
+        [stating("Artifact count change: each pair now digests 5 artifacts.")],
+        [path],
+      );
+      expect(verdict.status, path).toBe("fail");
+      expect(verdict.message, path).toContain(path);
+    }
+  });
+
+  it("PASSES a re-digest whose pull request touches only the check, the baseline and docs", () => {
+    const verdict = decideWithPaths(
+      baseline({ ccda: B, hl7v2: B }, { algorithm: "sha512" }),
+      baseline({ ccda: A, hl7v2: A }),
+      [algorithm],
+      [
+        ".changeset/quiet-otters-say.md",
+        "docs-content/limitations.md",
+        "scripts/determinism/baseline.json",
+        "scripts/determinism/corpus.ts",
+        "srcery/notes.md",
+      ],
+    );
+    expect(verdict.status).toBe("pass");
+  });
+
+  it("REFUSES a re-digest that also adds or removes a graded pair, whatever the changesets say", () => {
+    const grown = decideWithPaths(
+      baseline({ ccda: B, hl7v2: B }, { algorithm: "sha512" }),
+      baseline({ hl7v2: A }),
+      [stating("Digest algorithm change: now sha512.", "Output change: C-CDA is graded.")],
+      [],
+    );
+    expect(grown.status).toBe("fail");
+    expect(grown.message).toContain(LANDS_ALONE);
+    expect(grown.message).toContain("added");
+
+    const narrowed = decideWithPaths(
+      baseline({ hl7v2: B }, { perPair: 5 }),
+      baseline({ ccda: A, hl7v2: A }),
+      [stating("Artifact count change: now 5.", "Corpus narrowed: C-CDA is no longer graded.")],
+      [],
+    );
+    expect(narrowed.status).toBe("fail");
+    expect(narrowed.message).toContain(LANDS_ALONE);
+    expect(narrowed.message).toContain("removed");
+  });
+
+  it("REFUSES a re-digest that also moves the window", () => {
+    const verdict = decideWithPaths(
+      baseline({ hl7v2: B }, { algorithm: "sha512", window: "1.x" }),
+      baseline({ hl7v2: A }, { window: "0.x" }),
+      [stating("Digest algorithm change: now sha512.", "Window change: now 1.x.")],
+      [],
+    );
+    expect(verdict.status).toBe("fail");
+    expect(verdict.message).toContain(LANDS_ALONE);
+    expect(verdict.message).toContain("window");
+  });
+
+  it("when it cannot see the diff, REFUSES a re-digest whose changesets state any other change", () => {
+    for (const other of [
+      "Output change: C-CDA documents gain a code.",
+      "Corpus narrowed: C-CDA seed 2 is no longer graded.",
+      "Window change: now 1.x.",
+    ]) {
+      const verdict = decide(
+        baseline({ ccda: B }, { algorithm: "sha512" }),
+        baseline({ ccda: A }),
+        [algorithm, { ...stating(other), name: "other-change.md" }],
+      );
+      expect(verdict.status, other).toBe("fail");
+      expect(verdict.message, other).toContain(LANDS_ALONE);
+      expect(verdict.message, other).toContain("other-change.md");
+    }
+  });
+
+  it("when it cannot see the diff, PASSES a re-digest stated on its own", () => {
+    const verdict = decideWithPaths(
+      baseline({ ccda: B }, { algorithm: "sha512" }),
+      baseline({ ccda: A }),
+      [algorithm],
+      null,
+    );
+    expect(verdict.status).toBe("pass");
+  });
+});
+
+describe("a name in a section is matched as a whole word", () => {
+  it("does not take a longer word containing X12 as naming X12", () => {
+    for (const word of ["AX12", "X125", "X12N"]) {
+      const verdict = decide(baseline({ x12: B }), baseline({ x12: A }), [
+        stating(`Output change: ${word} interchanges gain a segment.`),
+      ]);
+      expect(verdict.status, word).toBe("fail");
+    }
+    const named = decide(baseline({ x12: B }), baseline({ x12: A }), [
+      stating("Output change: interchanges gain a segment, in X12."),
+    ]);
+    expect(named.status).toBe("pass");
+  });
+
+  it("does not find a count of 5 inside 5.5, and finds it before a full stop", () => {
+    const decimal = decide(baseline({ hl7v2: A }, { perPair: 5 }), baseline({ hl7v2: A }), [
+      stating("Artifact count change: each pair now digests 5.5 artifacts."),
+    ]);
+    expect(decimal.status).toBe("fail");
+    const sentence = decide(baseline({ hl7v2: A }, { perPair: 5 }), baseline({ hl7v2: A }), [
+      stating("Artifact count change: the count per pair is now 5."),
+    ]);
+    expect(sentence.status).toBe("pass");
+  });
+});
+
 describe("the check's own words name no major route and no internal reference", () => {
   const scripts = ["window.ts", "digest.ts", "check-window.ts"].map((name) => ({
     name,

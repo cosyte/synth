@@ -31,5 +31,13 @@ per kind of change, each a paragraph that opens with its heading:
 - `Digest algorithm change:` names the new digest algorithm.
 - `Artifact count change:` names the new number of artifacts digested per pair.
 
-It refuses a change stated only in prose, and it refuses a major changeset that carries no
-section: the version number is not the statement, the section is.
+A name counts only as a whole word: `X12` inside `X125` names nothing, and `5` inside `5.5` is not
+the count `5`. It refuses a change stated only in prose, and it refuses a major changeset that
+carries no section: the version number is not the statement, the section is.
+
+A new digest algorithm or artifact count moves every digest with no output moving, so across one
+the check cannot compare outputs. Such a change must land by itself: the check refuses it when the
+same change adds or removes a graded pair, moves the window, or touches `src/`, `package.json`,
+`pnpm-lock.yaml` or `pnpm-workspace.yaml`. When it cannot read the changed paths from git, it
+refuses a changeset for this package that carries any other section alongside it. Land the
+re-digest first, then the other change against the new baseline.

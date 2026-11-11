@@ -163,7 +163,8 @@ async function main(): Promise<void> {
       `determinism: REGENERATED the baseline at ${BASELINE_PATH} for window ${window} over ` +
         `${String(baseline.entries.length)} pair(s). Committing a changed baseline requires a ` +
         "patch changeset that states each change in its own section (`Output change:` for moved " +
-        "output): `pnpm run check:determinism-window` is the gate.\n",
+        "output), and a new digest algorithm or artifact count must land by itself: " +
+        "`pnpm run check:determinism-window` is the gate.\n",
     );
     return;
   }
