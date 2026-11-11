@@ -26,9 +26,10 @@
  *   1. NO PEER INSTALLED. The install resolves anyway, `node_modules/@cosyte/` holds this package
  *      and nothing else, and the package ROOT imports and generates a synthetic artifact from the
  *      format-agnostic core. The root must never need a parser.
- *   2. PEER ABSENT, SUBPATH IMPORTED. The subpath fails at IMPORT time, not at install time, and
- *      its diagnostic NAMES the missing peer package. A subpath that failed silently, or failed
- *      with a message that did not say which peer to install, would satisfy neither half.
+ *   2. PEER ABSENT, SUBPATH USED. The subpath imports (it loads its parser on first use), its
+ *      first generation fails, not the install, and the diagnostic NAMES the missing peer
+ *      package. A subpath that failed silently, or failed with a message that did not say which
+ *      peer to install, would satisfy neither half.
  *   3. PEER PRESENT, SUBPATH IMPORTED. With one peer installed from the registry, that subpath
  *      imports and generates a real fixture through it, while a DIFFERENT subpath whose peer is
  *      still uninstalled keeps failing exactly as in state 2. Both directions in one project, so
@@ -100,7 +101,8 @@ const PEER_PRESENT = {
 const PEER_ABSENT = {
   subpath: "./ncpdp",
   peer: "@cosyte/ncpdp",
-  probe: "const m = await import(SPEC); out = String(Object.keys(m).length);",
+  probe:
+    "const m = await import(SPEC); out = m.ncpdpCorpus({ seed: 1, count: 1 }).artifacts[0].content;",
 };
 
 /**
@@ -586,7 +588,7 @@ console.log(JSON.stringify({ ok: true, length: typeof out === "string" ? out.len
   }
 }
 
-/** The absent-peer assertion, used twice: the install resolved, and only the IMPORT fails. */
+/** The absent-peer assertion, used twice: the install resolved, and only the first use fails. */
 function expectImportFailsNaming(pm, result, spec, peer) {
   if (result.harness === true) {
     fail(`${pm}: probe harness error for ${spec}: ${result.message}`);
@@ -594,7 +596,7 @@ function expectImportFailsNaming(pm, result, spec, peer) {
   }
   if (result.ok) {
     fail(
-      `${pm}: importing ${spec} SUCCEEDED with ${peer} not installed, so this run proves nothing ` +
+      `${pm}: generating through ${spec} SUCCEEDED with ${peer} not installed, so this run proves nothing ` +
         `about the absent-peer state. Either the subpath no longer needs its peer (and the manifest ` +
         `says otherwise), or the peer arrived on disk some other way.`,
     );
@@ -602,12 +604,12 @@ function expectImportFailsNaming(pm, result, spec, peer) {
   }
   if (!String(result.message).includes(peer)) {
     fail(
-      `${pm}: importing ${spec} failed, but its diagnostic does not name ${peer}, so a consumer is ` +
+      `${pm}: generating through ${spec} failed, but its diagnostic does not name ${peer}, so a consumer is ` +
         `not told which peer to install:\n${indent(String(result.message))}`,
     );
     return;
   }
-  log(`${pm}: ${spec} fails at IMPORT time naming ${peer}, with the install itself intact`);
+  log(`${pm}: ${spec} fails on first use naming ${peer}, with the install itself intact`);
 }
 
 // ---------------------------------------------------------------------------
@@ -722,5 +724,5 @@ console.log(
   `check:install: ok - ${NAME}@${WANTED_VERSION} (${opts.mode === "pack" ? "packed from this tree" : `from ${REGISTRY}`}) ` +
     `installs into an empty project with [${PACKAGE_MANAGERS.join(", ")}]; the root generates with no ` +
     `peer installed; ${presentSpec} generates once ${PEER_PRESENT.peer} is present; ${absentSpec} ` +
-    `resolves at install and fails only on import, naming ${PEER_ABSENT.peer}`,
+    `resolves at install and fails only on first use, naming ${PEER_ABSENT.peer}`,
 );
