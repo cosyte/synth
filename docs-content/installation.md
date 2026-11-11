@@ -9,7 +9,10 @@ description: "Install @cosyte/synth and the parser packages for the formats you 
 
 ## Prerequisites
 
-- Node.js 22 or later. CI tests on Node.js 22, 24, and 26.
+- Node.js 22.12 or later. CI tests on Node.js 22.12, 22, 24, and 26. A generator loads its parser
+  on first use through `require`, and Node.js loads an ES module that way only from 22.12, so on
+  22.12 and later a value a generator returns is an instance of the parser classes your code
+  imports, whether it uses `import` or `require`.
 - A package manager: npm, pnpm, or Yarn.
 
 ## Install the package and the parsers you need
@@ -44,6 +47,22 @@ npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cos
 
 The package has no third-party runtime dependencies. It ships ESM and CommonJS builds, each with its
 own type declarations, so `import` and `require` both work without configuration.
+
+## Bundle an application that uses it
+
+A bundler cannot follow the first-use load: the generator `require`s its parser at run time, by a
+name the bundler does not see. If you bundle code that imports `@cosyte/synth`, mark
+`@cosyte/synth` and each `@cosyte/*` parser you use as external, and install them in the
+`node_modules` the bundle runs beside:
+
+- esbuild: `--external:@cosyte/*`, or `external: ["@cosyte/*"]` in the build options.
+- Rollup: `external: [/^@cosyte\//]`; in Vite, the same under `build.rollupOptions`.
+- webpack: an `externals` entry for `@cosyte/synth` and for each `@cosyte/*` parser.
+
+If the bundle inlines a parser while the generator loads the installed one, your code and the
+generator hold two copies of that parser, and `instanceof` against its classes is false. If the
+parser is not installed beside the bundle at all, the first generator call that needs it throws
+"Cannot find module".
 
 ## Check the install
 

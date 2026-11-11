@@ -40,7 +40,7 @@ updates:
       dependencies:
         dependency-type: production
     ignore:
-      # @types/node describes the oldest Node.js this package runs on (engines: >=22), so it stays
+      # @types/node describes the oldest Node.js this package runs on (engines: >=22.12.0), so it stays
       # on the 22 line. A newer major type-checks calls that Node 22 does not have.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]

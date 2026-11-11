@@ -8,8 +8,14 @@
  * build an `import` or a `require` of the parser would: the CommonJS build of this package
  * `require`s the parser's CommonJS entry, and the ES module build `require`s the ES module entry
  * that `import` resolves to, so a value a generator returns is an instance of the very classes the
- * caller imports from the parser. On a Node.js release that cannot `require` an ES module (before
- * 22.12), the ES module build falls back to the parser's CommonJS entry.
+ * caller imports from the parser. That holds on every Node.js release `engines.node` allows (22.12
+ * and later). Where Node.js cannot `require` an ES module (before 22.12, or with that turned off),
+ * the ES module build falls back to the parser's CommonJS entry: generation still works, but a
+ * returned value is an instance of the CommonJS copy of the parser's classes, so `instanceof`
+ * against a class imported with `import` is false.
+ *
+ * A bundler cannot see this load, since the specifier reaches `require` at run time. Code that
+ * bundles this package keeps it and each parser external and installed beside the bundle.
  *
  * @module
  */

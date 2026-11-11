@@ -44,7 +44,7 @@ name: Consumer install
 #
 # The Node matrix mirrors `ci / verify` and `smoke`, because `exports` resolution and ESM/CJS interop
 # are exactly the kind of thing that moves between Node majors, and the floor is
-# `engines.node >= 22`.
+# `engines.node >= 22.12.0`.
 #
 # THIS JOB REACHES THE PUBLIC REGISTRY, and that is the point rather than an accident: it installs
 # the real published `@cosyte/fhir` to prove the peer-present half. If the registry is unreachable,
