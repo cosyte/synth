@@ -29,6 +29,8 @@ import {
   SYNTHETIC_CITY_NAMES,
 } from "../../src/safe/names-pool.js";
 import type { GenericLocus } from "@cosyte/deid";
+import { serializeResource } from "@cosyte/fhir";
+import { generateBundle } from "../../src/fhir/index.js";
 
 import {
   hl7DeidLoop,
@@ -219,6 +221,14 @@ describe("the deid pairing loop: synthetic-safety of the planted sentinels", () 
       .map((w) => w.toLowerCase()),
   );
   const SYNTHETIC_ID_PREFIX = /^(MBR|GRP|PRA|LAB|PTACCT|ACCT|MR|MRN)\d+$/i;
+  /** The UUID this package mints (`uuid` in `src/safe`): lowercase, version 4, RFC 4122 variant. */
+  const MINTED_UUID = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
+  /**
+   * A FHIR logical id this package mints: a bare minted UUID (the id of a `urn:uuid:` fullUrl), or
+   * a resource id `syn-<type>-` followed by eight digits or a minted UUID. A `@cosyte/deid` that
+   * replaces resource ids reports these as identifier loci, so they are planted tokens too.
+   */
+  const MINTED_FHIR_ID = new RegExp(`^(?:${MINTED_UUID}|syn-[a-z]+-(?:\\d{8}|${MINTED_UUID}))$`);
 
   /**
    * The **SSN-locus floor**, applied to a planted token. Two federal authorities share this number
@@ -240,6 +250,11 @@ describe("the deid pairing loop: synthetic-safety of the planted sentinels", () 
   function plantedTokenHits(token: string): string[] {
     if (token.includes("@")) {
       return isSyntheticEmail(token) ? [] : [`email:${token}`];
+    }
+    if (MINTED_FHIR_ID.test(token)) {
+      // A FHIR resource or fullUrl id this package minted. Read before the phone arm, which an
+      // all-digit UUID carrying 555 would otherwise reach.
+      return [];
     }
     if (/^9\d{8}$/.test(token) || /^\d{3}-\d{2}-\d{4}$/.test(token)) {
       // SSN-shaped: a never-issued synthetic SSN, and never a validly formatted IRS ITIN.
@@ -277,6 +292,50 @@ describe("the deid pairing loop: synthetic-safety of the planted sentinels", () 
       for (const r of allRuns(seed)) for (const s of r.planted) tokens.add(s.token);
     return tokens;
   }
+
+  describe("the FHIR logical ids a de-identifier reports as identifiers", () => {
+    /**
+     * The logical ids of the loop's FHIR Bundle, read from the Bundle itself rather than from the
+     * installed `@cosyte/deid`: its own `id`, every entry's resource `id`, and the id part of every
+     * `urn:uuid:` fullUrl. A `@cosyte/deid` that replaces resource ids reports each of these as an
+     * identifier locus, so each becomes a planted token; an older one reports none of them.
+     */
+    function bundleLogicalIds(seed: number): string[] {
+      const bundle = JSON.parse(serializeResource(generateBundle({ seed }))) as {
+        id: string;
+        entry: { fullUrl: string; resource: { id: string } }[];
+      };
+      return [
+        bundle.id,
+        ...bundle.entry.flatMap((e) => [e.fullUrl.replace(/^urn:uuid:/, ""), e.resource.id]),
+      ];
+    }
+
+    it("are minted by this package and clear the sweep, for every seed", () => {
+      for (const seed of SEEDS) {
+        const ids = bundleLogicalIds(seed);
+        expect(ids.length).toBeGreaterThan(10);
+        expect(sweepPlantedTokens(ids), `seed ${seed}`).toStrictEqual([]);
+      }
+    });
+
+    it("an id of any other shape is still a hit", () => {
+      for (const id of [
+        "patient-4471",
+        "syn-patient-447",
+        "syn-patient-123456789",
+        "16a860fd-2041-1463-8fb4-d71d42853c4a", // a version 1 UUID: not the shape this package mints
+        "16A860FD-2041-4463-8FB4-D71D42853C4A",
+      ]) {
+        expect(plantedTokenHits(id), id).toStrictEqual([`pool:${id}`]);
+      }
+    });
+
+    it("an all-digit UUID carrying 555 is read as a UUID, never as a phone", () => {
+      const id = "12345550-1234-4123-8123-123456789012";
+      expect(plantedTokenHits(id)).toStrictEqual([]);
+    });
+  });
 
   it("every planted token is drawn from a guaranteed-non-colliding synthetic source", () => {
     const tokens = plantedTokens(SEEDS);
