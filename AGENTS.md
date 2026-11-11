@@ -30,6 +30,7 @@ pnpm examples && pnpm smoke                        # ci.yml, smoke.yml
 pnpm check:install                                 # install.yml (needs the network)
 pnpm check:test-selection                          # test-selection.yml
 pnpm check:process                                 # ci.yml documents job
+pnpm check:docs-reference                          # ci.yml documents job
 pnpm run determinism:digest && pnpm run check:determinism-window   # ci.yml
 pnpm run acquire:oracle && pnpm run oracle         # ci.yml (needs java and the network)
 pnpm check:no-emdash && pnpm check:no-internal-refs
@@ -37,7 +38,8 @@ pnpm check:readme && pnpm check:claude-card && pnpm check:catalog   # ci.yml
 ```
 
 A package change adds a changeset (`pnpm changeset`). A change to the bytes a seed produces is a
-breaking change.
+breaking change. A change to an export regenerates the API reference in `docs-content/api/` with
+`pnpm docs:reference`; every export needs a TSDoc summary.
 
 ## The testing standard
 

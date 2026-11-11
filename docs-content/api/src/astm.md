@@ -44,6 +44,14 @@ The message kinds to cycle through. Defaults to one of each.
 
 The seed for the whole corpus (deterministic).
 
+##### verify?
+
+> `readonly` `optional` **verify?**: `boolean`
+
+Whether each artifact is read back through its parser and the parser's findings recorded as its
+`warnings`. Defaults to `true`. `false` skips the read, a large share of a corpus's time; every
+artifact's `warnings` is then empty without having been checked.
+
 ***
 
 ### AstmExampleTest
@@ -104,7 +112,8 @@ Inclusive integer low bound of the seeded synthetic value (structural, not clini
 
 ### AstmHeaderIdentity
 
-A synthetic ASTM header identity: the sender and analyzer strings for the `H` record.
+A synthetic ASTM header identity: the sender name the `H` record carries in `H.5`, and an analyzer
+string that no generator writes into a message.
 
 #### Properties
 
@@ -112,13 +121,14 @@ A synthetic ASTM header identity: the sender and analyzer strings for the `H` re
 
 > `readonly` **analyzer**: `string`
 
-The analyzer / instrument string (clearly synthetic).
+An analyzer / instrument string (clearly synthetic). Drawn so a seed keeps its draw order; the
+generators leave it out of the message.
 
 ##### sender
 
 > `readonly` **sender**: `string`
 
-The sending system id (clearly synthetic).
+The sending system's name, written to `H.5` (clearly synthetic).
 
 ***
 
@@ -453,7 +463,8 @@ const { specClean } = astmFramedRoundTrip(generateAstmResultFramed({ seed: 1 }))
 
 > **astmHeaderIdentity**(`rng`): [`AstmHeaderIdentity`](#astmheaderidentity)
 
-Mint a synthetic header identity for the `H` record: a clearly-synthetic sender and analyzer.
+Mint a synthetic header identity: a clearly-synthetic sender for the `H` record's `H.5`, and an
+analyzer string, drawn after it, that the generators leave out of the message.
 
 #### Parameters
 

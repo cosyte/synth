@@ -35,9 +35,16 @@ npm install @cosyte/synth @cosyte/hl7
 | `@cosyte/synth/astm`  | `@cosyte/astm`                                                                                    |
 | `@cosyte/synth/deid`  | `@cosyte/deid`, `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, and `@cosyte/ncpdp` |
 
-The `deid` subpath loads all five parsers it pairs as soon as it is imported, so all five must be
-installed even if you call only one of its loops. Each parser peer is declared at `^0.1`, and
-`@cosyte/deid` at `^0.1.5 || ^0.2.0`, so either release line installs beside it.
+Importing a subpath loads no parser: each is loaded the first time a generator needs it. Each loop
+of the `deid` subpath needs `@cosyte/deid` and the parser of its own format, so install those for
+the loops you call: `hl7DeidLoop` needs `@cosyte/hl7`, `fhirDeidLoop` `@cosyte/fhir`,
+`ccdaDeidLoop` `@cosyte/ccda`, `x12DeidLoop` `@cosyte/x12`, and `ncpdpTelecomDeidLoop`
+`@cosyte/ncpdp`. The table's row is what all five loops need together. Each parser peer is declared
+at `^0.1`, and `@cosyte/deid` at `^0.1.5 || ^0.2.0`, so either release line installs beside it.
+
+Under Bun, a project with no `node_modules` folder works differently: Bun installs a package it
+cannot find while the program runs, so a missing parser is downloaded and loaded rather than
+reported. Install the parsers you use, so the versions that run are the ones you chose.
 
 To install every format at once:
 

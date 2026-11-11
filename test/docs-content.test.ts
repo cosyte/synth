@@ -6,7 +6,11 @@ import { pathToFileURL } from "node:url";
 import ts from "typescript";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { docSnippetSuite, extractRunnableSnippets } from "@cosyte/vitest-config/snippets";
+import {
+  docSnippetSuite,
+  extractRunnableSnippets,
+  planSamples,
+} from "@cosyte/vitest-config/snippets";
 
 import { SYNTH_FATAL_CODES, SYNTH_FATAL_MESSAGES } from "../src/index.js";
 import { ASTM_QUIRKS } from "../src/astm/index.js";
@@ -23,6 +27,7 @@ import type { QuirkDescriptor } from "../src/index.js";
  *   internal `.js` imports). The shared CI gate runs `test` before `build`, so `dist/` is built here.
  * - Every sample also compiles against the package's types, with the repository's strict settings:
  *   the runner strips types without checking them.
+ * - Every TypeScript sample in `README.md` runs the same way, in a suite of its own.
  * - Every link between pages resolves, heading anchor included, and so does every link into the
  *   generated reference under `docs-content/api/`.
  * - No page carries a value shaped like real contact or identity data: `pnpm phi-scan` does not read
@@ -87,6 +92,20 @@ const shortName = (path: string): string => path.slice(docsDir.length + 1);
  */
 const suiteOptions = { files: pages, every: true, resolve };
 docSnippetSuite(suiteOptions);
+
+/**
+ * The README is the first page an npm reader sees, so every TypeScript sample on it runs too, through
+ * the same runner and against the same built package, in a suite of its own with its own working
+ * folder. Its fences carry no tags (npm and GitHub render the README), so every sample is taken.
+ */
+const readmePath = join(root, "README.md");
+docSnippetSuite({
+  files: [readmePath],
+  every: true,
+  resolve,
+  name: "README samples",
+  tmpDir: join(root, ".cosyte-doc-snippets-readme"),
+});
 
 /** One fenced block of a page: its language, the words after it, its body, and its line. */
 interface Fence {
@@ -380,6 +399,42 @@ describe("the quirk catalog", () => {
       }
     },
   );
+});
+
+/**
+ * The generated reference is held to the source by `cosyte-docs-reference --check`, which CI runs in
+ * the required `documents` job. This keeps the script, its CI step and the gate lists in place.
+ */
+describe("the API reference check", () => {
+  const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+    scripts: Record<string, string>;
+  };
+
+  it("is a script, and the regenerating script beside it", () => {
+    expect(manifest.scripts["check:docs-reference"]).toBe("cosyte-docs-reference --check");
+    expect(manifest.scripts["docs:reference"]).toBe("cosyte-docs-reference");
+  });
+
+  it("runs in the documents job of ci.yml", () => {
+    const ci = readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8");
+    const documents = ci.slice(ci.indexOf("\n  documents:\n"));
+    expect(ci.includes("\n  documents:\n")).toBe(true);
+    expect(/\n {8}run: pnpm check:docs-reference\n/.test(documents)).toBe(true);
+  });
+
+  it.each(["AGENTS.md", "CLAUDE.md"])("is in the gate list of %s", (file) => {
+    expect(readFileSync(join(root, file), "utf8")).toContain("pnpm check:docs-reference");
+  });
+});
+
+describe("the README's samples", () => {
+  const readmeSamples = planSamples([readmePath], { every: true, root });
+
+  it("are all run by the suite above: one per generator family, none left out", () => {
+    // HL7 v2, FHIR, C-CDA, X12, NCPDP, ASTM, quirks, the deid loop, and a synthetic value.
+    expect(readmeSamples.map((step) => step.kind)).toEqual(Array(9).fill("run"));
+    expect(readmeSamples.every((step) => step.typecheck)).toBe(true);
+  });
 });
 
 /**

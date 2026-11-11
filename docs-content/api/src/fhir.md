@@ -134,6 +134,14 @@ The resource kinds to cycle through. Defaults to the full US Core clinical spine
 
 The seed for the whole corpus (deterministic).
 
+##### verify?
+
+> `readonly` `optional` **verify?**: `boolean`
+
+Whether each artifact is read back through its parser and the parser's findings recorded as its
+`warnings`. Defaults to `true`. `false` skips the read, a large share of a corpus's time; every
+artifact's `warnings` is then empty without having been checked.
+
 ***
 
 ### FhirPatientIdentity
@@ -1543,9 +1551,11 @@ const vs = generateVitalSign({ seed: 5, subject: "Patient/syn-patient-1" });
 
 > **meta**(`profiles`): `FhirComplex`
 
-A `meta.profile` element pinning the resource to one or more canonical profile URLs (US Core
-conformance is claimed via `meta.profile`). No version is pinned, so validating against any supplied
-version of the named profile never raises a version-mismatch.
+A resource's `meta`: the `HTEST` security label in `meta.security`, which says the resource is test
+data, on every resource this package generates, plus a `meta.profile` pinning the resource to one or
+more canonical profile URLs when any are given (US Core conformance is claimed via `meta.profile`).
+No version is pinned, so validating against any supplied version of the named profile never raises
+a version-mismatch.
 
 #### Parameters
 
@@ -1553,7 +1563,8 @@ version of the named profile never raises a version-mismatch.
 
 readonly `string`[]
 
-The canonical profile URLs to claim.
+The canonical profile URLs to claim. Empty for none: `meta.profile` is then left
+  out and `meta` carries only the security label.
 
 #### Returns
 

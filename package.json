@@ -136,7 +136,8 @@
       "esbuild@>=0.27.3 <0.28.2": "0.28.2",
       "js-yaml@>=4.0.0 <4.3.2": "4.3.2",
       "js-yaml@>=3.0.0 <3.15.2": "3.15.2",
-      "minimatch@>=10.0.0 <11.0.1": "11.0.1"
+      "minimatch@>=10.0.0 <11.0.1": "11.0.1",
+      "typedoc>minimatch": "10.2.6"
     }
   },
   "peerDependencies": {
@@ -212,6 +213,8 @@
     "smoke": "node scripts/smoke.mjs",
     "clean": "rm -rf dist coverage",
     "pack:docs": "cosyte-process pack-docs",
+    "docs:reference": "cosyte-docs-reference",
+    "check:docs-reference": "cosyte-docs-reference --check",
     "attw": "cosyte-attw",
     "version": "changeset version && cosyte-process sync-version && prettier --write package.json CHANGELOG.md src/index.ts",
     "release": "changeset publish",
@@ -233,7 +236,7 @@
     "@cosyte/hl7": "^0.1.8",
     "@cosyte/ncpdp": "^0.1.6",
     "@cosyte/prettier-config": "^0.1.2",
-    "@cosyte/process": "^0.1.7",
+    "@cosyte/process": "^0.1.8",
     "@cosyte/script-utils": "^0.1.10",
     "@cosyte/test-utils": "^0.1.4",
     "@cosyte/tsconfig": "^0.1.2",

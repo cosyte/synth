@@ -434,9 +434,13 @@ jobs:
   # package description against the catalog that ships in script-utils (`pnpm check:catalog`). It
   # also runs `pnpm check:process`, @cosyte/process's `cosyte-process check`, which holds the build,
   # test, lint, typecheck and format scripts to the exact `cosyte-process` delegations, validates
-  # cosyte-process.config.json, and fails a direct `vitest` that is not exactly process's pin. Not
-  # one of the determinism jobs, so the reconciliation does not read it. Its context, `documents`,
-  # is required by the ci-required-checks ruleset.
+  # cosyte-process.config.json, and fails a direct `vitest` that is not exactly process's pin. Last,
+  # `pnpm check:docs-reference` (@cosyte/process's `cosyte-docs-reference --check`) holds the API
+  # reference in docs-content/api/ to the source: it fails when the committed pages differ from what
+  # the TSDoc comments of the root and every subpath generate (an export changed and
+  # `pnpm docs:reference` was not run), and when an export has no TSDoc summary. Not one of the
+  # determinism jobs, so the reconciliation does not read it. Its context, `documents`, is required
+  # by the ci-required-checks ruleset.
   documents:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -463,3 +467,6 @@ jobs:
 
       - name: The process scripts delegate to @cosyte/process
         run: pnpm check:process
+
+      - name: docs-content/api matches the source, and every export has a TSDoc summary
+        run: pnpm check:docs-reference

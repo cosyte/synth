@@ -177,6 +177,14 @@ The seed for the whole corpus (deterministic).
 ADT-only convenience: the triggers to cycle through, kept for back-compat. When
 supplied it takes precedence over `mix` and restricts the corpus to `ADT` messages.
 
+##### verify?
+
+> `readonly` `optional` **verify?**: `boolean`
+
+Whether each artifact is read back through its parser and the parser's findings recorded as its
+`warnings`. Defaults to `true`. `false` skips the read, a large share of a corpus's time; every
+artifact's `warnings` is then empty without having been checked.
+
 ***
 
 ### Hl7QuirkCorpusOptions
