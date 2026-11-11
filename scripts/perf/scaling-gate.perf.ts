@@ -62,19 +62,20 @@ interface Gate {
 // document on a developer machine. Every size axis is small, so the self-check's quadratic version
 // stays at a few seconds a phase: rebuilding every prefix of a corpus of `4 * size` artifacts
 // generates `2 * size * (4 * size + 1)` of them, about 15 times the base phase's at these sizes.
-// The floor is 4 ms, and a hosted runner's speed moves from run to run: at the earlier counts (HL7
-// 192 and 16, FHIR 32 and 4, X12 96 and 8, NCPDP 64 and 8, ASTM 96 and 8) the slowest of five
-// runners read clean base phases from 5.0 ms (HL7) to 10.3 ms. Each count and number of inputs
-// below is about twice what that runner needed for 8 ms, so every base phase is near 16 ms or more
-// there. Only the number of corpora grows, never a corpus's size, so the self-check's quadratic
-// version grows in step with the clean one and its margin does not move.
+// The floor is 4 ms, and a hosted runner's speed moves from run to run. On the slowest one seen, at
+// the earlier sizes (HL7 192 and 16, FHIR 32 and 4, C-CDA 4 and 1, X12 96 and 8, NCPDP 64 and 8,
+// ASTM 64 and 8), the base phases read from 3.6 ms (ASTM's count axis, a skip) to 7.5 ms, and
+// C-CDA's 12.6 and 19.0 ms. Each count and number of inputs below is sized from those readings so
+// that every base phase on that runner would be near 16 ms or more, four times the floor. Only the number of corpora grows,
+// never a corpus's size, so the self-check's quadratic version grows in step with the clean one
+// and its margin does not move.
 const GATES: readonly Gate[] = [
-  { name: "hl7Corpus", generate: (r) => hl7Corpus(r), count: 640, inputs: 40, size: 14 },
-  { name: "fhirCorpus", generate: (r) => fhirCorpus(r), count: 72, inputs: 8, size: 11 },
-  { name: "ccdaCorpus", generate: (r) => ccdaCorpus(r), count: 4, inputs: 1, size: 6 },
-  { name: "x12Corpus", generate: (r) => x12Corpus(r), count: 224, inputs: 16, size: 15 },
-  { name: "ncpdpCorpus", generate: (r) => ncpdpCorpus(r), count: 160, inputs: 20, size: 12 },
-  { name: "astmCorpus", generate: (r) => astmCorpus(r), count: 192, inputs: 16, size: 16 },
+  { name: "hl7Corpus", generate: (r) => hl7Corpus(r), count: 800, inputs: 48, size: 14 },
+  { name: "fhirCorpus", generate: (r) => fhirCorpus(r), count: 96, inputs: 10, size: 11 },
+  { name: "ccdaCorpus", generate: (r) => ccdaCorpus(r), count: 6, inputs: 1, size: 6 },
+  { name: "x12Corpus", generate: (r) => x12Corpus(r), count: 288, inputs: 24, size: 15 },
+  { name: "ncpdpCorpus", generate: (r) => ncpdpCorpus(r), count: 192, inputs: 28, size: 12 },
+  { name: "astmCorpus", generate: (r) => astmCorpus(r), count: 288, inputs: 28, size: 16 },
 ];
 
 function options(gate: Gate): ScalingGateOptions<Request, Corpus> {
