@@ -88,11 +88,14 @@ function showCorpus(corpus: root.Corpus): string {
 const fhirText = (r: FhirComplex): string => serializeResource(r);
 const x12Text = (i: X12Interchange): string => serializeX12(i);
 
+/** Exported values that change with every release; `test/version.test.ts` pins VERSION instead. */
+const RELEASE_VALUES: ReadonlySet<string> = new Set(["VERSION"]);
+
 /** Every exported value of an entry that is not a function, as stable JSON. */
 function constantsOf(entry: string, mod: Record<string, unknown>): Observation[] {
   return Object.keys(mod)
     .sort()
-    .filter((k) => typeof mod[k] !== "function")
+    .filter((k) => typeof mod[k] !== "function" && !RELEASE_VALUES.has(k))
     .map((k) => ({ label: `const:${entry}:${k}`, text: () => stable(mod[k]) }));
 }
 
