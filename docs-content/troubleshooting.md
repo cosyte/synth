@@ -44,10 +44,12 @@ class your code imports from the parser. Three setups break that, each by loadin
 parser:
 
 - Node.js older than 22.12, which this package does not support. Upgrade Node.js.
-- A runtime whose `import.meta.resolve` throws, or answers with a URL that is not a `file:` URL,
-  as it does inside Deno's test runner. The generator then loads the parser by name through
-  `require`, which takes the parser's CommonJS entry: generation works, and a returned value is
-  an instance of the CommonJS copy of the parser's classes.
+- Deno's test runner, where `import.meta.resolve` throws `TypeError: Invalid arguments`, or a
+  runtime whose `import.meta.resolve` answers with a URL that is not a `file:` URL. The generator
+  then loads the parser by name through `require`, which takes the parser's CommonJS entry:
+  generation works, and a returned value is an instance of the CommonJS copy of the parser's
+  classes. Any other error from `import.meta.resolve`, such as a parser that is not installed, is
+  thrown as it is.
 - A bundle that inlines a parser, or `@cosyte/synth`, while the generator loads the installed
   parser. Mark `@cosyte/synth` and each `@cosyte/*` parser external; see
   [Bundle an application that uses it](./installation.md#bundle-an-application-that-uses-it).

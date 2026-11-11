@@ -136,6 +136,39 @@ describe("loadPeer and lazyPeer", () => {
     expect(required).toEqual(["@cosyte/x", "@cosyte/x"]);
   });
 
+  it("passes on every other error from resolving, so no second copy of a parser loads", () => {
+    // On Node.js a resolve can fail for a reason that `require` of the name would get past, such
+    // as a package whose `exports` has no `import` entry. Falling back then would load the
+    // CommonJS copy of a parser and break `instanceof`, so only Deno's own refusal falls back.
+    const required: string[] = [];
+    const failing = (error: unknown): PeerHost => ({
+      require: (id) => {
+        required.push(id);
+        return { id };
+      },
+      resolve: () => {
+        throw error;
+      },
+    });
+    const others: readonly unknown[] = [
+      Object.assign(new Error("Cannot find package"), { code: "ERR_MODULE_NOT_FOUND" }),
+      Object.assign(new Error("No exports"), { code: "ERR_PACKAGE_PATH_NOT_EXPORTED" }),
+      // The same message as Deno's, but with a Node.js code, or not a TypeError.
+      Object.assign(new TypeError("Invalid arguments"), { code: "ERR_INVALID_ARG_TYPE" }),
+      new Error("Invalid arguments"),
+      new TypeError("Invalid URL"),
+      null,
+    ];
+    for (const error of others) {
+      expect(() => loadPeer("@cosyte/x", failing(error)), String(error)).toThrow();
+    }
+    expect(required).toEqual([]);
+    expect(loadPeer("@cosyte/x", failing(new TypeError("Invalid arguments")))).toEqual({
+      id: "@cosyte/x",
+    });
+    expect(required).toEqual(["@cosyte/x"]);
+  });
+
   it("passes on a failure to load the specifier after resolving failed", () => {
     const host: PeerHost = {
       require: () => {
