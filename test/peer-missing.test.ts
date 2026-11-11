@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   SYNTH_FATAL_CODES,
@@ -52,7 +52,13 @@ let empty: Project;
 let transitive: Project;
 
 beforeAll(async () => {
-  empty = await project(join(root, "empty"), { "package.json": "{}\n" });
+  // An empty `node_modules`, not none: Bun installs a package it cannot find on the fly when the
+  // importing file has no `node_modules` above it, which would install the parser this case needs
+  // to be missing.
+  empty = await project(join(root, "empty"), {
+    "package.json": "{}\n",
+    "node_modules/.keep": "",
+  });
   transitive = await project(join(root, "transitive"), {
     "package.json": "{}\n",
     "node_modules/@cosyte/hl7/package.json": JSON.stringify({
@@ -130,6 +136,14 @@ describe("a parser that is not installed", () => {
       Object.assign(new Error("Cannot find module '@cosyte/hl7-extra'"), {
         code: "MODULE_NOT_FOUND",
       }),
+      // The text of one code under the other code, or under a third.
+      Object.assign(new Error("Cannot find module '@cosyte/hl7'"), { code: "ERR_UNKNOWN" }),
+      Object.assign(new Error("Cannot find package '@cosyte/hl7' imported from /a"), {
+        code: "MODULE_NOT_FOUND",
+      }),
+      Object.assign(new Error("Cannot find module '@cosyte/hl7'"), {
+        code: "ERR_MODULE_NOT_FOUND",
+      }),
       Object.assign(new Error("Cannot find package '@cosyte/hl7x' imported from /a"), {
         code: "ERR_MODULE_NOT_FOUND",
       }),
@@ -183,5 +197,27 @@ describe("a parser that is not installed", () => {
     });
     expect(Object.keys(named)).toContain("peer");
     expect(named.message).toBe(SYNTH_PEER_MESSAGES["@cosyte/x12"]);
+  });
+});
+
+describe("the message tables, built inside the test", () => {
+  // Imported afresh so the module-level tables are built while this case runs, where a mutation
+  // run can see which case reads them.
+  it("hold the plain and the per-parser messages for a missing parser", async () => {
+    vi.resetModules();
+    const codes = await import("../src/codes.js");
+    expect(Object.keys(codes.SYNTH_FATAL_MESSAGES).sort()).toEqual(
+      Object.values(codes.SYNTH_FATAL_CODES).sort(),
+    );
+    expect(codes.SYNTH_FATAL_CODES.SYNTH_PEER_NOT_INSTALLED).toBe("SYNTH_PEER_NOT_INSTALLED");
+    expect(codes.SYNTH_FATAL_MESSAGES.SYNTH_PEER_NOT_INSTALLED).toBe(
+      "A sibling @cosyte parser this generator builds through is not installed. Install it beside @cosyte/synth.",
+    );
+    for (const [peer, message] of Object.entries(codes.SYNTH_PEER_MESSAGES)) {
+      expect(message).toBe(
+        `${peer} is not installed, and this generator builds through it. Install it beside @cosyte/synth: npm install ${peer}`,
+      );
+    }
+    expect(Object.keys(codes.SYNTH_PEER_MESSAGES)).toHaveLength(7);
   });
 });
