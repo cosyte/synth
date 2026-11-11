@@ -265,10 +265,13 @@ export interface CcdaQuirkCorpusOptions {
   readonly count?: number;
   /**
    * The quirk names to cycle through. Defaults to every C-CDA quirk. Validated; unsupported ⇒ fatal.
-   * An empty list, or a `profile` that names no quirk, throws `SYNTH_EMPTY_POOL`.
+   * An empty list, or a `profile` whose `quirks` is an empty list, throws `SYNTH_EMPTY_POOL`.
    */
   readonly quirks?: readonly CcdaQuirkName[];
-  /** A {@link SynthProfile} whose `quirks` drive the corpus (validated). Takes precedence over `quirks`. */
+  /**
+   * A {@link SynthProfile} whose `quirks` drive the corpus (validated). Its `quirks`, when set, take
+   * precedence over `quirks`; a profile that leaves `quirks` out leaves the selection to `quirks`.
+   */
   readonly profile?: SynthProfile;
   /** The base document type each quirk is injected into. Defaults to `"ccd"`. */
   readonly documentType?: CcdaDocumentType;
@@ -292,7 +295,7 @@ const ALL_CCDA_QUIRKS: readonly CcdaQuirkName[] = Object.freeze(
  */
 export function ccdaQuirkCorpus(options: CcdaQuirkCorpusOptions): Corpus {
   const names: readonly string[] = requireSelection(
-    options.profile
+    options.profile?.quirks !== undefined
       ? validateProfileQuirks(options.profile, CCDA_QUIRKS, "ccda")
       : (options.quirks ?? ALL_CCDA_QUIRKS),
   );

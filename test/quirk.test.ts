@@ -115,8 +115,12 @@ describe("validateProfileQuirks: a SynthProfile's quirks are checked against the
     const profile = defineSynthProfile({ name: "bad", quirks: ["demo-quirk", "nope"] });
     expect(() => validateProfileQuirks(profile, REGISTRY, "hl7v2")).toThrowError(SynthError);
   });
-  it("accepts a profile with no quirks", () => {
-    const profile = defineSynthProfile({ name: "empty" });
+  it("returns every registry quirk for a profile that leaves quirks out (the default)", () => {
+    const profile = defineSynthProfile({ name: "names-only", givenNames: ["Testina"] });
+    expect(validateProfileQuirks(profile, REGISTRY, "hl7v2")).toEqual(["demo-quirk"]);
+  });
+  it("returns an empty list for a profile whose quirks list is empty", () => {
+    const profile = defineSynthProfile({ name: "empty", quirks: [] });
     expect(validateProfileQuirks(profile, REGISTRY, "hl7v2")).toEqual([]);
   });
 });

@@ -211,14 +211,15 @@ The base message family each quirk is injected into. Defaults to `"ORU^R01"`.
 
 > `readonly` `optional` **profile?**: [`SynthProfile`](../src.md#synthprofile)
 
-A [SynthProfile](../src.md#synthprofile) whose `quirks` drive the corpus (validated). Takes precedence over `quirks`.
+A [SynthProfile](../src.md#synthprofile) whose `quirks` drive the corpus (validated). Its `quirks`, when set, take
+precedence over `quirks`; a profile that leaves `quirks` out leaves the selection to `quirks`.
 
 ##### quirks?
 
 > `readonly` `optional` **quirks?**: readonly [`Hl7QuirkName`](#hl7quirkname)[]
 
 The quirk names to cycle through. Defaults to every HL7 quirk. Validated; unsupported ⇒ fatal.
-An empty list, or a `profile` that names no quirk, throws `SYNTH_EMPTY_POOL`.
+An empty list, or a `profile` whose `quirks` is an empty list, throws `SYNTH_EMPTY_POOL`.
 
 ##### seed
 

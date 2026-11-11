@@ -20,7 +20,9 @@ export interface SynthProfileSpec {
   /**
    * The vendor quirk recipe names this profile requests. Validated against the target format's quirk
    * registry when the profile drives a quirk corpus (an unsupported quirk is a fatal
-   * `SYNTH_UNSUPPORTED_QUIRK`, never a silent no-op).
+   * `SYNTH_UNSUPPORTED_QUIRK`, never a silent no-op). Leave it out to leave the quirk selection to
+   * the corpus (every quirk by default); an empty list selects nothing, and a quirk corpus refuses it
+   * with `SYNTH_EMPTY_POOL`.
    */
   readonly quirks?: readonly string[];
 }
@@ -33,8 +35,11 @@ export interface SynthProfile {
   readonly givenNames?: readonly string[];
   /** The family-name pool this profile draws from. */
   readonly familyNames?: readonly string[];
-  /** The requested quirk recipe names. */
-  readonly quirks: readonly string[];
+  /**
+   * The requested quirk recipe names, or absent when the spec left `quirks` out. Absent is not an
+   * empty list: absent leaves the quirk selection to the corpus, an empty list selects nothing.
+   */
+  readonly quirks?: readonly string[];
 }
 
 /**
@@ -46,7 +51,12 @@ export interface SynthProfile {
  * @example
  * ```ts
  * import { defineSynthProfile } from "@cosyte/synth";
- * const acme = defineSynthProfile({ name: "acme-hospital", quirks: [] });
+ * // Name pools only: `quirks` is left out, so a quirk corpus given this profile applies every quirk.
+ * const acme = defineSynthProfile({
+ *   name: "acme-hospital",
+ *   givenNames: ["Testina"],
+ *   familyNames: ["Testerson"],
+ * });
  * ```
  */
 export function defineSynthProfile(spec: SynthProfileSpec): SynthProfile {
@@ -57,6 +67,6 @@ export function defineSynthProfile(spec: SynthProfileSpec): SynthProfile {
     name: spec.name,
     ...(spec.givenNames ? { givenNames: Object.freeze([...spec.givenNames]) } : {}),
     ...(spec.familyNames ? { familyNames: Object.freeze([...spec.familyNames]) } : {}),
-    quirks: Object.freeze([...(spec.quirks ?? [])]),
+    ...(spec.quirks !== undefined ? { quirks: Object.freeze([...spec.quirks]) } : {}),
   });
 }

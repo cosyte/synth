@@ -87,9 +87,10 @@ Message: "An integer range was requested with its maximum below its minimum."
 
 The seeded generator's `pick` was called with an empty list, or a corpus was given an empty list to
 cycle through: an empty `mix` in any of the six corpora, an empty `triggers` list in `hl7Corpus`,
-or an empty `quirks` list (or a `profile` that names no quirk) in `hl7QuirkCorpus`,
+or an empty `quirks` list (or a `profile` whose `quirks` is an empty list) in `hl7QuirkCorpus`,
 `ccdaQuirkCorpus` or `astmQuirkCorpus`. The corpus throws before it generates anything, whatever
-the `count`.
+the `count`. A `profile` that leaves `quirks` out is not an empty list: the corpus uses its
+`quirks` option, or every quirk.
 
 Message: "A value was drawn from an empty pool."
 

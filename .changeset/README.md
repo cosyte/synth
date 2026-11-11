@@ -13,15 +13,12 @@ Add a changeset for every meaningful change:
 pnpm changeset
 ```
 
-Pick the bump type from what the change does to the published package. On the `0.1.x` ladder:
-
-- **minor** for anything a consumer gains: a newly exported symbol, a new option, a new stable
-  code, or a new published artifact they can use. It takes `0.1.x` to `0.2.0`.
-- **patch** for a fix, for documentation of a surface that already ships, and for contributor-only
-  tooling. It takes `0.1.0` to `0.1.1`.
-- **major** only when you mean to declare `1.0.0`. Before that, a breaking change is a **minor**,
-  and the break has to be spelled out in the summary, because the number alone tells a consumer on
-  a `0.x` release nothing.
+Every changeset is a **patch**, on the `0.1.x` ladder: a fix, a new export, option, stable code or
+published artifact, documentation of a surface that already ships, and contributor-only tooling
+alike. It takes `0.1.0` to `0.1.1`. A breaking change before `1.0.0` is a patch too, and the
+summary spells out the break and what a caller changes, because the number alone tells a consumer
+nothing. A **minor** or a **major** is the maintainers' decision for a planned release, never a
+contributor's pick for one change.
 
 One rule is enforced rather than chosen: a change to the bytes a seed maps to has to be stated.
 `pnpm run check:determinism-window` accepts a **major** changeset, or (the operator's decision D57,

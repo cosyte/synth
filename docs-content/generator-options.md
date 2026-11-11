@@ -226,7 +226,7 @@ a frozen `SynthProfile`.
 | Field         | Type       | Required | Meaning                                                                                     |
 | ------------- | ---------- | -------- | ------------------------------------------------------------------------------------------- |
 | `name`        | `string`   | yes      | The profile's name. A missing or blank name throws [`SYNTH_INVALID_PROFILE`](./fatal-codes.md#synth_invalid_profile). |
-| `quirks`      | `string[]` | no       | The quirks a quirk corpus applies. Checked against the format's registry when a corpus uses the profile. Defaults to none. |
+| `quirks`      | `string[]` | no       | The quirks a quirk corpus applies. Checked against the format's registry when a corpus uses the profile. Left out, the corpus uses its own `quirks` option or every quirk; an empty list throws [`SYNTH_EMPTY_POOL`](./fatal-codes.md#synth_empty_pool). |
 | `givenNames`  | `string[]` | no       | Stored on the profile. No generator reads it in this release.                               |
 | `familyNames` | `string[]` | no       | Stored on the profile. No generator reads it in this release.                               |
 

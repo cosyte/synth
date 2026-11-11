@@ -1,0 +1,5 @@
+---
+"@cosyte/synth": patch
+---
+
+A profile that leaves `quirks` out is no longer read as an empty quirk list. `defineSynthProfile({ name, givenNames })` now returns a profile with no `quirks` field, and `hl7QuirkCorpus`, `ccdaQuirkCorpus` and `astmQuirkCorpus` given such a profile use their `quirks` option, or every quirk when that is left out too, the same as with no profile. A profile whose `quirks` is an empty list still selects nothing and throws `SYNTH_EMPTY_POOL`. Before, `defineSynthProfile` filled a missing `quirks` with an empty list, so a profile made only for its name pools threw `SYNTH_EMPTY_POOL` in a quirk corpus. The `defineSynthProfile` example passed `quirks: []`, which a quirk corpus refuses; it now builds a profile of name pools that leaves `quirks` out. `validateProfileQuirks` now returns every quirk in the registry for a profile that leaves `quirks` out. What a caller changes: `SynthProfile.quirks` is now optional, so code that reads it directly handles `undefined` (`profile.quirks ?? []` keeps the old reading). Output for every profile that sets `quirks` is unchanged, byte for byte.
