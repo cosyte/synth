@@ -117,6 +117,37 @@ describe("loadPeer and lazyPeer", () => {
     expect(required).toEqual([entryPath("@cosyte/x"), "@cosyte/x"]);
   });
 
+  it("requires the specifier itself where the host cannot resolve it to a file", () => {
+    // Deno's test runner throws from `import.meta.resolve`; a resolver may also answer with a URL
+    // that is not a `file:` URL. Either way the specifier goes to `require` as it is.
+    const required: string[] = [];
+    const throwing: PeerHost = {
+      require: (id) => {
+        required.push(id);
+        return { id };
+      },
+      resolve: () => {
+        throw new TypeError("Invalid arguments");
+      },
+    };
+    expect(loadPeer("@cosyte/x", throwing)).toEqual({ id: "@cosyte/x" });
+    const notAFile: PeerHost = { ...throwing, resolve: (s) => `npm:/${s}@1.0.0/index.mjs` };
+    expect(loadPeer("@cosyte/x", notAFile)).toEqual({ id: "@cosyte/x" });
+    expect(required).toEqual(["@cosyte/x", "@cosyte/x"]);
+  });
+
+  it("passes on a failure to load the specifier after resolving failed", () => {
+    const host: PeerHost = {
+      require: () => {
+        throw Object.assign(new Error("missing"), { code: "MODULE_NOT_FOUND" });
+      },
+      resolve: () => {
+        throw new TypeError("Invalid arguments");
+      },
+    };
+    expect(() => loadPeer("@cosyte/x", host)).toThrow("missing");
+  });
+
   it("passes on any other failure to load", () => {
     const host: PeerHost = {
       require: () => {
