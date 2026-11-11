@@ -14,7 +14,14 @@
     {
       "type": "category",
       "label": "Tutorials",
-      "items": ["test-hl7-handling-with-fixtures"]
+      "items": [
+        "test-hl7-handling-with-fixtures",
+        "test-fhir-handling-with-fixtures",
+        "test-ccda-handling-with-fixtures",
+        "test-x12-handling-with-fixtures",
+        "test-ncpdp-handling-with-fixtures",
+        "test-astm-handling-with-fixtures"
+      ]
     },
     {
       "type": "category",
@@ -35,12 +42,12 @@
     {
       "type": "category",
       "label": "Explanation",
-      "items": ["concepts-archetype", "limitations"]
+      "items": ["concepts-archetype", "limitations", "synthea-faker-and-other-generators"]
     },
     {
       "type": "category",
       "label": "Reference",
-      "items": ["fatal-codes", "quirk-catalog"]
+      "items": ["generator-options", "fatal-codes", "quirk-catalog", "glossary"]
     },
     {
       "type": "category",

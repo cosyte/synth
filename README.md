@@ -46,10 +46,9 @@ each round-tripping to exactly the intended parser warning (the intended-warning
 **`@cosyte/deid` pairing loop**, a closed-loop co-validation harness that de-identifies generated output
 and proves every planted synthetic PHI sentinel is removed.
 
-**Deferred (honestly out of scope for now):** quirk recipes for **FHIR / X12 / NCPDP** (and any quirk
-needing a private vendor corpus); the X12 **270** eligibility _request_ and NCPDP SCRIPT lifecycle
-**responses** (both track the parsers' builder surfaces); **NCPDP SCRIPT / ASTM / DICOM** de-identify
-pairing (no `@cosyte/deid` adapter, or not generated); and optional **Synthea** clinical-content ingestion.
+What is not generated yet (quirks for some formats, a few transactions, some pairing loops) is
+listed in one place, [what it does and does not do](https://docs.cosyte.com/synth/limitations),
+so this page does not repeat it.
 
 ## Install
 
@@ -379,14 +378,19 @@ isSyntheticNpi(safe.npi(rng)); // true, always a deliberately-invalid-Luhn NPI (
 The full reference is on [docs.cosyte.com/synth](https://docs.cosyte.com/synth):
 
 - [Installation](https://docs.cosyte.com/synth/installation), the [quickstart](https://docs.cosyte.com/synth/quickstart), and
-  a tutorial: [test your HL7 handling with generated fixtures](https://docs.cosyte.com/synth/test-hl7-handling-with-fixtures).
+  a tutorial per format: test your [HL7 v2](https://docs.cosyte.com/synth/test-hl7-handling-with-fixtures),
+  [FHIR](https://docs.cosyte.com/synth/test-fhir-handling-with-fixtures), [C-CDA](https://docs.cosyte.com/synth/test-ccda-handling-with-fixtures),
+  [X12](https://docs.cosyte.com/synth/test-x12-handling-with-fixtures), [NCPDP](https://docs.cosyte.com/synth/test-ncpdp-handling-with-fixtures),
+  and [ASTM](https://docs.cosyte.com/synth/test-astm-handling-with-fixtures) handling with generated fixtures.
 - How-to guides: [HL7 v2](https://docs.cosyte.com/synth/guides-hl7), [FHIR R4 and US Core](https://docs.cosyte.com/synth/guides-fhir),
   [C-CDA](https://docs.cosyte.com/synth/guides-ccda), [X12](https://docs.cosyte.com/synth/guides-x12), [NCPDP](https://docs.cosyte.com/synth/guides-ncpdp),
   [ASTM](https://docs.cosyte.com/synth/guides-astm), [vendor quirks](https://docs.cosyte.com/synth/guides-quirks),
   [the `@cosyte/deid` pairing loop](https://docs.cosyte.com/synth/guides-deid), [synthetic values](https://docs.cosyte.com/synth/draw-synthetic-values),
   and [pinning a golden fixture](https://docs.cosyte.com/synth/guides-overview).
-- Explanation: [how it works](https://docs.cosyte.com/synth/concepts-archetype) and [what it does and does not do](https://docs.cosyte.com/synth/limitations).
-- Reference: [fatal codes](https://docs.cosyte.com/synth/fatal-codes), the [quirk catalog](https://docs.cosyte.com/synth/quirk-catalog), and the
+- Explanation: [how it works](https://docs.cosyte.com/synth/concepts-archetype), [what it does and does not do](https://docs.cosyte.com/synth/limitations),
+  and [Synthea, faker and other generators](https://docs.cosyte.com/synth/synthea-faker-and-other-generators).
+- Reference: [generator options, kinds and profiles](https://docs.cosyte.com/synth/generator-options), [fatal codes](https://docs.cosyte.com/synth/fatal-codes),
+  the [quirk catalog](https://docs.cosyte.com/synth/quirk-catalog), the [glossary](https://docs.cosyte.com/synth/glossary), and the
   [API reference](https://github.com/cosyte/synth/blob/main/docs-content/api/README.md), generated from the source.
 - [Troubleshooting](https://docs.cosyte.com/synth/troubleshooting), [testing and quality](https://docs.cosyte.com/synth/testing-and-quality), and [performance](https://docs.cosyte.com/synth/performance).
 - [`CHANGELOG.md`](https://github.com/cosyte/synth/blob/main/CHANGELOG.md): every release.
