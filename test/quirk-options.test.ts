@@ -1,7 +1,7 @@
 /**
  * The quirk generators' optional inputs and the round trip's honesty about a caller-built artifact. An
- * omitted `seed` is seed `0`, an empty quirk list is refused (an omitted one means every quirk), and a
- * round trip of an artifact the matching profile does not cover reports `tolerated: false` with the
+ * omitted `seed` is seed `0`, an empty quirk list is refused (an omitted one means every quirk, and so
+ * does a profile that leaves `quirks` out), and a round trip of an artifact the matching profile does not cover reports `tolerated: false` with the
  * warning the profile left standing.
  */
 
@@ -19,7 +19,7 @@ import {
   astmQuirkRoundTrip,
   ASTM_QUIRKS,
 } from "../src/astm/index.js";
-import { ccdaQuirkCorpus, generateCcdaQuirk } from "../src/ccda/index.js";
+import { CCDA_QUIRKS, ccdaQuirkCorpus, generateCcdaQuirk } from "../src/ccda/index.js";
 import {
   defineSynthProfile,
   SYNTH_FATAL_CODES,
@@ -56,7 +56,7 @@ describe("ASTM quirk kind", () => {
 });
 
 describe("an empty quirk list is refused", () => {
-  // An empty `quirks` list, or a profile that names no quirk, selects nothing. Each quirk corpus
+  // An empty `quirks` list, or a profile whose `quirks` is an empty list, selects nothing. Each quirk corpus
   // throws `SYNTH_EMPTY_POOL` before it generates anything, whatever the count, and never reads the
   // empty list as every quirk.
   const empty = defineSynthProfile({ name: "no-quirks", quirks: [] });
@@ -87,6 +87,55 @@ describe("an empty quirk list is refused", () => {
   it("an omitted quirk list still selects every quirk", () => {
     expect(hl7QuirkCorpus({ seed: 5 }).manifest.quirks).toEqual(Object.keys(HL7_QUIRKS));
     expect(astmQuirkCorpus({ seed: 5 }).manifest.quirks).toEqual(Object.keys(ASTM_QUIRKS));
+  });
+});
+
+describe("a profile that leaves quirks out is not an empty quirk list", () => {
+  // A profile made only for its name pools says nothing about quirks. Passed to a quirk corpus it
+  // leaves the selection to `quirks`, or to every quirk when that is omitted too, and never throws
+  // `SYNTH_EMPTY_POOL`.
+  const namesOnly = defineSynthProfile({
+    name: "names-only",
+    givenNames: ["Testina"],
+    familyNames: ["Testerson"],
+  });
+
+  it("HL7 v2: gives the same corpus as no profile", () => {
+    const corpus = hl7QuirkCorpus({ seed: 5, profile: namesOnly });
+    expect(corpus.manifest.quirks).toEqual(Object.keys(HL7_QUIRKS));
+    expect(corpus).toEqual(hl7QuirkCorpus({ seed: 5 }));
+  });
+
+  it("C-CDA: gives the same corpus as no profile", () => {
+    const corpus = ccdaQuirkCorpus({ seed: 5, profile: namesOnly });
+    expect(corpus.manifest.quirks).toEqual(Object.keys(CCDA_QUIRKS));
+    expect(corpus).toEqual(ccdaQuirkCorpus({ seed: 5 }));
+  });
+
+  it("ASTM: gives the same corpus as no profile", () => {
+    const corpus = astmQuirkCorpus({ seed: 5, profile: namesOnly });
+    expect(corpus.manifest.quirks).toEqual(Object.keys(ASTM_QUIRKS));
+    expect(corpus).toEqual(astmQuirkCorpus({ seed: 5 }));
+  });
+
+  it("leaves the selection to the quirks option when one is given", () => {
+    expect(
+      hl7QuirkCorpus({ seed: 5, profile: namesOnly, quirks: ["unknown-escape"] }).manifest.quirks,
+    ).toEqual(["unknown-escape"]);
+    expect(
+      ccdaQuirkCorpus({ seed: 5, profile: namesOnly, quirks: ["deprecated-loinc"] }).manifest
+        .quirks,
+    ).toEqual(["deprecated-loinc"]);
+    expect(
+      astmQuirkCorpus({ seed: 5, profile: namesOnly, quirks: ["unknown-escape"] }).manifest.quirks,
+    ).toEqual(["unknown-escape"]);
+  });
+
+  it("still lets a profile's own quirks take precedence over the quirks option", () => {
+    const own = defineSynthProfile({ name: "own", quirks: ["unknown-zsegment"] });
+    expect(
+      hl7QuirkCorpus({ seed: 5, profile: own, quirks: ["unknown-escape"] }).manifest.quirks,
+    ).toEqual(["unknown-zsegment"]);
   });
 });
 

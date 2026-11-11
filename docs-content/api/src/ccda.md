@@ -96,14 +96,15 @@ The base document type each quirk is injected into. Defaults to `"ccd"`.
 
 > `readonly` `optional` **profile?**: [`SynthProfile`](../src.md#synthprofile)
 
-A [SynthProfile](../src.md#synthprofile) whose `quirks` drive the corpus (validated). Takes precedence over `quirks`.
+A [SynthProfile](../src.md#synthprofile) whose `quirks` drive the corpus (validated). Its `quirks`, when set, take
+precedence over `quirks`; a profile that leaves `quirks` out leaves the selection to `quirks`.
 
 ##### quirks?
 
 > `readonly` `optional` **quirks?**: readonly [`CcdaQuirkName`](#ccdaquirkname)[]
 
 The quirk names to cycle through. Defaults to every C-CDA quirk. Validated; unsupported ⇒ fatal.
-An empty list, or a `profile` that names no quirk, throws `SYNTH_EMPTY_POOL`.
+An empty list, or a `profile` whose `quirks` is an empty list, throws `SYNTH_EMPTY_POOL`.
 
 ##### seed
 

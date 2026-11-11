@@ -602,11 +602,12 @@ The given-name pool this profile draws from (overrides or the built-in default).
 
 The profile name.
 
-##### quirks
+##### quirks?
 
-> `readonly` **quirks**: readonly `string`[]
+> `readonly` `optional` **quirks?**: readonly `string`[]
 
-The requested quirk recipe names.
+The requested quirk recipe names, or absent when the spec left `quirks` out. Absent is not an
+empty list: absent leaves the quirk selection to the corpus, an empty list selects nothing.
 
 ***
 
@@ -640,7 +641,9 @@ A stable, human-readable profile name (e.g. `"acme-hospital"`). Required, non-em
 
 The vendor quirk recipe names this profile requests. Validated against the target format's quirk
 registry when the profile drives a quirk corpus (an unsupported quirk is a fatal
-`SYNTH_UNSUPPORTED_QUIRK`, never a silent no-op).
+`SYNTH_UNSUPPORTED_QUIRK`, never a silent no-op). Leave it out to leave the quirk selection to
+the corpus (every quirk by default); an empty list selects nothing, and a quirk corpus refuses it
+with `SYNTH_EMPTY_POOL`.
 
 ## Type Aliases
 
@@ -1199,7 +1202,12 @@ SynthError `SYNTH_INVALID_PROFILE` when `name` is missing or blank.
 
 ```ts
 import { defineSynthProfile } from "@cosyte/synth";
-const acme = defineSynthProfile({ name: "acme-hospital", quirks: [] });
+// Name pools only: `quirks` is left out, so a quirk corpus given this profile applies every quirk.
+const acme = defineSynthProfile({
+  name: "acme-hospital",
+  givenNames: ["Testina"],
+  familyNames: ["Testerson"],
+});
 ```
 
 ***
@@ -2192,7 +2200,8 @@ The format being generated.
 
 readonly `string`[]
 
-The validated quirk names (the profile's, in order).
+The validated quirk names: the profile's, in order, or every quirk in `registry` when the
+profile leaves `quirks` out. An empty `quirks` list comes back empty.
 
 #### Throws
 

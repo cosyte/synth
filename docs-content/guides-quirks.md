@@ -118,7 +118,9 @@ corpus.manifest.quirks; // => ["unknown-escape"]
 corpus.artifacts.map((a) => a.warnings); // => [["UNKNOWN_ESCAPE_SEQUENCE"], ["UNKNOWN_ESCAPE_SEQUENCE"]]
 ```
 
-A profile that names a quirk outside the format's registry throws `SYNTH_UNSUPPORTED_QUIRK`.
+A profile that names a quirk outside the format's registry throws `SYNTH_UNSUPPORTED_QUIRK`, and
+one whose `quirks` is an empty list throws `SYNTH_EMPTY_POOL`. A profile that leaves `quirks` out
+does not choose the quirks: the corpus uses its `quirks` option, or every quirk.
 `defineSynthProfile` also accepts `givenNames` and `familyNames` and stores them on the profile, but
 no generator reads them in this release.
 
