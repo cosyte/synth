@@ -246,7 +246,9 @@ describe("the deid pairing loop: synthetic-safety of the planted sentinels", () 
       .flatMap((entry) => entry.split(/\s+/))
       .map((w) => w.toLowerCase()),
   );
-  const SYNTHETIC_ID_PREFIX = /^(MBR|GRP|PRA|LAB|PTACCT|ACCT|MR|MRN)\d+$/i;
+  // ELIG: the 271 subscriber's trace reference (TRN-02), `ELIG` and ten seeded digits, which a
+  // `@cosyte/deid` that reports trace references as identifiers plants as a token.
+  const SYNTHETIC_ID_PREFIX = /^(MBR|GRP|PRA|LAB|PTACCT|ACCT|MR|MRN|ELIG)\d+$/i;
   /** The UUID this package mints (`uuid` in `src/safe`): lowercase, version 4, RFC 4122 variant. */
   const MINTED_UUID = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
   /**
@@ -318,6 +320,21 @@ describe("the deid pairing loop: synthetic-safety of the planted sentinels", () 
       for (const r of allRuns(seed)) for (const s of r.planted) tokens.add(s.token);
     return tokens;
   }
+
+  it("the 271 trace references this package mints clear the sweep, for every seed", () => {
+    // Read from the 271 itself, so this runs whatever `@cosyte/deid` is installed: a release that
+    // reports TRN-02 as an identifier plants each of these as a token.
+    for (const seed of SEEDS) {
+      const ids = [...x12DeidLoop({ seed, variant: "271" }).original.matchAll(/ELIG\d{10}/g)].map(
+        (m) => m[0],
+      );
+      expect(ids.length, `seed ${String(seed)}`).toBeGreaterThan(0);
+      expect(sweepPlantedTokens(ids), `seed ${String(seed)}`).toStrictEqual([]);
+    }
+    // Only that shape: another prefix, or letters after it, is still a hit.
+    expect(plantedTokenHits("ELIGX2061845272")).toStrictEqual(["pool:ELIGX2061845272"]);
+    expect(plantedTokenHits("TRACE2061845272")).toStrictEqual(["pool:TRACE2061845272"]);
+  });
 
   describe("the FHIR logical ids a de-identifier reports as identifiers", () => {
     /**
