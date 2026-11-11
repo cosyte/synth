@@ -30,7 +30,7 @@ import { makeCorpus, type CheckedArtifact, type Corpus } from "../corpus.js";
 import { generateNewRx, generateRxRenewalRequest, generateRxChangeRequest } from "./script.js";
 import { generateTelecom } from "./telecom.js";
 import { scriptCorpusArtifact, telecomCorpusArtifact } from "./round-trip.js";
-import { resolveMix } from "../select.js";
+import { requireSelection, resolveMix } from "../select.js";
 
 export {
   generateNewRx,
@@ -102,7 +102,10 @@ export interface NcpdpCorpusOptions {
   readonly seed: number;
   /** How many transactions to generate. Defaults to the length of the mix. */
   readonly count?: number;
-  /** The transaction kinds to cycle through. Defaults to one of each. */
+  /**
+   * The transaction kinds to cycle through. Defaults to one of each. An empty list throws
+   * `SYNTH_EMPTY_POOL`.
+   */
   readonly mix?: readonly NcpdpCorpusKind[];
   /**
    * Whether each artifact is read back through its parser and the parser's findings recorded as its
@@ -128,11 +131,11 @@ export interface NcpdpCorpusOptions {
  */
 export function ncpdpCorpus(options: NcpdpCorpusOptions): Corpus {
   const { seed, verify = true } = options;
-  const mix = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
+  const mix = requireSelection(resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX));
   const count = options.count ?? mix.length;
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {
-    const kind = mix[i % mix.length] ?? "NewRx";
+    const kind = mix[i % mix.length] as NcpdpCorpusKind;
     const txSeed = seedStream.nextUint32();
     const rt = generateKind(kind, txSeed, verify);
     return {

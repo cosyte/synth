@@ -29,7 +29,8 @@ How many documents to generate. Defaults to `1`.
 
 > `readonly` `optional` **mix?**: readonly [`CcdaDocumentType`](#ccdadocumenttype)[]
 
-The document types to cycle through. Defaults to one CCD + one Referral Note.
+The document types to cycle through. Defaults to one CCD + one Referral Note. An empty list
+throws `SYNTH_EMPTY_POOL`.
 
 ##### seed
 
@@ -102,6 +103,7 @@ A [SynthProfile](../src.md#synthprofile) whose `quirks` drive the corpus (valida
 > `readonly` `optional` **quirks?**: readonly [`CcdaQuirkName`](#ccdaquirkname)[]
 
 The quirk names to cycle through. Defaults to every C-CDA quirk. Validated; unsupported ⇒ fatal.
+An empty list, or a `profile` that names no quirk, throws `SYNTH_EMPTY_POOL`.
 
 ##### seed
 

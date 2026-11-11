@@ -18,7 +18,7 @@ import { makeCorpus, type Corpus } from "../corpus.js";
 
 import { generateCcda, type CcdaDocumentType } from "./ccd.js";
 import { ccdaCorpusArtifact } from "./round-trip.js";
-import { resolveMix } from "../select.js";
+import { requireSelection, resolveMix } from "../select.js";
 
 export {
   generateCcda,
@@ -69,7 +69,10 @@ export interface CcdaCorpusOptions {
   readonly seed: number;
   /** How many documents to generate. Defaults to `1`. */
   readonly count?: number;
-  /** The document types to cycle through. Defaults to one CCD + one Referral Note. */
+  /**
+   * The document types to cycle through. Defaults to one CCD + one Referral Note. An empty list
+   * throws `SYNTH_EMPTY_POOL`.
+   */
   readonly mix?: readonly CcdaCorpusKind[];
   /**
    * Whether each artifact is read back through its parser and the parser's findings recorded as its
@@ -95,10 +98,10 @@ export interface CcdaCorpusOptions {
  */
 export function ccdaCorpus(options: CcdaCorpusOptions): Corpus {
   const { seed, count = 1, verify = true } = options;
-  const mix = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
+  const mix = requireSelection(resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX));
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {
-    const documentType = mix[i % mix.length] ?? "ccd";
+    const documentType = mix[i % mix.length] as CcdaCorpusKind;
     const docSeed = seedStream.nextUint32();
     const rt = ccdaCorpusArtifact(generateCcda({ seed: docSeed, documentType }), verify);
     return {

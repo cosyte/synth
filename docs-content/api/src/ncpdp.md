@@ -100,7 +100,8 @@ How many transactions to generate. Defaults to the length of the mix.
 
 > `readonly` `optional` **mix?**: readonly [`NcpdpCorpusKind`](#ncpdpcorpuskind)[]
 
-The transaction kinds to cycle through. Defaults to one of each.
+The transaction kinds to cycle through. Defaults to one of each. An empty list throws
+`SYNTH_EMPTY_POOL`.
 
 ##### seed
 

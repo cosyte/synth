@@ -54,7 +54,8 @@ export function resolveKind<T extends string>(allowed: readonly T[], requested: 
  * of this function also treated `[]` as "nothing supplied", on the stated grounds that it matched the
  * previous behaviour; it did not: `??` fires on `undefined` and never on `[]`, and it changed the
  * result of six published entry points, turning an explicit empty selection into "generate one of
- * everything". A convenience that fails open is not a convenience.
+ * everything". A convenience that fails open is not a convenience. Every corpus then refuses the empty
+ * mix with `SYNTH_EMPTY_POOL`, before it generates anything.
  *
  * @param allowed - Every kind the corpus may generate.
  * @param requested - The mix the caller supplied, or `undefined` for the default.
@@ -74,4 +75,25 @@ export function resolveMix<T extends string>(
 ): readonly T[] {
   if (requested === undefined) return fallback;
   return requested.map((entry) => resolveKind(allowed, entry));
+}
+
+/**
+ * Refuse an empty selection: a corpus `mix`, an HL7 `triggers` list or a quirk list that the caller
+ * supplied and that names nothing. A corpus cycles through its selection, so an empty one leaves it
+ * nothing to generate; it is never read as "the default" or "every kind", and never filled with a
+ * kind the caller did not ask for. Called before anything is generated, whatever the count.
+ *
+ * @param selection - The resolved selection.
+ * @returns `selection`, unchanged, when it holds at least one entry.
+ * @throws SynthError `SYNTH_EMPTY_POOL` when `selection` is empty.
+ * @example
+ * ```ts
+ * requireSelection(["Result"]); // ["Result"]
+ * requireSelection([]); // throws SynthError SYNTH_EMPTY_POOL
+ * ```
+ * @internal
+ */
+export function requireSelection<T>(selection: readonly T[]): readonly T[] {
+  if (selection.length === 0) throw new SynthError(SYNTH_FATAL_CODES.SYNTH_EMPTY_POOL);
+  return selection;
 }

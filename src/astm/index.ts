@@ -26,7 +26,7 @@ import { makeCorpus, type Corpus } from "../corpus.js";
 import { generateAstmResult, generateAstmOrder } from "./message.js";
 import { astmCorpusArtifact } from "./round-trip.js";
 import type { CheckedArtifact } from "../corpus.js";
-import { resolveMix } from "../select.js";
+import { requireSelection, resolveMix } from "../select.js";
 
 export {
   generateAstmResult,
@@ -85,7 +85,7 @@ export interface AstmCorpusOptions {
   readonly seed: number;
   /** How many messages to generate. Defaults to the length of the mix. */
   readonly count?: number;
-  /** The message kinds to cycle through. Defaults to one of each. */
+  /** The message kinds to cycle through. Defaults to one of each. An empty list throws `SYNTH_EMPTY_POOL`. */
   readonly mix?: readonly AstmCorpusKind[];
   /**
    * Whether each artifact is read back through its parser and the parser's findings recorded as its
@@ -111,11 +111,11 @@ export interface AstmCorpusOptions {
  */
 export function astmCorpus(options: AstmCorpusOptions): Corpus {
   const { seed, verify = true } = options;
-  const mix = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
+  const mix = requireSelection(resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX));
   const count = options.count ?? mix.length;
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {
-    const kind = mix[i % mix.length] ?? "Result";
+    const kind = mix[i % mix.length] as AstmCorpusKind;
     const msgSeed = seedStream.nextUint32();
     const rt = generateKind(kind, msgSeed, verify);
     return {

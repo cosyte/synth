@@ -162,7 +162,8 @@ How many messages to generate. Defaults to `1`.
 > `readonly` `optional` **mix?**: readonly [`Hl7MessageKind`](#hl7messagekind)[]
 
 The message kinds to cycle through. Defaults to one of every family
-(`ADT^A01/A04/A08`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`).
+(`ADT^A01/A04/A08`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`). An empty list throws
+`SYNTH_EMPTY_POOL`.
 
 ##### seed
 
@@ -175,7 +176,8 @@ The seed for the whole corpus (deterministic).
 > `readonly` `optional` **triggers?**: readonly [`AdtTrigger`](#adttrigger)[]
 
 ADT-only convenience: the triggers to cycle through, kept for back-compat. When
-supplied it takes precedence over `mix` and restricts the corpus to `ADT` messages.
+supplied it takes precedence over `mix` and restricts the corpus to `ADT` messages. An empty
+list throws `SYNTH_EMPTY_POOL`.
 
 ##### verify?
 
@@ -216,6 +218,7 @@ A [SynthProfile](../src.md#synthprofile) whose `quirks` drive the corpus (valida
 > `readonly` `optional` **quirks?**: readonly [`Hl7QuirkName`](#hl7quirkname)[]
 
 The quirk names to cycle through. Defaults to every HL7 quirk. Validated; unsupported ⇒ fatal.
+An empty list, or a `profile` that names no quirk, throws `SYNTH_EMPTY_POOL`.
 
 ##### seed
 

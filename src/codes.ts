@@ -58,7 +58,11 @@ export const SYNTH_FATAL_CODES = Object.freeze({
   SYNTH_INVALID_DECIMAL: "SYNTH_INVALID_DECIMAL",
   /** An integer range was requested with its maximum below its minimum. Fatal. */
   SYNTH_INVALID_RANGE: "SYNTH_INVALID_RANGE",
-  /** A value was drawn from an empty pool. Fatal, never a fabricated substitute. */
+  /**
+   * A value was drawn from an empty pool. Fatal, never a fabricated substitute. A corpus given an
+   * empty `mix`, `triggers` or `quirks` list (or a profile that names no quirk) raises it too: there
+   * is no kind to cycle through, and an empty list is never read as the default.
+   */
   SYNTH_EMPTY_POOL: "SYNTH_EMPTY_POOL",
   /** A `defineSynthProfile` spec was not usable (a missing or blank `name`). Fatal. */
   SYNTH_INVALID_PROFILE: "SYNTH_INVALID_PROFILE",

@@ -42,6 +42,11 @@ Every format's corpus (`hl7Corpus`, `fhirCorpus`, `ccdaCorpus`, `x12Corpus`, `nc
 A `mix` entry outside the format's kinds throws
 [`SYNTH_UNSUPPORTED_KIND`](./fatal-codes.md#synth_unsupported_kind).
 
+An empty `mix` (`mix: []`) throws [`SYNTH_EMPTY_POOL`](./fatal-codes.md#synth_empty_pool) in every
+format, whatever the `count`, before anything is generated. It names no kind to cycle through, so it
+is never read as the default mix and never filled with a kind you did not ask for. Leave `mix` out
+for the default.
+
 ### Quirk corpus options
 
 `hl7QuirkCorpus`, `ccdaQuirkCorpus` and `astmQuirkCorpus` take these options:
@@ -56,6 +61,10 @@ A `mix` entry outside the format's kinds throws
 `hl7QuirkCorpus` also takes `kind` (default `"ORU^R01"`), and `ccdaQuirkCorpus` takes `documentType`
 (default `"ccd"`): the clean base each quirk is put into. A quirk name outside the format's registry
 throws [`SYNTH_UNSUPPORTED_QUIRK`](./fatal-codes.md#synth_unsupported_quirk).
+
+An empty `quirks` list, or a `profile` whose `quirks` list is empty, throws
+[`SYNTH_EMPTY_POOL`](./fatal-codes.md#synth_empty_pool), whatever the `count`, before anything is
+generated. It is never read as every quirk: leave `quirks` and `profile` out for that.
 
 ## Kinds
 
@@ -75,7 +84,8 @@ with no US Core profile) and `DocumentBundle` (a `document` Bundle). `Bundle` is
 Bundle.
 
 `hl7Corpus` also takes `triggers`, a list of `A01`, `A04` and `A08`. When given, it takes the place
-of `mix` and the corpus holds only `ADT` messages.
+of `mix` and the corpus holds only `ADT` messages. An empty `triggers` list throws
+[`SYNTH_EMPTY_POOL`](./fatal-codes.md#synth_empty_pool), as an empty `mix` does.
 
 ## HL7 v2 options
 

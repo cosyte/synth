@@ -29,6 +29,7 @@ import { createRng } from "../rng/rng.js";
 import { makeCorpus, type Corpus } from "../corpus.js";
 import { defineSynthProfile, type SynthProfile } from "../profile.js";
 import { SYNTH_FATAL_CODES, SynthError } from "../codes.js";
+import { requireSelection } from "../select.js";
 import {
   resolveQuirk,
   sameCodeSet,
@@ -262,7 +263,10 @@ export interface CcdaQuirkCorpusOptions {
   readonly seed: number;
   /** How many quirk artifacts to generate. Defaults to the number of quirks. */
   readonly count?: number;
-  /** The quirk names to cycle through. Defaults to every C-CDA quirk. Validated; unsupported ⇒ fatal. */
+  /**
+   * The quirk names to cycle through. Defaults to every C-CDA quirk. Validated; unsupported ⇒ fatal.
+   * An empty list, or a `profile` that names no quirk, throws `SYNTH_EMPTY_POOL`.
+   */
   readonly quirks?: readonly CcdaQuirkName[];
   /** A {@link SynthProfile} whose `quirks` drive the corpus (validated). Takes precedence over `quirks`. */
   readonly profile?: SynthProfile;
@@ -287,10 +291,11 @@ const ALL_CCDA_QUIRKS: readonly CcdaQuirkName[] = Object.freeze(
  * ```
  */
 export function ccdaQuirkCorpus(options: CcdaQuirkCorpusOptions): Corpus {
-  const quirks: readonly string[] = options.profile
-    ? validateProfileQuirks(options.profile, CCDA_QUIRKS, "ccda")
-    : (options.quirks ?? ALL_CCDA_QUIRKS);
-  const names = quirks.length > 0 ? quirks : ALL_CCDA_QUIRKS;
+  const names: readonly string[] = requireSelection(
+    options.profile
+      ? validateProfileQuirks(options.profile, CCDA_QUIRKS, "ccda")
+      : (options.quirks ?? ALL_CCDA_QUIRKS),
+  );
   // Resolve the WHOLE list here, not lazily per generated artifact. `count` can be below
   // `names.length`, and the tail then never reaches this module's own `resolveQuirk`
   // while still landing on `manifest.quirks` verbatim. A manifest that names a quirk the
