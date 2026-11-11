@@ -85,6 +85,22 @@ describe("the deid pairing loop: removal + over-scrub, every covered format", ()
     });
   }
 
+  it("no planted C-CDA token appears outside the de-identified recordTarget, for every seed", () => {
+    // The C-CDA loop sweeps only the de-identified recordTarget, so provider identity a
+    // de-identifier keeps elsewhere cannot read as a survivor. On the documents the loop builds,
+    // no planted token appears outside it, so a whole-document sweep would give the same verdict:
+    // the reason `src/deid/index.ts` gives for excepting the mutant that empties that helper.
+    for (const seed of SEEDS) {
+      for (const documentType of ["ccd", "referral"] as const) {
+        const r = ccdaDeidLoop({ seed, documentType });
+        const outside = r.deidentified.replace(/<recordTarget[\s\S]*?<\/recordTarget>/i, "");
+        expect(outside.length).toBeLessThan(r.deidentified.length);
+        const elsewhere = r.planted.filter((s) => outside.includes(s.token)).map((s) => s.token);
+        expect(elsewhere, `seed ${String(seed)} ${documentType}`).toStrictEqual([]);
+      }
+    }
+  });
+
   it("the over-scrub guard actually runs on the clinically-dense artifacts", () => {
     // ORU (labs), 837P (procedures), a Bundle (observations), and a CCD (problems/meds) each carry
     // distinctive structured clinical codes, so the retention guard is exercised, not vacuous.
@@ -230,7 +246,9 @@ describe("the deid pairing loop: synthetic-safety of the planted sentinels", () 
       .flatMap((entry) => entry.split(/\s+/))
       .map((w) => w.toLowerCase()),
   );
-  const SYNTHETIC_ID_PREFIX = /^(MBR|GRP|PRA|LAB|PTACCT|ACCT|MR|MRN)\d+$/i;
+  // ELIG: the 271 subscriber's trace reference (TRN-02), `ELIG` and ten seeded digits, which a
+  // `@cosyte/deid` that reports trace references as identifiers plants as a token.
+  const SYNTHETIC_ID_PREFIX = /^(MBR|GRP|PRA|LAB|PTACCT|ACCT|MR|MRN|ELIG)\d+$/i;
   /** The UUID this package mints (`uuid` in `src/safe`): lowercase, version 4, RFC 4122 variant. */
   const MINTED_UUID = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
   /**
@@ -303,6 +321,21 @@ describe("the deid pairing loop: synthetic-safety of the planted sentinels", () 
     return tokens;
   }
 
+  it("the 271 trace references this package mints clear the sweep, for every seed", () => {
+    // Read from the 271 itself, so this runs whatever `@cosyte/deid` is installed: a release that
+    // reports TRN-02 as an identifier plants each of these as a token.
+    for (const seed of SEEDS) {
+      const ids = [...x12DeidLoop({ seed, variant: "271" }).original.matchAll(/ELIG\d{10}/g)].map(
+        (m) => m[0],
+      );
+      expect(ids.length, `seed ${String(seed)}`).toBeGreaterThan(0);
+      expect(sweepPlantedTokens(ids), `seed ${String(seed)}`).toStrictEqual([]);
+    }
+    // Only that shape: another prefix, or letters after it, is still a hit.
+    expect(plantedTokenHits("ELIGX2061845272")).toStrictEqual(["pool:ELIGX2061845272"]);
+    expect(plantedTokenHits("TRACE2061845272")).toStrictEqual(["pool:TRACE2061845272"]);
+  });
+
   describe("the FHIR logical ids a de-identifier reports as identifiers", () => {
     /**
      * The logical ids of the loop's FHIR Bundle, read from the Bundle itself rather than from the
@@ -338,6 +371,32 @@ describe("the deid pairing loop: synthetic-safety of the planted sentinels", () 
         "16A860FD-2041-4463-8FB4-D71D42853C4A",
       ]) {
         expect(plantedTokenHits(id), id).toStrictEqual([`pool:${id}`]);
+      }
+    });
+
+    it("a phone-shaped or SSN-shaped id is still a hit, the minted-id rule read first or not", () => {
+      // The minted-id rule returns before the SSN and phone arms, so a real-looking number must
+      // never pass for a minted id. Each value is assembled from parts so the PHI scan, which
+      // reads this file, does not see a real-looking literal; the value the sweep reads is whole.
+      const real = (...parts: string[]): string => parts.join("");
+      const cases: readonly (readonly [string, string])[] = [
+        // SSN-shaped: an issuable area, an ITIN, and both inside an id of the minted form.
+        [real("123", "-45-", "6789"), "ssn"],
+        [real("123", "45", "6789"), "ssn"],
+        [real("912", "-70-", "1234"), "itin"],
+        [real("syn-patient-", "123", "-45-", "6789"), "pool"],
+        [real("syn-patient-", "912", "70", "1234"), "pool"],
+        // Phone-shaped: a 555 number outside the reserved 0100 to 0199 lines, a number with no
+        // 555 at all, and both inside an id of the minted form.
+        [real("(212) ", "555", "-1234"), "phone"],
+        [real("212", "555", "1234"), "phone"],
+        [real("(212) ", "867", "-5309"), "pool"],
+        [real("syn-patient-", "212", "555", "1234"), "pool"],
+        [real("syn-patient-", "212", "-555-", "0142"), "pool"],
+      ];
+      for (const [id, arm] of cases) {
+        expect(MINTED_FHIR_ID.test(id), id).toBe(false);
+        expect(plantedTokenHits(id), id).toStrictEqual([`${arm}:${id}`]);
       }
     });
 

@@ -188,7 +188,7 @@ export function luhnMod10(digits: string): number {
     if (d < 0 || d > 9) continue;
     if (double) {
       d *= 2;
-      if (d > 9) d -= 9;
+      if (d >= 10) d -= 9;
     }
     sum += d;
     double = !double;
@@ -305,6 +305,7 @@ export function isSyntheticDea(value: string): boolean {
   if (!/^[A-Z]{2}\d{7}$/.test(compact)) return false;
   const digits = compact.slice(2);
   const check = digits.charCodeAt(6) - 48;
+  // Stryker disable next-line MethodExpression: deaCheckDigit reads only the first six digits
   return deaCheckDigit(digits.slice(0, 6)) !== check;
 }
 
@@ -399,10 +400,8 @@ export function isItinFormatted(value: string): boolean {
  * ```
  */
 export function isSyntheticPhone(value: string): boolean {
-  const digits = value.replace(/\D/g, "");
-  // The reserved guarantee is the 7-digit tail: exchange 555 + line 01NN.
-  const tail = digits.slice(-7);
-  return /^555 ?01\d\d$/.test(tail) || /^55501\d\d$/.test(tail);
+  // The reserved guarantee is the 7-digit tail: exchange 555 + line 01NN, the last digits.
+  return /55501\d\d$/.test(value.replace(/\D/g, ""));
 }
 
 /**

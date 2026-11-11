@@ -78,6 +78,14 @@ export const SYNTH_FATAL_CODES = Object.freeze({
    * mislabelled artifact is worse than no artifact.
    */
   SYNTH_PROFILE_NOT_GENERATED: "SYNTH_PROFILE_NOT_GENERATED",
+  /**
+   * The sibling parser a generator builds through is not installed. Raised on the first call that
+   * needs it, by both builds, only when the missing package is the parser itself: a missing
+   * dependency of an installed parser is thrown as Node.js raised it. The error carries the parser's
+   * package name on `peer`, a message from {@link SYNTH_PEER_MESSAGES} that names its install
+   * command, and the error Node.js raised on `cause`.
+   */
+  SYNTH_PEER_NOT_INSTALLED: "SYNTH_PEER_NOT_INSTALLED",
 } as const);
 
 /**
@@ -129,15 +137,70 @@ export const SYNTH_FATAL_MESSAGES: Readonly<Record<SynthFatalCode, string>> = Ob
   SYNTH_PROFILE_NOT_GENERATED:
     "The requested profile is published by the adopted implementation guide, and this build does " +
     "not generate it. The coverage surface reports, per adopted profile, whether it is generated.",
+  SYNTH_PEER_NOT_INSTALLED:
+    "A sibling @cosyte parser this generator builds through is not installed. Install it beside " +
+    "@cosyte/synth.",
 });
+
+/**
+ * The message a {@link SYNTH_FATAL_CODES.SYNTH_PEER_NOT_INSTALLED} error carries for each sibling
+ * parser: which package is missing, and the command that installs it. Keyed by the closed set of
+ * parser packages this package builds through, so like {@link SYNTH_FATAL_MESSAGES} it is a table
+ * of fixed strings, and no caller value can reach it.
+ *
+ * @example
+ * ```ts
+ * import { SYNTH_PEER_MESSAGES } from "@cosyte/synth";
+ * SYNTH_PEER_MESSAGES["@cosyte/hl7"]; // => "@cosyte/hl7 is not installed, and this generator builds through it. Install it beside @cosyte/synth: npm install @cosyte/hl7"
+ * ```
+ */
+export const SYNTH_PEER_MESSAGES = Object.freeze({
+  "@cosyte/hl7":
+    "@cosyte/hl7 is not installed, and this generator builds through it. Install it beside " +
+    "@cosyte/synth: npm install @cosyte/hl7",
+  "@cosyte/fhir":
+    "@cosyte/fhir is not installed, and this generator builds through it. Install it beside " +
+    "@cosyte/synth: npm install @cosyte/fhir",
+  "@cosyte/ccda":
+    "@cosyte/ccda is not installed, and this generator builds through it. Install it beside " +
+    "@cosyte/synth: npm install @cosyte/ccda",
+  "@cosyte/x12":
+    "@cosyte/x12 is not installed, and this generator builds through it. Install it beside " +
+    "@cosyte/synth: npm install @cosyte/x12",
+  "@cosyte/ncpdp":
+    "@cosyte/ncpdp is not installed, and this generator builds through it. Install it beside " +
+    "@cosyte/synth: npm install @cosyte/ncpdp",
+  "@cosyte/astm":
+    "@cosyte/astm is not installed, and this generator builds through it. Install it beside " +
+    "@cosyte/synth: npm install @cosyte/astm",
+  "@cosyte/deid":
+    "@cosyte/deid is not installed, and this generator builds through it. Install it beside " +
+    "@cosyte/synth: npm install @cosyte/deid",
+} as const);
+
+/** A sibling parser package: a key of {@link SYNTH_PEER_MESSAGES}. */
+export type SynthPeer = keyof typeof SYNTH_PEER_MESSAGES;
+
+/** What a {@link SynthError} may carry beside its code. */
+export interface SynthErrorOptions {
+  /** The error that caused this one, kept on `cause`. */
+  readonly cause?: unknown;
+  /**
+   * For {@link SYNTH_FATAL_CODES.SYNTH_PEER_NOT_INSTALLED}: the parser package that is missing. Its
+   * message then comes from {@link SYNTH_PEER_MESSAGES}.
+   */
+  readonly peer?: SynthPeer;
+}
 
 /**
  * The typed error every fatal `@cosyte/synth` condition throws. Carries a stable
  * {@link SynthFatalCode} so callers branch on `err.code` without matching message text.
  *
  * It takes **no value parameter**. The message is whatever {@link SYNTH_FATAL_MESSAGES} holds for the
- * code, so no caller-supplied string can reach a diagnostic surface by any route, not `message`, not
- * `stack`, not a field on the thrown object.
+ * code, or for a missing parser whatever {@link SYNTH_PEER_MESSAGES} holds for that package, so no
+ * caller-supplied string can reach a diagnostic surface by any route, not `message`, not `stack`,
+ * not a field on the thrown object. The options carry only an error this package caught (`cause`)
+ * and a package name from that closed set (`peer`).
  *
  * @example
  * ```ts
@@ -148,13 +211,21 @@ export const SYNTH_FATAL_MESSAGES: Readonly<Record<SynthFatalCode, string>> = Ob
 export class SynthError extends Error {
   /** The stable fatal code. */
   public readonly code: SynthFatalCode;
+  /** The missing parser package, on a {@link SYNTH_FATAL_CODES.SYNTH_PEER_NOT_INSTALLED} error only. */
+  declare public readonly peer?: SynthPeer;
 
   /**
    * @param code - The stable {@link SynthFatalCode}. The message comes from the frozen registry.
+   * @param options - The error that caused this one, and for a missing parser its package.
    */
-  public constructor(code: SynthFatalCode) {
-    super(SYNTH_FATAL_MESSAGES[code]);
+  public constructor(code: SynthFatalCode, options: SynthErrorOptions = {}) {
+    const peer = code === SYNTH_FATAL_CODES.SYNTH_PEER_NOT_INSTALLED ? options.peer : undefined;
+    super(
+      peer === undefined ? SYNTH_FATAL_MESSAGES[code] : SYNTH_PEER_MESSAGES[peer],
+      "cause" in options ? { cause: options.cause } : undefined,
+    );
     this.name = "SynthError";
     this.code = code;
+    if (peer !== undefined) Object.defineProperty(this, "peer", { value: peer, enumerable: true });
   }
 }

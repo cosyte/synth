@@ -11,8 +11,9 @@ A generator has no input to tolerate, so every refusal is fatal: it throws a `Sy
 `code` is one of the values below. Codes are part of the public contract, and `key === value` for
 each one in `SYNTH_FATAL_CODES`. Branch on `err.code`, never on `err.message`.
 
-Each message is a fixed string from the frozen `SYNTH_FATAL_MESSAGES` table. `SynthError` takes a
-code and nothing else, so no message quotes a value you passed.
+Each message is a fixed string from the frozen `SYNTH_FATAL_MESSAGES` table, or, for a parser
+that is not installed, from `SYNTH_PEER_MESSAGES`, which holds one fixed string for each parser
+package. No message quotes a value you passed.
 
 ```ts runnable
 import { SYNTH_FATAL_CODES, SYNTH_FATAL_MESSAGES, SynthError } from "@cosyte/synth";
@@ -21,7 +22,7 @@ const err = new SynthError(SYNTH_FATAL_CODES.SYNTH_EMPTY_POOL);
 err.name; // => "SynthError"
 err.code; // => "SYNTH_EMPTY_POOL"
 err.message === SYNTH_FATAL_MESSAGES.SYNTH_EMPTY_POOL; // => true
-Object.keys(SYNTH_FATAL_CODES).length; // => 11
+Object.keys(SYNTH_FATAL_CODES).length; // => 12
 ```
 
 ## The codes
@@ -102,6 +103,30 @@ only whole numbers, so they never raise it.
 
 Message: "The value could not be read as an X12 decimal."
 
+### `SYNTH_PEER_NOT_INSTALLED`
+
+A generator needs a sibling parser that is not installed: `@cosyte/synth/hl7` needs `@cosyte/hl7`,
+and so on. Raised on the first call that needs the parser, the same way from the ES module build and
+the CommonJS build. The error's `peer` is the missing package, its message names the package and
+the command that installs it, and its `cause` is the error Node.js raised (`ERR_MODULE_NOT_FOUND`
+from the ES module build, `MODULE_NOT_FOUND` from the CommonJS build). It is raised only when the
+missing package is the parser itself: if the parser is installed and one of its own dependencies
+is missing, that error reaches you unchanged.
+
+```ts runnable
+import { SYNTH_FATAL_CODES, SYNTH_PEER_MESSAGES, SynthError } from "@cosyte/synth";
+
+const err = new SynthError(SYNTH_FATAL_CODES.SYNTH_PEER_NOT_INSTALLED, { peer: "@cosyte/hl7" });
+err.peer; // => "@cosyte/hl7"
+err.message === SYNTH_PEER_MESSAGES["@cosyte/hl7"]; // => true
+err.message.endsWith("npm install @cosyte/hl7"); // => true
+```
+
+With a parser named, the message is "`<package>` is not installed, and this generator builds through
+it. Install it beside @cosyte/synth: npm install `<package>`". Without one:
+
+Message: "A sibling @cosyte parser this generator builds through is not installed. Install it beside @cosyte/synth."
+
 ### `SYNTH_UNSUPPORTED_FORMAT`
 
 Reserved. No code path in this build raises it: all six formats generate, and an unknown kind within
@@ -126,3 +151,5 @@ Message: "The requested format is not generable by this build. A generator has n
 - Reference: [`SynthError`](./api/src.md#syntherror),
   [`SYNTH_FATAL_CODES`](./api/src.md#synth_fatal_codes), and
   [`SYNTH_FATAL_MESSAGES`](./api/src.md#synth_fatal_messages).
+- [Troubleshooting](./troubleshooting.md#a-parser-is-not-installed): a parser that is not
+  installed.

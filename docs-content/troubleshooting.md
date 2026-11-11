@@ -26,7 +26,14 @@ upgrade can change them with `synth` unchanged, because each format's bytes come
 builder. Pin the seed, the `synth` version, and the parser versions together;
 [Pin a golden fixture](./guides-overview.md) shows how.
 
-## "Cannot find module @cosyte/hl7"
+## A parser is not installed
+
+The first generator call that needs a parser that is not installed throws a `SynthError` whose
+`code` is `SYNTH_PEER_NOT_INSTALLED`, from both the ES module and the CommonJS build. Its message
+names the package and the command that installs it ("@cosyte/hl7 is not installed, and this
+generator builds through it. Install it beside @cosyte/synth: npm install @cosyte/hl7"), `err.peer`
+is the package, and `err.cause` is the error Node.js raised. If the parser is installed and one of
+its own dependencies is missing, that error reaches you as Node.js raised it.
 
 Each format subpath needs its parser installed, as an optional peer dependency:
 `@cosyte/synth/hl7` needs `@cosyte/hl7`, `@cosyte/synth/fhir` needs `@cosyte/fhir`, and so on. The
@@ -44,10 +51,13 @@ class your code imports from the parser. Three setups break that, each by loadin
 parser:
 
 - Node.js older than 22.12, which this package does not support. Upgrade Node.js.
-- A runtime whose `import.meta.resolve` throws, or answers with a URL that is not a `file:` URL,
-  as it does inside Deno's test runner. The generator then loads the parser by name through
-  `require`, which takes the parser's CommonJS entry: generation works, and a returned value is
-  an instance of the CommonJS copy of the parser's classes.
+- Deno's test runner, where `import.meta.resolve` throws `TypeError: Invalid arguments`, or a
+  runtime whose `import.meta.resolve` answers with a URL that is not a `file:` URL. The generator
+  then loads the parser by name through `require`, which takes the parser's CommonJS entry:
+  generation works, and a returned value is an instance of the CommonJS copy of the parser's
+  classes. A parser that is not installed throws `SYNTH_PEER_NOT_INSTALLED` (see
+  [above](#a-parser-is-not-installed)), and any other error from `import.meta.resolve`, a `file:`
+  URL that names no file path among them, is thrown as it is rather than load the CommonJS copy.
 - A bundle that inlines a parser, or `@cosyte/synth`, while the generator loads the installed
   parser. Mark `@cosyte/synth` and each `@cosyte/*` parser external; see
   [Bundle an application that uses it](./installation.md#bundle-an-application-that-uses-it).

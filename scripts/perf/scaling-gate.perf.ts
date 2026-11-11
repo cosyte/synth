@@ -41,7 +41,7 @@ interface Request {
   readonly count: number;
 }
 
-/** One gate: its generator, and fixture sizes that keep each clean base phase over 4 ms. */
+/** One gate: its generator, and fixture sizes that keep each clean base phase well over 8 ms. */
 interface Gate {
   readonly name: string;
   readonly generate: (request: Request) => Corpus;
@@ -60,19 +60,22 @@ interface Gate {
 //
 // About 0.2 ms an artifact for HL7, X12, NCPDP and ASTM, 0.4 ms for FHIR and 7 ms for a C-CDA
 // document on a developer machine. Every size axis is small, so the self-check's quadratic version
-// stays near two seconds a phase: rebuilding every prefix of a corpus of `4 * size` artifacts
+// stays at a few seconds a phase: rebuilding every prefix of a corpus of `4 * size` artifacts
 // generates `2 * size * (4 * size + 1)` of them, about 15 times the base phase's at these sizes.
-// Since a corpus reads each artifact back once instead of also serializing it again, an HL7 corpus
-// is cheaper: its size axis reads 16 corpora, where 8 measured 3.3 ms on a runner, under the floor.
-// The X12 count axis reads 96 for the same margin, and the ASTM count axis 96, where 64 measured
-// 3.8 ms on a runner, under the floor.
+// The floor is 4 ms, and a hosted runner's speed moves from run to run. On the slowest one seen, at
+// the earlier sizes (HL7 192 and 16, FHIR 32 and 4, C-CDA 4 and 1, X12 96 and 8, NCPDP 64 and 8,
+// ASTM 64 and 8), the base phases read from 3.6 ms (ASTM's count axis, a skip) to 7.5 ms, and
+// C-CDA's 12.6 and 19.0 ms. Each count and number of inputs below is sized from those readings so
+// that every base phase on that runner would be near 16 ms or more, four times the floor. Only the number of corpora grows,
+// never a corpus's size, so the self-check's quadratic version grows in step with the clean one
+// and its margin does not move.
 const GATES: readonly Gate[] = [
-  { name: "hl7Corpus", generate: (r) => hl7Corpus(r), count: 192, inputs: 16, size: 14 },
-  { name: "fhirCorpus", generate: (r) => fhirCorpus(r), count: 32, inputs: 4, size: 11 },
-  { name: "ccdaCorpus", generate: (r) => ccdaCorpus(r), count: 4, inputs: 1, size: 6 },
-  { name: "x12Corpus", generate: (r) => x12Corpus(r), count: 96, inputs: 8, size: 15 },
-  { name: "ncpdpCorpus", generate: (r) => ncpdpCorpus(r), count: 64, inputs: 8, size: 12 },
-  { name: "astmCorpus", generate: (r) => astmCorpus(r), count: 96, inputs: 8, size: 16 },
+  { name: "hl7Corpus", generate: (r) => hl7Corpus(r), count: 800, inputs: 48, size: 14 },
+  { name: "fhirCorpus", generate: (r) => fhirCorpus(r), count: 96, inputs: 10, size: 11 },
+  { name: "ccdaCorpus", generate: (r) => ccdaCorpus(r), count: 6, inputs: 1, size: 6 },
+  { name: "x12Corpus", generate: (r) => x12Corpus(r), count: 288, inputs: 24, size: 15 },
+  { name: "ncpdpCorpus", generate: (r) => ncpdpCorpus(r), count: 192, inputs: 28, size: 12 },
+  { name: "astmCorpus", generate: (r) => astmCorpus(r), count: 288, inputs: 28, size: 16 },
 ];
 
 function options(gate: Gate): ScalingGateOptions<Request, Corpus> {

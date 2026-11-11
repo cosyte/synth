@@ -198,7 +198,7 @@
     "test:watch": "cosyte-process test --watch",
     "test:coverage": "cosyte-process test --coverage",
     "test:perf": "vitest run --config vitest.perf.config.ts",
-    "test:property": "vitest run --testTimeout=0 --hookTimeout=0 test/property/all-formats.property.test.ts test/property/determinism.property.test.ts test/property/synthetic-safety.property.test.ts test/property/test-data-marker.property.test.ts test/astm test/ccda test/fhir test/ncpdp test/x12 test/hl7/quirk.test.ts test/deid/loop.test.ts",
+    "test:property": "vitest run --testTimeout=0 --hookTimeout=0 test/property/all-formats.property.test.ts test/property/determinism.property.test.ts test/property/synthetic-safety.property.test.ts test/property/test-data-marker.property.test.ts test/astm test/ccda test/fhir test/ncpdp test/x12 test/hl7/quirk.test.ts test/deid/loop.test.ts test/safe-sources.test.ts",
     "quality:check": "cosyte-ratchet check --skip mutation",
     "quality:mutation": "cosyte-ratchet check --skip coverage",
     "quality:raise": "cosyte-ratchet raise",

@@ -115,7 +115,10 @@ export {
 export {
   SYNTH_FATAL_CODES,
   SYNTH_FATAL_MESSAGES,
+  SYNTH_PEER_MESSAGES,
   SynthError,
+  type SynthErrorOptions,
   type SynthFatalCode,
+  type SynthPeer,
 } from "./codes.js";
 export { resolveKind, resolveMix } from "./select.js";
