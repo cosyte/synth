@@ -12,7 +12,9 @@
  * and later). Where Node.js cannot `require` an ES module (before 22.12, or with that turned off),
  * the ES module build falls back to the parser's CommonJS entry: generation still works, but a
  * returned value is an instance of the CommonJS copy of the parser's classes, so `instanceof`
- * against a class imported with `import` is false.
+ * against a class imported with `import` is false. The same fallback applies where
+ * `import.meta.resolve` throws or answers with a URL that is not a `file:` URL, as inside Deno's
+ * test runner.
  *
  * A bundler cannot see this load, since the specifier reaches `require` at run time. Code that
  * bundles this package keeps it and each parser external and installed beside the bundle.
@@ -58,7 +60,14 @@ function isRequireEsmRefusal(error: unknown): boolean {
  */
 export function loadPeer<T>(specifier: string, host: PeerHost): T {
   if (host.resolve === undefined) return host.require(specifier) as T;
-  const entry = fileURLToPath(host.resolve(specifier));
+  let entry: string;
+  try {
+    entry = fileURLToPath(host.resolve(specifier));
+  } catch {
+    // The host could not resolve the specifier to a file: Deno's test runner throws from
+    // `import.meta.resolve`, and a resolver may answer with a URL that is not a `file:` URL.
+    return host.require(specifier) as T;
+  }
   try {
     return host.require(entry) as T;
   } catch (error) {

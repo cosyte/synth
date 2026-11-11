@@ -40,10 +40,14 @@ you call one loop. [Installation](./installation.md) has the table.
 ## "instanceof is false for a generated value"
 
 A generated `CcdaDocument`, or any other parser class instance, should pass `instanceof` against the
-class your code imports from the parser. Two setups break that, each by loading a second copy of the
+class your code imports from the parser. Three setups break that, each by loading a second copy of the
 parser:
 
 - Node.js older than 22.12, which this package does not support. Upgrade Node.js.
+- A runtime whose `import.meta.resolve` throws, or answers with a URL that is not a `file:` URL,
+  as it does inside Deno's test runner. The generator then loads the parser by name through
+  `require`, which takes the parser's CommonJS entry: generation works, and a returned value is
+  an instance of the CommonJS copy of the parser's classes.
 - A bundle that inlines a parser, or `@cosyte/synth`, while the generator loads the installed
   parser. Mark `@cosyte/synth` and each `@cosyte/*` parser external; see
   [Bundle an application that uses it](./installation.md#bundle-an-application-that-uses-it).
