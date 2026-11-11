@@ -9,18 +9,15 @@
  * @module
  */
 
-import {
-  build837P,
-  build837I,
-  build837D,
-  type X12Decimal,
-  type Build837Spec,
-  type Build837BillingProviderSpec,
-  type Build837SubscriberSpec,
-  type Build837ClaimSpec,
-  type Build837ServiceLineSpec,
-  type Build837EnvelopeSpec,
-  type X12Interchange,
+import type {
+  X12Decimal,
+  Build837Spec,
+  Build837BillingProviderSpec,
+  Build837SubscriberSpec,
+  Build837ClaimSpec,
+  Build837ServiceLineSpec,
+  Build837EnvelopeSpec,
+  X12Interchange,
 } from "@cosyte/x12";
 
 import { createRng, type Rng } from "../rng/rng.js";
@@ -47,6 +44,7 @@ import {
   TOOTH_SURFACES,
 } from "./example-codes.js";
 import { resolveKind } from "../select.js";
+import { x12Peer } from "../peers.js";
 
 /** The 837 variant to generate. */
 export type Claim837Variant = "P" | "I" | "D";
@@ -295,11 +293,11 @@ export function generate837(variant: Claim837Variant, options: Generate837Option
   const spec = specOf(rng, resolved);
   switch (resolved) {
     case "P":
-      return build837P(spec);
+      return x12Peer().build837P(spec);
     case "I":
-      return build837I(spec);
+      return x12Peer().build837I(spec);
     case "D":
-      return build837D(spec);
+      return x12Peer().build837D(spec);
   }
 }
 

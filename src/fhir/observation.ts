@@ -8,7 +8,6 @@
  * @module
  */
 
-import { complex, list } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng, type Rng } from "../rng/rng.js";
@@ -28,6 +27,7 @@ import {
   type QuantConcept,
 } from "./example-codes.js";
 import { SYSTEM, US_CORE_PROFILE } from "./us-core.js";
+import { fhirPeer } from "../peers.js";
 
 /** Options for {@link generateObservationLab} / {@link generateVitalSign}. */
 export interface GenerateObservationOptions {
@@ -48,7 +48,7 @@ function drawValue(rng: Rng, concept: QuantConcept): string {
 
 /** A UCUM `valueQuantity` for a measured concept: `value` (decimal), `unit`, UCUM `system` + `code`. */
 function valueQuantity(rng: Rng, concept: QuantConcept): FhirComplex {
-  return complex([
+  return fhirPeer().complex([
     prop("value", dec(drawValue(rng, concept))),
     prop("unit", str(concept.unit)),
     prop("system", str(SYSTEM.UCUM)),
@@ -80,7 +80,7 @@ function buildObservation(
   props.push(
     prop(
       "category",
-      list([
+      fhirPeer().list([
         codeableConcept({
           system: SYSTEM.OBSERVATION_CATEGORY,
           code: category.code,
@@ -97,7 +97,7 @@ function buildObservation(
   const d = String(rng.int(1, 28)).padStart(2, "0");
   if (effective) props.push(prop("effectiveDateTime", str(`${String(y)}-${m}-${d}`)));
   props.push(prop("valueQuantity", valueQuantity(rng, concept)));
-  return complex(props);
+  return fhirPeer().complex(props);
 }
 
 /**

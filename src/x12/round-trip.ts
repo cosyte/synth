@@ -12,7 +12,9 @@
  * @module
  */
 
-import { parseX12, serializeX12, type X12Interchange } from "@cosyte/x12";
+import type { X12Interchange } from "@cosyte/x12";
+import { x12Peer } from "../peers.js";
+import { UNCHECKED, type CheckedArtifact } from "../corpus.js";
 
 /** The verdict of one round-trip through `@cosyte/x12`. */
 export interface RoundTripResult {
@@ -42,14 +44,39 @@ export interface RoundTripResult {
  * ```
  */
 export function roundTrip(interchange: X12Interchange): RoundTripResult {
-  const content = serializeX12(interchange);
-  const reparsed = parseX12(content);
+  const content = x12Peer().serializeX12(interchange);
+  const reparsed = x12Peer().parseX12(content);
   const warnings = reparsed.warnings.map((w) => String(w.code));
-  const byteStable = serializeX12(reparsed) === content;
+  const byteStable = x12Peer().serializeX12(reparsed) === content;
   return {
     content,
     warnings,
     byteStable,
     specClean: warnings.length === 0 && byteStable,
+  };
+}
+
+/**
+ * What a corpus keeps of one interchange: its text, and, when `verify` is on, the warning codes the
+ * parser reports reading it back. It reads the text back once and does not serialize it a second
+ * time: a corpus records no byte-stability verdict, which {@link roundTrip} still gives.
+ *
+ * @param interchange - The interchange.
+ * @param verify - Whether to read it back through the parser.
+ * @returns Its text and warnings (none when `verify` is off).
+ * @example
+ * ```ts
+ * x12CorpusArtifact(generate835({ seed: 1 }), true).warnings; // []
+ * ```
+ * @internal
+ */
+export function x12CorpusArtifact(interchange: X12Interchange, verify: boolean): CheckedArtifact {
+  const content = x12Peer().serializeX12(interchange);
+  if (!verify) return { content, warnings: UNCHECKED };
+  return {
+    content,
+    warnings: x12Peer()
+      .parseX12(content)
+      .warnings.map((w) => String(w.code)),
   };
 }

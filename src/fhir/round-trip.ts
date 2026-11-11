@@ -13,8 +13,9 @@
  * @module
  */
 
-import { parseResource, serializeResource, validateResource } from "@cosyte/fhir";
 import type { FhirComplex, StructureDefinition } from "@cosyte/fhir";
+import { fhirPeer } from "../peers.js";
+import { UNCHECKED, type CheckedArtifact } from "../corpus.js";
 
 /** Options for {@link roundTrip}. */
 export interface RoundTripOptions {
@@ -60,10 +61,10 @@ export interface RoundTripResult {
  * ```
  */
 export function roundTrip(resource: FhirComplex, options: RoundTripOptions = {}): RoundTripResult {
-  const content = serializeResource(resource);
-  const { resource: reparsed } = parseResource(content);
-  const byteStable = serializeResource(reparsed) === content;
-  const result = validateResource(
+  const content = fhirPeer().serializeResource(resource);
+  const { resource: reparsed } = fhirPeer().parseResource(content);
+  const byteStable = fhirPeer().serializeResource(reparsed) === content;
+  const result = fhirPeer().validateResource(
     reparsed,
     options.profiles !== undefined
       ? { mode: "strict", profiles: options.profiles }
@@ -77,4 +78,30 @@ export function roundTrip(resource: FhirComplex, options: RoundTripOptions = {})
     .map((i) => i.code);
   const valid = result.valid;
   return { content, errors, warnings, byteStable, valid, specClean: valid && byteStable };
+}
+
+/**
+ * What a corpus keeps of one resource: its text, and, when `verify` is on, the `error` and `fatal`
+ * issue codes `@cosyte/fhir` reports validating it read back in strict mode. It reads the text back
+ * once and does not serialize it a second time: a corpus records no byte-stability verdict, which
+ * {@link roundTrip} still gives.
+ *
+ * @param resource - The resource.
+ * @param verify - Whether to read it back and validate it.
+ * @returns Its text and error codes (none when `verify` is off).
+ * @example
+ * ```ts
+ * fhirCorpusArtifact(generatePatient({ seed: 1 }), true).warnings; // []
+ * ```
+ * @internal
+ */
+export function fhirCorpusArtifact(resource: FhirComplex, verify: boolean): CheckedArtifact {
+  const content = fhirPeer().serializeResource(resource);
+  if (!verify) return { content, warnings: UNCHECKED };
+  const { resource: reparsed } = fhirPeer().parseResource(content);
+  const warnings = fhirPeer()
+    .validateResource(reparsed, { mode: "strict" })
+    .issues.filter((i) => i.severity === "error" || i.severity === "fatal")
+    .map((i) => i.code);
+  return { content, warnings };
 }

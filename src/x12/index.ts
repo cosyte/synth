@@ -19,12 +19,14 @@
  */
 
 import { createRng } from "../rng/rng.js";
+import type { X12Interchange } from "@cosyte/x12";
+
 import { makeCorpus, type Corpus } from "../corpus.js";
 
 import { generate837 } from "./claim-837.js";
 import { generate835 } from "./remit-835.js";
 import { generate271 } from "./eligibility-271.js";
-import { roundTrip } from "./round-trip.js";
+import { x12CorpusArtifact } from "./round-trip.js";
 import { resolveMix } from "../select.js";
 
 export {
@@ -82,21 +84,27 @@ export interface X12CorpusOptions {
   readonly count?: number;
   /** The transaction kinds to cycle through. Defaults to one of each. */
   readonly mix?: readonly X12CorpusKind[];
+  /**
+   * Whether each artifact is read back through its parser and the parser's findings recorded as its
+   * `warnings`. Defaults to `true`. `false` skips the read, a large share of a corpus's time; every
+   * artifact's `warnings` is then empty without having been checked.
+   */
+  readonly verify?: boolean;
 }
 
 /** Generate one interchange of the given kind from a sub-seed, returning the round-trip verdict. */
-function generateKind(kind: X12CorpusKind, seed: number): ReturnType<typeof roundTrip> {
+function generateKind(kind: X12CorpusKind, seed: number): X12Interchange {
   switch (kind) {
     case "835":
-      return roundTrip(generate835({ seed }));
+      return generate835({ seed });
     case "271":
-      return roundTrip(generate271({ seed }));
+      return generate271({ seed });
     case "837P":
-      return roundTrip(generate837("P", { seed }));
+      return generate837("P", { seed });
     case "837I":
-      return roundTrip(generate837("I", { seed }));
+      return generate837("I", { seed });
     case "837D":
-      return roundTrip(generate837("D", { seed }));
+      return generate837("D", { seed });
   }
 }
 
@@ -115,14 +123,14 @@ function generateKind(kind: X12CorpusKind, seed: number): ReturnType<typeof roun
  * ```
  */
 export function x12Corpus(options: X12CorpusOptions): Corpus {
-  const { seed } = options;
+  const { seed, verify = true } = options;
   const mix = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
   const count = options.count ?? mix.length;
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {
     const kind = mix[i % mix.length] ?? "837P";
     const txSeed = seedStream.nextUint32();
-    const rt = generateKind(kind, txSeed);
+    const rt = x12CorpusArtifact(generateKind(kind, txSeed), verify);
     return {
       format: "x12" as const,
       kind,

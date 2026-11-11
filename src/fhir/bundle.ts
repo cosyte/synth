@@ -10,7 +10,6 @@
  * @module
  */
 
-import { complex, list } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng, type Rng } from "../rng/rng.js";
@@ -26,9 +25,10 @@ import { generateImmunization } from "./immunization.js";
 import { generateAllergyIntolerance } from "./allergy-intolerance.js";
 import { generateProcedure } from "./procedure.js";
 import { generateDiagnosticReport } from "./diagnostic-report.js";
-import { roundTrip } from "./round-trip.js";
+import { fhirCorpusArtifact } from "./round-trip.js";
 import { safe } from "../safe/index.js";
 import { resolveKind, resolveMix } from "../select.js";
+import { fhirPeer } from "../peers.js";
 
 /** The Bundle shapes `@cosyte/synth` supports. */
 export type FhirBundleType = "collection" | "transaction" | "document";
@@ -58,14 +58,14 @@ function resourceTypeOf(resource: FhirComplex): string {
 /** A minimal synthetic `Organization` (author/custodian), no PHI, name is clearly synthetic. */
 function buildOrganization(rng: Rng): FhirComplex {
   const id = safe.identifier(rng, "AN");
-  return complex([
+  return fhirPeer().complex([
     prop("resourceType", str("Organization")),
     prop("id", str(`syn-org-${rng.digits(8)}`)),
     prop("text", narrative("Synthetic health organization.")),
     prop(
       "identifier",
-      list([
-        complex([
+      fhirPeer().list([
+        fhirPeer().complex([
           prop("system", str(`urn:oid:${id.assigningAuthorityOid}`)),
           prop("value", str(id.value)),
         ]),
@@ -223,11 +223,14 @@ export function generateBundle(options: GenerateBundleOptions = {}): FhirComplex
       entryProps.push(
         prop(
           "request",
-          complex([prop("method", str("POST")), prop("url", str(resourceTypeOf(member.resource)))]),
+          fhirPeer().complex([
+            prop("method", str("POST")),
+            prop("url", str(resourceTypeOf(member.resource))),
+          ]),
         ),
       );
     }
-    return complex(entryProps);
+    return fhirPeer().complex(entryProps);
   });
 
   const props: Prop[] = [
@@ -240,7 +243,7 @@ export function generateBundle(options: GenerateBundleOptions = {}): FhirComplex
     props.push(
       prop(
         "identifier",
-        complex([
+        fhirPeer().complex([
           prop("system", str(`urn:oid:${id.assigningAuthorityOid}`)),
           prop("value", str(`urn:uuid:${safe.uuid(rng)}`)),
         ]),
@@ -249,9 +252,9 @@ export function generateBundle(options: GenerateBundleOptions = {}): FhirComplex
   }
   props.push(prop("type", str(type)));
   if (type === "document") props.push(prop("timestamp", str(`${spine.date}T09:00:00.000Z`)));
-  props.push(prop("entry", list(entries)));
+  props.push(prop("entry", fhirPeer().list(entries)));
 
-  return complex(props);
+  return fhirPeer().complex(props);
 }
 
 /** A FHIR resource kind the {@link fhirCorpus} can generate. */
@@ -342,6 +345,12 @@ export interface FhirCorpusOptions {
   readonly count?: number;
   /** The resource kinds to cycle through. Defaults to the full US Core clinical spine + a Bundle. */
   readonly mix?: readonly FhirResourceKind[];
+  /**
+   * Whether each artifact is read back through its parser and the parser's findings recorded as its
+   * `warnings`. Defaults to `true`. `false` skips the read, a large share of a corpus's time; every
+   * artifact's `warnings` is then empty without having been checked.
+   */
+  readonly verify?: boolean;
 }
 
 /**
@@ -361,18 +370,18 @@ export interface FhirCorpusOptions {
  * ```
  */
 export function fhirCorpus(options: FhirCorpusOptions): Corpus {
-  const { seed, count = 1 } = options;
+  const { seed, count = 1, verify = true } = options;
   const kinds = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {
     const kind = kinds[i % kinds.length] ?? "USCorePatient";
-    const rt = roundTrip(generateKind(kind, seedStream.nextUint32()));
+    const rt = fhirCorpusArtifact(generateKind(kind, seedStream.nextUint32()), verify);
     // The artifact records the findings that break spec-cleanliness: validator **errors** (empty ⇒
     // spec-clean). Advisory warnings a legal resource may carry (e.g. `REFERENCE_UNRESOLVED` on a
     // collection Bundle's external reference, or the base `dom-6` narrative best-practice) are not
     // spec-cleanliness violations and are excluded here; a caller wanting the full picture calls
     // `roundTrip` directly (it exposes both `errors` and `warnings`).
-    return { format: "fhir" as const, kind, content: rt.content, warnings: rt.errors };
+    return { format: "fhir" as const, kind, content: rt.content, warnings: rt.warnings };
   });
   return makeCorpus(seed, artifacts);
 }

@@ -6,13 +6,13 @@
  * @module
  */
 
-import { complex, list } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng } from "../rng/rng.js";
 import { codeableConcept, meta, narrative, prop, reference, str, type Prop } from "./builder.js";
 import { EXAMPLE_CONDITIONS } from "./example-codes.js";
 import { SYSTEM, US_CORE_PROFILE } from "./us-core.js";
+import { fhirPeer } from "../peers.js";
 
 /** Options for {@link generateCondition}. */
 export interface GenerateConditionOptions {
@@ -65,7 +65,7 @@ export function generateCondition(options: GenerateConditionOptions = {}): FhirC
   props.push(
     prop(
       "category",
-      list([
+      fhirPeer().list([
         codeableConcept({
           system: SYSTEM.CONDITION_CATEGORY,
           code: "problem-list-item",
@@ -76,5 +76,5 @@ export function generateCondition(options: GenerateConditionOptions = {}): FhirC
   );
   props.push(prop("code", codeableConcept(code)));
   props.push(prop("subject", reference(subject)));
-  return complex(props);
+  return fhirPeer().complex(props);
 }

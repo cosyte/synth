@@ -29,6 +29,17 @@ export interface Artifact {
   readonly warnings: readonly string[];
 }
 
+/** What a corpus keeps of one generated artifact before it is labelled: its text and warnings. */
+export interface CheckedArtifact {
+  /** The serialized wire text. */
+  readonly content: string;
+  /** The warning codes its parser reported reading it back; none when it was not read back. */
+  readonly warnings: readonly string[];
+}
+
+/** The warnings of an artifact a corpus did not read back: none. */
+export const UNCHECKED: readonly string[] = Object.freeze([]);
+
 /** A self-describing manifest of a {@link Corpus}. */
 export interface CorpusManifest {
   /** The formats present in the corpus. */

@@ -12,7 +12,9 @@
  * @module
  */
 
-import { parseCcda, serializeCcda, type CcdaDocument } from "@cosyte/ccda";
+import type { CcdaDocument } from "@cosyte/ccda";
+import { ccdaPeer } from "../peers.js";
+import { UNCHECKED, type CheckedArtifact } from "../corpus.js";
 
 /** The verdict of one round-trip through `@cosyte/ccda`. */
 export interface RoundTripResult {
@@ -40,14 +42,39 @@ export interface RoundTripResult {
  * ```
  */
 export function roundTrip(doc: CcdaDocument): RoundTripResult {
-  const content = serializeCcda(doc);
-  const reparsed = parseCcda(content);
+  const content = ccdaPeer().serializeCcda(doc);
+  const reparsed = ccdaPeer().parseCcda(content);
   const warnings = reparsed.warnings.map((w) => String(w.code));
-  const byteStable = serializeCcda(reparsed) === content;
+  const byteStable = ccdaPeer().serializeCcda(reparsed) === content;
   return {
     content,
     warnings,
     byteStable,
     specClean: warnings.length === 0 && byteStable,
+  };
+}
+
+/**
+ * What a corpus keeps of one document: its text, and, when `verify` is on, the warning codes the
+ * parser reports reading it back. It reads the text back once and does not serialize it a second
+ * time: a corpus records no byte-stability verdict, which {@link roundTrip} still gives.
+ *
+ * @param doc - The document.
+ * @param verify - Whether to read it back through the parser.
+ * @returns Its text and warnings (none when `verify` is off).
+ * @example
+ * ```ts
+ * ccdaCorpusArtifact(generateCcd({ seed: 1 }), true).warnings; // []
+ * ```
+ * @internal
+ */
+export function ccdaCorpusArtifact(doc: CcdaDocument, verify: boolean): CheckedArtifact {
+  const content = ccdaPeer().serializeCcda(doc);
+  if (!verify) return { content, warnings: UNCHECKED };
+  return {
+    content,
+    warnings: ccdaPeer()
+      .parseCcda(content)
+      .warnings.map((w) => String(w.code)),
   };
 }

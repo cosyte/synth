@@ -12,17 +12,16 @@
  * @module
  */
 
-import {
-  buildTelecomRequest,
-  serializeTelecom,
-  type TelecomHeaderInput,
-  type TelecomSegmentInput,
-  type TelecomFieldInput,
+import type {
+  TelecomHeaderInput,
+  TelecomSegmentInput,
+  TelecomFieldInput,
 } from "@cosyte/ncpdp/telecom";
 
 import { createRng, type Rng } from "../rng/rng.js";
 import { ncpdpPatient, ncpdpCardholder, ncpdpPharmacy, ncpdpPrescriber } from "./identity.js";
 import { EXAMPLE_DRUGS, DAW_CODES } from "./example-codes.js";
+import { ncpdpTelecomPeer } from "../peers.js";
 
 /** The Telecom transaction codes `synth` generates. */
 export type TelecomTransactionCode = "B1" | "B2" | "B3";
@@ -174,7 +173,9 @@ export function generateTelecom(
           prescriberSegment(rng),
           claimSegment(rng, false),
         ];
-  return serializeTelecom(buildTelecomRequest({ header: head, segments }));
+  return ncpdpTelecomPeer().serializeTelecom(
+    ncpdpTelecomPeer().buildTelecomRequest({ header: head, segments }),
+  );
 }
 
 /**

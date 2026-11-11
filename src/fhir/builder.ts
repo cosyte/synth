@@ -14,7 +14,6 @@
  * @module
  */
 
-import { complex, decimal, list, primitive } from "@cosyte/fhir";
 import type { FhirComplex, FhirNode } from "@cosyte/fhir";
 
 import type { Rng } from "../rng/rng.js";
@@ -26,6 +25,7 @@ import {
 } from "../safe/index.js";
 
 import { SYSTEM } from "./us-core.js";
+import { fhirPeer } from "../peers.js";
 
 /** A named FHIR property (`{ name, value }`): the shape `complex` consumes. */
 export type Prop = { readonly name: string; readonly value: FhirNode };
@@ -58,7 +58,7 @@ export function prop(name: string, value: FhirNode): Prop {
  * ```
  */
 export function str(value: string): FhirNode {
-  return primitive(value);
+  return fhirPeer().primitive(value);
 }
 
 /**
@@ -73,7 +73,7 @@ export function str(value: string): FhirNode {
  * ```
  */
 export function dec(raw: string): FhirNode {
-  return primitive(decimal(raw));
+  return fhirPeer().primitive(fhirPeer().decimal(raw));
 }
 
 /**
@@ -88,7 +88,7 @@ export function dec(raw: string): FhirNode {
  * ```
  */
 export function bool(value: boolean): FhirNode {
-  return primitive(value);
+  return fhirPeer().primitive(value);
 }
 
 /**
@@ -103,7 +103,7 @@ export function bool(value: boolean): FhirNode {
  * ```
  */
 export function coding(concept: { system: string; code: string; display: string }): FhirComplex {
-  return complex([
+  return fhirPeer().complex([
     prop("system", str(concept.system)),
     prop("code", str(concept.code)),
     prop("display", str(concept.display)),
@@ -126,7 +126,7 @@ export function codeableConcept(concept: {
   code: string;
   display: string;
 }): FhirComplex {
-  return complex([prop("coding", list([coding(concept)]))]);
+  return fhirPeer().complex([prop("coding", fhirPeer().list([coding(concept)]))]);
 }
 
 /**
@@ -141,7 +141,7 @@ export function codeableConcept(concept: {
  * ```
  */
 export function reference(ref: string): FhirComplex {
-  return complex([prop("reference", str(ref))]);
+  return fhirPeer().complex([prop("reference", str(ref))]);
 }
 
 /**
@@ -160,7 +160,7 @@ export function reference(ref: string): FhirComplex {
  */
 export function narrative(text: string): FhirComplex {
   const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return complex([
+  return fhirPeer().complex([
     prop("status", str("generated")),
     prop("div", str(`<div xmlns="http://www.w3.org/1999/xhtml"><p>${escaped}</p></div>`)),
   ]);
@@ -180,7 +180,7 @@ export function narrative(text: string): FhirComplex {
  * ```
  */
 export function meta(profiles: readonly string[]): FhirComplex {
-  return complex([prop("profile", list(profiles.map((p) => str(p))))]);
+  return fhirPeer().complex([prop("profile", fhirPeer().list(profiles.map((p) => str(p))))]);
 }
 
 /** A synthetic FHIR patient identity: every field drawn from `../safe`. */
@@ -259,13 +259,13 @@ export function fhirPatientIdentity(rng: Rng): FhirPatientIdentity {
  * ```
  */
 export function mrnIdentifier(mrn: SyntheticIdentifier): FhirComplex {
-  return complex([
+  return fhirPeer().complex([
     prop(
       "type",
-      complex([
+      fhirPeer().complex([
         prop(
           "coding",
-          list([
+          fhirPeer().list([
             coding({
               system: SYSTEM.IDENTIFIER_TYPE,
               code: "MR",

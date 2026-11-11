@@ -8,7 +8,9 @@
  * @module
  */
 
-import { parseHL7, type Hl7Message } from "@cosyte/hl7";
+import type { Hl7Message } from "@cosyte/hl7";
+import { hl7Peer } from "../peers.js";
+import { UNCHECKED, type CheckedArtifact } from "../corpus.js";
 
 /** The verdict of one round-trip through `@cosyte/hl7`. */
 export interface RoundTripResult {
@@ -37,7 +39,7 @@ export interface RoundTripResult {
  */
 export function roundTrip(message: Hl7Message): RoundTripResult {
   const content = message.toString();
-  const reparsed = parseHL7(content);
+  const reparsed = hl7Peer().parseHL7(content);
   const warnings = reparsed.warnings.map((w) => String(w.code));
   const byteStable = reparsed.toString() === content;
   return {
@@ -45,5 +47,30 @@ export function roundTrip(message: Hl7Message): RoundTripResult {
     warnings,
     byteStable,
     specClean: warnings.length === 0 && byteStable,
+  };
+}
+
+/**
+ * What a corpus keeps of one message: its text, and, when `verify` is on, the warning codes the
+ * parser reports reading it back. It reads the text back once and does not serialize it a second
+ * time: a corpus records no byte-stability verdict, which {@link roundTrip} still gives.
+ *
+ * @param message - The message.
+ * @param verify - Whether to read it back through the parser.
+ * @returns Its text and warnings (none when `verify` is off).
+ * @example
+ * ```ts
+ * hl7CorpusArtifact(generateAdt({ seed: 1 }), true).warnings; // []
+ * ```
+ * @internal
+ */
+export function hl7CorpusArtifact(message: Hl7Message, verify: boolean): CheckedArtifact {
+  const content = message.toString();
+  if (!verify) return { content, warnings: UNCHECKED };
+  return {
+    content,
+    warnings: hl7Peer()
+      .parseHL7(content)
+      .warnings.map((w) => String(w.code)),
   };
 }

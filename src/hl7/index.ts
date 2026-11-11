@@ -21,7 +21,7 @@ import { generateOru } from "./oru.js";
 import { generateOrm } from "./orm.js";
 import { generateSiu } from "./siu.js";
 import { generateVxu } from "./vxu.js";
-import { roundTrip } from "./round-trip.js";
+import { hl7CorpusArtifact } from "./round-trip.js";
 import { resolveKind, resolveMix } from "../select.js";
 
 export { generateAdt, type AdtTrigger, type GenerateAdtOptions } from "./adt.js";
@@ -127,6 +127,12 @@ export interface Hl7CorpusOptions {
    * supplied it takes precedence over `mix` and restricts the corpus to `ADT` messages.
    */
   readonly triggers?: readonly AdtTrigger[];
+  /**
+   * Whether each artifact is read back through its parser and the parser's findings recorded as its
+   * `warnings`. Defaults to `true`. `false` skips the read, a large share of a corpus's time; every
+   * artifact's `warnings` is then empty without having been checked.
+   */
+  readonly verify?: boolean;
 }
 
 /**
@@ -145,7 +151,7 @@ export interface Hl7CorpusOptions {
  * ```
  */
 export function hl7Corpus(options: Hl7CorpusOptions): Corpus {
-  const { seed, count = 1 } = options;
+  const { seed, count = 1, verify = true } = options;
   const kinds: readonly Hl7MessageKind[] =
     options.triggers !== undefined
       ? options.triggers.map(
@@ -157,7 +163,7 @@ export function hl7Corpus(options: Hl7CorpusOptions): Corpus {
   const artifacts = Array.from({ length: count }, (_unused, i) => {
     const kind = kinds[i % kinds.length] ?? "ADT^A01";
     const messageSeed = seedStream.nextUint32();
-    const rt = roundTrip(generateHl7(kind, messageSeed));
+    const rt = hl7CorpusArtifact(generateHl7(kind, messageSeed), verify);
     return {
       format: "hl7v2" as const,
       kind,

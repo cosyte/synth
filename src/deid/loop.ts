@@ -24,12 +24,8 @@
  * @module
  */
 
-import {
-  defineDeidPolicy,
-  SAFE_HARBOR_CATEGORIES,
-  type DeidPolicy,
-  type GenericLocus,
-} from "@cosyte/deid";
+import type { DeidPolicy, GenericLocus } from "@cosyte/deid";
+import { deidPeer } from "../peers.js";
 
 /**
  * The set of cosyte formats the loop covers: every format for which **both** `@cosyte/synth` generates
@@ -127,12 +123,12 @@ export const DEID_LOOP_POLICY_NAME = "synth-deid-loop-removal";
  * ```
  */
 export function deidLoopPolicy(): DeidPolicy {
-  return defineDeidPolicy({
+  return deidPeer().defineDeidPolicy({
     name: DEID_LOOP_POLICY_NAME,
     transforms: {
-      [SAFE_HARBOR_CATEGORIES.MRN]: "redact",
-      [SAFE_HARBOR_CATEGORIES.HEALTH_PLAN_BENEFICIARY]: "redact",
-      [SAFE_HARBOR_CATEGORIES.ACCOUNT]: "redact",
+      [deidPeer().SAFE_HARBOR_CATEGORIES.MRN]: "redact",
+      [deidPeer().SAFE_HARBOR_CATEGORIES.HEALTH_PLAN_BENEFICIARY]: "redact",
+      [deidPeer().SAFE_HARBOR_CATEGORIES.ACCOUNT]: "redact",
     },
   });
 }

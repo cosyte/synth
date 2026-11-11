@@ -23,7 +23,7 @@
  * @module
  */
 
-import { parseAstmRecords, astmProfiles, type AstmProfile } from "@cosyte/astm";
+import type { AstmProfile } from "@cosyte/astm";
 
 import { createRng } from "../rng/rng.js";
 import { makeCorpus, type Corpus } from "../corpus.js";
@@ -42,6 +42,7 @@ import {
 
 import { generateAstmResult } from "./message.js";
 import { resolveKind } from "../select.js";
+import { astmPeer } from "../peers.js";
 
 /** Every ASTM quirk this package ships. */
 export type AstmQuirkName = "unknown-escape" | "unknown-record-type";
@@ -82,7 +83,7 @@ export const ASTM_QUIRKS: Readonly<Record<AstmQuirkName, QuirkDescriptor>> = Obj
 
 /** The tolerating ASTM profile object for a quirk, when a built-in public one exists. */
 function toleratingProfile(quirk: AstmQuirkName): AstmProfile | undefined {
-  return quirk === "unknown-escape" ? astmProfiles.referenceCorpus : undefined;
+  return quirk === "unknown-escape" ? astmPeer().astmProfiles.referenceCorpus : undefined;
 }
 
 /** The E1394 record separator. */
@@ -163,7 +164,9 @@ export function generateAstmQuirk(options: GenerateAstmQuirkOptions): QuirkArtif
   // Self-check the intended-warning contract at generation time, never emit a mislabeled fixture.
   assertIntendedWarnings(
     descriptor.intendedWarnings,
-    parseAstmRecords(content).warnings.map((w) => String(w.code)),
+    astmPeer()
+      .parseAstmRecords(content)
+      .warnings.map((w) => String(w.code)),
   );
   return Object.freeze({
     format: "astm" as const,
@@ -190,14 +193,16 @@ export function generateAstmQuirk(options: GenerateAstmQuirkOptions): QuirkArtif
 export function astmQuirkRoundTrip(artifact: QuirkArtifact): QuirkRoundTripResult {
   const quirk = artifact.quirk as AstmQuirkName;
   const descriptor = resolveQuirk(ASTM_QUIRKS, "astm", quirk);
-  const bare = parseAstmRecords(artifact.content).warnings.map((w) => String(w.code));
+  const bare = astmPeer()
+    .parseAstmRecords(artifact.content)
+    .warnings.map((w) => String(w.code));
   const profile = toleratingProfile(quirk);
   const withProfile =
     profile !== undefined && descriptor.toleratingProfile !== undefined
       ? (() => {
-          const warnings = parseAstmRecords(artifact.content, { profile }).warnings.map((w) =>
-            String(w.code),
-          );
+          const warnings = astmPeer()
+            .parseAstmRecords(artifact.content, { profile })
+            .warnings.map((w) => String(w.code));
           return {
             profileName: descriptor.toleratingProfile,
             disposition: descriptor.disposition,

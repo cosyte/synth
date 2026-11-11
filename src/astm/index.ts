@@ -24,7 +24,8 @@ import { createRng } from "../rng/rng.js";
 import { makeCorpus, type Corpus } from "../corpus.js";
 
 import { generateAstmResult, generateAstmOrder } from "./message.js";
-import { astmRoundTrip } from "./round-trip.js";
+import { astmCorpusArtifact } from "./round-trip.js";
+import type { CheckedArtifact } from "../corpus.js";
 import { resolveMix } from "../select.js";
 
 export {
@@ -69,12 +70,12 @@ const ALL_KINDS: readonly AstmCorpusKind[] = Object.freeze(["Result", "Order"]);
 const DEFAULT_MIX = ALL_KINDS;
 
 /** Generate one message of the given kind from a sub-seed, returning the round-trip verdict. */
-function generateKind(kind: AstmCorpusKind, seed: number): ReturnType<typeof astmRoundTrip> {
+function generateKind(kind: AstmCorpusKind, seed: number, verify: boolean): CheckedArtifact {
   switch (kind) {
     case "Result":
-      return astmRoundTrip(generateAstmResult({ seed }));
+      return astmCorpusArtifact(generateAstmResult({ seed }), verify);
     case "Order":
-      return astmRoundTrip(generateAstmOrder({ seed }));
+      return astmCorpusArtifact(generateAstmOrder({ seed }), verify);
   }
 }
 
@@ -86,6 +87,12 @@ export interface AstmCorpusOptions {
   readonly count?: number;
   /** The message kinds to cycle through. Defaults to one of each. */
   readonly mix?: readonly AstmCorpusKind[];
+  /**
+   * Whether each artifact is read back through its parser and the parser's findings recorded as its
+   * `warnings`. Defaults to `true`. `false` skips the read, a large share of a corpus's time; every
+   * artifact's `warnings` is then empty without having been checked.
+   */
+  readonly verify?: boolean;
 }
 
 /**
@@ -103,14 +110,14 @@ export interface AstmCorpusOptions {
  * ```
  */
 export function astmCorpus(options: AstmCorpusOptions): Corpus {
-  const { seed } = options;
+  const { seed, verify = true } = options;
   const mix = resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX);
   const count = options.count ?? mix.length;
   const seedStream = createRng(seed);
   const artifacts = Array.from({ length: count }, (_unused, i) => {
     const kind = mix[i % mix.length] ?? "Result";
     const msgSeed = seedStream.nextUint32();
-    const rt = generateKind(kind, msgSeed);
+    const rt = generateKind(kind, msgSeed, verify);
     return {
       format: "astm" as const,
       kind,

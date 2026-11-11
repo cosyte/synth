@@ -14,7 +14,7 @@
  * @module
  */
 
-import { buildCcda, type BuildCcdaInit, type CcdaDocument } from "@cosyte/ccda";
+import type { BuildCcdaInit, CcdaDocument } from "@cosyte/ccda";
 
 import { createRng, type Rng } from "../rng/rng.js";
 import { safe } from "../safe/index.js";
@@ -36,6 +36,7 @@ import {
 } from "./example-codes.js";
 import { ccdaPatientIdentity } from "./identity.js";
 import { resolveKind } from "../select.js";
+import { ccdaPeer } from "../peers.js";
 
 /** The C-CDA document type a generator emits: the two `buildCcda` supports. */
 export type CcdaDocumentType = "ccd" | "referralNote";
@@ -174,7 +175,7 @@ export function generateCcda(options: GenerateCcdaOptions = {}): CcdaDocument {
   const { seed = 0 } = options;
   const documentType = resolveKind(CCDA_DOCUMENT_TYPES, options.documentType ?? "ccd");
   const rng = createRng(seed);
-  return buildCcda(buildInit(rng, documentType));
+  return ccdaPeer().buildCcda(buildInit(rng, documentType));
 }
 
 /**

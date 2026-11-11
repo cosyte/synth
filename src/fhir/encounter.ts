@@ -7,7 +7,6 @@
  * @module
  */
 
-import { complex, list } from "@cosyte/fhir";
 import type { FhirComplex } from "@cosyte/fhir";
 
 import { createRng } from "../rng/rng.js";
@@ -25,6 +24,7 @@ import {
 } from "./builder.js";
 import { EXAMPLE_ENCOUNTER_CLASSES, EXAMPLE_ENCOUNTER_TYPES } from "./example-codes.js";
 import { US_CORE_PROFILE } from "./us-core.js";
+import { fhirPeer } from "../peers.js";
 
 /** Options for {@link generateEncounter}. */
 export interface GenerateEncounterOptions {
@@ -64,8 +64,8 @@ export function generateEncounter(options: GenerateEncounterOptions = {}): FhirC
   props.push(
     prop(
       "identifier",
-      list([
-        complex([
+      fhirPeer().list([
+        fhirPeer().complex([
           prop("system", str(`urn:oid:${id.assigningAuthorityOid}`)),
           prop("value", str(id.value)),
         ]),
@@ -74,8 +74,8 @@ export function generateEncounter(options: GenerateEncounterOptions = {}): FhirC
   );
   props.push(prop("status", str("finished")));
   props.push(prop("class", coding(cls)));
-  props.push(prop("type", list([codeableConcept(type)])));
+  props.push(prop("type", fhirPeer().list([codeableConcept(type)])));
   props.push(prop("subject", reference(subject)));
-  props.push(prop("period", complex([prop("start", str(`${start}T09:00:00Z`))])));
-  return complex(props);
+  props.push(prop("period", fhirPeer().complex([prop("start", str(`${start}T09:00:00Z`))])));
+  return fhirPeer().complex(props);
 }

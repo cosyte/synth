@@ -131,6 +131,23 @@ export const SHAPES = [
     ],
   },
   {
+    // The HL7 v2 corpus with `verify: false`: built, not read back through the parser. A base
+    // build without the option reads every message back, so the comparison shows what it saves.
+    name: "HL7 v2 messages, not read back",
+    fn: "hl7Corpus",
+    format: "hl7",
+    options: { verify: false },
+    sizes: [size("1 message", 1, 64, true), size("1,000 messages", 1_000, 1)],
+  },
+  {
+    // The FHIR corpus with `verify: false`: built, not read back and validated.
+    name: "FHIR resources, not read back",
+    fn: "fhirCorpus",
+    format: "fhir",
+    options: { verify: false },
+    sizes: [size("1 resource", 1, 64, true), size("1,000 resources", 1_000, 1)],
+  },
+  {
     // A result message and an order message in turn.
     name: "ASTM messages",
     fn: "astmCorpus",
