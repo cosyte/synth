@@ -70,6 +70,10 @@ never repeats it.
 
 - [Installation](./installation.md): which packages to install for the formats you need.
 - [Quickstart](./quickstart.md): a first message, a synthetic value, and a reproducible corpus.
-- [Test your HL7 handling with generated fixtures](./test-hl7-handling-with-fixtures.md): a
-  tutorial from a single message to a fixture with a vendor deviation.
+- A tutorial per format, from a single fixture to a test of your own code:
+  [HL7 v2](./test-hl7-handling-with-fixtures.md), [FHIR](./test-fhir-handling-with-fixtures.md),
+  [C-CDA](./test-ccda-handling-with-fixtures.md), [X12](./test-x12-handling-with-fixtures.md),
+  [NCPDP](./test-ncpdp-handling-with-fixtures.md), and [ASTM](./test-astm-handling-with-fixtures.md).
 - The how-to guides, one per format, starting with [Generate HL7 v2 messages](./guides-hl7.md).
+- [Synthea, faker and other generators](./synthea-faker-and-other-generators.md): when another tool
+  fits better.

@@ -95,12 +95,15 @@ a === b; // => true
 
 ## Next
 
-- [Test your HL7 handling with generated fixtures](./test-hl7-handling-with-fixtures.md): a
-  tutorial that takes these fixtures into a test of your own code.
+- A tutorial per format that takes these fixtures into a test of your own code:
+  [HL7 v2](./test-hl7-handling-with-fixtures.md), [FHIR](./test-fhir-handling-with-fixtures.md),
+  [C-CDA](./test-ccda-handling-with-fixtures.md), [X12](./test-x12-handling-with-fixtures.md),
+  [NCPDP](./test-ncpdp-handling-with-fixtures.md), and [ASTM](./test-astm-handling-with-fixtures.md).
 - How-to guides for each format: [HL7 v2](./guides-hl7.md), [FHIR R4 and US Core](./guides-fhir.md),
   [C-CDA](./guides-ccda.md), [X12](./guides-x12.md), [NCPDP](./guides-ncpdp.md), and
   [ASTM](./guides-astm.md).
 - [Generate vendor-quirk fixtures](./guides-quirks.md) and
   [Pin a golden fixture](./guides-overview.md).
 - [How it works](./concepts-archetype.md): why the output is synthetic, checked, and reproducible.
+- [Generator options, kinds and profiles](./generator-options.md) and the [glossary](./glossary.md).
 - The [API reference](./api/README.md), generated from the source.
