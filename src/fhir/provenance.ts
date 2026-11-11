@@ -58,7 +58,7 @@ export function generateProvenance(options: GenerateProvenanceOptions = {}): Fhi
     prop("resourceType", str("Provenance")),
     prop("id", str(`syn-prov-${rng.digits(8)}`)),
   ];
-  if (usCore) props.push(prop("meta", meta([US_CORE_PROFILE.PROVENANCE])));
+  props.push(prop("meta", meta(usCore ? [US_CORE_PROFILE.PROVENANCE] : [])));
   props.push(prop("text", narrative("Synthetic provenance for a generated fixture.")));
   props.push(prop("target", fhirPeer().list([reference(target)])));
   props.push(prop("recorded", str(`${recorded}T10:00:00Z`)));

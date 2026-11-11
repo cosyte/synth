@@ -44,7 +44,7 @@ export function generateCondition(options: GenerateConditionOptions = {}): FhirC
     prop("resourceType", str("Condition")),
     prop("id", str(`syn-cond-${rng.digits(8)}`)),
   ];
-  if (usCore) props.push(prop("meta", meta([US_CORE_PROFILE.CONDITION])));
+  props.push(prop("meta", meta(usCore ? [US_CORE_PROFILE.CONDITION] : [])));
   props.push(prop("text", narrative(`Synthetic condition: ${code.display}.`)));
   props.push(
     prop(

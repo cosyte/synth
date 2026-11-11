@@ -148,6 +148,21 @@ corpus.artifacts.length; // => 11
 corpus.artifacts.every((a) => a.warnings.length === 0); // => true
 ```
 
+## Every resource is labelled as test data
+
+Every resource we generate, every resource inside a Bundle, and the Bundle itself carry the
+security label `HTEST` ("test health data") from `http://terminology.hl7.org/CodeSystem/v3-ActReason`
+in `meta.security`, with US Core on or off. A server or pipeline that honors security labels can
+tell the fixture from real data:
+
+```ts runnable
+import { serializeResource } from "@cosyte/fhir";
+import { generatePatient } from "@cosyte/synth/fhir";
+
+const patient = JSON.parse(serializeResource(generatePatient({ seed: 42 })));
+patient.meta.security[0].code; // => "HTEST"
+```
+
 ## Independent validation
 
 The FHIR output is the one format a validator we did not write also checks: on every pull request,

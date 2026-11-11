@@ -2,7 +2,7 @@
   "schema": "cosyte-synth-determinism-baseline/1",
   "package": {
     "name": "@cosyte/synth",
-    "version": "0.1.6",
+    "version": "0.1.7",
     "window": "0.x"
   },
   "digestAlgorithm": "sha256",
@@ -11,22 +11,22 @@
     {
       "format": "astm",
       "seed": 1001,
-      "digest": "7dd4e3475af8d93f01ed205ae84113943dcb68a782aaa05c6942dd8e25cdbafd"
+      "digest": "6fcb5e4be21088010f666ec83f384f1e1a8cf9748befa79e74d1785ae999afc7"
     },
     {
       "format": "astm",
       "seed": 4242,
-      "digest": "125b19ee37c8fb7c82fed29ef4cb0f7e9411e94d877c41f9c1989a6569bcb964"
+      "digest": "660a1ce6a3ea7f35d2d97dcc9a60434e86e755d3068ec0474af673f16b5d5607"
     },
     {
       "format": "astm",
       "seed": 60501,
-      "digest": "2b7ae924d6fb74f66df06ef1a996126886c74b8174c13ac1eb13e5c16302446f"
+      "digest": "c93029401a20b44ecd9cfc0274562cbc0b2f436c2852a40f87e27b3a1e59605e"
     },
     {
       "format": "astm",
       "seed": 813377,
-      "digest": "6995bc4cae34b8991492b0df8ffe3629810d6a16b721011053bc275a45f3acbc"
+      "digest": "2c0258f432a2025abd5fe6e1f0a833f540d633ac796a55e7acf01a5f9d60afe3"
     },
     {
       "format": "ccda",
@@ -51,42 +51,42 @@
     {
       "format": "fhir",
       "seed": 1001,
-      "digest": "c2e7e48039bb3b4aeaa26a07b1d59c64327e661545ccb17616e93148217d8e22"
+      "digest": "9ebf3bdf24c90e6993dd95af15842e64e588d9b39df44d61afa04ec8ee2c792e"
     },
     {
       "format": "fhir",
       "seed": 4242,
-      "digest": "1444ea2d7011a418bd9cbdac865ab6d1d26411d0923fac8af185a4cbf811f6af"
+      "digest": "ddcf87b4b919d24261185a2b1a974c15cdc97a84f2a4c3d82577eb859799fc27"
     },
     {
       "format": "fhir",
       "seed": 60501,
-      "digest": "de1c58e0c08e5fe5ace1e7205655b43b9457fe932256ccf3aa50266c9ed8320b"
+      "digest": "9d502729098a7c2fc8c865c3e6432e641390b38fa8ab7baa5e3e39430a1a7154"
     },
     {
       "format": "fhir",
       "seed": 813377,
-      "digest": "0e7eb0d1169e8bc84c25adcf69503185cc0ccaf73e15f60be33d136a8a4951e2"
+      "digest": "f38786c1a34169172a9b1892cf86905131935682afb86f69d98f3ac208bde34b"
     },
     {
       "format": "hl7v2",
       "seed": 1001,
-      "digest": "f1f52f7b01b7ad258b7f616fe7af4af4cba87c70435c80be4a22b97f046dd9f8"
+      "digest": "6fd3cbbc971f2cf4a562c93a5af75b1a3bea51bfd1f03bc1349a581301711c91"
     },
     {
       "format": "hl7v2",
       "seed": 4242,
-      "digest": "c8619612d449b048ad13f5b8112072723e3646b2165484fe3b2ef93a860da389"
+      "digest": "9b96425e8aabcb8a920df92312fb1330d04d12a0a5ea8bddcc93caa58fb265a2"
     },
     {
       "format": "hl7v2",
       "seed": 60501,
-      "digest": "3c6c78b33b9a53ae57a070366f846fcc11961a001dfa62ad7d631e9f68dbe498"
+      "digest": "402d65f45f060fc2790ed90abafa652137035d158cc90e9cf3165a5e085a5890"
     },
     {
       "format": "hl7v2",
       "seed": 813377,
-      "digest": "0acd1e77409676d3b9b5a831e15cabadc044e6f1c7cf5ef279f248a3399bdd13"
+      "digest": "58a25b8e982c56919d7ce163f29db4adab10892a65b795d20a471eebe74476fc"
     },
     {
       "format": "ncpdp",

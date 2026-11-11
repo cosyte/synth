@@ -167,11 +167,25 @@ export function narrative(text: string): FhirComplex {
 }
 
 /**
- * A `meta.profile` element pinning the resource to one or more canonical profile URLs (US Core
- * conformance is claimed via `meta.profile`). No version is pinned, so validating against any supplied
- * version of the named profile never raises a version-mismatch.
+ * The security label that says a resource is test data: `HTEST` ("test health data") from the HL7
+ * `v3-ActReason` code system, a purpose-of-use code in the R4 `security-labels` value set that
+ * `Meta.security` is bound to.
+ */
+const TEST_DATA_LABEL = Object.freeze({
+  system: "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+  code: "HTEST",
+  display: "test health data",
+});
+
+/**
+ * A resource's `meta`: the `HTEST` security label in `meta.security`, which says the resource is test
+ * data, on every resource this package generates, plus a `meta.profile` pinning the resource to one or
+ * more canonical profile URLs when any are given (US Core conformance is claimed via `meta.profile`).
+ * No version is pinned, so validating against any supplied version of the named profile never raises
+ * a version-mismatch.
  *
- * @param profiles - The canonical profile URLs to claim.
+ * @param profiles - The canonical profile URLs to claim. Empty for none: `meta.profile` is then left
+ *   out and `meta` carries only the security label.
  * @returns A `meta` `FhirComplex`.
  * @example
  * ```ts
@@ -180,7 +194,12 @@ export function narrative(text: string): FhirComplex {
  * ```
  */
 export function meta(profiles: readonly string[]): FhirComplex {
-  return fhirPeer().complex([prop("profile", fhirPeer().list(profiles.map((p) => str(p))))]);
+  const props: Prop[] = [];
+  if (profiles.length > 0) {
+    props.push(prop("profile", fhirPeer().list(profiles.map((p) => str(p)))));
+  }
+  props.push(prop("security", fhirPeer().list([coding(TEST_DATA_LABEL)])));
+  return fhirPeer().complex(props);
 }
 
 /** A synthetic FHIR patient identity: every field drawn from `../safe`. */

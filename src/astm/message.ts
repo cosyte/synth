@@ -92,8 +92,10 @@ function buildResultInput(options: GenerateAstmOptions): MessageInput {
   }
 
   return {
-    // H.3 (message control id) and H.4 (access password) stay empty; H.5 is the sender name.
-    header: { fields: ["", "", head.sender] },
+    // H.3 (message control id) and H.4 (access password) stay empty; H.5 is the sender name. H.6 to
+    // H.11 stay empty, and H.12, the processing ID, is `T` (training), never `P` (production): every
+    // message says it is test data in the field the standard gives for it.
+    header: { fields: ["", "", head.sender, "", "", "", "", "", "", "T"] },
     records,
     terminationCode: "N",
   };

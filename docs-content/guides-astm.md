@@ -66,6 +66,9 @@ the seeded generator, and the two IDs are minted separately under a synthetic as
 so they differ, as `@cosyte/astm` keeps them apart when it parses. A result pairs a test code and a
 value with no claim that they make clinical sense.
 
+The `H` (header) record sets the processing ID, field 12, to `T`, never `P` (production), so every
+message says it is test data.
+
 ## Generate an off-spec message
 
 Quirk fixtures ship for ASTM: a non-standard `&Z&` escape that raises

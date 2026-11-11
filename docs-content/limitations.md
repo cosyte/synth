@@ -119,6 +119,24 @@ source that is **not** the issuing agency and says what it is not.
 | **ZIP** | `00000` | [USPS Postal Facts, Lowest ZIP Code number](https://facts.usps.com/lowest-zip-code/): "The lowest ZIP Code number is 00501, unique for the Internal Revenue Service in Holtsville, NY." `00000` is below `00501`, from which **this project infers** that it is not an assigned ZIP Code. The inference is ours, not the Postal Service's: USPS states the lowest assigned number and says nothing about `00000`. |
 | **Names / streets / cities** | a shipped, curated **clearly-fake pool** | **No authority reserves this locus.** No registry reserves personal, street, or city names, so there is nothing external to cite and nothing is claimed. What the floor rests on instead is the pool itself: every token is an invented, fixture-flavored word (`Testina Testerson`, `Example Boulevard`, `Faketon`) that a reader can see at a glance names nobody, and no code path draws a name, street or city from anywhere else. |
 
+**Every artifact says it is test data, where its standard has a field for that.** A fixture can end
+up somewhere it was not meant to go, so beside values that cannot be real, each artifact sets the
+test-or-production marker its own standard defines, and a property suite asserts it on every
+artifact of every corpus, quirk corpora included. The marker is always on; there is no option to
+turn it off.
+
+| Format | Marker | Value |
+| --- | --- | --- |
+| **HL7 v2** | `MSH-11`, processing ID (HL7 table 0103: `D` debugging, `P` production, `T` training) | `T`, never `P` |
+| **FHIR R4** | `meta.security` on every resource, every resource inside a Bundle, and the Bundle itself | `HTEST` ("test health data") from `http://terminology.hl7.org/CodeSystem/v3-ActReason`, a purpose-of-use code in the `security-labels` value set that `Meta.security` is bound to |
+| **X12 005010** | `ISA-15`, usage indicator (`P` production, `T` test) | `T` on every 837, 835 and 271 |
+| **ASTM E1394** | `H.12`, the header's processing ID (`P` production, `T` training, `D` debugging, `Q` quality control) | `T` |
+| **C-CDA R2.1** | None. The CDA header has no test-or-production field | Nothing to set |
+| **NCPDP** | None that we set. The Telecommunication request header has no such field, and the SCRIPT header model in `@cosyte/ncpdp` carries no test flag | Nothing to set |
+
+The marker is a label, not a guarantee: a receiver that ignores it will still accept the artifact,
+which is why the values themselves come from the sources above.
+
 The floors are enforced two ways. A **property suite** asserts, for arbitrary seeds and every
 format, that no emitted value escapes these sources; this is the proof. Under it, `pnpm phi-scan`
 reads every committed file outside Markdown, including the generated fixtures under `test/fixtures`,

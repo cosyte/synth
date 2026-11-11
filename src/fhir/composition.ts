@@ -11,7 +11,7 @@
 import type { FhirComplex } from "@cosyte/fhir";
 
 import type { Rng } from "../rng/rng.js";
-import { codeableConcept, narrative, prop, reference, str, type Prop } from "./builder.js";
+import { codeableConcept, meta, narrative, prop, reference, str, type Prop } from "./builder.js";
 import { SYSTEM } from "./us-core.js";
 import { fhirPeer } from "../peers.js";
 
@@ -63,6 +63,7 @@ export function buildComposition(rng: Rng, input: BuildCompositionInput): FhirCo
   const props: Prop[] = [
     prop("resourceType", str("Composition")),
     prop("id", str(`syn-comp-${rng.digits(8)}`)),
+    prop("meta", meta([])),
     prop("text", narrative("Synthetic continuity-of-care document summary.")),
     prop("status", str("final")),
     prop(

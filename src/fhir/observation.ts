@@ -72,7 +72,7 @@ function buildObservation(
     prop("resourceType", str("Observation")),
     prop("id", str(`syn-obs-${rng.digits(8)}`)),
   ];
-  if (usCore) props.push(prop("meta", meta([profileUrl])));
+  props.push(prop("meta", meta(usCore ? [profileUrl] : [])));
   props.push(
     prop("text", narrative(`Synthetic ${category.display.toLowerCase()}: ${concept.display}.`)),
   );
