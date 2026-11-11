@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.8
+
+### Patch Changes
+
+- 2f6dff4: `engines.node` is now `>=22.12.0`, where it was `>=22.0.0`. Since 0.1.6 a generator loads its parser on first use through `require`, and Node.js loads an ES module that way by default only from 22.12. On 22.0 to 22.11 the ES module build fell back to the parser's CommonJS entry, so a value it returned was an instance of a second copy of the parser's classes and `instanceof` against a class imported with `import` was false. The 0.1.6 entry said a returned value was an instance of the classes your code imports; that holds on 22.12 and later, and CI now runs the built package's smoke, which checks `instanceof` under `import` and `require`, on Node.js 22.12.0 itself. If you run Node.js 22.0 to 22.11, upgrade to 22.12 or later. npm warns about the engines range by default and refuses the install only with `engine-strict`.
+
+  If you bundle code that uses `@cosyte/synth`, mark `@cosyte/synth` and each `@cosyte/*` parser you use as external (esbuild `--external:@cosyte/*`, Rollup `external`, webpack `externals`) and install them beside the bundle. A bundler cannot follow the first-use load, so a bundle that inlines a parser holds a second copy of it, and one that omits a parser fails with "Cannot find module" on the first call that needs it.
+
+  No generated value, export, warning code or seed mapping changes.
+
+- dd2b762: Every artifact now says it is test data, in the field its standard gives for that, so a generated fixture that ends up somewhere real can be told apart from production data. HL7 v2 messages declared processing ID `P` (production) in MSH-11; X12 already set ISA-15 to `T`.
+
+  Output change: HL7 v2 messages set MSH-11 to `T` where it was `P`. Every FHIR resource, every resource inside a Bundle and the Bundle itself carry `meta.security` with the `HTEST` ("test health data") code from `http://terminology.hl7.org/CodeSystem/v3-ActReason`, so a resource built with `usCore: false` and a base Patient now carry a `meta` too, and the document Bundle's Organization and Composition carry one. ASTM messages set the header's processing ID (H.12) to `T`, so the `H` record gains the empty fields H.6 to H.11 before it. C-CDA, X12 and NCPDP output is unchanged. A golden file committed from an earlier release for HL7 v2, FHIR or ASTM has to be regenerated.
+
+  The marker is always on: there is no option to turn it off. The exported `meta(profiles)` helper in `@cosyte/synth/fhir` now adds the `HTEST` label as well, and accepts an empty list, which leaves `meta.profile` out. If your code reads `meta` from a generated resource and expected only `profile`, read `meta.profile` by name.
+
 ## 0.1.7
 
 ### Patch Changes
