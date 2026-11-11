@@ -17,7 +17,9 @@ const config = shared as ViteUserConfig;
  * - `test/examples-typecheck.test.ts` type-checks `examples/` with the TypeScript compiler, which
  *   runs no code;
  * - `test/scripts/` tests this repository's own tooling in `scripts/` (the PHI scan, the version
- *   sync, the changelog), each in a child process.
+ *   sync, the changelog), each in a child process;
+ * - `test/quality-standard.test.ts` reads this repository's configuration and workflow files, and
+ *   imports no source file.
  *
  * What they prove is proved by `pnpm test` on every pull request. The instrumented code runs
  * several times slower than the plain build, so a test's budget here is 60 s rather than 10 s;
@@ -32,6 +34,7 @@ const mutation: ViteUserConfig = {
       ...configDefaults.exclude,
       "test/docs-content.test.ts",
       "test/examples-typecheck.test.ts",
+      "test/quality-standard.test.ts",
       "test/scripts/**",
     ],
     testTimeout: 60_000,

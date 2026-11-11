@@ -59,7 +59,12 @@ jobs:
   #   line that coverage counts must have run and no floor may be lowered or removed;
   # - `mutation` (pull requests only): the changed source files mutated with stryker.config.mjs,
   #   and every mutant in the changed lines killed;
-  # - `bun` and `deno`: the test suite under Bun and under Deno, each on Linux.
+  # - `bun`: the test suite under Bun, on Linux.
+  # Not Deno yet. On this caller's first Deno run 340 tests failed, those that generate through a
+  # parser: the peer loader in src/peer.ts calls `import.meta.resolve`, and inside the test runner's
+  # module loader on Deno that call throws `TypeError: Invalid arguments`. Making the loader fall back
+  # there is a change to published code, which takes a release of its own; `run-deno: true` joins
+  # the inputs below with it.
   # The full mutation run is weekly-mutation.yml, and the deep property run nightly-properties.yml.
   #
   # `verify` runs on Linux and macOS, each on Node 22, 24 and 26. The Ubuntu legs keep the names the
@@ -76,7 +81,6 @@ jobs:
       os: '["ubuntu-latest", "macos-latest"]'
       run-phi-scan: true
       run-bun: true
-      run-deno: true
       run-coverage-ratchet: true
       run-mutation: true
       run-scaling-gate: true

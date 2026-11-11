@@ -11,6 +11,8 @@
  * Offline: generating one artifact per factory needs no network and no external tool.
  */
 
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -111,7 +113,7 @@ describe("a generated format missing from the declaration fails the run", () => 
 
   it("a graded entry with no grader, and an ungraded entry with no reason, are both refused", () => {
     expect(() =>
-      readCoveragePolicy(new URL("./fixtures/clean.json", import.meta.url).pathname),
+      readCoveragePolicy(fileURLToPath(new URL("./fixtures/clean.json", import.meta.url))),
     ).toThrow(/no `formats` object/);
   });
 

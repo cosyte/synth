@@ -79,8 +79,8 @@ describe("the scripts", () => {
     expect(scripts["mutate"]).toBe("cosyte-mutate");
     expect(scripts["mutate:full"]).toBe("cosyte-mutate full");
     expect(scripts["test:property"]).toMatch(/^vitest run /u);
-    expect(scripts["test:property"]).toContain("--exclude");
-    expect(scripts["test:property"]).toContain("seed-sweep.fuzz.property.test.ts");
+    // The fuzz target keeps its own nightly run, so the deep run names every other property file.
+    expect(scripts["test:property"]).not.toContain("seed-sweep");
   });
 });
 
@@ -110,6 +110,7 @@ describe("the mutation config", () => {
     expect(own.sort()).toEqual([
       "test/docs-content.test.ts",
       "test/examples-typecheck.test.ts",
+      "test/quality-standard.test.ts",
       "test/scripts/**",
     ]);
   });
@@ -131,6 +132,19 @@ describe("the property tests", () => {
   it("run every property through the shared runner, never fast-check's own depth", () => {
     const direct = files.filter((file) => /\bfc\.(assert|check)\(/u.test(read(file)));
     expect(direct).toEqual([]);
+  });
+
+  it("are each run by the nightly deep run, `pnpm test:property`", () => {
+    const { scripts } = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
+    const named = (scripts["test:property"] ?? "")
+      .split(" ")
+      .filter((arg) => arg.startsWith("test/"));
+    const withProperties = files.filter((file) => /\bcheckProperty\(/u.test(read(file)));
+    expect(withProperties.length).toBeGreaterThan(0);
+    const missed = withProperties.filter(
+      (file) => !named.some((path) => file === path || file.startsWith(`${path}/`)),
+    );
+    expect(missed).toEqual([]);
   });
 
   it("name no depth below the pull-request default of 100", () => {
@@ -164,9 +178,9 @@ describe("the property tests", () => {
 });
 
 describe("the workflow callers", () => {
-  it("ci.yml turns on macOS, Bun, Deno, the coverage ratchet and the mutation job", () => {
+  it("ci.yml turns on macOS, Bun, the coverage ratchet and the mutation job", () => {
     const ci = read(".github", "workflows", "ci.yml");
-    for (const input of ["run-bun", "run-deno", "run-coverage-ratchet", "run-mutation"]) {
+    for (const input of ["run-bun", "run-coverage-ratchet", "run-mutation"]) {
       expect(ci).toMatch(new RegExp(`^      ${input}: true$`, "mu"));
     }
     expect(ci).toMatch(/^ {6}os: '\["ubuntu-latest", "macos-latest"\]'$/mu);

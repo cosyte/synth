@@ -8,10 +8,21 @@
  */
 
 import module from "node:module";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { lazyPeer, loadPeer, type PeerHost } from "../src/peer.js";
+
+/**
+ * Where a fake host says a peer's ES module entry is: an absolute path, with a drive letter on
+ * Windows, since `fileURLToPath` refuses a `file:` URL without one there.
+ */
+const entryPath = (specifier: string): string => resolve("/peers", specifier, "index.mjs");
+
+/** The same entry as the `file:` URL `import.meta.resolve` returns. */
+const entryUrl = (specifier: string): string => pathToFileURL(entryPath(specifier)).href;
 
 /** The parser packages resolved since the last reset, by specifier or by the file they resolve to. */
 const resolved = new Set<string>();
@@ -86,10 +97,10 @@ describe("loadPeer and lazyPeer", () => {
         required.push(id);
         return { id };
       },
-      resolve: (s) => `file:///peers/${s}/index.mjs`,
+      resolve: entryUrl,
     };
-    expect(loadPeer("@cosyte/x", host)).toEqual({ id: "/peers/@cosyte/x/index.mjs" });
-    expect(required).toEqual(["/peers/@cosyte/x/index.mjs"]);
+    expect(loadPeer("@cosyte/x", host)).toEqual({ id: entryPath("@cosyte/x") });
+    expect(required).toEqual([entryPath("@cosyte/x")]);
   });
 
   it("falls back to the CommonJS entry where Node.js cannot require an ES module", () => {
@@ -100,10 +111,10 @@ describe("loadPeer and lazyPeer", () => {
         if (id.endsWith(".mjs")) throw Object.assign(new Error("esm"), { code: "ERR_REQUIRE_ESM" });
         return { id };
       },
-      resolve: (s) => `file:///peers/${s}/index.mjs`,
+      resolve: entryUrl,
     };
     expect(loadPeer("@cosyte/x", host)).toEqual({ id: "@cosyte/x" });
-    expect(required).toEqual(["/peers/@cosyte/x/index.mjs", "@cosyte/x"]);
+    expect(required).toEqual([entryPath("@cosyte/x"), "@cosyte/x"]);
   });
 
   it("passes on any other failure to load", () => {
@@ -111,7 +122,7 @@ describe("loadPeer and lazyPeer", () => {
       require: () => {
         throw Object.assign(new Error("missing"), { code: "MODULE_NOT_FOUND" });
       },
-      resolve: (s) => `file:///peers/${s}/index.mjs`,
+      resolve: entryUrl,
     };
     expect(() => loadPeer("@cosyte/x", host)).toThrow("missing");
     const nullHost: PeerHost = {
@@ -120,7 +131,7 @@ describe("loadPeer and lazyPeer", () => {
         // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw null;
       },
-      resolve: (s) => `file:///peers/${s}/index.mjs`,
+      resolve: entryUrl,
     };
     expect(() => loadPeer("@cosyte/x", nullHost)).toThrow();
   });

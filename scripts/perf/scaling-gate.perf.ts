@@ -64,14 +64,15 @@ interface Gate {
 // generates `2 * size * (4 * size + 1)` of them, about 15 times the base phase's at these sizes.
 // Since a corpus reads each artifact back once instead of also serializing it again, an HL7 corpus
 // is cheaper: its size axis reads 16 corpora, where 8 measured 3.3 ms on a runner, under the floor.
-// The X12 count axis reads 96 for the same margin.
+// The X12 count axis reads 96 for the same margin, and the ASTM count axis 96, where 64 measured
+// 3.8 ms on a runner, under the floor.
 const GATES: readonly Gate[] = [
   { name: "hl7Corpus", generate: (r) => hl7Corpus(r), count: 192, inputs: 16, size: 14 },
   { name: "fhirCorpus", generate: (r) => fhirCorpus(r), count: 32, inputs: 4, size: 11 },
   { name: "ccdaCorpus", generate: (r) => ccdaCorpus(r), count: 4, inputs: 1, size: 6 },
   { name: "x12Corpus", generate: (r) => x12Corpus(r), count: 96, inputs: 8, size: 15 },
   { name: "ncpdpCorpus", generate: (r) => ncpdpCorpus(r), count: 64, inputs: 8, size: 12 },
-  { name: "astmCorpus", generate: (r) => astmCorpus(r), count: 64, inputs: 8, size: 16 },
+  { name: "astmCorpus", generate: (r) => astmCorpus(r), count: 96, inputs: 8, size: 16 },
 ];
 
 function options(gate: Gate): ScalingGateOptions<Request, Corpus> {

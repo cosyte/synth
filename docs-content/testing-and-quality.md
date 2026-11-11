@@ -41,7 +41,7 @@ the two.
 
 - **Unit tests, round trips, committed fixtures, properties, quirk self-checks, diagnostic probes,
   and doc samples** run in one Vitest suite on every pull request and on `main`, on Node.js 22, 24,
-  and 26, on Linux, macOS, and Windows, and under Bun and Deno on Linux.
+  and 26, on Linux, macOS, and Windows, and under Bun on Linux.
 - **Properties** run 100 cases each on a pull request (a few synthetic-safety and determinism
   sweeps name more), and 10,000 each every night. Each property prints its seed, and a failure
   prints the seed and path that replay it:

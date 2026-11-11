@@ -56,7 +56,8 @@ request (a sweep may name more, never fewer), and 10,000 each night
 its seed. Never call `fc.assert` directly: `test/quality-standard.test.ts` refuses it. The seed-sweep
 fuzz target keeps its own nightly run, `pnpm fuzz`. CI runs the suite on Linux and macOS, on
 Windows in the `windows` job (every step of `verify` but attw, which cannot start there yet), and
-under Bun and Deno.
+under Bun; not yet under Deno (see `ci.yml`). A test that cannot run on a system is skipped there
+by name, with its reason beside it.
 
 CI's `scaling-gate` job runs `pnpm test:perf`, the scaling gates in
 `scripts/perf/scaling-gate.perf.ts`: they fail when a corpus generator's cost grows faster than the
