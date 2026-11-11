@@ -53,17 +53,22 @@ interface Gate {
   readonly size: number;
 }
 
+// Each size is a whole number of turns of its corpus's default mix (7 HL7 kinds, 11 FHIR, 2 C-CDA,
+// 5 X12, 6 NCPDP, 2 ASTM), so both phases hold every kind in the same proportion: a size cut part of
+// the way through a mix weighs the phases differently (the first FHIR kinds are small resources and
+// the last a Bundle), and the ratio then reads a change of mix as a change of cost.
+//
 // About 0.2 ms an artifact for HL7, X12, NCPDP and ASTM, 0.4 ms for FHIR and 7 ms for a C-CDA
 // document on a developer machine. Every size axis is small, so the self-check's quadratic version
 // stays near two seconds a phase: rebuilding every prefix of a corpus of `4 * size` artifacts
 // generates `2 * size * (4 * size + 1)` of them, about 15 times the base phase's at these sizes.
 const GATES: readonly Gate[] = [
-  { name: "hl7Corpus", generate: (r) => hl7Corpus(r), count: 64, inputs: 4, size: 16 },
-  { name: "fhirCorpus", generate: (r) => fhirCorpus(r), count: 32, inputs: 2, size: 16 },
+  { name: "hl7Corpus", generate: (r) => hl7Corpus(r), count: 192, inputs: 8, size: 14 },
+  { name: "fhirCorpus", generate: (r) => fhirCorpus(r), count: 32, inputs: 4, size: 11 },
   { name: "ccdaCorpus", generate: (r) => ccdaCorpus(r), count: 4, inputs: 1, size: 6 },
-  { name: "x12Corpus", generate: (r) => x12Corpus(r), count: 64, inputs: 4, size: 16 },
-  { name: "ncpdpCorpus", generate: (r) => ncpdpCorpus(r), count: 64, inputs: 4, size: 16 },
-  { name: "astmCorpus", generate: (r) => astmCorpus(r), count: 64, inputs: 4, size: 16 },
+  { name: "x12Corpus", generate: (r) => x12Corpus(r), count: 64, inputs: 8, size: 15 },
+  { name: "ncpdpCorpus", generate: (r) => ncpdpCorpus(r), count: 64, inputs: 8, size: 12 },
+  { name: "astmCorpus", generate: (r) => astmCorpus(r), count: 64, inputs: 8, size: 16 },
 ];
 
 function options(gate: Gate): ScalingGateOptions<Request, Corpus> {
