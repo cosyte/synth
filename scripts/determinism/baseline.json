@@ -2,7 +2,7 @@
   "schema": "cosyte-synth-determinism-baseline/1",
   "package": {
     "name": "@cosyte/synth",
-    "version": "0.1.1",
+    "version": "0.1.6",
     "window": "0.x"
   },
   "digestAlgorithm": "sha256",
@@ -11,22 +11,22 @@
     {
       "format": "astm",
       "seed": 1001,
-      "digest": "8191f948d4aa3fa9fb68ff9ae576cf8506b150c79d564513925d538e21a317b2"
+      "digest": "7dd4e3475af8d93f01ed205ae84113943dcb68a782aaa05c6942dd8e25cdbafd"
     },
     {
       "format": "astm",
       "seed": 4242,
-      "digest": "1f7bc8d55235ed42f7f142be87472b5e9eca0fbfeb20c6e0bc5b61147920c7f0"
+      "digest": "125b19ee37c8fb7c82fed29ef4cb0f7e9411e94d877c41f9c1989a6569bcb964"
     },
     {
       "format": "astm",
       "seed": 60501,
-      "digest": "c670bfe935aee7a9c4dea38eb0962380ceed5e06a91c246ae04b067df9a1f707"
+      "digest": "2b7ae924d6fb74f66df06ef1a996126886c74b8174c13ac1eb13e5c16302446f"
     },
     {
       "format": "astm",
       "seed": 813377,
-      "digest": "ec6b4b9e24acaec033327777bf92c3b2c4c29e22fef48e5eac85c7615eb4dc61"
+      "digest": "6995bc4cae34b8991492b0df8ffe3629810d6a16b721011053bc275a45f3acbc"
     },
     {
       "format": "ccda",

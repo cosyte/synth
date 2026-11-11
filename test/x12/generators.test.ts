@@ -134,3 +134,20 @@ describe("x12Corpus", () => {
     expect(corpus.manifest.counts).toEqual({ "837P": 3 });
   });
 });
+
+describe("271: EB-08 is a decimal fraction", () => {
+  it("writes the benefit percent as .8, .9 or 1 on the wire, never 80, 90 or 100", () => {
+    const seen = new Set<string>();
+    for (let seed = 0; seed < 60; seed += 1) {
+      const wire = serializeX12(generate271({ seed }));
+      const eb = wire.split("~").filter((s) => s.startsWith("EB*1*IND*"));
+      expect(eb.length).toBeGreaterThan(0);
+      for (const seg of eb) {
+        const percent = seg.split("*")[8] ?? "";
+        expect([".8", ".9", "1"]).toContain(percent);
+        seen.add(percent);
+      }
+    }
+    expect([...seen].sort()).toEqual([".8", ".9", "1"]);
+  });
+});

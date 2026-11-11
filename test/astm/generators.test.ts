@@ -81,3 +81,17 @@ describe("ASTM corpus", () => {
     expect(corpus.artifacts.every((a) => a.warnings.length === 0)).toBe(true);
   });
 });
+
+describe("ASTM header: sender position", () => {
+  it("puts the sender name in H.5 and leaves the message control id and password empty", () => {
+    for (let seed = 0; seed < 20; seed += 1) {
+      for (const raw of [generateAstmResult({ seed }), generateAstmOrder({ seed })]) {
+        const header = (raw.split("\r")[0] ?? "").split("|");
+        expect(header[0]).toBe("H");
+        expect(header[2]).toBe("");
+        expect(header[3]).toBe("");
+        expect(["SYNTH-LIS", "FIXTURE-HOST", "PLACEHOLDER-LAB"]).toContain(header[4]);
+      }
+    }
+  });
+});

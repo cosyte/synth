@@ -133,7 +133,7 @@ function claimSegment(rng: Rng, minimal: boolean): TelecomSegmentInput {
       field("D3", fill),
       field("E1", "03"), // 03 = NDC
       field("D7", drug.ndc),
-      field("E7", String(rng.int(30, 90))),
+      field("E7", String(rng.int(30, 90) * 1000)), // 442-E7 carries three implied decimals
       field("D5", String(rng.pick([30, 60, 90] as const))),
       field("D8", rng.pick(DAW_CODES)),
     ],
