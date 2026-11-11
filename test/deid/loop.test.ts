@@ -85,6 +85,22 @@ describe("the deid pairing loop: removal + over-scrub, every covered format", ()
     });
   }
 
+  it("no planted C-CDA token appears outside the de-identified recordTarget, for every seed", () => {
+    // The C-CDA loop sweeps only the de-identified recordTarget, so provider identity a
+    // de-identifier keeps elsewhere cannot read as a survivor. On the documents the loop builds,
+    // no planted token appears outside it, so a whole-document sweep would give the same verdict:
+    // the reason `src/deid/index.ts` gives for excepting the mutant that empties that helper.
+    for (const seed of SEEDS) {
+      for (const documentType of ["ccd", "referral"] as const) {
+        const r = ccdaDeidLoop({ seed, documentType });
+        const outside = r.deidentified.replace(/<recordTarget[\s\S]*?<\/recordTarget>/i, "");
+        expect(outside.length).toBeLessThan(r.deidentified.length);
+        const elsewhere = r.planted.filter((s) => outside.includes(s.token)).map((s) => s.token);
+        expect(elsewhere, `seed ${String(seed)} ${documentType}`).toStrictEqual([]);
+      }
+    }
+  });
+
   it("the over-scrub guard actually runs on the clinically-dense artifacts", () => {
     // ORU (labs), 837P (procedures), a Bundle (observations), and a CCD (problems/meds) each carry
     // distinctive structured clinical codes, so the retention guard is exercised, not vacuous.
