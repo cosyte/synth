@@ -384,7 +384,7 @@ jobs:
         run: pnpm run determinism:verify
 
       # A changed baseline means a seed maps to different bytes than it did on the default branch,
-      # which is a breaking change and has to be declared as one. The fetch is explicit because
+      # and a changeset has to state it in a named section. The fetch is explicit because
       # actions/checkout leaves no default branch behind on a pull request, and this check refuses
       # rather than passing when it cannot find one.
       - name: Fetch the default branch the baseline is compared against

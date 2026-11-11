@@ -51,9 +51,9 @@ Luhn, DEAs failing their checksum, SSNs outside SSA and ITIN ranges (#52), `555-
   `pnpm check:test-selection`: it reads only tracked files.
 - Clear a flagged synthetic name or address with one exact `scripts/phi-allow-list.txt` entry
   (`NAME`, `EMAIL`; `EMAILDOMAIN` only for a reserved domain, #49). `--allow-fixture` exits 2 (#61).
-- A parser bump can change bytes with this package unchanged (#67): after moving a sibling, run
-  `pnpm test` and `determinism:digest`. A moved baseline needs a patch changeset (patch only,
-  never minor or major) with an `Output change:` section naming every moved format.
+- A sibling bump can move bytes with this package unchanged (#67): run `determinism:digest`. A moved
+  baseline needs a patch changeset with a section per change (`Output change:`, `Corpus narrowed:`,
+  `Window change:`, `Digest algorithm change:`, `Artifact count change:`; a re-digest lands alone).
 - No item ids, phase names or internal paths in what a consumer reads: `README.md`, `docs-content/`,
   the npm `description`, `src/` doc comments and strings. Its gate sees ids, not prose (#18).
 - Say a thing works or is covered only after running it or reading the workflow's steps, and

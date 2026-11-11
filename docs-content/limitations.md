@@ -197,8 +197,9 @@ ssnOk && isSyntheticNpi(safe.npi(rng)) && isSyntheticDea(safe.dea(rng)); // => t
 
 A seed maps to the same bytes **within a release**, and across releases unless a release's
 changelog states an **output change** for that format. A version bump may change a value list, the
-algorithm, or a parser's builder and thus the seed→bytes mapping; that is always stated in the
-changelog entry, under "Output change", naming each format whose bytes moved. For a long-lived golden fixture, **pin the `synth`
+algorithm, or a parser's builder and thus the seed→bytes mapping. When the committed baseline shows
+that move, the changelog entry states it under "Output change", naming each format whose bytes
+moved (the check below says what it can and cannot see). For a long-lived golden fixture, **pin the `synth`
 version, and the versions of the parsers you generate with, alongside the seed.** Each format's bytes
 come from that parser's own builder and serializer, so upgrading a parser can change them even when
 `synth` has not moved: measured, the same C-CDA seeds serialize differently under two releases of
@@ -213,12 +214,24 @@ two engines disagree. A mismatch is reported by seed, format, and engine, never 
 per-engine run is also compared against a **committed baseline** for the current window, so a
 toolchain or dependency change that moves every engine together is caught as well.
 
-**A change to that mapping is always stated.** The baseline is committed, and it cannot change
-unless the release's changeset states the output change for every format that moved. The check
-also passes a changeset that declares a major version without that statement; we release patch
-only, so that route is not used. A golden fixture pinned to a `synth` version keeps matching, and
-one carried across releases matches unless a changelog entry says its format moved. Node majors outside the verified pair are not
-promised: `engines.node` says which ones are supported, and this check says which ones are
+**What the baseline check guarantees.** The baseline is committed, and it cannot change unless a
+changeset for the release states each kind of change it shows, each in a paragraph that opens with
+its heading: `Output change:` naming every format whose digests moved or that gained a graded pair,
+`Corpus narrowed:` naming every format that lost one, `Window change:` naming the new window,
+`Digest algorithm change:` naming the new algorithm, and `Artifact count change:` naming the new
+number of artifacts digested per pair. A version number is not a statement: the check refuses a
+major changeset that does not state the change.
+
+A new digest algorithm or artifact count moves every digest without moving any output, so across
+one the check cannot compare outputs. It therefore refuses such a change unless it lands by itself:
+no graded pair added or removed, no window change, and no change under `src/` or to `package.json`,
+`pnpm-lock.yaml` or `pnpm-workspace.yaml` in the same change. The next change is measured against
+the new baseline in full.
+
+What it cannot see: output that moves for a seed outside the graded corpus, or for an option the
+corpus does not exercise, is not in the baseline. A golden fixture pinned to a `synth` version, and
+the parser versions it was generated with, keeps matching. Node majors outside the verified set are
+not promised: `engines.node` says which ones are supported, and this check says which ones are
 measured.
 
 ## Coverage, and what is deferred
