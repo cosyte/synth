@@ -12,7 +12,7 @@
 [![npm version](https://img.shields.io/npm/v/@cosyte/synth.svg)](https://www.npmjs.com/package/@cosyte/synth)
 [![CI](https://img.shields.io/github/actions/workflow/status/cosyte/synth/ci.yml?branch=main&label=CI)](https://github.com/cosyte/synth/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/cosyte/synth/blob/main/LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org)
+[![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)](https://nodejs.org)
 
 Deterministic, seedable synthetic healthcare test fixtures for Node.js and TypeScript: HL7 v2, FHIR R4 and US Core, C-CDA, X12, NCPDP, and ASTM, spec-clean by construction and never real PHI.
 
@@ -57,7 +57,13 @@ pairing (no `@cosyte/deid` adapter, or not generated); and optional **Synthea** 
 npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cosyte/ncpdp @cosyte/astm
 ```
 
-Node.js 22 or later, tested on 22, 24, and 26.
+Node.js 22.12 or later, tested on 22.12, 22, 24, and 26. A generator loads its parser on first use
+through `require`, and Node.js loads an ES module that way only from 22.12, so a value you get back
+is an instance of the parser classes you import.
+
+**Bundling.** A bundler cannot see that load. If you bundle code that uses `@cosyte/synth`, mark
+`@cosyte/synth` and every `@cosyte/*` parser you use as external (esbuild `--external:@cosyte/*`,
+Rollup and Vite `external`, webpack `externals`) and install them beside the bundle.
 
 `@cosyte/hl7`, `@cosyte/fhir`, `@cosyte/ccda`, `@cosyte/x12`, `@cosyte/ncpdp`, `@cosyte/astm`, and
 `@cosyte/deid` are **optional peer dependencies**, each needed only for its subpath (`@cosyte/synth/hl7`,

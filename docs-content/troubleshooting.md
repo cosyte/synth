@@ -37,6 +37,17 @@ and the value providers.
 `@cosyte/x12`, and `@cosyte/ncpdp` as soon as it is imported, so all six must be installed even if
 you call one loop. [Installation](./installation.md) has the table.
 
+## "instanceof is false for a generated value"
+
+A generated `CcdaDocument`, or any other parser class instance, should pass `instanceof` against the
+class your code imports from the parser. Two setups break that, each by loading a second copy of the
+parser:
+
+- Node.js older than 22.12, which this package does not support. Upgrade Node.js.
+- A bundle that inlines a parser, or `@cosyte/synth`, while the generator loads the installed
+  parser. Mark `@cosyte/synth` and each `@cosyte/*` parser external; see
+  [Bundle an application that uses it](./installation.md#bundle-an-application-that-uses-it).
+
 ## An unsupported request threw
 
 A generator has nothing to tolerate, so a request it cannot honor throws a `SynthError` with a

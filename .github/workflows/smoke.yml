@@ -54,7 +54,15 @@ name: Release smoke
 #
 # The Node matrix mirrors `ci / verify`, because module resolution of `exports`, ESM/CJS interop and
 # `require` of a dual package are exactly the kind of thing that moves between Node majors, and the
-# floor is `engines.node >= 22`.
+# floor is `engines.node >= 22.12.0`.
+#
+# `smoke-floor` RUNS THE SAME SMOKE ON THAT FLOOR, 22.12.0 EXACTLY, because a generator loads its
+# parser through `require` and Node.js `require`s an ES module by default only from 22.12. Below it
+# the ES module build falls back to the parser's CommonJS entry, so a generated value is not an
+# instance of the class a caller imports; the smoke checks that `instanceof` under both module
+# systems. The job installs and builds on the latest Node 22, since the dev tools need a newer 22,
+# then runs only the smoke on the floor. test/node-floor.test.ts holds its `node-version` to the
+# floor in `engines.node`, so the two move together.
 
 on:
   push:
@@ -92,3 +100,29 @@ jobs:
       # One job deliberately: see the banner. No `|| true`, no `continue-on-error`.
       - run: pnpm build
       - run: pnpm smoke
+
+  smoke-floor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.12.0"
+
+      - name: Smoke the build on the oldest Node.js engines.node allows
+        run: |
+          node --version
+          node scripts/smoke.mjs

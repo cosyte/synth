@@ -186,11 +186,42 @@ for (const { subpath, esm, cjs } of published) {
   }
 }
 
+// A generator loads its parser on first use, through `require`, and a caller must get back an
+// instance of the very class it imports from that parser, under either module system. The ES module
+// build gets that only where Node.js can `require` an ES module (22.12 and later, the floor in
+// `engines.node`); below it the build falls back to the parser's CommonJS entry, a second copy of
+// every class, and this check fails. The smoke workflow runs this file on the floor itself.
+{
+  const ccda = published.find((p) => p.subpath === "./ccda");
+  if (ccda === undefined) refuse("no `./ccda` export to check parser classes through.");
+  try {
+    const synthEsm = await import(join(root, ccda.esm.replace(/^\.\//, "")));
+    const parserEsm = await import("@cosyte/ccda");
+    check(
+      synthEsm.generateCcd({ seed: 1 }) instanceof parserEsm.CcdaDocument,
+      "ESM ./ccda: generateCcd() is not an instance of the CcdaDocument `import` gives",
+    );
+  } catch (err) {
+    check(false, `ESM ./ccda class check: ${String(err)}`);
+  }
+  try {
+    const synthCjs = require(join(root, ccda.cjs.replace(/^\.\//, "")));
+    const parserCjs = require("@cosyte/ccda");
+    check(
+      synthCjs.generateCcd({ seed: 1 }) instanceof parserCjs.CcdaDocument,
+      "CJS ./ccda: generateCcd() is not an instance of the CcdaDocument `require` gives",
+    );
+  } catch (err) {
+    check(false, `CJS ./ccda class check: ${String(err)}`);
+  }
+}
+
 if (failures > 0) {
   console.error(`smoke: ${failures} failure(s) across the built subpaths`);
   process.exit(1);
 }
 console.log(
   `smoke: ok - all ${published.length} published subpath(s), derived from package.json exports ` +
-    `[${published.map((p) => p.subpath).join(", ")}], generate synthetic output under both ESM and CJS`,
+    `[${published.map((p) => p.subpath).join(", ")}], generate synthetic output under both ESM and CJS ` +
+    `on Node.js ${process.version}, and a generated document is an instance of the parser's class`,
 );

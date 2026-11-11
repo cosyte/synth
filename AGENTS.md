@@ -8,7 +8,7 @@ seed gives the same bytes on the same parser versions. It has zero runtime depen
 ## Build and test
 
 Use Node.js 22.22.2 or later (the floor `@cosyte/process` sets for the dev tools; the package itself
-runs on any Node 22) and the pnpm version that `packageManager` in `package.json` pins: run
+runs on Node 22.12 or later) and the pnpm version that `packageManager` in `package.json` pins: run
 `corepack enable pnpm --install-directory <dir>` and put `<dir>` first on `PATH`.
 
 ```sh

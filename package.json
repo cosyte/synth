@@ -30,7 +30,7 @@
   "author": "Cosyte <hello@cosyte.com> (https://cosyte.com)",
   "type": "module",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.12.0"
   },
   "packageManager": "pnpm@10.34.5",
   "main": "./dist/index.cjs",
