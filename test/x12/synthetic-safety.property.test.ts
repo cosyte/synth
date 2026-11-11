@@ -27,6 +27,7 @@ import {
   createRng,
   SYNTHETIC_ASSIGNING_AUTHORITY,
 } from "../../src/index.js";
+import { checkProperty } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
@@ -86,7 +87,7 @@ function assertSynthetic(edi: string): void {
 
 describe("X12 synthetic-safety (mandatory property)", () => {
   it("every 837 (P/I/D) draws all identity from synthetic sources", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.constantFrom("P", "I", "D"), (s, v) => {
         const variant: "P" | "I" | "D" = v === "I" ? "I" : v === "D" ? "D" : "P";
         const rt = roundTrip(generate837(variant, { seed: s }));
@@ -98,7 +99,7 @@ describe("X12 synthetic-safety (mandatory property)", () => {
   });
 
   it("every 835 and 271 draws all identity from synthetic sources", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         for (const rt of [
           roundTrip(generate835({ seed: s })),
@@ -149,7 +150,7 @@ describe("synthetic NPI provider (safe.npi)", () => {
   });
 
   it("every generated NPI is 10 digits and fails the Luhn check (provably not a real NPI)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rng = createRng(s);
         for (let i = 0; i < 50; i += 1) {
@@ -158,7 +159,6 @@ describe("synthetic NPI provider (safe.npi)", () => {
           expect(isSyntheticNpi(value)).toBe(true);
         }
       }),
-      { numRuns: 40 },
     );
   });
 

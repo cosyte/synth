@@ -15,28 +15,27 @@ import {
   generateAstmResultFramed,
   astmCorpus,
 } from "../../src/astm/index.js";
+import { checkProperty } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
 describe("ASTM seed-determinism (mandatory property)", () => {
   it("each record generator is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         expect(generateAstmResult({ seed: s })).toBe(generateAstmResult({ seed: s }));
         expect(generateAstmOrder({ seed: s })).toBe(generateAstmOrder({ seed: s }));
       }),
-      { numRuns: 80 },
     );
   });
 
   it("the framed generator is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         expect([...generateAstmResultFramed({ seed: s })]).toEqual([
           ...generateAstmResultFramed({ seed: s }),
         ]);
       }),
-      { numRuns: 60 },
     );
   });
 
@@ -45,13 +44,12 @@ describe("ASTM seed-determinism (mandatory property)", () => {
   });
 
   it("an ASTM corpus is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.integer({ min: 1, max: 6 }), (s, count) => {
         const c1 = astmCorpus({ seed: s, count }).artifacts.map((a) => a.content);
         const c2 = astmCorpus({ seed: s, count }).artifacts.map((a) => a.content);
         expect(c1).toEqual(c2);
       }),
-      { numRuns: 40 },
     );
   });
 });

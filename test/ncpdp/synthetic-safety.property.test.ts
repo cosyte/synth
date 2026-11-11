@@ -34,6 +34,7 @@ import {
   SYNTHETIC_GIVEN_NAMES,
   SYNTHETIC_FAMILY_NAMES,
 } from "../../src/index.js";
+import { checkProperty } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
@@ -83,7 +84,7 @@ function assertTelecomSynthetic(wire: string): void {
 
 describe("NCPDP synthetic-safety (mandatory property)", () => {
   it("every SCRIPT transaction draws all identity from synthetic sources", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         assertScriptSynthetic(generateNewRx({ seed: s }));
         assertScriptSynthetic(generateRxRenewalRequest({ seed: s }));
@@ -94,7 +95,7 @@ describe("NCPDP synthetic-safety (mandatory property)", () => {
   });
 
   it("every Telecom transaction (B1/B2/B3) draws all identity from synthetic sources", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.constantFrom("B1", "B2", "B3"), (s, code) => {
         const c: "B1" | "B2" | "B3" = code === "B2" ? "B2" : code === "B3" ? "B3" : "B1";
         assertTelecomSynthetic(generateTelecom(c, { seed: s }));
@@ -113,7 +114,7 @@ describe("synthetic DEA provider (safe.dea)", () => {
   });
 
   it("every generated DEA is XX+7-digits and fails the checksum (provably not a real DEA)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rng = createRng(s);
         for (let i = 0; i < 40; i += 1) {
@@ -122,7 +123,6 @@ describe("synthetic DEA provider (safe.dea)", () => {
           expect(isSyntheticDea(value)).toBe(true);
         }
       }),
-      { numRuns: 40 },
     );
   });
 

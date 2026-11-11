@@ -36,22 +36,28 @@ describe("toolchain sanity", () => {
     expect(VERSION).toMatch(/^\d+\.\d+\.\d+(?:[.-].+)?$/);
   });
 
-  it("keeps the declaration in the exact shape cosyte-process sync-version rewrites", () => {
-    // The assertion above compares two VALUES, so it cannot see the sync step being disarmed. Drop
-    // the `: string` annotation (it reads as redundant, which is exactly why someone tidies it away)
-    // and every value here still agrees: the script only stops matching at the next `changeset
-    // version`, which is the one moment this mechanism exists to cover. It refuses rather than
-    // no-opping, so the release fails loudly, but it fails on release day rather than in the pull
-    // request that broke it. This moves that discovery forward to CI.
-    //
-    // The pattern MIRRORS the one `cosyte-process sync-version` matches (its condition 2: one
-    // column-0 `export const VERSION: string = "<value>";`) and the two must move together. It is
-    // duplicated rather than imported because @cosyte/process exports the command, not the pattern.
-    const source = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
-    const matches = source.match(/^export const VERSION: string = "[^"]*";$/gm);
+  // Skipped in the mutation run only (`vitest.mutation.config.ts` sets `SYNTH_MUTATION_RUN`): there
+  // `src/index.ts` is StrykerJS's instrumented copy, so its text is not the declaration this reads.
+  // `pnpm test` runs it on every pull request.
+  it.skipIf(process.env["SYNTH_MUTATION_RUN"] === "1")(
+    "keeps the declaration in the exact shape cosyte-process sync-version rewrites",
+    () => {
+      // The assertion above compares two VALUES, so it cannot see the sync step being disarmed. Drop
+      // the `: string` annotation (it reads as redundant, which is exactly why someone tidies it away)
+      // and every value here still agrees: the script only stops matching at the next `changeset
+      // version`, which is the one moment this mechanism exists to cover. It refuses rather than
+      // no-opping, so the release fails loudly, but it fails on release day rather than in the pull
+      // request that broke it. This moves that discovery forward to CI.
+      //
+      // The pattern MIRRORS the one `cosyte-process sync-version` matches (its condition 2: one
+      // column-0 `export const VERSION: string = "<value>";`) and the two must move together. It is
+      // duplicated rather than imported because @cosyte/process exports the command, not the pattern.
+      const source = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
+      const matches = source.match(/^export const VERSION: string = "[^"]*";$/gm);
 
-    expect(matches).not.toBeNull();
-    expect(matches).toHaveLength(1);
-    expect(matches?.[0]).toBe(`export const VERSION: string = "${VERSION}";`);
-  });
+      expect(matches).not.toBeNull();
+      expect(matches).toHaveLength(1);
+      expect(matches?.[0]).toBe(`export const VERSION: string = "${VERSION}";`);
+    },
+  );
 });

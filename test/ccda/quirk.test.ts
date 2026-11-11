@@ -21,6 +21,7 @@ import {
   type CcdaDocumentType,
 } from "../../src/ccda/index.js";
 import { PROFILE_QUIRK_APPLIED, SynthError, SYNTH_FATAL_CODES } from "../../src/index.js";
+import { checkProperty, propertyTimeout } from "../support/property.js";
 
 const QUIRKS = Object.keys(CCDA_QUIRKS) as CcdaQuirkName[];
 const DOC_TYPES: readonly CcdaDocumentType[] = ["ccd", "referralNote"];
@@ -46,9 +47,10 @@ describe("C-CDA quirk registry", () => {
 });
 
 // EXPLICIT 60 s CEILINGS ON THE THREE fast-check SWEEPS IN THIS FILE, not a change to the global
-// `testTimeout`. The three are the two in the block directly below (`numRuns: 90`) and the
-// seed-determinism one further down (`numRuns: 50`); every other test here is a single generate or a
-// small loop, and stays on the 10 s global.
+// `testTimeout`. The three are the two in the block directly below and the seed-determinism one
+// further down, each at the shared depth (100 cases on a pull request, `test/support/property.ts`),
+// with the ceiling scaled by `propertyTimeout` when a run asks for more; every other test here is a
+// single generate or a small loop, and stays on the 10 s global.
 //
 // `buildCcda` parses XML through @xmldom/xmldom on every build, and a quirk case builds a document,
 // re-parses it bare, and parses it AGAIN under a profile, so these are the heaviest cases in the
@@ -59,7 +61,7 @@ describe("C-CDA quirk registry", () => {
 //
 // The third sweep is bounded for consistency rather than because it is near the wall: it measured
 // 1.61 s, about 6x headroom. It is the same shape as the other two and its siblings at lower case
-// counts (`determinism.property.test.ts` at 60 and 30 runs) already carry this exact ceiling, so
+// counts (`determinism.property.test.ts`) already carry this exact ceiling, so
 // leaving one of three unbounded would be the odd case a later reader has to re-derive.
 //
 // The sibling C-CDA suites (`determinism.property.test.ts`, `synthetic-safety.property.test.ts`) already
@@ -70,37 +72,43 @@ describe("C-CDA quirk registry", () => {
 // A ceiling and not a smaller `numRuns`: this is the mandatory intended-warning conformance contract,
 // and cutting cases to fit a clock weakens a correctness gate to fix a scheduling problem.
 describe("C-CDA intended-warning contract (mandatory)", () => {
-  it("every quirk, every seed → exactly the intended warning (bare) and PROFILE_QUIRK_APPLIED (profiled)", () => {
-    fc.assert(
-      fc.property(seed(), fc.constantFrom(...QUIRKS), (s, quirk) => {
-        const rt = ccdaQuirkRoundTrip(generateCcdaQuirk({ seed: s, quirk }));
-        expect(rt.intendedWarningHeld, `${quirk}@${s}: bare=${JSON.stringify(rt.warnings)}`).toBe(
-          true,
-        );
-        expect(rt.withProfile?.tolerated, `${quirk}@${s}: profiled`).toBe(true);
-        expect(rt.withProfile?.warnings).toContain(PROFILE_QUIRK_APPLIED);
-      }),
-      { numRuns: 90 },
-    );
-  }, 60_000);
-  it("holds for EVERY document type, ccd AND referralNote (regression: a doc-type-specific anchor)", () => {
-    fc.assert(
-      fc.property(
-        seed(),
-        fc.constantFrom(...QUIRKS),
-        fc.constantFrom(...DOC_TYPES),
-        (s, quirk, documentType) => {
-          const rt = ccdaQuirkRoundTrip(generateCcdaQuirk({ seed: s, quirk, documentType }));
-          expect(
-            rt.intendedWarningHeld,
-            `${quirk}/${documentType}@${s}: bare=${JSON.stringify(rt.warnings)}`,
-          ).toBe(true);
-          expect(rt.withProfile?.tolerated).toBe(true);
-        },
-      ),
-      { numRuns: 90 },
-    );
-  }, 60_000);
+  it(
+    "every quirk, every seed → exactly the intended warning (bare) and PROFILE_QUIRK_APPLIED (profiled)",
+    () => {
+      checkProperty(
+        fc.property(seed(), fc.constantFrom(...QUIRKS), (s, quirk) => {
+          const rt = ccdaQuirkRoundTrip(generateCcdaQuirk({ seed: s, quirk }));
+          expect(rt.intendedWarningHeld, `${quirk}@${s}: bare=${JSON.stringify(rt.warnings)}`).toBe(
+            true,
+          );
+          expect(rt.withProfile?.tolerated, `${quirk}@${s}: profiled`).toBe(true);
+          expect(rt.withProfile?.warnings).toContain(PROFILE_QUIRK_APPLIED);
+        }),
+      );
+    },
+    propertyTimeout(60_000),
+  );
+  it(
+    "holds for EVERY document type, ccd AND referralNote (regression: a doc-type-specific anchor)",
+    () => {
+      checkProperty(
+        fc.property(
+          seed(),
+          fc.constantFrom(...QUIRKS),
+          fc.constantFrom(...DOC_TYPES),
+          (s, quirk, documentType) => {
+            const rt = ccdaQuirkRoundTrip(generateCcdaQuirk({ seed: s, quirk, documentType }));
+            expect(
+              rt.intendedWarningHeld,
+              `${quirk}/${documentType}@${s}: bare=${JSON.stringify(rt.warnings)}`,
+            ).toBe(true);
+            expect(rt.withProfile?.tolerated).toBe(true);
+          },
+        ),
+      );
+    },
+    propertyTimeout(60_000),
+  );
   it("the re-badge names the right built-in profile", () => {
     expect(
       ccdaQuirkRoundTrip(generateCcdaQuirk({ seed: 1, quirk: "template-extension-absent" }))
@@ -114,16 +122,19 @@ describe("C-CDA intended-warning contract (mandatory)", () => {
 });
 
 describe("C-CDA quirk seed-determinism (mandatory)", () => {
-  it("same seed + quirk ⇒ byte-identical", () => {
-    fc.assert(
-      fc.property(seed(), fc.constantFrom(...QUIRKS), (s, quirk) => {
-        expect(generateCcdaQuirk({ seed: s, quirk }).content).toBe(
-          generateCcdaQuirk({ seed: s, quirk }).content,
-        );
-      }),
-      { numRuns: 50 },
-    );
-  }, 60_000);
+  it(
+    "same seed + quirk ⇒ byte-identical",
+    () => {
+      checkProperty(
+        fc.property(seed(), fc.constantFrom(...QUIRKS), (s, quirk) => {
+          expect(generateCcdaQuirk({ seed: s, quirk }).content).toBe(
+            generateCcdaQuirk({ seed: s, quirk }).content,
+          );
+        }),
+      );
+    },
+    propertyTimeout(60_000),
+  );
 });
 
 describe("C-CDA quirk synthetic-safety: the deviation is a template/code, never a value", () => {

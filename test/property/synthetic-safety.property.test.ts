@@ -28,6 +28,7 @@ import {
   SYNTHETIC_ASSIGNING_AUTHORITY,
 } from "../../src/index.js";
 import { generateAdt, generateHl7, type Hl7MessageKind } from "../../src/hl7/index.js";
+import { checkProperty } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
@@ -70,7 +71,7 @@ function realDataHits(content: string): string[] {
 
 describe("synthetic-safety gate, generated HL7 output (must be ZERO)", () => {
   it("every PHI-bearing PID locus is provably synthetic", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.constantFrom(...(["A01", "A04", "A08"] as const)), (s, trigger) => {
         const content = generateAdt({ seed: s, trigger }).toString();
         const msg = parseHL7(content);
@@ -98,7 +99,7 @@ describe("synthetic-safety gate, generated HL7 output (must be ZERO)", () => {
   });
 
   it("a raw real-data sweep over generated output finds ZERO hits", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.constantFrom(...(["A01", "A04", "A08"] as const)), (s, trigger) => {
         const content = generateAdt({ seed: s, trigger }).toString();
         expect(realDataHits(content)).toEqual([]);
@@ -108,7 +109,7 @@ describe("synthetic-safety gate, generated HL7 output (must be ZERO)", () => {
   });
 
   it("every Phase 2 family's PID loci are provably synthetic and leak no real-data shape", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.constantFrom(...ALL_KINDS), (s, kind) => {
         const content = generateHl7(kind, s).toString();
         // The whole-message cross-cutting sweep: no dashed real SSN, no non-reserved email, anywhere.
@@ -159,7 +160,7 @@ describe("the sweep itself fails on an ITIN-formatted value (true positive, not 
 
 describe("synthetic-safety gate: provider-level (must be ZERO)", () => {
   it("no primitive value escapes its reserved / synthetic source", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         const rng = createRng(s);
         expect(ssnLocusHits(safe.ssn(rng))).toEqual([]);

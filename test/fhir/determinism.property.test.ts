@@ -25,12 +25,13 @@ import {
   generateVitalSign,
   usCoreCoverage,
 } from "../../src/fhir/index.js";
+import { checkProperty } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
 describe("FHIR seed-determinism (mandatory property)", () => {
   it("each resource generator is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         expect(serializeResource(generatePatient({ seed: s, profile: "us-core" }))).toBe(
           serializeResource(generatePatient({ seed: s, profile: "us-core" })),
@@ -73,7 +74,7 @@ describe("FHIR seed-determinism (mandatory property)", () => {
   it("profile-addressed generation is byte-identical for the same seed, every covered profile", () => {
     const covered = usCoreCoverage().filter((entry) => entry.generated);
     expect(covered.length).toBeGreaterThan(0);
-    fc.assert(
+    checkProperty(
       fc.property(seed(), (s) => {
         for (const entry of covered) {
           expect(
@@ -87,7 +88,7 @@ describe("FHIR seed-determinism (mandatory property)", () => {
   });
 
   it("each Bundle shape is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         seed(),
         fc.constantFrom("collection" as const, "transaction" as const, "document" as const),
@@ -102,7 +103,7 @@ describe("FHIR seed-determinism (mandatory property)", () => {
   });
 
   it("a FHIR corpus is byte-identical for the same seed", () => {
-    fc.assert(
+    checkProperty(
       fc.property(seed(), fc.integer({ min: 1, max: 6 }), (s, count) => {
         const c1 = fhirCorpus({ seed: s, count }).artifacts.map((x) => x.content);
         const c2 = fhirCorpus({ seed: s, count }).artifacts.map((x) => x.content);

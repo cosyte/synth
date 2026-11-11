@@ -39,7 +39,7 @@
  * here, because the probe map below would then disagree with `exports`.
  */
 import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { readFileSync } from "node:fs";
 
@@ -167,7 +167,8 @@ for (const { subpath, esm, cjs } of published) {
 
   let esmOut, cjsOut;
   try {
-    const mod = await import(mjs);
+    // A `file:` URL, not the path: on Windows the ES module loader takes no drive-letter path.
+    const mod = await import(pathToFileURL(mjs).href);
     esmOut = probe(mod);
     check(typeof esmOut === "string" && esmOut.length > 0, `ESM ${subpath}: empty generation`);
   } catch (err) {
@@ -195,7 +196,7 @@ for (const { subpath, esm, cjs } of published) {
   const ccda = published.find((p) => p.subpath === "./ccda");
   if (ccda === undefined) refuse("no `./ccda` export to check parser classes through.");
   try {
-    const synthEsm = await import(join(root, ccda.esm.replace(/^\.\//, "")));
+    const synthEsm = await import(pathToFileURL(join(root, ccda.esm.replace(/^\.\//, ""))).href);
     const parserEsm = await import("@cosyte/ccda");
     check(
       synthEsm.generateCcd({ seed: 1 }) instanceof parserEsm.CcdaDocument,
