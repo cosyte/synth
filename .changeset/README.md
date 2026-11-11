@@ -13,15 +13,15 @@ Add a changeset for every meaningful change:
 pnpm changeset
 ```
 
-Every changeset is a **patch**, on the `0.1.x` ladder: a fix, a new export, option, stable code or
-published artifact, documentation of a surface that already ships, and contributor-only tooling
-alike. It takes `0.1.0` to `0.1.1`. A breaking change before `1.0.0` is a patch too, and the
-summary spells out the break and what a caller changes, because the number alone tells a consumer
-nothing. A **minor** or a **major** is the maintainers' decision for a planned release, never a
-contributor's pick for one change.
+Every changeset is a **patch**. That is the rule for every Cosyte package: patch only, never
+minor, never major, whatever the change does to the published package. A new export, a new option,
+a fix, a documentation change and a breaking change are all released as a patch.
+
+A patch that breaks a caller says so in its summary: what changed, and what a caller must change to
+keep working. The version number alone tells a consumer nothing, so the summary has to.
 
 One rule is enforced rather than chosen: a change to the bytes a seed maps to has to be stated.
-`pnpm run check:determinism-window` accepts a **major** changeset, or (the operator's decision D57,
-2026-11-07) a changeset of any bump whose body carries an `Output change:` section, one paragraph,
-naming every format that moved (`C-CDA`, `HL7 v2`, `FHIR`, `X12`, `NCPDP`, `ASTM`) and saying what
-changed. It refuses a changed mapping stated only in prose.
+`pnpm run check:determinism-window` accepts a changeset whose body carries an `Output change:`
+section, one paragraph, naming every format that moved (`C-CDA`, `HL7 v2`, `FHIR`, `X12`, `NCPDP`,
+`ASTM`) and saying what changed. It refuses a changed mapping stated only in prose. The check also
+accepts a major changeset, but we release patch only, so state the output change instead.

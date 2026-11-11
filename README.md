@@ -34,8 +34,8 @@ date, phone, and address from a **guaranteed-non-colliding synthetic source**. I
 ## Status
 
 The 0.1 line, published to npm. The version shown on the npm package page is the one
-that is live; this page never repeats it. Below 1.0, a breaking change raises the minor version and the
-changelog says what broke. The generator is **feature-complete**: the
+that is live; this page never repeats it. Every release is a patch, a breaking change included, and
+the changelog says what broke and what a caller must change. The generator is **feature-complete**: the
 seeded-PRNG core, the synthetic-safety providers, and the round-trip harness; **generation across all
 six formats**, HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`), FHIR R4 / US Core (the full clinical
 set + `collection`/`transaction`/`document` Bundles), C-CDA R2.1 (CCD + Referral Note), X12 005010
