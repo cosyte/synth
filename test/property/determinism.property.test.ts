@@ -9,20 +9,21 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 
 import { createRng } from "../../src/index.js";
-import { generateAdt, generateHl7, hl7Corpus, type Hl7MessageKind } from "../../src/hl7/index.js";
+import {
+  HL7_MESSAGE_KINDS,
+  generateAck,
+  generateAdt,
+  generateHl7,
+  hl7Corpus,
+  type Hl7AckCode,
+  type Hl7MessageKind,
+} from "../../src/hl7/index.js";
 import { checkProperty } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
-const ALL_KINDS: readonly Hl7MessageKind[] = [
-  "ADT^A01",
-  "ADT^A04",
-  "ADT^A08",
-  "ORU^R01",
-  "ORM^O01",
-  "SIU^S12",
-  "VXU^V04",
-];
+/** Every kind the subpath generates, the added ones included. */
+const ALL_KINDS: readonly Hl7MessageKind[] = HL7_MESSAGE_KINDS;
 
 describe("seed-determinism (mandatory property)", () => {
   it("the raw RNG stream is identical for the same seed", () => {
@@ -53,6 +54,33 @@ describe("seed-determinism (mandatory property)", () => {
         expect(generateHl7(kind, s).toString()).toBe(generateHl7(kind, s).toString());
       }),
       { numRuns: 300 },
+    );
+  });
+
+  it("an ACK of any kind, with any code, is byte-identical for the same seed", () => {
+    checkProperty(
+      fc.property(
+        seed(),
+        fc.constantFrom(...ALL_KINDS),
+        fc.constantFrom<Hl7AckCode>("AA", "AE", "AR"),
+        (s, kind, code) => {
+          const a = generateAck({ seed: s, inbound: generateHl7(kind, s), code }).toString();
+          const b = generateAck({ seed: s, inbound: generateHl7(kind, s), code }).toString();
+          expect(a).toBe(b);
+        },
+      ),
+      { numRuns: 300 },
+    );
+  });
+
+  it("an HL7 corpus of every kind is byte-identical for the same seed", () => {
+    checkProperty(
+      fc.property(seed(), fc.integer({ min: 1, max: 20 }), (s, count) => {
+        const c1 = hl7Corpus({ seed: s, count, mix: ALL_KINDS }).artifacts.map((x) => x.content);
+        const c2 = hl7Corpus({ seed: s, count, mix: ALL_KINDS }).artifacts.map((x) => x.content);
+        expect(c1).toEqual(c2);
+      }),
+      { numRuns: 100 },
     );
   });
 

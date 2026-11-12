@@ -22,7 +22,7 @@ const err = new SynthError(SYNTH_FATAL_CODES.SYNTH_EMPTY_POOL);
 err.name; // => "SynthError"
 err.code; // => "SYNTH_EMPTY_POOL"
 err.message === SYNTH_FATAL_MESSAGES.SYNTH_EMPTY_POOL; // => true
-Object.keys(SYNTH_FATAL_CODES).length; // => 12
+Object.keys(SYNTH_FATAL_CODES).length; // => 13
 ```
 
 ## The codes
@@ -93,6 +93,15 @@ the `count`. A `profile` that leaves `quirks` out is not an empty list: the corp
 `quirks` option, or every quirk.
 
 Message: "A value was drawn from an empty pool."
+
+### `SYNTH_ACK_UNCORRELATED`
+
+`generateAck` (`@cosyte/synth/hl7`) was given an inbound message with no MSH-10 message control id.
+An ACK echoes that id in MSA-2, the field a receiver matches it on, so with no id there is nothing
+to acknowledge. Raised before anything is generated. Every message this package generates carries
+an MSH-10, so it is raised only for a message you build or parse yourself.
+
+Message: "The inbound HL7 v2 message has no MSH-10 message control id, so an ACK could not echo it in MSA-2 and would answer no message."
 
 ### `SYNTH_UNMAPPED_CODE_SYSTEM`
 

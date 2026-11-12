@@ -6,8 +6,9 @@ who only needs HL7 fixtures imports `@cosyte/synth/hl7`; one who needs only the 
 never loads a parser.
 `@cosyte/hl7` is an **optional peer dependency**, present only for this subpath.
 
-The HL7 v2 message set is complete: `ADT` (A01/A04/A08), `ORU^R01`, `ORM^O01`, `SIU^S12`, and
-`VXU^V04`, each built through `@cosyte/hl7`'s `buildMessage` and round-tripping with zero warnings.
+The HL7 v2 message set: `ADT` (A01, A02, A03, A04, A08, A11, A13, A28, A31), `ORU^R01`, `ORM^O01`,
+`SIU^S12`, `VXU^V04`, `MDM^T02`, `DFT^P03`, `OML^O21`, and an `ACK` for any of them, each built
+through `@cosyte/hl7`'s `buildMessage`, stamped HL7 v2.5, and round-tripping with zero warnings.
 
 ## Interfaces
 
@@ -43,6 +44,33 @@ Reporting units (UCUM), where the concept is a measured quantity.
 
 ***
 
+### GenerateAckOptions
+
+Options for [generateAck](#generateack).
+
+#### Properties
+
+##### code?
+
+> `readonly` `optional` **code?**: [`Hl7AckCode`](#hl7ackcode)
+
+The acknowledgment code in MSA-1. Defaults to `"AA"`.
+
+##### inbound?
+
+> `readonly` `optional` **inbound?**: `Hl7Message`
+
+The message being acknowledged. Defaults to the `ADT^A01` [generateAdt](#generateadt) makes from the same
+seed. It must carry an MSH-10 message control id.
+
+##### seed?
+
+> `readonly` `optional` **seed?**: `number`
+
+The seed: the same seed and inbound message yield a byte-identical ACK. Defaults to `0`.
+
+***
+
 ### GenerateAdtOptions
 
 Options for [generateAdt](#generateadt).
@@ -60,6 +88,20 @@ The seed: the same seed yields a byte-identical message. Defaults to `0`.
 > `readonly` `optional` **trigger?**: [`AdtTrigger`](#adttrigger)
 
 The ADT trigger event. Defaults to `"A01"`.
+
+***
+
+### GenerateDftOptions
+
+Options for [generateDft](#generatedft).
+
+#### Properties
+
+##### seed?
+
+> `readonly` `optional` **seed?**: `number`
+
+The seed: the same seed yields a byte-identical message. Defaults to `0`.
 
 ***
 
@@ -86,6 +128,34 @@ The quirk to inject. Required.
 > `readonly` `optional` **seed?**: `number`
 
 The seed: the same seed + quirk yields a byte-identical message. Defaults to `0`.
+
+***
+
+### GenerateMdmOptions
+
+Options for [generateMdm](#generatemdm).
+
+#### Properties
+
+##### seed?
+
+> `readonly` `optional` **seed?**: `number`
+
+The seed: the same seed yields a byte-identical message. Defaults to `0`.
+
+***
+
+### GenerateOmlOptions
+
+Options for [generateOml](#generateoml).
+
+#### Properties
+
+##### seed?
+
+> `readonly` `optional` **seed?**: `number`
+
+The seed: the same seed yields a byte-identical message. Defaults to `0`.
 
 ***
 
@@ -161,9 +231,9 @@ How many messages to generate. Defaults to `1`.
 
 > `readonly` `optional` **mix?**: readonly [`Hl7MessageKind`](#hl7messagekind)[]
 
-The message kinds to cycle through. Defaults to one of every family
-(`ADT^A01/A04/A08`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`). An empty list throws
-`SYNTH_EMPTY_POOL`.
+The message kinds to cycle through, any of [HL7\_MESSAGE\_KINDS](#hl7_message_kinds). Defaults to one each of
+the first seven kinds (`ADT^A01/A04/A08`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`), so a seed's
+default corpus is unchanged as kinds are added. An empty list throws `SYNTH_EMPTY_POOL`.
 
 ##### seed
 
@@ -339,18 +409,28 @@ The warning codes the parser emitted on re-parse. Empty ⇒ spec-clean.
 
 ### AdtTrigger
 
-> **AdtTrigger** = `"A01"` \| `"A04"` \| `"A08"`
+> **AdtTrigger** = `"A01"` \| `"A04"` \| `"A08"` \| `"A02"` \| `"A03"` \| `"A11"` \| `"A13"` \| `"A28"` \| `"A31"`
 
-The ADT trigger events this generator produces (all require the PID + PV1 groups).
+The ADT trigger events this generator produces (all require the EVN, PID and PV1 segments).
+
+***
+
+### Hl7AckCode
+
+> **Hl7AckCode** = `"AA"` \| `"AE"` \| `"AR"`
+
+An original-mode acknowledgment code (HL7 table 0008, MSA-1): `AA` application accept, `AE`
+application error, `AR` application reject.
 
 ***
 
 ### Hl7MessageKind
 
-> **Hl7MessageKind** = `"ADT^A01"` \| `"ADT^A04"` \| `"ADT^A08"` \| `"ORU^R01"` \| `"ORM^O01"` \| `"SIU^S12"` \| `"VXU^V04"`
+> **Hl7MessageKind** = `"ADT^A01"` \| `"ADT^A04"` \| `"ADT^A08"` \| `"ORU^R01"` \| `"ORM^O01"` \| `"SIU^S12"` \| `"VXU^V04"` \| `"ACK"` \| `"ADT^A02"` \| `"ADT^A03"` \| `"ADT^A11"` \| `"ADT^A13"` \| `"ADT^A28"` \| `"ADT^A31"` \| `"MDM^T02"` \| `"DFT^P03"` \| `"OML^O21"`
 
 Every HL7 v2 message kind this subpath generates: the `MSH-9` label used as the corpus `kind`. `ADT`
-carries its trigger; the other families have a single generated trigger each.
+carries its trigger; the other families have a single generated trigger each. `ACK` acknowledges
+an `ADT^A01` generated from the same seed (see [generateAck](#generateack) to acknowledge any message).
 
 ***
 
@@ -394,6 +474,22 @@ identifiers used as structural fillers.
 
 A handful of CDC CVX vaccine example codes (for `RXA-5`). Public CVX identifiers used as structural
 fillers; `@cosyte/synth` bundles no vaccine terminology.
+
+***
+
+### HL7\_MESSAGE\_KINDS
+
+> `const` **HL7\_MESSAGE\_KINDS**: readonly [`Hl7MessageKind`](#hl7messagekind)[]
+
+Every kind [generateHl7](#generatehl7) and [hl7Corpus](#hl7corpus) accept, in a fixed order: the first seven
+kinds, then each kind added since. Pass it as a corpus `mix` to cycle through all of them.
+
+#### Example
+
+```ts
+import { HL7_MESSAGE_KINDS, hl7Corpus } from "@cosyte/synth/hl7";
+hl7Corpus({ seed: 1, count: HL7_MESSAGE_KINDS.length, mix: HL7_MESSAGE_KINDS });
+```
 
 ***
 
@@ -452,6 +548,51 @@ componentsField(["Testerson", "Quilliam"]); // family^given
 
 ***
 
+### generateAck()
+
+> **generateAck**(`options?`): `Hl7Message`
+
+Generate a spec-clean `ACK` Hl7Message answering `inbound`. Deterministic in `seed` and
+`inbound`.
+
+- **MSH**: the inbound receiver (MSH-5, MSH-6) becomes the sender (MSH-3, MSH-4) and the inbound
+  sender the receiver. MSH-7 is one to fifty-nine seconds after the inbound MSH-7, or a seeded time
+  when that is not a full `YYYYMMDDHHMMSS`. MSH-9 is `ACK^<inbound trigger>^ACK`, or `ACK` when
+  the inbound names no trigger. MSH-10 is a seeded `SYNTHACK` control id. MSH-11 is always `T`, test
+  data, whatever the inbound says. MSH-12 echoes the inbound version, `2.5` when it names none.
+- **MSA**: MSA-1 is `code`, MSA-2 the inbound MSH-10.
+- **ERR**, for `AE` and `AR` only: ERR-3 is condition `207`, application internal error (HL7 table
+  0357), and ERR-4 severity `E`, error.
+
+#### Parameters
+
+##### options?
+
+[`GenerateAckOptions`](#generateackoptions) = `{}`
+
+Seed, inbound message and code. See [GenerateAckOptions](#generateackoptions).
+
+#### Returns
+
+`Hl7Message`
+
+A spec-clean `ACK` `Hl7Message`.
+
+#### Throws
+
+SynthError `SYNTH_ACK_UNCORRELATED` when the inbound message has no MSH-10, and
+`SYNTH_UNSUPPORTED_KIND` when `code` is not `AA`, `AE` or `AR`.
+
+#### Example
+
+```ts
+import { generateAck, generateOru } from "@cosyte/synth/hl7";
+const ack = generateAck({ seed: 7, inbound: generateOru({ seed: 7 }) });
+console.log(ack.toString()); // MSH|...|ACK^R01^ACK|SYNTHACK...|T|2.5 then MSA|AA|SYNTH...
+```
+
+***
+
 ### generateAdt()
 
 > **generateAdt**(`options?`): `Hl7Message`
@@ -461,6 +602,8 @@ Generate a spec-clean `ADT` Hl7Message through `@cosyte/hl7`. Deterministic in `
 The message carries a complete MSH (seeded control id + timestamp, so the bytes are reproducible),
 `EVN`, a fully-populated `PID` (identity from the synthetic providers), and `PV1` (the visit group),
 so it parses back through `@cosyte/hl7` with **zero warnings** (proven by ./round-trip).
+A trigger added after `A01`, `A04` and `A08` also names its published structure in MSH-9.3 and
+fills the `PV1` fields its event is about (a transfer's prior location, a discharge's times).
 
 #### Parameters
 
@@ -481,6 +624,40 @@ A spec-clean `ADT` `Hl7Message`.
 ```ts
 import { generateAdt } from "@cosyte/synth/hl7";
 const msg = generateAdt({ seed: 12345, trigger: "A01" });
+console.log(msg.toString());
+```
+
+***
+
+### generateDft()
+
+> **generateDft**(`options?`): `Hl7Message`
+
+Generate a spec-clean `DFT^P03` Hl7Message through `@cosyte/hl7`. Deterministic in `seed`.
+
+Layout: MSH (`DFT^P03^DFT_P03`), `EVN`, `PID` (synthetic identity), `PV1`, and one `FT1`: a
+`SYNTHTXN` transaction id, the transaction date, type `CG` (charge, HL7 table 0017), a local
+`SYNTHCHG` charge code and a quantity of one to three.
+
+#### Parameters
+
+##### options?
+
+[`GenerateDftOptions`](#generatedftoptions) = `{}`
+
+Seed. See [GenerateDftOptions](#generatedftoptions).
+
+#### Returns
+
+`Hl7Message`
+
+A spec-clean `DFT^P03` `Hl7Message`.
+
+#### Example
+
+```ts
+import { generateDft } from "@cosyte/synth/hl7";
+const msg = generateDft({ seed: 12345 });
 console.log(msg.toString());
 ```
 
@@ -553,6 +730,73 @@ SynthError `SYNTH_UNSUPPORTED_QUIRK` if `quirk` is not a supported HL7 quirk.
 import { generateHl7Quirk, hl7QuirkRoundTrip } from "@cosyte/synth/hl7";
 const artifact = generateHl7Quirk({ seed: 1, quirk: "unknown-zsegment" });
 hl7QuirkRoundTrip(artifact).intendedWarningHeld; // true, exactly UNKNOWN_SEGMENT
+```
+
+***
+
+### generateMdm()
+
+> **generateMdm**(`options?`): `Hl7Message`
+
+Generate a spec-clean `MDM^T02` Hl7Message through `@cosyte/hl7`. Deterministic in `seed`.
+
+Layout: MSH (`MDM^T02^MDM_T02`), `EVN`, `PID` (synthetic identity), `PV1`, `TXA` (document type
+from HL7 table 0270, content presentation `TX`, a `SYNTHDOC` unique document number, completion
+status `DO`, documented) and one to three `OBX` lines of `TX` text, each final (`F`).
+
+#### Parameters
+
+##### options?
+
+[`GenerateMdmOptions`](#generatemdmoptions) = `{}`
+
+Seed. See [GenerateMdmOptions](#generatemdmoptions).
+
+#### Returns
+
+`Hl7Message`
+
+A spec-clean `MDM^T02` `Hl7Message`.
+
+#### Example
+
+```ts
+import { generateMdm } from "@cosyte/synth/hl7";
+const msg = generateMdm({ seed: 12345 });
+console.log(msg.toString());
+```
+
+***
+
+### generateOml()
+
+> **generateOml**(`options?`): `Hl7Message`
+
+Generate a spec-clean `OML^O21` Hl7Message through `@cosyte/hl7`. Deterministic in `seed`.
+
+Layout: MSH (`OML^O21^OML_O21`), `PID` (synthetic identity), `ORC` (order control `NW`, a new
+order) and an `OBR` carrying the same placer and filler numbers and a laboratory service.
+
+#### Parameters
+
+##### options?
+
+[`GenerateOmlOptions`](#generateomloptions) = `{}`
+
+Seed. See [GenerateOmlOptions](#generateomloptions).
+
+#### Returns
+
+`Hl7Message`
+
+A spec-clean `OML^O21` `Hl7Message`.
+
+#### Example
+
+```ts
+import { generateOml } from "@cosyte/synth/hl7";
+const msg = generateOml({ seed: 12345 });
+console.log(msg.toString());
 ```
 
 ***

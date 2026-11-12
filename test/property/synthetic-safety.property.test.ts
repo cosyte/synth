@@ -27,20 +27,19 @@ import {
   SYNTHETIC_FAMILY_NAMES,
   SYNTHETIC_ASSIGNING_AUTHORITY,
 } from "../../src/index.js";
-import { generateAdt, generateHl7, type Hl7MessageKind } from "../../src/hl7/index.js";
+import {
+  HL7_MESSAGE_KINDS,
+  generateAck,
+  generateAdt,
+  generateHl7,
+  type Hl7MessageKind,
+} from "../../src/hl7/index.js";
 import { checkProperty } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
 
-const ALL_KINDS: readonly Hl7MessageKind[] = [
-  "ADT^A01",
-  "ADT^A04",
-  "ADT^A08",
-  "ORU^R01",
-  "ORM^O01",
-  "SIU^S12",
-  "VXU^V04",
-];
+/** Every kind the subpath generates, the added ones included. */
+const ALL_KINDS: readonly Hl7MessageKind[] = HL7_MESSAGE_KINDS;
 
 /**
  * The **SSN-locus floor**, applied to a parsed wire value. Two federal authorities share this
@@ -108,6 +107,26 @@ describe("synthetic-safety gate, generated HL7 output (must be ZERO)", () => {
     );
   });
 
+  it("an ACK of any kind carries only MSH, MSA and ERR, and no real-data shape", () => {
+    checkProperty(
+      fc.property(
+        seed(),
+        fc.constantFrom(...ALL_KINDS),
+        fc.constantFrom(...(["AA", "AE", "AR"] as const)),
+        (s, kind, code) => {
+          const content = generateAck({ seed: s, inbound: generateHl7(kind, s), code }).toString();
+          expect(realDataHits(content)).toEqual([]);
+          const ids = content
+            .split("\r")
+            .filter((line) => line.length > 0)
+            .map((line) => line.slice(0, 3));
+          expect(ids).toEqual(code === "AA" ? ["MSH", "MSA"] : ["MSH", "MSA", "ERR"]);
+        },
+      ),
+      { numRuns: 400 },
+    );
+  });
+
   it("every Phase 2 family's PID loci are provably synthetic and leak no real-data shape", () => {
     checkProperty(
       fc.property(seed(), fc.constantFrom(...ALL_KINDS), (s, kind) => {
@@ -115,7 +134,13 @@ describe("synthetic-safety gate, generated HL7 output (must be ZERO)", () => {
         // The whole-message cross-cutting sweep: no dashed real SSN, no non-reserved email, anywhere.
         expect(realDataHits(content)).toEqual([]);
 
-        // Every family carries a PID: its identity loci must all be synthetic-by-construction.
+        // An ACK carries no patient: MSH and MSA, and ERR on an error, nothing else.
+        if (kind === "ACK") {
+          expect(content).not.toContain("\rPID|");
+          return;
+        }
+
+        // Every other family carries a PID: its identity loci must all be synthetic-by-construction.
         const msg = parseHL7(content);
         expect(ssnLocusHits(msg.get("PID.19") ?? ""), `${kind} SSN`).toEqual([]);
         expect(isSyntheticPhone(msg.get("PID.13") ?? ""), `${kind} phone`).toBe(true);

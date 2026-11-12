@@ -59,9 +59,10 @@ msg.warnings.length; // => 0
 
 ## 3. Run every message family through it
 
-`hl7Corpus` cycles through the families it generates: `ADT^A01`, `ADT^A04`, `ADT^A08`, `ORU^R01`,
+By default `hl7Corpus` cycles through seven families: `ADT^A01`, `ADT^A04`, `ADT^A08`, `ORU^R01`,
 `ORM^O01`, `SIU^S12`, and `VXU^V04`. With a count of 7 you get one of each, and each artifact's
-`kind` says which:
+`kind` says which (pass `mix: HL7_MESSAGE_KINDS` for every kind, discharges, transfers, documents,
+charges and ACKs included):
 
 ```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
