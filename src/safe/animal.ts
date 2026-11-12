@@ -22,7 +22,10 @@ import type { Rng } from "../rng/rng.js";
  * system (`99` followed by letters). The codes under it are ours and name nothing outside this
  * package.
  */
+// Stryker disable all: a module-level value is built once, at import, so per-test coverage cannot
+// attribute it to the tests that check it; test/safe-animal.test.ts asserts its exact value.
 export const ANIMAL_CODE_SYSTEM = "99COSYTE";
+// Stryker restore all
 
 /** A species or breed: our own code, its plain text, and the local code system. */
 export interface AnimalCode {
@@ -48,6 +51,8 @@ export interface AnimalBreedDraw {
   readonly breed: AnimalCode;
 }
 
+// Stryker disable all: these two build the table below and run only at import, with it; the tests
+// that check the table are the tests that check them.
 function code(value: string, text: string): AnimalCode {
   return Object.freeze({ code: value, text, system: ANIMAL_CODE_SYSTEM });
 }
@@ -55,6 +60,7 @@ function code(value: string, text: string): AnimalCode {
 function species(value: string, text: string, breeds: readonly AnimalCode[]): AnimalSpecies {
   return Object.freeze({ ...code(value, text), breeds: Object.freeze([...breeds]) });
 }
+// Stryker restore all
 
 /**
  * The species and breeds the animal subject draws from: our own short list, in plain text, under
@@ -102,7 +108,10 @@ export const SYNTHETIC_PET_NAMES: readonly string[] = Object.freeze([
  * the standard and of ICAR's manufacturer code list give `999` to test transponders, which are not
  * for use in animals. So a `999` number names no animal's chip.
  */
+// Stryker disable all: a module-level value is built once, at import, so per-test coverage cannot
+// attribute it to the tests that check it; test/safe-animal.test.ts asserts its exact value.
 export const MICROCHIP_TEST_PREFIX = "999";
+// Stryker restore all
 
 /**
  * A **synthetic pet name** from {@link SYNTHETIC_PET_NAMES}.

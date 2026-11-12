@@ -161,7 +161,9 @@ describe("the animal subject on ADT and ORU", () => {
   it("draws both sexes over a sweep of seeds", () => {
     const sexes = new Set<string>();
     for (let s = 0; s < 40; s += 1) {
-      sexes.add(parseHL7(generateOru({ seed: s, subject: "animal" }).toString()).get("PID.8") ?? "");
+      sexes.add(
+        parseHL7(generateOru({ seed: s, subject: "animal" }).toString()).get("PID.8") ?? "",
+      );
     }
     expect([...sexes].sort()).toEqual(["F", "M"]);
   });

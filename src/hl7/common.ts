@@ -251,13 +251,19 @@ export interface AnimalIdentity {
  * number, is the code HL7 table 0203 (identifier type) carries for it in v2.7 and later; table 0203
  * is user-defined in v2.5, the version these messages declare.
  */
+// Stryker disable all: a module-level value is built once, at import, so per-test coverage cannot
+// attribute it to the tests that check it; test/hl7/animal.test.ts asserts its exact value.
 export const MICROCHIP_IDENTIFIER_TYPE = "MCN";
+// Stryker restore all
 
 /**
  * The owner relationship the animal subject writes in NK1-3, from HL7 table 0063 (relationship):
  * `OWN`, owner.
  */
+// Stryker disable all: a module-level value is built once, at import, so per-test coverage cannot
+// attribute it to the tests that check it; test/hl7/animal.test.ts asserts its exact value.
 export const OWNER_RELATIONSHIP = Object.freeze({ code: "OWN", text: "Owner", system: "HL70063" });
+// Stryker restore all
 
 /**
  * Mint a complete synthetic {@link AnimalIdentity}. The draw order is fixed (owner name, pet name,
