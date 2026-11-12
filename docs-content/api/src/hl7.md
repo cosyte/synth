@@ -34,7 +34,7 @@ Birth date (`YYYYMMDD`), 0 to 20 years before the message date.
 
 > `readonly` **microchip**: `string`
 
-A 15-digit microchip in the test-transponder range (begins `999`).
+A 15-digit microchip that begins `999`.
 
 ##### owner
 
@@ -629,9 +629,9 @@ hl7QuirkCorpus({ seed: 1, profile: hl7QuirkProfile });
 
 > `const` **MICROCHIP\_IDENTIFIER\_TYPE**: `"MCN"` = `"MCN"`
 
-The identifier type the animal subject writes for a microchip in PID-3 (CX.5). `MCN`, microchip
-number, is the code HL7 table 0203 (identifier type) carries for it in v2.7 and later; table 0203
-is user-defined in v2.5, the version these messages declare.
+The identifier type the animal subject writes for a microchip in PID-3 (CX.5): `MCN`, which we
+use for microchip number. We have not verified it against HL7 table 0203 (identifier type) in any
+version. Not verified.
 
 ***
 
@@ -639,8 +639,8 @@ is user-defined in v2.5, the version these messages declare.
 
 > `const` **OWNER\_RELATIONSHIP**: `Readonly`\<\{ `code`: `"OWN"`; `system`: `"HL70063"`; `text`: `"Owner"`; \}\>
 
-The owner relationship the animal subject writes in NK1-3, from HL7 table 0063 (relationship):
-`OWN`, owner.
+The owner relationship the animal subject writes in NK1-3: `OWN^Owner^HL70063`. We have not
+verified that `OWN` is a value of HL7 table 0063 (relationship). Not verified.
 
 ## Functions
 
@@ -1275,8 +1275,8 @@ import { createRng } from "@cosyte/synth";
 
 > **ownerNk1Segment**(`id`): readonly (`string` \| `RawField`)[]
 
-Lay out the owner's `NK1` segment: the owner's name, relationship `OWN` (HL7 table 0063), address
-and phone.
+Lay out the owner's `NK1` segment: the owner's name, relationship [OWNER\_RELATIONSHIP](#owner_relationship)
+(`OWN`, not verified against HL7 table 0063), address and phone.
 
 #### Parameters
 

@@ -1,14 +1,14 @@
 /**
  * The synthetic **animal** providers: a pet's name, its species and breed, its microchip, and its
  * birth date. Like every provider in `../safe`, each is a pure function of an explicit seeded
- * generator and draws only from a source this module ships or a range no real animal holds.
+ * generator and draws only from a source this module ships or a range we chose for synthetic values.
  *
  * - **Species and breed** come from a short list of our own: plain text, with codes in a local
  *   code system ({@link ANIMAL_CODE_SYSTEM}). No SNOMED CT, VetSCT or VeNom content is used.
  * - **Pet names** come from a clearly invented pool, like the person-name pool.
- * - **Microchips** are 15 digits that begin with `999`, the code ISO 11784 summaries give for test
- *   transponders rather than a country or a manufacturer, so no value here is a chip implanted in an
- *   animal (see {@link MICROCHIP_TEST_PREFIX}).
+ * - **Microchips** are 15 digits that begin with `999` (see {@link MICROCHIP_TEST_PREFIX}). We
+ *   take `999` to be outside the country and manufacturer codes a real chip carries, but we have
+ *   not verified that against ISO 11784 or any registry.
  *
  * `# synthetic: true`
  *
@@ -17,31 +17,15 @@
 
 import type { Rng } from "../rng/rng.js";
 
-/**
- * The local code system for species and breed codes, in the HL7 table 0396 form for a local
- * system (`99` followed by letters). The codes under it are ours and name nothing outside this
- * package.
- */
-// Stryker disable all: a module-level value is built once, at import, so per-test coverage cannot
-// attribute it to the tests that check it; test/safe-animal.test.ts asserts its exact value.
-export const ANIMAL_CODE_SYSTEM = "99COSYTE";
-// Stryker restore all
+import {
+  ANIMAL_CODE_SYSTEM,
+  animalCode as code,
+  animalSpecies as species,
+  type AnimalCode,
+  type AnimalSpecies,
+} from "./animal-code.js";
 
-/** A species or breed: our own code, its plain text, and the local code system. */
-export interface AnimalCode {
-  /** Our own short code, for example `DOG` or `DOG-BGL`. */
-  readonly code: string;
-  /** The plain text, for example `Dog` or `Beagle`. */
-  readonly text: string;
-  /** Always {@link ANIMAL_CODE_SYSTEM}. */
-  readonly system: string;
-}
-
-/** A species and the breeds this package draws for it. */
-export interface AnimalSpecies extends AnimalCode {
-  /** The breeds of this species, at least one. */
-  readonly breeds: readonly AnimalCode[];
-}
+export { ANIMAL_CODE_SYSTEM, type AnimalCode, type AnimalSpecies };
 
 /** A species and one of its breeds, as {@link animalBreed} draws them. */
 export interface AnimalBreedDraw {
@@ -50,17 +34,6 @@ export interface AnimalBreedDraw {
   /** A breed of that species. */
   readonly breed: AnimalCode;
 }
-
-// Stryker disable all: these two build the table below and run only at import, with it; the tests
-// that check the table are the tests that check them.
-function code(value: string, text: string): AnimalCode {
-  return Object.freeze({ code: value, text, system: ANIMAL_CODE_SYSTEM });
-}
-
-function species(value: string, text: string, breeds: readonly AnimalCode[]): AnimalSpecies {
-  return Object.freeze({ ...code(value, text), breeds: Object.freeze([...breeds]) });
-}
-// Stryker restore all
 
 /**
  * The species and breeds the animal subject draws from: our own short list, in plain text, under
@@ -103,10 +76,9 @@ export const SYNTHETIC_PET_NAMES: readonly string[] = Object.freeze([
 // Stryker restore all
 
 /**
- * The three digits a synthetic microchip begins with. ISO 11784 gives a transponder's first three
- * digits as a country code (ISO 3166 numeric) or, from `900`, a manufacturer code; summaries of
- * the standard and of ICAR's manufacturer code list give `999` to test transponders, which are not
- * for use in animals. So a `999` number names no animal's chip.
+ * The three digits every synthetic microchip begins with: `999`. We chose it as a range we believe
+ * no implanted chip uses, but we have not verified that against ISO 11784 or any manufacturer code
+ * list. Not verified.
  */
 // Stryker disable all: a module-level value is built once, at import, so per-test coverage cannot
 // attribute it to the tests that check it; test/safe-animal.test.ts asserts its exact value.
@@ -147,8 +119,7 @@ export function animalBreed(rng: Rng): AnimalBreedDraw {
 }
 
 /**
- * A **synthetic microchip**: 15 digits, {@link MICROCHIP_TEST_PREFIX} then twelve seeded digits, in
- * the ISO 11784 test-transponder range.
+ * A **synthetic microchip**: 15 digits, {@link MICROCHIP_TEST_PREFIX} then twelve seeded digits.
  *
  * @param rng - The seeded generator.
  * @returns A 15-digit string beginning `999`.
@@ -167,7 +138,7 @@ export function microchip(rng: Rng): string {
  * {@link MICROCHIP_TEST_PREFIX}.
  *
  * @param value - The value to test.
- * @returns `true` when the value is in the test-transponder range.
+ * @returns `true` when the value is 15 digits beginning {@link MICROCHIP_TEST_PREFIX}.
  * @example
  * ```ts
  * import { isSyntheticMicrochip } from "@cosyte/synth";
@@ -175,7 +146,7 @@ export function microchip(rng: Rng): string {
  * ```
  */
 export function isSyntheticMicrochip(value: string): boolean {
-  return /^999\d{12}$/.test(value);
+  return new RegExp(`^${MICROCHIP_TEST_PREFIX}\\d{12}$`).test(value);
 }
 
 /**

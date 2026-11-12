@@ -845,10 +845,9 @@ ITIN-formatted (see [isItinFormatted](#isitinformatted)).
 
 > `const` **MICROCHIP\_TEST\_PREFIX**: `"999"` = `"999"`
 
-The three digits a synthetic microchip begins with. ISO 11784 gives a transponder's first three
-digits as a country code (ISO 3166 numeric) or, from `900`, a manufacturer code; summaries of
-the standard and of ICAR's manufacturer code list give `999` to test transponders, which are not
-for use in animals. So a `999` number names no animal's chip.
+The three digits every synthetic microchip begins with: `999`. We chose it as a range we believe
+no implanted chip uses, but we have not verified that against ISO 11784 or any manufacturer code
+list. Not verified.
 
 ***
 
@@ -902,7 +901,7 @@ import { createRng, safe } from "@cosyte/synth";
 const rng = createRng(42);
 safe.ssn(rng);   // never-issued SSN
 safe.phone(rng); // reserved 555-01NN number
-safe.microchip(rng); // a 15-digit test-transponder number
+safe.microchip(rng); // 15 digits beginning 999
 ```
 
 ***
@@ -1709,7 +1708,7 @@ The value to test.
 
 `boolean`
 
-`true` when the value is in the test-transponder range.
+`true` when the value is 15 digits beginning [MICROCHIP\_TEST\_PREFIX](#microchip_test_prefix).
 
 #### Example
 
@@ -1898,8 +1897,7 @@ corpus.manifest.counts["ADT^A01"]; // 1
 
 > **microchip**(`rng`): `string`
 
-A **synthetic microchip**: 15 digits, [MICROCHIP\_TEST\_PREFIX](#microchip_test_prefix) then twelve seeded digits, in
-the ISO 11784 test-transponder range.
+A **synthetic microchip**: 15 digits, [MICROCHIP\_TEST\_PREFIX](#microchip_test_prefix) then twelve seeded digits.
 
 #### Parameters
 

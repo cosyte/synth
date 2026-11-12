@@ -111,7 +111,7 @@ describe("the animal subject on ADT and ORU", () => {
           // A person's SSN never rides on an animal.
           expect(msg.get("PID.19") ?? "", label).toBe("");
 
-          // NK1: the owner, relationship OWN from HL7 table 0063.
+          // NK1: the owner, relationship OWN^Owner^HL70063 (the code is not verified).
           expect(msg.get("NK1.1"), label).toBe("1");
           expect(msg.get("NK1.2.1"), label).toBe(msg.get("PID.5.1"));
           expect(SYNTHETIC_GIVEN_NAMES, label).toContain(msg.get("NK1.2.2"));

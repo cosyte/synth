@@ -1,7 +1,7 @@
 /**
  * The synthetic animal providers, held to their sources: the species and breed list written out
- * here on its own, the pet-name pool, the microchip test range from ISO 11784 summaries, and the
- * birth-date window of 0 to 20 years before a given date, to its exact ends.
+ * here on its own, the pet-name pool, the microchip range beginning 999, and the birth-date window
+ * of 0 to 20 years before a given date, to its exact ends.
  */
 
 import { readFileSync } from "node:fs";
@@ -24,6 +24,7 @@ import {
   safe,
   type Rng,
 } from "../src/index.js";
+import { animalCode, animalSpecies } from "../src/safe/animal-code.js";
 import { checkProperty } from "./support/property.js";
 
 const anySeed = (): fc.Arbitrary<number> => fc.integer({ min: -(2 ** 31), max: 2 ** 31 - 1 });
@@ -115,6 +116,23 @@ describe("species and breed: our own short list", () => {
   });
 });
 
+describe("the two helpers that build the list", () => {
+  it("make a frozen code under the local system", () => {
+    const made = animalCode("X-1", "Example");
+    expect(made).toEqual({ code: "X-1", text: "Example", system: "99COSYTE" });
+    expect(Object.isFrozen(made)).toBe(true);
+  });
+
+  it("make a frozen species that holds its own frozen copy of the breeds", () => {
+    const breeds = [animalCode("X-1", "Example one"), animalCode("X-2", "Example two")];
+    const made = animalSpecies("X", "Example", breeds);
+    expect(made).toEqual({ code: "X", text: "Example", system: "99COSYTE", breeds });
+    expect(Object.isFrozen(made)).toBe(true);
+    expect(Object.isFrozen(made.breeds)).toBe(true);
+    expect(made.breeds).not.toBe(breeds);
+  });
+});
+
 describe("pet names", () => {
   it("come only from the invented pool, and the sweep draws every one", () => {
     const seen = new Set<string>();
@@ -138,7 +156,7 @@ describe("pet names", () => {
   });
 });
 
-describe("microchips: the ISO 11784 test-transponder range", () => {
+describe("microchips: 15 digits beginning 999", () => {
   it("are 15 digits beginning 999", () => {
     expect(MICROCHIP_TEST_PREFIX).toBe("999");
     checkProperty(
@@ -208,5 +226,25 @@ describe("the safe namespace carries the animal providers", () => {
     expect(safe.animalBreed).toBe(animalBreed);
     expect(safe.microchip).toBe(microchip);
     expect(safe.animalBirthDate).toBe(animalBirthDate);
+  });
+});
+
+describe("the how-to states only what we emit about its codes", () => {
+  const howTo = readFileSync(
+    join(import.meta.dirname, "..", "docs-content", "guides-animal-patients.md"),
+    "utf8",
+  );
+
+  it("cites no page for OWN, MCN or the 999 range", () => {
+    expect(howTo).not.toMatch(/caristix/i);
+    expect(howTo).not.toMatch(/ICAR/);
+  });
+
+  it("says each of the three is not verified against the standard", () => {
+    const section = howTo.slice(howTo.indexOf("## Where each value comes from"));
+    for (const subject of ["`OWN`", "`MCN`", "`999`"]) {
+      const bullet = section.split("\n- ").find((b) => b.includes(subject)) ?? "";
+      expect(bullet, subject).toMatch(/not verified/);
+    }
   });
 });

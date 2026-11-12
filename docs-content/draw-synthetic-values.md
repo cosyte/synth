@@ -50,7 +50,7 @@ The providers are exported by name and grouped on `safe`:
 | `uuid(rng)`                 | a version 4 UUID drawn from the seed                                                     |
 | `petName(rng)`              | an invented pet name from `SYNTHETIC_PET_NAMES`                                          |
 | `animalBreed(rng)`          | `{ species, breed }` from our own short list, under the local code system `99COSYTE`      |
-| `microchip(rng)`            | 15 digits beginning `999`, the test-transponder code                                     |
+| `microchip(rng)`            | 15 digits beginning `999` (a range we have not verified against ISO 11784)                |
 | `animalBirthDate(rng, on)`  | a `YYYYMMDD` date from 0 to 20 years before the `YYYYMMDD` date `on`                      |
 
 ```ts runnable

@@ -232,7 +232,7 @@ export interface AnimalIdentity {
   readonly petName: string;
   /** The record number, scoped to the synthetic assigning authority. */
   readonly record: SyntheticIdentifier;
-  /** A 15-digit microchip in the test-transponder range (begins `999`). */
+  /** A 15-digit microchip that begins `999`. */
   readonly microchip: string;
   /** The species, from our own short list. */
   readonly species: AnimalCode;
@@ -247,9 +247,9 @@ export interface AnimalIdentity {
 }
 
 /**
- * The identifier type the animal subject writes for a microchip in PID-3 (CX.5). `MCN`, microchip
- * number, is the code HL7 table 0203 (identifier type) carries for it in v2.7 and later; table 0203
- * is user-defined in v2.5, the version these messages declare.
+ * The identifier type the animal subject writes for a microchip in PID-3 (CX.5): `MCN`, which we
+ * use for microchip number. We have not verified it against HL7 table 0203 (identifier type) in any
+ * version. Not verified.
  */
 // Stryker disable all: a module-level value is built once, at import, so per-test coverage cannot
 // attribute it to the tests that check it; test/hl7/animal.test.ts asserts its exact value.
@@ -257,8 +257,8 @@ export const MICROCHIP_IDENTIFIER_TYPE = "MCN";
 // Stryker restore all
 
 /**
- * The owner relationship the animal subject writes in NK1-3, from HL7 table 0063 (relationship):
- * `OWN`, owner.
+ * The owner relationship the animal subject writes in NK1-3: `OWN^Owner^HL70063`. We have not
+ * verified that `OWN` is a value of HL7 table 0063 (relationship). Not verified.
  */
 // Stryker disable all: a module-level value is built once, at import, so per-test coverage cannot
 // attribute it to the tests that check it; test/hl7/animal.test.ts asserts its exact value.
@@ -355,8 +355,8 @@ export function animalPidSegment(id: AnimalIdentity): readonly (string | RawFiel
 }
 
 /**
- * Lay out the owner's `NK1` segment: the owner's name, relationship `OWN` (HL7 table 0063), address
- * and phone.
+ * Lay out the owner's `NK1` segment: the owner's name, relationship {@link OWNER_RELATIONSHIP}
+ * (`OWN`, not verified against HL7 table 0063), address and phone.
  *
  * @param id - The synthetic animal whose owner to render.
  * @returns The `NK1` field list for `Hl7Message.addSegment("NK1", …)`.

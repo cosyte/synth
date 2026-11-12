@@ -66,14 +66,12 @@ on any day.
   cat (Domestic Shorthair, Siamese), horse (Quarter Horse, Thoroughbred) and cattle (Holstein,
   Angus). The codes are ours, under the local code system `99COSYTE` (HL7 table 0396 gives local
   systems the form `99` and letters). We use no SNOMED CT, VetSCT or VeNom content.
-- **The relationship** `OWN`, owner, is a value of HL7 table 0063 (relationship), as published
-  summaries of that table list it, for example
-  [Caristix's HL7 v2.5 table 0063](https://hl7-definition.caristix.com/v2/HL7v2.5/Tables/0063).
-- **The microchip** is 15 digits beginning `999`. ISO 11784 gives a transponder's first three digits
-  as a country code or, from `900`, a manufacturer code; summaries of the standard and of ICAR's
-  manufacturer code list give `999` to test transponders, which are not for use in animals.
-- **The identifier type** `MCN`, microchip number, is the code HL7 table 0203 carries for it from
-  v2.7. These messages declare v2.5, where table 0203 is user-defined.
+- **The relationship** is `OWN^Owner^HL70063`. We have not verified that `OWN` is a value of HL7
+  table 0063 (relationship): it is not verified, so check it against your copy of the standard.
+- **The microchip** is 15 digits beginning `999`. We chose `999` as a range we believe no implanted
+  chip uses, but it is not verified against ISO 11784 or any manufacturer code list.
+- **The identifier type** for the microchip is `MCN`. It is not verified against HL7 table 0203
+  (identifier type) in any version; these messages declare v2.5.
 - **Names** come from invented pools: `SYNTHETIC_PET_NAMES` for the pet, the person-name pools for
   the owner.
 

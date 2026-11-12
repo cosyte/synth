@@ -40,7 +40,7 @@ export * from "./names-pool.js";
  * const rng = createRng(42);
  * safe.ssn(rng);   // never-issued SSN
  * safe.phone(rng); // reserved 555-01NN number
- * safe.microchip(rng); // a 15-digit test-transponder number
+ * safe.microchip(rng); // 15 digits beginning 999
  * ```
  */
 export const safe = Object.freeze({
