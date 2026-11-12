@@ -1,0 +1,90 @@
+name: Changeset release notes
+
+# A RELEASE REFUSAL BELONGS ON THE PULL REQUEST, NOT ON THE VERSION COMMIT.
+#
+# The release pipeline (release.yml, a caller of cosyte/.github's shared release workflow) derives
+# the GitHub release body from the changesets the "Version Packages" commit consumed, and its step
+# "Release notes must be derivable" refuses the release when it cannot: most often when a
+# changeset's opening sentence, which becomes a release bullet, is over the bullet cap. By then the
+# Version Packages pull request has merged and consumed the changesets, so the only way back is to
+# revert the version commit, correct the changeset and version again. 0.1.10 stopped there.
+#
+# This runs the SAME rule on every pull request, against every pending changeset. It does not
+# restate the rule: it checks out cosyte/.github at the commit release.yml pins (read from
+# release.yml, so the two move together) and calls that commit's `release-notes.mjs` functions
+# through `scripts/check-changeset-notes.ts`. The shared tooling's command line has no
+# pull request mode (`prepare` reads a version commit, `assert` a finished body), so the script is
+# the adapter that feeds it the pending changesets.
+#
+# Before it reads `.changeset/`, it runs the rule against a fixture changeset whose opening sentence
+# is over the cap and requires a refusal, so a green here comes from a check proven able to red.
+#
+# Not yet a required context: let it run on `main` first, as test-selection.yml explains.
+#
+# Run it locally with the tooling checked out beside this repo:
+#   pnpm check:changeset-notes check --tooling <cosyte/.github>/scripts/release-notes.mjs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changeset-notes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Read the release tooling commit release.yml pins
+        id: tooling
+        run: |
+          ref=$(pnpm -s run check:changeset-notes ref)
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the release tooling at that commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cosyte/.github
+          ref: ${{ steps.tooling.outputs.ref }}
+          path: .cosyte-release-tooling
+          persist-credentials: false
+
+      # Exit 1 is the refusal this step requires; 0 (the rule let it through) or 2 (the check could
+      # not run) fails the job.
+      - name: The rule refuses a changeset over the cap
+        run: |
+          set +e
+          pnpm -s run check:changeset-notes check \
+            --tooling .cosyte-release-tooling/scripts/release-notes.mjs \
+            --dir test/fixtures/changeset-notes/over-cap
+          code=$?
+          set -e
+          if [ "$code" -ne 1 ]; then
+            echo "expected the over-cap fixture to be refused with exit 1, got exit $code"
+            exit 1
+          fi
+
+      - name: Every pending changeset fits the release notes
+        run: |
+          pnpm -s run check:changeset-notes check \
+            --tooling .cosyte-release-tooling/scripts/release-notes.mjs

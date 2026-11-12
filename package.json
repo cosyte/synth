@@ -181,6 +181,7 @@
     "check:process": "cosyte-process check",
     "check:test-selection": "tsx scripts/check-test-selection.ts",
     "check:install": "node scripts/check-install.mjs",
+    "check:changeset-notes": "tsx scripts/check-changeset-notes.ts",
     "check:determinism-window": "tsx scripts/determinism/check-window.ts",
     "determinism:digest": "tsx scripts/determinism/digest.ts",
     "determinism:verify": "tsx scripts/determinism/verify.ts",

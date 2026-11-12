@@ -20,7 +20,13 @@ a fix, a documentation change and a breaking change are all released as a patch.
 A patch that breaks a caller says so in its summary: what changed, and what a caller must change to
 keep working. The version number alone tells a consumer nothing, so the summary has to.
 
-One rule is enforced rather than chosen: a change to the committed determinism baseline has to be
+The opening sentence of a summary becomes its bullet in the GitHub release, and the release refuses
+a bullet over 400 characters. Keep that first sentence short and put the detail in the sentences
+after it, which are not measured. `.github/workflows/changeset-notes.yml` runs the release's own
+rule against every pending changeset on each pull request, so an over-long sentence is caught there
+rather than after the Version Packages pull request merges.
+
+One more rule is enforced rather than chosen: a change to the committed determinism baseline has to be
 stated. `pnpm run check:determinism-window` reads the changesets for this package for one section
 per kind of change, each a paragraph that opens with its heading:
 
