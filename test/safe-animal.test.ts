@@ -4,6 +4,9 @@
  * birth-date window of 0 to 20 years before a given date, to its exact ends.
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
@@ -122,6 +125,16 @@ describe("pet names", () => {
     }
     expect(seen.size).toBe(SYNTHETIC_PET_NAMES.length);
     expect(SYNTHETIC_PET_NAMES.length).toBe(12);
+  });
+
+  it("are each declared synthetic to the PHI scan, which reads PID-5", () => {
+    const allowList = readFileSync(
+      join(import.meta.dirname, "..", "scripts", "phi-allow-list.txt"),
+      "utf8",
+    ).split(/\r?\n/);
+    for (const value of SYNTHETIC_PET_NAMES) {
+      expect(allowList, value).toContain(`NAME ${value.toUpperCase()}`);
+    }
   });
 });
 
