@@ -216,7 +216,7 @@
     "docs:reference": "cosyte-docs-reference",
     "check:docs-reference": "cosyte-docs-reference --check",
     "attw": "cosyte-attw",
-    "version": "changeset version && cosyte-process sync-version && prettier --write package.json CHANGELOG.md src/index.ts",
+    "version": "changeset version && cosyte-process sync-version && pnpm docs:reference && prettier --write package.json CHANGELOG.md src/index.ts",
     "release": "changeset publish",
     "prepublishOnly": "pnpm clean && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm attw",
     "prepare": "command -v simple-git-hooks >/dev/null 2>&1 && simple-git-hooks 1>&2 || true"
