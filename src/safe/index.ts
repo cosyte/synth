@@ -23,8 +23,10 @@ import {
   npi,
   dea,
 } from "./providers.js";
+import { petName, animalBreed, microchip, animalBirthDate } from "./animal.js";
 
 export * from "./providers.js";
+export * from "./animal.js";
 export * from "./reserved.js";
 export * from "./names-pool.js";
 
@@ -38,6 +40,7 @@ export * from "./names-pool.js";
  * const rng = createRng(42);
  * safe.ssn(rng);   // never-issued SSN
  * safe.phone(rng); // reserved 555-01NN number
+ * safe.microchip(rng); // a 15-digit test-transponder number
  * ```
  */
 export const safe = Object.freeze({
@@ -53,4 +56,8 @@ export const safe = Object.freeze({
   dateYmd,
   npi,
   dea,
+  petName,
+  animalBreed,
+  microchip,
+  animalBirthDate,
 });

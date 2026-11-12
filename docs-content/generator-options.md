@@ -98,8 +98,8 @@ Subpath `@cosyte/synth/hl7`, built through `@cosyte/hl7`.
 
 | Generator          | Options                    | Defaults           | Returns      |
 | ------------------ | -------------------------- | ------------------ | ------------ |
-| `generateAdt`      | `seed`, `trigger`          | `0`, `"A01"`       | `Hl7Message` |
-| `generateOru`      | `seed`                     | `0`                | `Hl7Message` |
+| `generateAdt`      | `seed`, `trigger`, `subject` | `0`, `"A01"`, `"person"` | `Hl7Message` |
+| `generateOru`      | `seed`, `subject`          | `0`, `"person"`    | `Hl7Message` |
 | `generateOrm`      | `seed`                     | `0`                | `Hl7Message` |
 | `generateSiu`      | `seed`                     | `0`                | `Hl7Message` |
 | `generateVxu`      | `seed`                     | `0`                | `Hl7Message` |
@@ -111,6 +111,7 @@ Subpath `@cosyte/synth/hl7`, built through `@cosyte/hl7`.
 | `generateHl7Quirk` | `seed`, `quirk`, `kind`    | `0`, required, `"ORU^R01"` | `QuirkArtifact` |
 
 `trigger` is `"A01"`, `"A02"`, `"A03"`, `"A04"`, `"A08"`, `"A11"`, `"A13"`, `"A28"` or `"A31"`.
+`subject` is `"person"` or `"animal"` ([Generate animal patients](./guides-animal-patients.md)).
 `code` is `"AA"`, `"AE"` or `"AR"`. `generateHl7`'s `kind` is any HL7 v2 kind in the
 [Kinds](#kinds) table; `generateHl7Quirk`'s is one of the seven in the default mix.
 Quirk names are in the [quirk catalog](./quirk-catalog.md#hl7-v2).

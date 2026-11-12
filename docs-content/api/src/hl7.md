@@ -12,6 +12,88 @@ through `@cosyte/hl7`'s `buildMessage`, stamped HL7 v2.5, and round-tripping wit
 
 ## Interfaces
 
+### AnimalIdentity
+
+A complete synthetic animal patient: every value drawn from `../safe`.
+
+#### Properties
+
+##### breed
+
+> `readonly` **breed**: [`AnimalCode`](../src.md#animalcode)
+
+The breed, one of the species' breeds.
+
+##### dob
+
+> `readonly` **dob**: `string`
+
+Birth date (`YYYYMMDD`), 0 to 20 years before the message date.
+
+##### microchip
+
+> `readonly` **microchip**: `string`
+
+A 15-digit microchip in the test-transponder range (begins `999`).
+
+##### owner
+
+> `readonly` **owner**: [`AnimalOwner`](#animalowner)
+
+The owner.
+
+##### petName
+
+> `readonly` **petName**: `string`
+
+The pet's name, from the shipped fake pet-name pool.
+
+##### record
+
+> `readonly` **record**: [`SyntheticIdentifier`](../src.md#syntheticidentifier)
+
+The record number, scoped to the synthetic assigning authority.
+
+##### sex
+
+> `readonly` **sex**: `"M"` \| `"F"`
+
+Administrative sex.
+
+##### species
+
+> `readonly` **species**: [`AnimalCode`](../src.md#animalcode)
+
+The species, from our own short list.
+
+***
+
+### AnimalOwner
+
+An animal's owner: every value drawn from `../safe`.
+
+#### Properties
+
+##### address
+
+> `readonly` **address**: [`SyntheticAddress`](../src.md#syntheticaddress)
+
+The owner's synthetic postal address (reserved non-real ZIP), which is also the animal's.
+
+##### person
+
+> `readonly` **person**: [`SyntheticName`](../src.md#syntheticname)
+
+The owner's name, from the shipped fake-name pool.
+
+##### phone
+
+> `readonly` **phone**: `string`
+
+The owner's reserved `555-01xx` phone number.
+
+***
+
 ### ExampleCode
 
 A coded concept: an identifier code, human-readable text, and its code system (HL7 `CE`/`CWE`).
@@ -82,6 +164,14 @@ Options for [generateAdt](#generateadt).
 > `readonly` `optional` **seed?**: `number`
 
 The seed: the same seed yields a byte-identical message. Defaults to `0`.
+
+##### subject?
+
+> `readonly` `optional` **subject?**: [`Hl7Subject`](#hl7subject)
+
+Who the message is about. Defaults to `"person"`, whose bytes for a seed are what they always
+were. `"animal"` writes a veterinary patient: the pet's name in PID-5, a microchip in PID-3, the
+species in PID-35 and breed in PID-36, and the owner in an `NK1` after the `PID`.
 
 ##### trigger?
 
@@ -184,6 +274,14 @@ Options for [generateOru](#generateoru).
 > `readonly` `optional` **seed?**: `number`
 
 The seed: the same seed yields a byte-identical message. Defaults to `0`.
+
+##### subject?
+
+> `readonly` `optional` **subject?**: [`Hl7Subject`](#hl7subject)
+
+Who the result is about. Defaults to `"person"`, whose bytes for a seed are what they always
+were. `"animal"` writes a veterinary patient: the pet's name in PID-5, a microchip in PID-3, the
+species in PID-35 and breed in PID-36, and the owner in an `NK1` after the `PID`.
 
 ***
 
@@ -448,6 +546,15 @@ The HL7 v2 message families a quirk can be injected into (the spec-clean base).
 
 Every HL7 v2 quirk this package ships.
 
+***
+
+### Hl7Subject
+
+> **Hl7Subject** = `"person"` \| `"animal"`
+
+Who a message is about. `"person"`, the default, is the human patient every generator has always
+written. `"animal"` writes a veterinary patient instead: see [AnimalIdentity](#animalidentity).
+
 ## Variables
 
 ### EXAMPLE\_LAB\_OBSERVATIONS
@@ -516,7 +623,96 @@ import { hl7QuirkProfile, hl7QuirkCorpus } from "@cosyte/synth/hl7";
 hl7QuirkCorpus({ seed: 1, profile: hl7QuirkProfile });
 ```
 
+***
+
+### MICROCHIP\_IDENTIFIER\_TYPE
+
+> `const` **MICROCHIP\_IDENTIFIER\_TYPE**: `"MCN"` = `"MCN"`
+
+The identifier type the animal subject writes for a microchip in PID-3 (CX.5). `MCN`, microchip
+number, is the code HL7 table 0203 (identifier type) carries for it in v2.7 and later; table 0203
+is user-defined in v2.5, the version these messages declare.
+
+***
+
+### OWNER\_RELATIONSHIP
+
+> `const` **OWNER\_RELATIONSHIP**: `Readonly`\<\{ `code`: `"OWN"`; `system`: `"HL70063"`; `text`: `"Owner"`; \}\>
+
+The owner relationship the animal subject writes in NK1-3, from HL7 table 0063 (relationship):
+`OWN`, owner.
+
 ## Functions
+
+### animalIdentity()
+
+> **animalIdentity**(`rng`, `onDate`): [`AnimalIdentity`](#animalidentity)
+
+Mint a complete synthetic [AnimalIdentity](#animalidentity). The draw order is fixed (owner name, pet name,
+record number, microchip, species and breed, birth date, sex, address, phone) so the same seed and
+date yield the same animal.
+
+#### Parameters
+
+##### rng
+
+[`Rng`](../src.md#rng)
+
+The seeded generator.
+
+##### onDate
+
+`string`
+
+The message date, `YYYYMMDD` or a longer timestamp: the birth date falls from 0
+  to 20 years before it.
+
+#### Returns
+
+[`AnimalIdentity`](#animalidentity)
+
+A synthetic [AnimalIdentity](#animalidentity).
+
+#### Example
+
+```ts
+import { createRng } from "@cosyte/synth";
+import { animalIdentity } from "@cosyte/synth/hl7";
+const pet = animalIdentity(createRng(1), "20250101");
+pet.species.text; // e.g. "Dog"
+```
+
+***
+
+### animalPidSegment()
+
+> **animalPidSegment**(`id`): readonly (`string` \| `RawField`)[]
+
+Lay out the `PID` segment of an [AnimalIdentity](#animalidentity): the record number and the microchip as two
+PID-3 repetitions, the owner's family name and the pet's name in PID-5, the owner's address and
+phone, and the species in PID-35 and breed in PID-36. PID-19 (SSN) stays empty.
+
+#### Parameters
+
+##### id
+
+[`AnimalIdentity`](#animalidentity)
+
+The synthetic animal to render.
+
+#### Returns
+
+readonly (`string` \| `RawField`)[]
+
+The `PID` field list for `Hl7Message.addSegment("PID", …)`.
+
+#### Example
+
+```ts
+// msg.addSegment("PID", animalPidSegment(animalIdentity(createRng(1), "20250101")));
+```
+
+***
 
 ### componentsField()
 
@@ -605,13 +801,15 @@ so it parses back through `@cosyte/hl7` with **zero warnings** (proven by ./roun
 A trigger added after `A01`, `A04` and `A08` also names its published structure in MSH-9.3 and
 fills the `PV1` fields its event is about (a transfer's prior location, a discharge's times).
 
+With `subject: "animal"` the patient is an animal and its owner follows the `PID` in an `NK1`.
+
 #### Parameters
 
 ##### options?
 
 [`GenerateAdtOptions`](#generateadtoptions) = `{}`
 
-Seed + trigger. See [GenerateAdtOptions](#generateadtoptions).
+Seed, trigger and subject. See [GenerateAdtOptions](#generateadtoptions).
 
 #### Returns
 
@@ -845,13 +1043,15 @@ Layout: MSH, `PID` (synthetic identity), `OBR` (order/observation request), and 
 rows. The `OBR`/`OBX` result group satisfies the parser's `ORU^R01` structure net, so the message
 re-parses with **zero warnings** (proven by ./round-trip).
 
+With `subject: "animal"` the patient is an animal and its owner follows the `PID` in an `NK1`.
+
 #### Parameters
 
 ##### options?
 
 [`GenerateOruOptions`](#generateoruoptions) = `{}`
 
-Seed. See [GenerateOruOptions](#generateoruoptions).
+Seed and subject. See [GenerateOruOptions](#generateoruoptions).
 
 #### Returns
 
@@ -1067,6 +1267,35 @@ The [MessageScaffold](#messagescaffold).
 ```ts
 import { createRng } from "@cosyte/synth";
 // mshScaffold(createRng(1), "ORU^R01").message.addSegment("PID", […]);
+```
+
+***
+
+### ownerNk1Segment()
+
+> **ownerNk1Segment**(`id`): readonly (`string` \| `RawField`)[]
+
+Lay out the owner's `NK1` segment: the owner's name, relationship `OWN` (HL7 table 0063), address
+and phone.
+
+#### Parameters
+
+##### id
+
+[`AnimalIdentity`](#animalidentity)
+
+The synthetic animal whose owner to render.
+
+#### Returns
+
+readonly (`string` \| `RawField`)[]
+
+The `NK1` field list for `Hl7Message.addSegment("NK1", …)`.
+
+#### Example
+
+```ts
+// msg.addSegment("NK1", ownerNk1Segment(animalIdentity(createRng(1), "20250101")));
 ```
 
 ***

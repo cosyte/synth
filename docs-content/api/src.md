@@ -79,6 +79,104 @@ The missing parser package, on a SYNTH\_FATAL\_CODES.SYNTH\_PEER\_NOT\_INSTALLED
 
 ## Interfaces
 
+### AnimalBreedDraw
+
+A species and one of its breeds, as [animalBreed](#animalbreed) draws them.
+
+#### Properties
+
+##### breed
+
+> `readonly` **breed**: [`AnimalCode`](#animalcode)
+
+A breed of that species.
+
+##### species
+
+> `readonly` **species**: [`AnimalCode`](#animalcode)
+
+The species.
+
+***
+
+### AnimalCode
+
+A species or breed: our own code, its plain text, and the local code system.
+
+#### Extended by
+
+- [`AnimalSpecies`](#animalspecies)
+
+#### Properties
+
+##### code
+
+> `readonly` **code**: `string`
+
+Our own short code, for example `DOG` or `DOG-BGL`.
+
+##### system
+
+> `readonly` **system**: `string`
+
+Always [ANIMAL\_CODE\_SYSTEM](#animal_code_system).
+
+##### text
+
+> `readonly` **text**: `string`
+
+The plain text, for example `Dog` or `Beagle`.
+
+***
+
+### AnimalSpecies
+
+A species and the breeds this package draws for it.
+
+#### Extends
+
+- [`AnimalCode`](#animalcode)
+
+#### Properties
+
+##### breeds
+
+> `readonly` **breeds**: readonly [`AnimalCode`](#animalcode)[]
+
+The breeds of this species, at least one.
+
+##### code
+
+> `readonly` **code**: `string`
+
+Our own short code, for example `DOG` or `DOG-BGL`.
+
+###### Inherited from
+
+[`AnimalCode`](#animalcode).[`code`](#code-1)
+
+##### system
+
+> `readonly` **system**: `string`
+
+Always [ANIMAL\_CODE\_SYSTEM](#animal_code_system).
+
+###### Inherited from
+
+[`AnimalCode`](#animalcode).[`system`](#system)
+
+##### text
+
+> `readonly` **text**: `string`
+
+The plain text, for example `Dog` or `Beagle`.
+
+###### Inherited from
+
+[`AnimalCode`](#animalcode).[`text`](#text)
+
+***
+
 ### Artifact
 
 One generated artifact: the serialized wire text plus the metadata needed to reproduce and check
@@ -696,6 +794,16 @@ A sibling parser package: a key of [SYNTH\_PEER\_MESSAGES](#synth_peer_messages)
 
 ## Variables
 
+### ANIMAL\_CODE\_SYSTEM
+
+> `const` **ANIMAL\_CODE\_SYSTEM**: `"99COSYTE"` = `"99COSYTE"`
+
+The local code system for species and breed codes, in the HL7 table 0396 form for a local
+system (`99` followed by letters). The codes under it are ours and name nothing outside this
+package.
+
+***
+
 ### DEA\_REGISTRANT\_TYPES
 
 > `const` **DEA\_REGISTRANT\_TYPES**: readonly `string`[]
@@ -730,6 +838,17 @@ These are **facts** about the number's shape, not copyrighted prose (IRS Interna
 3.21.263). Group values `89` and `93` sit between the bands on purpose: the IRM records them as
 reserved for other IRS programs rather than for ITINs, so a value carrying one is **not**
 ITIN-formatted (see [isItinFormatted](#isitinformatted)).
+
+***
+
+### MICROCHIP\_TEST\_PREFIX
+
+> `const` **MICROCHIP\_TEST\_PREFIX**: `"999"` = `"999"`
+
+The three digits a synthetic microchip begins with. ISO 11784 gives a transponder's first three
+digits as a country code (ISO 3166 numeric) or, from `900`, a manufacturer code; summaries of
+the standard and of ICAR's manufacturer code list give `999` to test transponders, which are not
+for use in animals. So a `999` number names no animal's chip.
 
 ***
 
@@ -771,7 +890,7 @@ RFC 2606 / 6761 reserved email domains `@cosyte/synth` draws from.
 
 ### safe
 
-> `const` **safe**: `Readonly`\<\{ `address`: (`rng`) => [`SyntheticAddress`](#syntheticaddress); `dateYmd`: (`rng`, `minYear`, `maxYear`) => `string`; `dea`: (`rng`, `person?`) => `string`; `email`: (`rng`, `person?`) => `string`; `identifier`: (`rng`, `typeCode`) => [`SyntheticIdentifier`](#syntheticidentifier); `ipv4`: (`rng`) => `string`; `ipv6`: (`rng`) => `string`; `name`: (`rng`) => [`SyntheticName`](#syntheticname); `npi`: (`rng`) => `string`; `phone`: (`rng`) => `string`; `ssn`: (`rng`, `block?`) => `string`; `uuid`: (`rng`) => `string`; \}\>
+> `const` **safe**: `Readonly`\<\{ `address`: (`rng`) => [`SyntheticAddress`](#syntheticaddress); `animalBirthDate`: (`rng`, `onDate`) => `string`; `animalBreed`: (`rng`) => [`AnimalBreedDraw`](#animalbreeddraw); `dateYmd`: (`rng`, `minYear`, `maxYear`) => `string`; `dea`: (`rng`, `person?`) => `string`; `email`: (`rng`, `person?`) => `string`; `identifier`: (`rng`, `typeCode`) => [`SyntheticIdentifier`](#syntheticidentifier); `ipv4`: (`rng`) => `string`; `ipv6`: (`rng`) => `string`; `microchip`: (`rng`) => `string`; `name`: (`rng`) => [`SyntheticName`](#syntheticname); `npi`: (`rng`) => `string`; `petName`: (`rng`) => `string`; `phone`: (`rng`) => `string`; `ssn`: (`rng`, `block?`) => `string`; `uuid`: (`rng`) => `string`; \}\>
 
 The synthetic-safety provider namespace. Every function draws only from a reserved range or the
 shipped fake-name pool, no value it returns can be real or plausibly-real PHI.
@@ -783,6 +902,7 @@ import { createRng, safe } from "@cosyte/synth";
 const rng = createRng(42);
 safe.ssn(rng);   // never-issued SSN
 safe.phone(rng); // reserved 555-01NN number
+safe.microchip(rng); // a 15-digit test-transponder number
 ```
 
 ***
@@ -851,6 +971,22 @@ SYNTH_PEER_MESSAGES["@cosyte/hl7"]; // => "@cosyte/hl7 is not installed, and thi
 
 ***
 
+### SYNTHETIC\_ANIMAL\_SPECIES
+
+> `const` **SYNTHETIC\_ANIMAL\_SPECIES**: readonly [`AnimalSpecies`](#animalspecies)[]
+
+The species and breeds the animal subject draws from: our own short list, in plain text, under
+[ANIMAL\_CODE\_SYSTEM](#animal_code_system). Small on purpose: structural coverage, not a breed registry.
+
+#### Example
+
+```ts
+import { SYNTHETIC_ANIMAL_SPECIES } from "@cosyte/synth";
+SYNTHETIC_ANIMAL_SPECIES.map((s) => s.text); // ["Dog", "Cat", "Horse", "Cattle"]
+```
+
+***
+
 ### SYNTHETIC\_ASSIGNING\_AUTHORITY
 
 > `const` **SYNTHETIC\_ASSIGNING\_AUTHORITY**: `Readonly`\<\{ `namespaceId`: `"COSYTE-SYNTH"`; `universalId`: `"2.16.840.1.113883.19.999"`; `universalIdType`: `"ISO"`; \}\>
@@ -893,6 +1029,14 @@ Obviously-synthetic family names. None is a plausible real surname at a real add
 > `const` **SYNTHETIC\_GIVEN\_NAMES**: readonly `string`[]
 
 Obviously-synthetic given names. None is a plausible real person's name.
+
+***
+
+### SYNTHETIC\_PET\_NAMES
+
+> `const` **SYNTHETIC\_PET\_NAMES**: readonly `string`[]
+
+Clearly invented pet names. None is a name a reader would take for a real animal's record.
 
 ***
 
@@ -962,6 +1106,73 @@ A [SyntheticAddress](#syntheticaddress).
 ```ts
 import { createRng, address } from "@cosyte/synth";
 address(createRng(1)); // { street, city, state, zip: "00000" }
+```
+
+***
+
+### animalBirthDate()
+
+> **animalBirthDate**(`rng`, `onDate`): `string`
+
+A **synthetic animal birth date** in `YYYYMMDD` form, from 0 to 20 years before `onDate`, both
+ends included. `onDate` is a date the caller supplies (the generators pass the message date), never
+the clock, so the same seed and date give the same birth date.
+
+#### Parameters
+
+##### rng
+
+[`Rng`](#rng)
+
+The seeded generator.
+
+##### onDate
+
+`string`
+
+The reference date, `YYYYMMDD` (only its first eight digits are read).
+
+#### Returns
+
+`string`
+
+A `YYYYMMDD` date no later than `onDate` and no more than 20 years before it.
+
+#### Example
+
+```ts
+import { animalBirthDate, createRng } from "@cosyte/synth";
+animalBirthDate(createRng(1), "20250101"); // between "20050101" and "20250101"
+```
+
+***
+
+### animalBreed()
+
+> **animalBreed**(`rng`): [`AnimalBreedDraw`](#animalbreeddraw)
+
+A **species and breed** from [SYNTHETIC\_ANIMAL\_SPECIES](#synthetic_animal_species): the species first, then one of its
+breeds.
+
+#### Parameters
+
+##### rng
+
+[`Rng`](#rng)
+
+The seeded generator.
+
+#### Returns
+
+[`AnimalBreedDraw`](#animalbreeddraw)
+
+An [AnimalBreedDraw](#animalbreeddraw).
+
+#### Example
+
+```ts
+import { animalBreed, createRng } from "@cosyte/synth";
+const { species, breed } = animalBreed(createRng(1));
 ```
 
 ***
@@ -1479,6 +1690,36 @@ isSyntheticIp("8.8.8.8");     // false (real)
 
 ***
 
+### isSyntheticMicrochip()
+
+> **isSyntheticMicrochip**(`value`): `boolean`
+
+Whether a value is a synthetic microchip: exactly 15 digits beginning with
+[MICROCHIP\_TEST\_PREFIX](#microchip_test_prefix).
+
+#### Parameters
+
+##### value
+
+`string`
+
+The value to test.
+
+#### Returns
+
+`boolean`
+
+`true` when the value is in the test-transponder range.
+
+#### Example
+
+```ts
+import { isSyntheticMicrochip } from "@cosyte/synth";
+isSyntheticMicrochip("999000000000001"); // true
+```
+
+***
+
 ### isSyntheticNpi()
 
 > **isSyntheticNpi**(`value`): `boolean`
@@ -1653,6 +1894,36 @@ corpus.manifest.counts["ADT^A01"]; // 1
 
 ***
 
+### microchip()
+
+> **microchip**(`rng`): `string`
+
+A **synthetic microchip**: 15 digits, [MICROCHIP\_TEST\_PREFIX](#microchip_test_prefix) then twelve seeded digits, in
+the ISO 11784 test-transponder range.
+
+#### Parameters
+
+##### rng
+
+[`Rng`](#rng)
+
+The seeded generator.
+
+#### Returns
+
+`string`
+
+A 15-digit string beginning `999`.
+
+#### Example
+
+```ts
+import { createRng, isSyntheticMicrochip, microchip } from "@cosyte/synth";
+isSyntheticMicrochip(microchip(createRng(1))); // true
+```
+
+***
+
 ### name()
 
 > **name**(`rng`): [`SyntheticName`](#syntheticname)
@@ -1749,6 +2020,35 @@ The check digit (`0` to `9`) a real NPI would carry for this base.
 ```ts
 import { npiCheckDigit } from "@cosyte/synth";
 npiCheckDigit("123456789"); // 3, so 1234567893 is a Luhn-valid NPI shape
+```
+
+***
+
+### petName()
+
+> **petName**(`rng`): `string`
+
+A **synthetic pet name** from [SYNTHETIC\_PET\_NAMES](#synthetic_pet_names).
+
+#### Parameters
+
+##### rng
+
+[`Rng`](#rng)
+
+The seeded generator.
+
+#### Returns
+
+`string`
+
+A clearly invented pet name.
+
+#### Example
+
+```ts
+import { createRng, petName } from "@cosyte/synth";
+petName(createRng(1)); // e.g. "Stubtail"
 ```
 
 ***
