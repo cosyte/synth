@@ -1057,7 +1057,7 @@ RFC 5737 IPv4 documentation (TEST-NET) `/24` network prefixes.
 
 ### VERSION
 
-> `const` **VERSION**: `string` = `"0.1.9"`
+> `const` **VERSION**: `string` = `"0.1.10"`
 
 Library version string, equal to this package's published `package.json#version`.
 
