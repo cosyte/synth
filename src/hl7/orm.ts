@@ -35,7 +35,8 @@ export interface GenerateOrmOptions {
  * ```ts
  * import { generateOrm } from "@cosyte/synth/hl7";
  * const msg = generateOrm({ seed: 12345 });
- * console.log(msg.toString());
+ * const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+ * console.log(wire.split("\r")[0]?.split("|")[8]); // "ORM^O01", the type in MSH-9
  * ```
  */
 export function generateOrm(options: GenerateOrmOptions = {}): Hl7Message {

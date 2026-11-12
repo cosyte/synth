@@ -158,6 +158,29 @@ Message: "The requested format is not generable by this build. A generator has n
   union, and `ccdaDeidLoop({ documentType })` treats anything but `"ccd"` as a Referral Note.
   Neither quotes your value.
 
+## What is safe to log
+
+Log what describes a value, never the value. Our fixtures are synthetic, but the code that logs them
+also runs on real messages, so the same rule holds for both.
+
+Safe to log: a `SynthError`'s `code`, `peer` and `message` (a fixed string that quotes nothing you
+passed), warning and error codes (`warnings`, `errors`, `intendedWarnings`), message and document
+kinds (`kind`, `artifact`, `format`), a corpus `manifest`, a sentinel's `locus` and `category`,
+the clinical codes in `clinicalProbed` and `clinicalScrubbed`, counts, lengths, and the booleans
+(`specClean`, `byteStable`, `valid`, `intendedWarningHeld`, `pass`).
+
+Never log these fields, which hold a whole artifact or a value that stands for a person:
+
+- `content`, on every round-trip result, quirk artifact and corpus artifact: the whole serialized
+  message, document or resource.
+- `original` and `deidentified`, on a pairing-loop result: the artifact before and after
+  de-identification.
+- `token`, on each entry of `planted` and `survivors`: the name, number or date planted at a patient
+  field. Log `locus` and the length of the list instead.
+
+An error a sibling parser throws reaches you unchanged; see that parser's page on what its errors
+hold, and log its code.
+
 ## Related
 
 - [Troubleshooting](./troubleshooting.md#an-unsupported-request-threw): what to do when one is

@@ -44,7 +44,8 @@ export interface GenerateDftOptions {
  * ```ts
  * import { generateDft } from "@cosyte/synth/hl7";
  * const msg = generateDft({ seed: 12345 });
- * console.log(msg.toString());
+ * const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+ * console.log(wire.split("\r")[0]?.split("|")[8]); // "DFT^P03^DFT_P03", the type in MSH-9
  * ```
  */
 export function generateDft(options: GenerateDftOptions = {}): Hl7Message {

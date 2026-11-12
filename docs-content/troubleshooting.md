@@ -105,9 +105,15 @@ a value outside their union, rather than a `SynthError`. Check the value against
 
 ## Is the generated output safe to commit and log?
 
-Yes; that is the purpose of the package. Every value comes from a reserved range or the invented-name
-pool, and the test suite's synthetic-safety properties check that for arbitrary seeds and every
-format. You can commit a generated corpus as a fixture without a PHI review of its contents.
+Safe to commit, yes; that is the purpose of the package. Every value comes from a reserved range or
+the invented-name pool, and the test suite's synthetic-safety properties check that for arbitrary
+seeds and every format. You can commit a generated corpus as a fixture without a PHI review of its
+contents.
+
+Log it as you would a real message, though: the logging code you write against a fixture is the code
+that later runs on real messages. Log codes, kinds, counts and booleans, never `content` or a field
+that identifies a person; [What is safe to log](./fatal-codes.md#what-is-safe-to-log) lists each
+field.
 
 The diagnostics are safe for a different reason. Output is safe because of where its values come
 from. A diagnostic is safe because it holds no value at all: a fatal message is a fixed string, a

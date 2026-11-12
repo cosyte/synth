@@ -61,6 +61,7 @@ const person = safe.name(rng);
 const mrn = safe.identifier(rng, "MR");
 const home = safe.address(rng);
 
+// Read and asserted, never logged; the values are synthetic.
 mrn.assigningAuthority; // => "COSYTE-SYNTH"
 home.zip; // => "00000"
 isSyntheticEmail(safe.email(rng, person)); // => true

@@ -35,7 +35,8 @@ export interface GenerateVxuOptions {
  * ```ts
  * import { generateVxu } from "@cosyte/synth/hl7";
  * const msg = generateVxu({ seed: 12345 });
- * console.log(msg.toString());
+ * const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+ * console.log(wire.split("\r")[0]?.split("|")[8]); // "VXU^V04", the type in MSH-9
  * ```
  */
 export function generateVxu(options: GenerateVxuOptions = {}): Hl7Message {

@@ -32,10 +32,12 @@ const corpus = hl7Corpus({ seed: 42, count: 7 }); // one of each family, cycled
 console.log(corpus.artifacts.every((a) => a.warnings.length === 0)); // true, all spec-clean
 
 // Dispatch by kind when the message type is data:
-console.log(roundTrip(generateHl7("VXU^V04", 12345)).content.split("\r")[0]); // its MSH segment
+const vxu = roundTrip(generateHl7("VXU^V04", 12345)).content;
+console.log(vxu.split("\r")[0]?.split("|")[8]); // VXU^V04, the type from MSH-9, never the whole segment
 ```
 
-The first three lines print `true`, and the last prints the `MSH` segment of a generated `VXU^V04`.
+The first three lines print `true`, and the last prints `VXU^V04`, the message type a generated
+`VXU^V04` carries in `MSH-9`.
 Every identifier, name, and date in these messages comes from a reserved range or the shipped pool
 of invented names.
 
