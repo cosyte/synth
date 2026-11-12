@@ -5,8 +5,9 @@
  * never loads a parser.
  * `@cosyte/hl7` is an **optional peer dependency**, present only for this subpath.
  *
- * The HL7 v2 message set is complete: `ADT` (A01/A04/A08), `ORU^R01`, `ORM^O01`, `SIU^S12`, and
- * `VXU^V04`, each built through `@cosyte/hl7`'s `buildMessage` and round-tripping with zero warnings.
+ * The HL7 v2 message set: `ADT` (A01, A02, A03, A04, A08, A11, A13, A28, A31), `ORU^R01`, `ORM^O01`,
+ * `SIU^S12`, `VXU^V04`, `MDM^T02`, `DFT^P03`, `OML^O21`, and an `ACK` for any of them, each built
+ * through `@cosyte/hl7`'s `buildMessage`, stamped HL7 v2.5, and round-tripping with zero warnings.
  *
  * @module
  */
@@ -16,11 +17,15 @@ import type { Hl7Message } from "@cosyte/hl7";
 import { createRng } from "../rng/rng.js";
 import { makeCorpus, type Corpus } from "../corpus.js";
 
-import { generateAdt, type AdtTrigger } from "./adt.js";
+import { adtTriggers, generateAdt, type AdtTrigger } from "./adt.js";
 import { generateOru } from "./oru.js";
 import { generateOrm } from "./orm.js";
 import { generateSiu } from "./siu.js";
 import { generateVxu } from "./vxu.js";
+import { generateMdm } from "./mdm.js";
+import { generateDft } from "./dft.js";
+import { generateOml } from "./oml.js";
+import { generateAck } from "./ack.js";
 import { hl7CorpusArtifact } from "./round-trip.js";
 import { requireSelection, resolveKind, resolveMix } from "../select.js";
 
@@ -29,6 +34,10 @@ export { generateOru, type GenerateOruOptions } from "./oru.js";
 export { generateOrm, type GenerateOrmOptions } from "./orm.js";
 export { generateSiu, type GenerateSiuOptions } from "./siu.js";
 export { generateVxu, type GenerateVxuOptions } from "./vxu.js";
+export { generateMdm, type GenerateMdmOptions } from "./mdm.js";
+export { generateDft, type GenerateDftOptions } from "./dft.js";
+export { generateOml, type GenerateOmlOptions } from "./oml.js";
+export { generateAck, type GenerateAckOptions, type Hl7AckCode } from "./ack.js";
 export { roundTrip, type RoundTripResult } from "./round-trip.js";
 export { componentsField } from "./field.js";
 export {
@@ -59,13 +68,41 @@ export {
 
 /**
  * Every HL7 v2 message kind this subpath generates: the `MSH-9` label used as the corpus `kind`. `ADT`
- * carries its trigger; the other families have a single generated trigger each.
+ * carries its trigger; the other families have a single generated trigger each. `ACK` acknowledges
+ * an `ADT^A01` generated from the same seed (see {@link generateAck} to acknowledge any message).
  */
 export type Hl7MessageKind =
-  "ADT^A01" | "ADT^A04" | "ADT^A08" | "ORU^R01" | "ORM^O01" | "SIU^S12" | "VXU^V04";
+  | "ADT^A01"
+  | "ADT^A04"
+  | "ADT^A08"
+  | "ORU^R01"
+  | "ORM^O01"
+  | "SIU^S12"
+  | "VXU^V04"
+  | "ACK"
+  | "ADT^A02"
+  | "ADT^A03"
+  | "ADT^A11"
+  | "ADT^A13"
+  | "ADT^A28"
+  | "ADT^A31"
+  | "MDM^T02"
+  | "DFT^P03"
+  | "OML^O21";
 
-/** Every kind {@link hl7Corpus} accepts, and the default mix: one of every family. */
-const ALL_KINDS: readonly Hl7MessageKind[] = Object.freeze([
+/**
+ * Every kind {@link generateHl7} and {@link hl7Corpus} accept, in a fixed order: the first seven
+ * kinds, then each kind added since. Pass it as a corpus `mix` to cycle through all of them.
+ *
+ * @example
+ * ```ts
+ * import { HL7_MESSAGE_KINDS, hl7Corpus } from "@cosyte/synth/hl7";
+ * hl7Corpus({ seed: 1, count: HL7_MESSAGE_KINDS.length, mix: HL7_MESSAGE_KINDS });
+ * ```
+ */
+// Stryker disable all: a module-level table runs once, at import, so per-test coverage cannot
+// attribute it to the tests that check it; test/hl7/message-kinds.test.ts asserts every entry.
+export const HL7_MESSAGE_KINDS: readonly Hl7MessageKind[] = Object.freeze([
   "ADT^A01",
   "ADT^A04",
   "ADT^A08",
@@ -73,11 +110,18 @@ const ALL_KINDS: readonly Hl7MessageKind[] = Object.freeze([
   "ORM^O01",
   "SIU^S12",
   "VXU^V04",
+  "ACK",
+  "ADT^A02",
+  "ADT^A03",
+  "ADT^A11",
+  "ADT^A13",
+  "ADT^A28",
+  "ADT^A31",
+  "MDM^T02",
+  "DFT^P03",
+  "OML^O21",
 ]);
-const DEFAULT_MIX = ALL_KINDS;
-
-/** Every `ADT` trigger the back-compat `triggers` option accepts. */
-const ADT_TRIGGERS: readonly AdtTrigger[] = Object.freeze(["A01", "A04", "A08"]);
+// Stryker restore all
 
 /**
  * Generate one message of the given {@link Hl7MessageKind} from a seed, dispatching to the right
@@ -93,7 +137,7 @@ const ADT_TRIGGERS: readonly AdtTrigger[] = Object.freeze(["A01", "A04", "A08"])
  * ```
  */
 export function generateHl7(kind: Hl7MessageKind, seed: number): Hl7Message {
-  switch (resolveKind(ALL_KINDS, kind)) {
+  switch (resolveKind(HL7_MESSAGE_KINDS, kind)) {
     case "ADT^A01":
       return generateAdt({ seed, trigger: "A01" });
     case "ADT^A04":
@@ -108,6 +152,26 @@ export function generateHl7(kind: Hl7MessageKind, seed: number): Hl7Message {
       return generateSiu({ seed });
     case "VXU^V04":
       return generateVxu({ seed });
+    case "ACK":
+      return generateAck({ seed });
+    case "ADT^A02":
+      return generateAdt({ seed, trigger: "A02" });
+    case "ADT^A03":
+      return generateAdt({ seed, trigger: "A03" });
+    case "ADT^A11":
+      return generateAdt({ seed, trigger: "A11" });
+    case "ADT^A13":
+      return generateAdt({ seed, trigger: "A13" });
+    case "ADT^A28":
+      return generateAdt({ seed, trigger: "A28" });
+    case "ADT^A31":
+      return generateAdt({ seed, trigger: "A31" });
+    case "MDM^T02":
+      return generateMdm({ seed });
+    case "DFT^P03":
+      return generateDft({ seed });
+    case "OML^O21":
+      return generateOml({ seed });
   }
 }
 
@@ -118,9 +182,9 @@ export interface Hl7CorpusOptions {
   /** How many messages to generate. Defaults to `1`. */
   readonly count?: number;
   /**
-   * The message kinds to cycle through. Defaults to one of every family
-   * (`ADT^A01/A04/A08`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`). An empty list throws
-   * `SYNTH_EMPTY_POOL`.
+   * The message kinds to cycle through, any of {@link HL7_MESSAGE_KINDS}. Defaults to one each of
+   * the first seven kinds (`ADT^A01/A04/A08`, `ORU^R01`, `ORM^O01`, `SIU^S12`, `VXU^V04`), so a seed's
+   * default corpus is unchanged as kinds are added. An empty list throws `SYNTH_EMPTY_POOL`.
    */
   readonly mix?: readonly Hl7MessageKind[];
   /**
@@ -157,9 +221,11 @@ export function hl7Corpus(options: Hl7CorpusOptions): Corpus {
   const kinds: readonly Hl7MessageKind[] = requireSelection(
     options.triggers !== undefined
       ? options.triggers.map(
-          (t): Hl7MessageKind => `ADT^${resolveKind(ADT_TRIGGERS, t)}` as Hl7MessageKind,
+          (t): Hl7MessageKind => `ADT^${resolveKind(adtTriggers(), t)}` as Hl7MessageKind,
         )
-      : resolveMix(ALL_KINDS, options.mix, DEFAULT_MIX),
+      : // The default mix is the first seven kinds: those added since are not in it, so a seed's
+        // default corpus keeps the bytes it had.
+        resolveMix(HL7_MESSAGE_KINDS, options.mix, HL7_MESSAGE_KINDS.slice(0, 7)),
   );
   // A seed stream derives one deterministic per-message seed from the corpus seed.
   const seedStream = createRng(seed);

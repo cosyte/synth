@@ -79,12 +79,17 @@ The kinds each corpus accepts in `mix`, which are also the `kind` label on each 
 | NCPDP  | `ncpdpCorpus` | `NewRx`, `RxRenewalRequest`, `RxChangeRequest`, `B1`, `B2`, `B3`                                                                                                       | the length of `mix` |
 | ASTM   | `astmCorpus`  | `Result`, `Order`                                                                                                                                                      | the length of `mix` |
 
+`hl7Corpus` also accepts ten kinds that are not in its default mix, so a seed's default corpus does
+not change as kinds are added: `ACK`, `ADT^A02`, `ADT^A03`, `ADT^A11`, `ADT^A13`, `ADT^A28`,
+`ADT^A31`, `MDM^T02`, `DFT^P03` and `OML^O21`. `HL7_MESSAGE_KINDS` lists all seventeen; pass it as
+`mix` to cycle through every one.
+
 `fhirCorpus` also accepts two kinds that are not in its default mix: `Patient` (a base R4 Patient
 with no US Core profile) and `DocumentBundle` (a `document` Bundle). `Bundle` is a `collection`
 Bundle.
 
-`hl7Corpus` also takes `triggers`, a list of `A01`, `A04` and `A08`. When given, it takes the place
-of `mix` and the corpus holds only `ADT` messages. An empty `triggers` list throws
+`hl7Corpus` also takes `triggers`, a list of ADT trigger events (any `trigger` `generateAdt`
+accepts). When given, it takes the place of `mix` and the corpus holds only `ADT` messages. An empty `triggers` list throws
 [`SYNTH_EMPTY_POOL`](./fatal-codes.md#synth_empty_pool), as an empty `mix` does.
 
 ## HL7 v2 options
@@ -98,10 +103,16 @@ Subpath `@cosyte/synth/hl7`, built through `@cosyte/hl7`.
 | `generateOrm`      | `seed`                     | `0`                | `Hl7Message` |
 | `generateSiu`      | `seed`                     | `0`                | `Hl7Message` |
 | `generateVxu`      | `seed`                     | `0`                | `Hl7Message` |
+| `generateMdm`      | `seed`                     | `0`                | `Hl7Message` |
+| `generateDft`      | `seed`                     | `0`                | `Hl7Message` |
+| `generateOml`      | `seed`                     | `0`                | `Hl7Message` |
+| `generateAck`      | `seed`, `inbound`, `code`  | `0`, the `ADT^A01` from `seed`, `"AA"` | `Hl7Message` |
 | `generateHl7`      | `(kind, seed)`             | none               | `Hl7Message` |
 | `generateHl7Quirk` | `seed`, `quirk`, `kind`    | `0`, required, `"ORU^R01"` | `QuirkArtifact` |
 
-`trigger` is `"A01"`, `"A04"` or `"A08"`. `kind` is any HL7 v2 kind in the [Kinds](#kinds) table.
+`trigger` is `"A01"`, `"A02"`, `"A03"`, `"A04"`, `"A08"`, `"A11"`, `"A13"`, `"A28"` or `"A31"`.
+`code` is `"AA"`, `"AE"` or `"AR"`. `generateHl7`'s `kind` is any HL7 v2 kind in the
+[Kinds](#kinds) table; `generateHl7Quirk`'s is one of the seven in the default mix.
 Quirk names are in the [quirk catalog](./quirk-catalog.md#hl7-v2).
 
 ## FHIR options

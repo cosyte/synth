@@ -86,7 +86,7 @@ How each differs from `@cosyte/synth`, by its own README:
   byte-identical for a seed, validates against US Core 6.1.0, labels every resource `HTEST`, keeps
   SSN-style identifiers in the 900 series, and gives practitioners NPIs that fail their check digit.
   It covers FHIR alone, where we cover six formats.
-- **hl7gen** generates any of about 185 HL7 v2.5 message types where we generate seven, and adds
+- **hl7gen** generates any of about 185 HL7 v2.5 message types where we generate seventeen, and adds
   validation, sending over TCP, and conversion to FHIR. It fills values with Faker, or with a patient
   persona from Claude when you supply an Anthropic API key. Its README does not describe seeding or
   values from reserved ranges.

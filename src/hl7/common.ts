@@ -42,6 +42,41 @@ export function seededTimestamp(rng: Rng): string {
   return `${date}${hh}${mm}${ss}`;
 }
 
+/**
+ * A `YYYYMMDDHHMMSS` timestamp moved by a number of seconds, carried across minute, hour, day, month
+ * and year boundaries in UTC (the timestamps carry no zone, so no daylight-saving shift applies).
+ *
+ * @param timestamp - A 14-digit `YYYYMMDDHHMMSS` timestamp.
+ * @param seconds - The seconds to add; negative moves it back.
+ * @returns The moved 14-digit timestamp.
+ * @example
+ * ```ts
+ * shiftTimestamp("20251231235959", 1); // "20260101000000"
+ * ```
+ * @internal
+ */
+export function shiftTimestamp(timestamp: string, seconds: number): string {
+  const at = new Date(
+    Date.UTC(
+      Number(timestamp.slice(0, 4)),
+      Number(timestamp.slice(4, 6)) - 1,
+      Number(timestamp.slice(6, 8)),
+      Number(timestamp.slice(8, 10)),
+      Number(timestamp.slice(10, 12)),
+      Number(timestamp.slice(12, 14)) + seconds,
+    ),
+  );
+  const pad = (n: number, width = 2): string => String(n).padStart(width, "0");
+  return (
+    pad(at.getUTCFullYear(), 4) +
+    pad(at.getUTCMonth() + 1) +
+    pad(at.getUTCDate()) +
+    pad(at.getUTCHours()) +
+    pad(at.getUTCMinutes()) +
+    pad(at.getUTCSeconds())
+  );
+}
+
 /** The MSH scaffold shared by every generated message: the built message plus its seeded MSH values. */
 export interface MessageScaffold {
   /** The `Hl7Message` with a complete MSH: chain `.addSegment(...)` to append the payload. */

@@ -37,7 +37,7 @@ The 0.1 line, published to npm. The version shown on the npm package page is the
 that is live; this page never repeats it. Every release is a patch, a breaking change included, and
 the changelog says what broke and what a caller must change. The generator is **feature-complete**: the
 seeded-PRNG core, the synthetic-safety providers, and the round-trip harness; **generation across all
-six formats**, HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`), FHIR R4 / US Core (the full clinical
+six formats**, HL7 v2 (`ADT`/`ORU`/`ORM`/`SIU`/`VXU`/`MDM`/`DFT`/`OML` and `ACK`), FHIR R4 / US Core (the full clinical
 set + `collection`/`transaction`/`document` Bundles), C-CDA R2.1 (CCD + Referral Note), X12 005010
 (837P/I/D, 835, 271), NCPDP (SCRIPT NewRx / RxRenewal / RxChange + Telecom B1/B2/B3), and ASTM (E1394
 record reports + E1381 framing), each built **through its parser's own builder/serializer**; **vendor-quirk
@@ -83,8 +83,10 @@ on [docs.cosyte.com/synth](https://docs.cosyte.com/synth).
 
 ### Generate a spec-clean HL7 v2 message
 
-The HL7 v2 set covers `ADT` (`A01`/`A04`/`A08`), `ORU^R01`, `ORM^O01`, `SIU^S12`, and `VXU^V04`:
-each built through `@cosyte/hl7`'s `buildMessage`, so it is spec-clean by construction.
+The HL7 v2 set covers `ADT` (`A01`/`A02`/`A03`/`A04`/`A08`/`A11`/`A13`/`A28`/`A31`), `ORU^R01`,
+`ORM^O01`, `SIU^S12`, `VXU^V04`, `MDM^T02`, `DFT^P03`, `OML^O21`, and an `ACK` for any of them:
+each built through `@cosyte/hl7`'s `buildMessage`, so it is spec-clean by construction. Every
+message is stamped HL7 v2.5.
 
 ```ts
 import { generateAdt, generateOru, generateHl7, hl7Corpus, roundTrip } from "@cosyte/synth/hl7";

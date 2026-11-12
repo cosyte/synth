@@ -90,6 +90,12 @@ export const SYNTH_FATAL_CODES = Object.freeze({
    * command, and the error Node.js raised on `cause`.
    */
   SYNTH_PEER_NOT_INSTALLED: "SYNTH_PEER_NOT_INSTALLED",
+  /**
+   * An HL7 v2 `ACK` was asked for an inbound message that carries no MSH-10 message control id.
+   * MSA-2 must echo that id, and an acknowledgment that cannot be matched to the message it answers
+   * is not a fixture worth having, so nothing is generated.
+   */
+  SYNTH_ACK_UNCORRELATED: "SYNTH_ACK_UNCORRELATED",
 } as const);
 
 /**
@@ -144,6 +150,9 @@ export const SYNTH_FATAL_MESSAGES: Readonly<Record<SynthFatalCode, string>> = Ob
   SYNTH_PEER_NOT_INSTALLED:
     "A sibling @cosyte parser this generator builds through is not installed. Install it beside " +
     "@cosyte/synth.",
+  SYNTH_ACK_UNCORRELATED:
+    // Stryker disable next-line all: a module-level table runs once, at import; the docs test holds it.
+    "The inbound message has no MSH-10 control id for an ACK to echo in MSA-2.",
 });
 
 /**

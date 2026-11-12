@@ -249,6 +249,14 @@ The generation core is **feature-complete across all six formats**. Quirk mode a
 - **Format-specific gaps flagged, never faked:** the X12 **270** request (`@cosyte/x12` ships
   `build270` on its 0.1 line; `synth` does not use it yet) and NCPDP **SCRIPT lifecycle responses** are not
   generated, a gap is surfaced, never hand-written.
+- **HL7 v2 is stamped 2.5 only.** Every message says `2.5` in `MSH-12`, and there is no option to
+  stamp another version such as 2.3.1, 2.5.1 or 2.8. `@cosyte/hl7` checks a message's required
+  segments against one published structure set, not per version, so a message stamped with another
+  version could not be checked against that version's rules, and we do not stamp what we cannot
+  check. An `ACK` echoes the version of the message it answers.
+- **HL7 v2 kinds not generated:** `RDE^O11` (pharmacy encoded order) and every kind outside the
+  seventeen in `HL7_MESSAGE_KINDS`. `@cosyte/hl7` publishes no required-segment structure for
+  `RDE^O11` yet, so a clean read-back would prove nothing about it.
 - **Built-in `synth` profiles.** `defineSynthProfile()` names a set of quirks for a quirk corpus,
   and ready-made quirk profiles ship for the three quirk formats. Its `givenNames` and
   `familyNames` are stored on the profile, and no generator reads them yet. Broader **named site/vendor** recipes
