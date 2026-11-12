@@ -90,7 +90,7 @@ the same. The FHIR helper also validates the resource.
 
 The number that decides every choice a generator makes. The same seed gives the same bytes on the
 same versions of `@cosyte/synth` and the parser, so a test can regenerate its fixture rather than
-store it. See [Pin a golden fixture](./guides-overview.md).
+store it. See [Pin a golden fixture](./pin-a-golden-fixture.md).
 
 ## Sentinel
 

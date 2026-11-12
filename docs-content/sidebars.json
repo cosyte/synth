@@ -37,18 +37,22 @@
         "guides-quirks",
         "guides-deid",
         "draw-synthetic-values",
-        "guides-overview"
+        "pin-a-golden-fixture"
       ]
     },
     {
       "type": "category",
       "label": "Explanation",
-      "items": ["concepts-archetype", "limitations", "synthea-faker-and-other-generators"]
+      "items": [
+        "concepts-archetype",
+        "why-deid-checks-patient-fields",
+        "synthea-faker-and-other-generators"
+      ]
     },
     {
       "type": "category",
       "label": "Reference",
-      "items": ["generator-options", "fatal-codes", "quirk-catalog", "glossary"]
+      "items": ["generator-options", "fatal-codes", "quirk-catalog", "glossary", "limitations"]
     },
     {
       "type": "category",

@@ -106,6 +106,6 @@ None of the three generates C-CDA, X12, NCPDP or ASTM.
 
 - [What it does and does not do](./limitations.md): the promise and its edges.
 - [How it works](./concepts-archetype.md): why every fixture is synthetic by construction.
-- How-to guides that apply it: [Pin a golden fixture](./guides-overview.md),
+- How-to guides that apply it: [Pin a golden fixture](./pin-a-golden-fixture.md),
   [Generate vendor-quirk fixtures](./guides-quirks.md), and
   [Draw synthetic values for your own fixtures](./draw-synthetic-values.md).
