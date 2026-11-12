@@ -105,6 +105,9 @@ describe("the animal subject on ADT and ORU", () => {
           expect(dob <= runDate, `${label} ${dob} after ${runDate}`).toBe(true);
           expect(yearsBetween(dob, runDate), `${label} ${dob} ${runDate}`).toBeLessThanOrEqual(20);
 
+          // PID-8: the animal's sex, M or F.
+          expect(["M", "F"], label).toContain(msg.get("PID.8"));
+
           // A person's SSN never rides on an animal.
           expect(msg.get("PID.19") ?? "", label).toBe("");
 
@@ -153,6 +156,14 @@ describe("the animal subject on ADT and ORU", () => {
         expect(animalMessages(s)).toEqual(animalMessages(s));
       }),
     );
+  });
+
+  it("draws both sexes over a sweep of seeds", () => {
+    const sexes = new Set<string>();
+    for (let s = 0; s < 40; s += 1) {
+      sexes.add(parseHL7(generateOru({ seed: s, subject: "animal" }).toString()).get("PID.8") ?? "");
+    }
+    expect([...sexes].sort()).toEqual(["F", "M"]);
   });
 
   it("draws every species and every breed over a sweep of seeds", () => {
