@@ -113,7 +113,7 @@ A reader for NCPDP Telecom claims, tested against a billing, a reversal and a re
 prescription whose prescriber identifiers cannot be real, each regenerated from a seed. None of it
 holds patient data.
 
-## Where to go next
+## Next
 
 - [Generate NCPDP messages](./guides-ncpdp.md): every generator on the NCPDP subpath, and where each
   identifier comes from.

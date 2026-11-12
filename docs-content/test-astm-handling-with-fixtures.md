@@ -117,7 +117,7 @@ A reader for ASTM laboratory results, tested against a record stream and its fra
 from a seed, plus a message with a known deviation and the warning it raises. None of it holds
 patient data.
 
-## Where to go next
+## Next
 
 - [Generate ASTM messages](./guides-astm.md): every generator on the ASTM subpath.
 - [Generate vendor-quirk fixtures](./guides-quirks.md): the other ASTM quirk, and the parser profile

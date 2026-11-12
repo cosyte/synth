@@ -124,7 +124,7 @@ msg.get("MSH.9.1"); // => "ORU"
 A reader for HL7 v2 messages, tested against a fixture of every family, regenerated from a seed,
 plus a fixture with a known deviation and the warning it raises. None of it holds patient data.
 
-## Where to go next
+## Next
 
 - [Generate HL7 v2 messages](./guides-hl7.md): every generator and option on the HL7 v2 subpath.
 - [Generate vendor-quirk fixtures](./guides-quirks.md): the other quirks, and the parser profiles
