@@ -148,7 +148,7 @@ A reconciliation check for 835 remittances, tested against twenty generated remi
 router tested against one of every transaction the subpath generates, each regenerated from a seed.
 None of it holds patient data.
 
-## Where to go next
+## Next
 
 - [Generate X12 transactions](./guides-x12.md): every generator on the X12 subpath, and where each
   identifier comes from.

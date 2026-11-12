@@ -162,7 +162,7 @@ A reader for FHIR R4 JSON, tested against a US Core Patient, one resource of eve
 document Bundle whose references all resolve, each regenerated from a seed. None of it holds patient
 data.
 
-## Where to go next
+## Next
 
 - [Generate FHIR R4 and US Core resources](./guides-fhir.md): every generator, the Bundle types, and
   validation against the US Core profiles.

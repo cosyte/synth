@@ -121,7 +121,7 @@ doc.documentType; // => "ccd"
 A reader for C-CDA documents, tested against a CCD and a Referral Note regenerated from a seed, plus
 a document with a known deviation and the warning it raises. None of it holds patient data.
 
-## Where to go next
+## Next
 
 - [Generate C-CDA documents](./guides-ccda.md): every generator and option on the C-CDA subpath.
 - [Generate vendor-quirk fixtures](./guides-quirks.md): the other C-CDA quirks, and the parser
