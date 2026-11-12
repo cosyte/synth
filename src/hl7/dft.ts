@@ -16,12 +16,14 @@ import { componentsField } from "./field.js";
 import { mshScaffold, patientIdentity, pidSegment } from "./common.js";
 
 /** The local charge codes drawn from (`FT1-7`, coding system `99SYN`): plainly fake. */
-const CHARGES = Object.freeze([
-  Object.freeze({ code: "SYNTHCHG01", text: "Synthetic office visit charge" }),
-  Object.freeze({ code: "SYNTHCHG02", text: "Synthetic laboratory charge" }),
-  Object.freeze({ code: "SYNTHCHG03", text: "Synthetic imaging charge" }),
-  Object.freeze({ code: "SYNTHCHG04", text: "Synthetic supply charge" }),
-]);
+function charges(): readonly { readonly code: string; readonly text: string }[] {
+  return [
+    { code: "SYNTHCHG01", text: "Synthetic office visit charge" },
+    { code: "SYNTHCHG02", text: "Synthetic laboratory charge" },
+    { code: "SYNTHCHG03", text: "Synthetic imaging charge" },
+    { code: "SYNTHCHG04", text: "Synthetic supply charge" },
+  ];
+}
 
 /** Options for {@link generateDft}. */
 export interface GenerateDftOptions {
@@ -55,7 +57,7 @@ export function generateDft(options: GenerateDftOptions = {}): Hl7Message {
   message.addSegment("PV1", ["1", rng.pick(["I", "O", "E"] as const)]);
 
   const transactionId = `SYNTHTXN${rng.digits(8)}`;
-  const charge = rng.pick(CHARGES);
+  const charge = rng.pick(charges());
   const quantity = String(rng.int(1, 3));
   message.addSegment("FT1", [
     "1", // FT1-1 set id

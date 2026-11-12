@@ -26,18 +26,16 @@ import type { Rng } from "../rng/rng.js";
 import { mshScaffold, patientIdentity, pidSegment, shiftTimestamp } from "./common.js";
 import { resolveKind } from "../select.js";
 
-/** Every value {@link GenerateAdtOptions.trigger} accepts. Erased at run time, so it is resolved. */
-const ADT_TRIGGERS: readonly AdtTrigger[] = Object.freeze([
-  "A01",
-  "A04",
-  "A08",
-  "A02",
-  "A03",
-  "A11",
-  "A13",
-  "A28",
-  "A31",
-]);
+/**
+ * Every value {@link GenerateAdtOptions.trigger} accepts. Erased at run time, so it is resolved. Built
+ * on each call rather than held at module level, so the tests that use it are the tests that check it.
+ *
+ * @returns The triggers, the first three first.
+ * @internal
+ */
+export function adtTriggers(): readonly AdtTrigger[] {
+  return ["A01", "A04", "A08", "A02", "A03", "A11", "A13", "A28", "A31"];
+}
 
 /** The ADT trigger events this generator produces (all require the EVN, PID and PV1 segments). */
 export type AdtTrigger = "A01" | "A04" | "A08" | "A02" | "A03" | "A11" | "A13" | "A28" | "A31";
@@ -47,15 +45,21 @@ export type AdtTrigger = "A01" | "A04" | "A08" | "A02" | "A03" | "A11" | "A13" |
  * MSH-9.3. `A01`, `A04` and `A08` keep the two-component MSH-9 they have always carried, so a seed
  * gives the same bytes it did before.
  */
-const STRUCTURES: Readonly<Record<Exclude<AdtTrigger, "A01" | "A04" | "A08">, string>> =
-  Object.freeze({
-    A02: "ADT_A02",
-    A03: "ADT_A03",
-    A11: "ADT_A09",
-    A13: "ADT_A01",
-    A28: "ADT_A05",
-    A31: "ADT_A05",
-  });
+function structureOf(trigger: Exclude<AdtTrigger, "A01" | "A04" | "A08">): string {
+  switch (trigger) {
+    case "A02":
+      return "ADT_A02";
+    case "A03":
+      return "ADT_A03";
+    case "A11":
+      return "ADT_A09";
+    case "A13":
+      return "ADT_A01";
+    case "A28":
+    case "A31":
+      return "ADT_A05";
+  }
+}
 
 /** An assigned patient location (`PL`): the synthetic ward, the given room, bed `01`. */
 function ward(room: number): RawField {
@@ -100,7 +104,7 @@ export interface GenerateAdtOptions {
  */
 export function generateAdt(options: GenerateAdtOptions = {}): Hl7Message {
   const seed = options.seed ?? 0;
-  const trigger = resolveKind(ADT_TRIGGERS, options.trigger ?? "A01");
+  const trigger = resolveKind(adtTriggers(), options.trigger ?? "A01");
   const rng = createRng(seed);
 
   if (trigger === "A01" || trigger === "A04" || trigger === "A08") {
@@ -117,7 +121,7 @@ export function generateAdt(options: GenerateAdtOptions = {}): Hl7Message {
     return message;
   }
 
-  const { message, timestamp } = mshScaffold(rng, `ADT^${trigger}^${STRUCTURES[trigger]}`);
+  const { message, timestamp } = mshScaffold(rng, `ADT^${trigger}^${structureOf(trigger)}`);
   message.addSegment("EVN", [trigger, timestamp]);
   message.addSegment("PID", pidSegment(patientIdentity(rng)));
   message.addSegment("PV1", visit(rng, trigger, timestamp));

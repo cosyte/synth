@@ -17,7 +17,7 @@ import type { Hl7Message } from "@cosyte/hl7";
 import { createRng } from "../rng/rng.js";
 import { makeCorpus, type Corpus } from "../corpus.js";
 
-import { generateAdt, type AdtTrigger } from "./adt.js";
+import { adtTriggers, generateAdt, type AdtTrigger } from "./adt.js";
 import { generateOru } from "./oru.js";
 import { generateOrm } from "./orm.js";
 import { generateSiu } from "./siu.js";
@@ -100,6 +100,8 @@ export type Hl7MessageKind =
  * hl7Corpus({ seed: 1, count: HL7_MESSAGE_KINDS.length, mix: HL7_MESSAGE_KINDS });
  * ```
  */
+// Stryker disable all: a module-level table runs once, at import, so per-test coverage cannot
+// attribute it to the tests that check it; test/hl7/message-kinds.test.ts asserts every entry.
 export const HL7_MESSAGE_KINDS: readonly Hl7MessageKind[] = Object.freeze([
   "ADT^A01",
   "ADT^A04",
@@ -119,25 +121,7 @@ export const HL7_MESSAGE_KINDS: readonly Hl7MessageKind[] = Object.freeze([
   "DFT^P03",
   "OML^O21",
 ]);
-
-/**
- * The default corpus mix: the first seven kinds, one of each. The kinds added since are not in it,
- * so a seed's default corpus keeps the bytes it had; name them in `mix` to include them.
- */
-const DEFAULT_MIX: readonly Hl7MessageKind[] = Object.freeze(HL7_MESSAGE_KINDS.slice(0, 7));
-
-/** Every `ADT` trigger the `triggers` option accepts. */
-const ADT_TRIGGERS: readonly AdtTrigger[] = Object.freeze([
-  "A01",
-  "A04",
-  "A08",
-  "A02",
-  "A03",
-  "A11",
-  "A13",
-  "A28",
-  "A31",
-]);
+// Stryker restore all
 
 /**
  * Generate one message of the given {@link Hl7MessageKind} from a seed, dispatching to the right
@@ -237,9 +221,11 @@ export function hl7Corpus(options: Hl7CorpusOptions): Corpus {
   const kinds: readonly Hl7MessageKind[] = requireSelection(
     options.triggers !== undefined
       ? options.triggers.map(
-          (t): Hl7MessageKind => `ADT^${resolveKind(ADT_TRIGGERS, t)}` as Hl7MessageKind,
+          (t): Hl7MessageKind => `ADT^${resolveKind(adtTriggers(), t)}` as Hl7MessageKind,
         )
-      : resolveMix(HL7_MESSAGE_KINDS, options.mix, DEFAULT_MIX),
+      : // The default mix is the first seven kinds: those added since are not in it, so a seed's
+        // default corpus keeps the bytes it had.
+        resolveMix(HL7_MESSAGE_KINDS, options.mix, HL7_MESSAGE_KINDS.slice(0, 7)),
   );
   // A seed stream derives one deterministic per-message seed from the corpus seed.
   const seedStream = createRng(seed);

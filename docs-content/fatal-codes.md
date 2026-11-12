@@ -101,7 +101,7 @@ An ACK echoes that id in MSA-2, the field a receiver matches it on, so with no i
 to acknowledge. Raised before anything is generated. Every message this package generates carries
 an MSH-10, so it is raised only for a message you build or parse yourself.
 
-Message: "The inbound HL7 v2 message has no MSH-10 message control id, so an ACK could not echo it in MSA-2 and would answer no message."
+Message: "The inbound message has no MSH-10 control id for an ACK to echo in MSA-2."
 
 ### `SYNTH_UNMAPPED_CODE_SYSTEM`
 

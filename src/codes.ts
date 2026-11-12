@@ -150,9 +150,9 @@ export const SYNTH_FATAL_MESSAGES: Readonly<Record<SynthFatalCode, string>> = Ob
   SYNTH_PEER_NOT_INSTALLED:
     "A sibling @cosyte parser this generator builds through is not installed. Install it beside " +
     "@cosyte/synth.",
+  // Stryker disable next-line all: a module-level table runs once, at import; the docs test holds it.
   SYNTH_ACK_UNCORRELATED:
-    "The inbound HL7 v2 message has no MSH-10 message control id, so an ACK could not echo it in " +
-    "MSA-2 and would answer no message.",
+    "The inbound message has no MSH-10 control id for an ACK to echo in MSA-2.",
 });
 
 /**
