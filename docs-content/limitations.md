@@ -329,6 +329,6 @@ refusedCode; // => "SYNTH_PROFILE_NOT_GENERATED"
 
 - [How it works](./concepts-archetype.md): the design behind each promise.
 - [Testing and quality](./testing-and-quality.md): how each promise is tested.
-- How-to guides that apply it: [Pin a golden fixture](./guides-overview.md),
+- How-to guides that apply it: [Pin a golden fixture](./pin-a-golden-fixture.md),
   [Generate FHIR R4 and US Core resources](./guides-fhir.md), and
   [Draw synthetic values for your own fixtures](./draw-synthetic-values.md).

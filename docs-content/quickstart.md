@@ -103,7 +103,7 @@ a === b; // => true
   [C-CDA](./guides-ccda.md), [X12](./guides-x12.md), [NCPDP](./guides-ncpdp.md), and
   [ASTM](./guides-astm.md).
 - [Generate vendor-quirk fixtures](./guides-quirks.md) and
-  [Pin a golden fixture](./guides-overview.md).
+  [Pin a golden fixture](./pin-a-golden-fixture.md).
 - [How it works](./concepts-archetype.md): why the output is synthetic, checked, and reproducible.
 - [Generator options, kinds and profiles](./generator-options.md) and the [glossary](./glossary.md).
 - The [API reference](./api/README.md), generated from the source.

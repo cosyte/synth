@@ -1,5 +1,5 @@
 ---
-id: guides-overview
+id: pin-a-golden-fixture
 title: Pin a golden fixture
 sidebar_label: Pin a golden fixture
 description: "Pin a seed and the package versions, write a generated corpus to disk as a golden file, and check later that it still regenerates the same."

@@ -168,4 +168,4 @@ data.
   validation against the US Core profiles.
 - [Generator options, kinds and profiles](./generator-options.md): every option and every kind a
   corpus accepts.
-- [Pin a golden fixture](./guides-overview.md): write a corpus to disk and check it later.
+- [Pin a golden fixture](./pin-a-golden-fixture.md): write a corpus to disk and check it later.

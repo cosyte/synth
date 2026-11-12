@@ -388,11 +388,11 @@ The full reference is on [docs.cosyte.com/synth](https://docs.cosyte.com/synth):
   [C-CDA](https://docs.cosyte.com/synth/guides-ccda), [X12](https://docs.cosyte.com/synth/guides-x12), [NCPDP](https://docs.cosyte.com/synth/guides-ncpdp),
   [ASTM](https://docs.cosyte.com/synth/guides-astm), [vendor quirks](https://docs.cosyte.com/synth/guides-quirks),
   [the `@cosyte/deid` pairing loop](https://docs.cosyte.com/synth/guides-deid), [synthetic values](https://docs.cosyte.com/synth/draw-synthetic-values),
-  and [pinning a golden fixture](https://docs.cosyte.com/synth/guides-overview).
-- Explanation: [how it works](https://docs.cosyte.com/synth/concepts-archetype), [what it does and does not do](https://docs.cosyte.com/synth/limitations),
+  and [pinning a golden fixture](https://docs.cosyte.com/synth/pin-a-golden-fixture).
+- Explanation: [how it works](https://docs.cosyte.com/synth/concepts-archetype), [why the removal check reads only the patient fields](https://docs.cosyte.com/synth/why-deid-checks-patient-fields),
   and [Synthea, faker and other generators](https://docs.cosyte.com/synth/synthea-faker-and-other-generators).
 - Reference: [generator options, kinds and profiles](https://docs.cosyte.com/synth/generator-options), [fatal codes](https://docs.cosyte.com/synth/fatal-codes),
-  the [quirk catalog](https://docs.cosyte.com/synth/quirk-catalog), the [glossary](https://docs.cosyte.com/synth/glossary), and the
+  the [quirk catalog](https://docs.cosyte.com/synth/quirk-catalog), the [glossary](https://docs.cosyte.com/synth/glossary), [what it does and does not do](https://docs.cosyte.com/synth/limitations), and the
   [API reference](https://github.com/cosyte/synth/blob/main/docs-content/api/README.md), generated from the source.
 - [Troubleshooting](https://docs.cosyte.com/synth/troubleshooting), [testing and quality](https://docs.cosyte.com/synth/testing-and-quality), and [performance](https://docs.cosyte.com/synth/performance).
 - [`CHANGELOG.md`](https://github.com/cosyte/synth/blob/main/CHANGELOG.md): every release.

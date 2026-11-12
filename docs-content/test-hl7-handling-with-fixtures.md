@@ -98,7 +98,7 @@ first === again; // => true
 ```
 
 The bytes come from `@cosyte/hl7`'s builder, so pin the versions of `@cosyte/synth` and
-`@cosyte/hl7` in your lockfile as well as the seed. [Pin a golden fixture](./guides-overview.md)
+`@cosyte/hl7` in your lockfile as well as the seed. [Pin a golden fixture](./pin-a-golden-fixture.md)
 covers writing a fixture to disk and checking it later.
 
 ## 5. Add a vendor deviation

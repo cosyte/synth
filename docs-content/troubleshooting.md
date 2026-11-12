@@ -24,7 +24,7 @@ If the seed is the same, a version moved. A `synth` release can change the bytes
 and when it does, its changelog entry says so under "Output change" and names each format. A parser
 upgrade can change them with `synth` unchanged, because each format's bytes come from that parser's
 builder. Pin the seed, the `synth` version, and the parser versions together;
-[Pin a golden fixture](./guides-overview.md) shows how.
+[Pin a golden fixture](./pin-a-golden-fixture.md) shows how.
 
 ## A parser is not installed
 

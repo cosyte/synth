@@ -67,15 +67,6 @@ summary.totalSurvivors; // => 0
 summary.totalClinicalScrubbed; // => 0
 ```
 
-## Why the check looks only at the patient fields
-
-`synth` draws patient names, provider and organization names, addresses, and phone numbers from the
-same synthetic pools, and a de-identifier may rightly keep a provider's identity. So the removal check
-reads only the values left at the fields that held patient identifiers, not the whole document. A
-provider name that the de-identifier keeps, and that happens to match a patient's, is not reported as
-a survivor. The check reads the de-identifier's real serialized output, so a de-identifier that finds
-a field and fails to clear it is still caught.
-
 ## The same seed gives the same result
 
 The loop depends only on the seed: the same seed gives the same artifact, the same de-identified
@@ -112,5 +103,7 @@ value but `"ccd"` as a Referral Note. None of them quotes your value.
   [`summarizeDeidCoverage`](./api/src/deid.md#summarizedeidcoverage),
   [`DeidLoopResult`](./api/src/deid.md#deidloopresult), and
   [`DEID_LOOP_SKIPPED`](./api/src/deid.md#deid_loop_skipped).
+- [Why the removal check reads only the patient fields](./why-deid-checks-patient-fields.md): what
+  the check counts as a survivor, and why.
 - [What it does and does not do](./limitations.md#coverage-and-what-is-deferred): coverage across
   the formats.

@@ -2,7 +2,7 @@
 id: guides-hl7
 title: Generate HL7 v2 messages
 sidebar_label: HL7 v2
-description: "Generate ADT, ORU, ORM, SIU, VXU, MDM, DFT and OML messages and their ACKs through @cosyte/hl7's builder, choose a mix for a corpus, and check each message reads back clean."
+description: "Generate ADT, ORU, ORM, SIU, VXU, MDM, DFT and OML messages and their ACKs with @cosyte/hl7's builder, and check each one reads back clean."
 ---
 
 # Generate HL7 v2 messages
