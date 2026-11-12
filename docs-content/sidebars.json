@@ -28,6 +28,7 @@
       "label": "How-to guides",
       "items": [
         "guides-hl7",
+        "guides-animal-patients",
         "guides-fhir",
         "guides-ccda",
         "guides-x12",

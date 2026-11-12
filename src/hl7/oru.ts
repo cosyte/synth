@@ -14,13 +14,26 @@ import type { Hl7Message, RawField } from "@cosyte/hl7";
 import { createRng, type Rng } from "../rng/rng.js";
 
 import { componentsField } from "./field.js";
-import { mshScaffold, patientIdentity, pidSegment, seededTimestamp } from "./common.js";
+import {
+  addSubject,
+  hl7Subjects,
+  mshScaffold,
+  seededTimestamp,
+  type Hl7Subject,
+} from "./common.js";
+import { resolveKind } from "../select.js";
 import { EXAMPLE_LAB_OBSERVATIONS, EXAMPLE_ORDER_SERVICES } from "./example-codes.js";
 
 /** Options for {@link generateOru}. */
 export interface GenerateOruOptions {
   /** The seed: the same seed yields a byte-identical message. Defaults to `0`. */
   readonly seed?: number;
+  /**
+   * Who the result is about. Defaults to `"person"`, whose bytes for a seed are what they always
+   * were. `"animal"` writes a veterinary patient: the pet's name in PID-5, a microchip in PID-3, the
+   * species in PID-35 and breed in PID-36, and the owner in an `NK1` after the `PID`.
+   */
+  readonly subject?: Hl7Subject;
 }
 
 /** Render one `OBX` result segment (set id `n`) for a numeric example observation. */
@@ -55,7 +68,9 @@ function obxSegment(rng: Rng, setId: number): readonly (string | RawField)[] {
  * rows. The `OBR`/`OBX` result group satisfies the parser's `ORU^R01` structure net, so the message
  * re-parses with **zero warnings** (proven by {@link ./round-trip}).
  *
- * @param options - Seed. See {@link GenerateOruOptions}.
+ * With `subject: "animal"` the patient is an animal and its owner follows the `PID` in an `NK1`.
+ *
+ * @param options - Seed and subject. See {@link GenerateOruOptions}.
  * @returns A spec-clean `ORU^R01` `Hl7Message`.
  * @example
  * ```ts
@@ -66,10 +81,11 @@ function obxSegment(rng: Rng, setId: number): readonly (string | RawField)[] {
  */
 export function generateOru(options: GenerateOruOptions = {}): Hl7Message {
   const seed = options.seed ?? 0;
+  const subject = resolveKind(hl7Subjects(), options.subject ?? "person");
   const rng = createRng(seed);
 
-  const { message } = mshScaffold(rng, "ORU^R01");
-  message.addSegment("PID", pidSegment(patientIdentity(rng)));
+  const { message, timestamp } = mshScaffold(rng, "ORU^R01");
+  addSubject(message, rng, subject, timestamp);
 
   const service = rng.pick(EXAMPLE_ORDER_SERVICES);
   const placer = rng.digits(8);

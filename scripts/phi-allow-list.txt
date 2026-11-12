@@ -141,6 +141,21 @@ NAME QUILLFEATHER
 NAME NOTREAL
 NAME GENFIELD
 
+# The shipped clearly-fake pet-name pool (SYNTHETIC_PET_NAMES in src/safe/animal.ts). The animal
+# subject writes one as the given name in PID-5. Keep this in sync with the pool.
+NAME FIXTUREPAW
+NAME MOCKWHISKER
+NAME STUBTAIL
+NAME SEEDPUP
+NAME TESTBISCUIT
+NAME PLACEPURR
+NAME SYNTHFUR
+NAME DUMMYMANE
+NAME EXAMPLEHOOF
+NAME FAUXFLUFF
+NAME SAMPLESNOUT
+NAME VOIDWAG
+
 # --- Hand-written test tokens, NOT part of the generator's fake-name pool ---
 #
 # The two below are NOT in `src/safe/names-pool.ts` and must never be added to it.

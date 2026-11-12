@@ -26,14 +26,20 @@ import {
   SYNTHETIC_GIVEN_NAMES,
   SYNTHETIC_FAMILY_NAMES,
   SYNTHETIC_ASSIGNING_AUTHORITY,
+  SYNTHETIC_ANIMAL_SPECIES,
+  SYNTHETIC_PET_NAMES,
+  isSyntheticMicrochip,
 } from "../../src/index.js";
 import {
   HL7_MESSAGE_KINDS,
   generateAck,
   generateAdt,
   generateHl7,
+  generateOru,
+  type AdtTrigger,
   type Hl7MessageKind,
 } from "../../src/hl7/index.js";
+import { adtTriggers } from "../../src/hl7/adt.js";
 import { checkProperty } from "../support/property.js";
 
 const seed = (): fc.Arbitrary<number> => fc.integer({ min: 0, max: 2 ** 31 - 1 });
@@ -154,6 +160,51 @@ describe("synthetic-safety gate, generated HL7 output (must be ZERO)", () => {
   });
 });
 
+describe("synthetic-safety gate, the animal subject (must be ZERO)", () => {
+  const triggers: readonly AdtTrigger[] = adtTriggers();
+
+  it("every PID and NK1 identity locus of an animal ADT or ORU is provably synthetic", () => {
+    checkProperty(
+      fc.property(seed(), fc.constantFrom(...triggers, "ORU" as const), (s, which) => {
+        const content = (
+          which === "ORU"
+            ? generateOru({ seed: s, subject: "animal" })
+            : generateAdt({ seed: s, trigger: which, subject: "animal" })
+        ).toString();
+        expect(realDataHits(content)).toEqual([]);
+        const msg = parseHL7(content);
+
+        // PID-3: the record number under the synthetic authority, then a test-range microchip.
+        expect(msg.get("PID.3[0].4")).toBe(SYNTHETIC_ASSIGNING_AUTHORITY.namespaceId);
+        expect(msg.get("PID.3[1].4")).toBe(SYNTHETIC_ASSIGNING_AUTHORITY.namespaceId);
+        const chip = msg.get("PID.3[1].1") ?? "";
+        expect(isSyntheticMicrochip(chip), `microchip ${chip}`).toBe(true);
+
+        // PID-5: an owner family name from the pool, a pet name from the pet pool.
+        expect(SYNTHETIC_FAMILY_NAMES).toContain(msg.get("PID.5.1"));
+        expect(SYNTHETIC_PET_NAMES).toContain(msg.get("PID.5.2"));
+
+        // No SSN on an animal; the address and phone are the synthetic ones.
+        expect(msg.get("PID.19") ?? "").toBe("");
+        expect(msg.get("PID.11.5")).toBe("00000");
+        expect(isSyntheticPhone(msg.get("PID.13") ?? "")).toBe(true);
+
+        // PID-35 and PID-36: only our own list.
+        const species = SYNTHETIC_ANIMAL_SPECIES.find((x) => x.code === msg.get("PID.35.1"));
+        expect(species).toBeDefined();
+        expect(species?.breeds.map((b) => b.code)).toContain(msg.get("PID.36.1"));
+
+        // NK1, the owner: pooled names, the reserved ZIP and phone block.
+        expect(SYNTHETIC_FAMILY_NAMES).toContain(msg.get("NK1.2.1"));
+        expect(SYNTHETIC_GIVEN_NAMES).toContain(msg.get("NK1.2.2"));
+        expect(msg.get("NK1.4.5")).toBe("00000");
+        expect(isSyntheticPhone(msg.get("NK1.5") ?? "")).toBe(true);
+      }),
+      { numRuns: 400 },
+    );
+  });
+});
+
 describe("the sweep itself fails on an ITIN-formatted value (true positive, not vacuous)", () => {
   // Every assertion above says "the generator's output is clean". None of them proves the sweep
   // would SPEAK UP if it were handed a bad value: with a fixed generator, the ITIN arm is never
@@ -201,6 +252,13 @@ describe("synthetic-safety gate: provider-level (must be ZERO)", () => {
           SYNTHETIC_ASSIGNING_AUTHORITY.namespaceId,
         );
         expect(safe.address(rng).zip).toBe("00000");
+        expect(SYNTHETIC_PET_NAMES).toContain(safe.petName(rng));
+        expect(isSyntheticMicrochip(safe.microchip(rng))).toBe(true);
+        const { species, breed } = safe.animalBreed(rng);
+        const entry = SYNTHETIC_ANIMAL_SPECIES.find((x) => x.code === species.code);
+        expect(entry?.breeds).toContain(breed);
+        const dob = safe.animalBirthDate(rng, "20250101");
+        expect(dob >= "20050101" && dob <= "20250101", `animal dob ${dob}`).toBe(true);
       }),
       { numRuns: 500 },
     );

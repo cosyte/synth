@@ -23,7 +23,7 @@ import { createRng } from "../rng/rng.js";
 import { componentsField } from "./field.js";
 import type { Rng } from "../rng/rng.js";
 
-import { mshScaffold, patientIdentity, pidSegment, shiftTimestamp } from "./common.js";
+import { addSubject, hl7Subjects, mshScaffold, shiftTimestamp, type Hl7Subject } from "./common.js";
 import { resolveKind } from "../select.js";
 
 /**
@@ -82,6 +82,12 @@ export interface GenerateAdtOptions {
   readonly seed?: number;
   /** The ADT trigger event. Defaults to `"A01"`. */
   readonly trigger?: AdtTrigger;
+  /**
+   * Who the message is about. Defaults to `"person"`, whose bytes for a seed are what they always
+   * were. `"animal"` writes a veterinary patient: the pet's name in PID-5, a microchip in PID-3, the
+   * species in PID-35 and breed in PID-36, and the owner in an `NK1` after the `PID`.
+   */
+  readonly subject?: Hl7Subject;
 }
 
 /**
@@ -93,7 +99,9 @@ export interface GenerateAdtOptions {
  * A trigger added after `A01`, `A04` and `A08` also names its published structure in MSH-9.3 and
  * fills the `PV1` fields its event is about (a transfer's prior location, a discharge's times).
  *
- * @param options - Seed + trigger. See {@link GenerateAdtOptions}.
+ * With `subject: "animal"` the patient is an animal and its owner follows the `PID` in an `NK1`.
+ *
+ * @param options - Seed, trigger and subject. See {@link GenerateAdtOptions}.
  * @returns A spec-clean `ADT` `Hl7Message`.
  * @example
  * ```ts
@@ -105,12 +113,13 @@ export interface GenerateAdtOptions {
 export function generateAdt(options: GenerateAdtOptions = {}): Hl7Message {
   const seed = options.seed ?? 0;
   const trigger = resolveKind(adtTriggers(), options.trigger ?? "A01");
+  const subject = resolveKind(hl7Subjects(), options.subject ?? "person");
   const rng = createRng(seed);
 
   if (trigger === "A01" || trigger === "A04" || trigger === "A08") {
     const { message, timestamp } = mshScaffold(rng, `ADT^${trigger}`);
     message.addSegment("EVN", [trigger, timestamp]);
-    message.addSegment("PID", pidSegment(patientIdentity(rng)));
+    addSubject(message, rng, subject, timestamp);
 
     const patientClass = rng.pick(["I", "O", "E"] as const);
     message.addSegment("PV1", [
@@ -123,7 +132,7 @@ export function generateAdt(options: GenerateAdtOptions = {}): Hl7Message {
 
   const { message, timestamp } = mshScaffold(rng, `ADT^${trigger}^${structureOf(trigger)}`);
   message.addSegment("EVN", [trigger, timestamp]);
-  message.addSegment("PID", pidSegment(patientIdentity(rng)));
+  addSubject(message, rng, subject, timestamp);
   message.addSegment("PV1", visit(rng, trigger, timestamp));
   return message;
 }

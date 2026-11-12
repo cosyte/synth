@@ -48,6 +48,10 @@ The providers are exported by name and grouped on `safe`:
 | `dateYmd(rng, min?, max?)`  | a `YYYYMMDD` date between 1930 and 2010 by default                                       |
 | `ipv4(rng)`, `ipv6(rng)`    | an address in a range reserved for documentation                                         |
 | `uuid(rng)`                 | a version 4 UUID drawn from the seed                                                     |
+| `petName(rng)`              | an invented pet name from `SYNTHETIC_PET_NAMES`                                          |
+| `animalBreed(rng)`          | `{ species, breed }` from our own short list, under the local code system `99COSYTE`      |
+| `microchip(rng)`            | 15 digits beginning `999` (a range we have not verified against ISO 11784)                |
+| `animalBirthDate(rng, on)`  | a `YYYYMMDD` date from 0 to 20 years before the `YYYYMMDD` date `on`                      |
 
 ```ts runnable
 import { createRng, isSyntheticEmail, safe } from "@cosyte/synth";
@@ -83,8 +87,9 @@ isSyntheticPhone("555-0100"); // => true
 isSyntheticPhone("555-1212"); // => false
 ```
 
-The other checks are `isSyntheticEmail`, `isSyntheticIp`, and `isSyntheticDea`. `npiCheckDigit`,
-`deaCheckDigit`, and `luhnMod10` compute the check digits behind them.
+The other checks are `isSyntheticEmail`, `isSyntheticIp`, `isSyntheticDea`, and
+`isSyntheticMicrochip`. `npiCheckDigit`, `deaCheckDigit`, and `luhnMod10` compute the check digits
+behind them.
 
 ## Use the name pools directly
 

@@ -45,8 +45,16 @@ export {
   mshScaffold,
   patientIdentity,
   pidSegment,
+  animalIdentity,
+  animalPidSegment,
+  ownerNk1Segment,
+  MICROCHIP_IDENTIFIER_TYPE,
+  OWNER_RELATIONSHIP,
   type MessageScaffold,
   type PatientIdentity,
+  type AnimalIdentity,
+  type AnimalOwner,
+  type Hl7Subject,
 } from "./common.js";
 export {
   type ExampleCode,

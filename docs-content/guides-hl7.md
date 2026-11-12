@@ -31,6 +31,9 @@ class `N`, not applicable.
 Each returns `@cosyte/hl7`'s `Hl7Message`; call `toString()` for the wire text. Each takes
 `{ seed }`, and the seed defaults to `0`.
 
+`generateAdt` and `generateOru` also take `subject: "animal"`, which writes a veterinary patient and
+its owner instead of a person: see [Generate animal patients](./guides-animal-patients.md).
+
 ## Generate one message
 
 ```ts runnable
