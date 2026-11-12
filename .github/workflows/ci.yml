@@ -439,8 +439,10 @@ jobs:
   # reference in docs-content/api/ to the source: it fails when the committed pages differ from what
   # the TSDoc comments of the root and every subpath generate (an export changed and
   # `pnpm docs:reference` was not run), and when an export has no TSDoc summary. Not one of the
-  # determinism jobs, so the reconciliation does not read it. Its context, `documents`, is required
-  # by the ci-required-checks ruleset.
+  # determinism jobs, so the reconciliation does not read it. `pnpm check:docs-content`
+  # (script-utils' `cosyte-docs-content`) holds docs-content/ to the docs-content standard, and with
+  # cosyte-docs-content.config.json fails a README or page sample that prints a value identifying a
+  # person. Its context, `documents`, is required by the ci-required-checks ruleset.
   documents:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -470,3 +472,6 @@ jobs:
 
       - name: docs-content/api matches the source, and every export has a TSDoc summary
         run: pnpm check:docs-reference
+
+      - name: docs-content follows the docs-content standard, and no sample prints an identifying value
+        run: pnpm check:docs-content

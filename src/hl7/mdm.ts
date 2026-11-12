@@ -47,7 +47,8 @@ export interface GenerateMdmOptions {
  * ```ts
  * import { generateMdm } from "@cosyte/synth/hl7";
  * const msg = generateMdm({ seed: 12345 });
- * console.log(msg.toString());
+ * const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+ * console.log(wire.split("\r")[0]?.split("|")[8]); // "MDM^T02^MDM_T02", the type in MSH-9
  * ```
  */
 export function generateMdm(options: GenerateMdmOptions = {}): Hl7Message {

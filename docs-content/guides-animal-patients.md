@@ -21,6 +21,7 @@ const admit = generateAdt({ seed: 42, trigger: "A01", subject: "animal" });
 const result = generateOru({ seed: 7, subject: "animal" });
 
 const pid = parseHL7(admit.toString());
+// The pet's name, read and asserted, never logged; the value is synthetic.
 pid.get("PID.5.2"); // => "Seedpup"
 pid.get("PID.35.2"); // => "Horse"
 pid.get("PID.36.2"); // => "Thoroughbred"

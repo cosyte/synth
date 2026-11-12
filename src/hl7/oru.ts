@@ -76,7 +76,8 @@ function obxSegment(rng: Rng, setId: number): readonly (string | RawField)[] {
  * ```ts
  * import { generateOru } from "@cosyte/synth/hl7";
  * const msg = generateOru({ seed: 12345 });
- * console.log(msg.toString());
+ * const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+ * console.log(wire.split("\r")[0]?.split("|")[8]); // "ORU^R01", the type in MSH-9
  * ```
  */
 export function generateOru(options: GenerateOruOptions = {}): Hl7Message {

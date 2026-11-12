@@ -107,7 +107,8 @@ export interface GenerateAdtOptions {
  * ```ts
  * import { generateAdt } from "@cosyte/synth/hl7";
  * const msg = generateAdt({ seed: 12345, trigger: "A01" });
- * console.log(msg.toString());
+ * const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+ * console.log(wire.split("\r")[0]?.split("|")[8]); // "ADT^A01", the type in MSH-9
  * ```
  */
 export function generateAdt(options: GenerateAdtOptions = {}): Hl7Message {

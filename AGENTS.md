@@ -31,6 +31,7 @@ pnpm check:install                                 # install.yml (needs the netw
 pnpm check:test-selection                          # test-selection.yml
 pnpm check:process                                 # ci.yml documents job
 pnpm check:docs-reference                          # ci.yml documents job
+pnpm check:docs-content                            # ci.yml documents job
 pnpm run determinism:digest && pnpm run check:determinism-window   # ci.yml
 pnpm run acquire:oracle && pnpm run oracle         # ci.yml (needs java and the network)
 pnpm check:no-emdash && pnpm check:no-internal-refs

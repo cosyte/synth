@@ -784,7 +784,8 @@ SynthError `SYNTH_ACK_UNCORRELATED` when the inbound message has no MSH-10, and
 ```ts
 import { generateAck, generateOru } from "@cosyte/synth/hl7";
 const ack = generateAck({ seed: 7, inbound: generateOru({ seed: 7 }) });
-console.log(ack.toString()); // MSH|...|ACK^R01^ACK|SYNTHACK...|T|2.5 then MSA|AA|SYNTH...
+const [msh, msa] = ack.toString().split("\r"); // synthetic segments: assert on them, never log them
+console.log(msh?.split("|")[8], msa?.split("|")[1]); // "ACK^R01^ACK" "AA", the type and the code
 ```
 
 ***
@@ -822,7 +823,8 @@ A spec-clean `ADT` `Hl7Message`.
 ```ts
 import { generateAdt } from "@cosyte/synth/hl7";
 const msg = generateAdt({ seed: 12345, trigger: "A01" });
-console.log(msg.toString());
+const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+console.log(wire.split("\r")[0]?.split("|")[8]); // "ADT^A01", the type in MSH-9
 ```
 
 ***
@@ -856,7 +858,8 @@ A spec-clean `DFT^P03` `Hl7Message`.
 ```ts
 import { generateDft } from "@cosyte/synth/hl7";
 const msg = generateDft({ seed: 12345 });
-console.log(msg.toString());
+const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+console.log(wire.split("\r")[0]?.split("|")[8]); // "DFT^P03^DFT_P03", the type in MSH-9
 ```
 
 ***
@@ -961,7 +964,8 @@ A spec-clean `MDM^T02` `Hl7Message`.
 ```ts
 import { generateMdm } from "@cosyte/synth/hl7";
 const msg = generateMdm({ seed: 12345 });
-console.log(msg.toString());
+const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+console.log(wire.split("\r")[0]?.split("|")[8]); // "MDM^T02^MDM_T02", the type in MSH-9
 ```
 
 ***
@@ -994,7 +998,8 @@ A spec-clean `OML^O21` `Hl7Message`.
 ```ts
 import { generateOml } from "@cosyte/synth/hl7";
 const msg = generateOml({ seed: 12345 });
-console.log(msg.toString());
+const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+console.log(wire.split("\r")[0]?.split("|")[8]); // "OML^O21^OML_O21", the type in MSH-9
 ```
 
 ***
@@ -1028,7 +1033,8 @@ A spec-clean `ORM^O01` `Hl7Message`.
 ```ts
 import { generateOrm } from "@cosyte/synth/hl7";
 const msg = generateOrm({ seed: 12345 });
-console.log(msg.toString());
+const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+console.log(wire.split("\r")[0]?.split("|")[8]); // "ORM^O01", the type in MSH-9
 ```
 
 ***
@@ -1064,7 +1070,8 @@ A spec-clean `ORU^R01` `Hl7Message`.
 ```ts
 import { generateOru } from "@cosyte/synth/hl7";
 const msg = generateOru({ seed: 12345 });
-console.log(msg.toString());
+const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+console.log(wire.split("\r")[0]?.split("|")[8]); // "ORU^R01", the type in MSH-9
 ```
 
 ***
@@ -1098,7 +1105,8 @@ A spec-clean `SIU^S12` `Hl7Message`.
 ```ts
 import { generateSiu } from "@cosyte/synth/hl7";
 const msg = generateSiu({ seed: 12345 });
-console.log(msg.toString());
+const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+console.log(wire.split("\r")[0]?.split("|")[8]); // "SIU^S12", the type in MSH-9
 ```
 
 ***
@@ -1132,7 +1140,8 @@ A spec-clean `VXU^V04` `Hl7Message`.
 ```ts
 import { generateVxu } from "@cosyte/synth/hl7";
 const msg = generateVxu({ seed: 12345 });
-console.log(msg.toString());
+const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+console.log(wire.split("\r")[0]?.split("|")[8]); // "VXU^V04", the type in MSH-9
 ```
 
 ***

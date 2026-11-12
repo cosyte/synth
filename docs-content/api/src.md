@@ -2046,7 +2046,7 @@ A clearly invented pet name.
 
 ```ts
 import { createRng, petName } from "@cosyte/synth";
-petName(createRng(1)); // e.g. "Stubtail"
+petName(createRng(1)); // e.g. "Stubtail", synthetic
 ```
 
 ***

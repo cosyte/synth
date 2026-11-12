@@ -62,7 +62,8 @@ export interface GenerateAckOptions {
  * ```ts
  * import { generateAck, generateOru } from "@cosyte/synth/hl7";
  * const ack = generateAck({ seed: 7, inbound: generateOru({ seed: 7 }) });
- * console.log(ack.toString()); // MSH|...|ACK^R01^ACK|SYNTHACK...|T|2.5 then MSA|AA|SYNTH...
+ * const [msh, msa] = ack.toString().split("\r"); // synthetic segments: assert on them, never log them
+ * console.log(msh?.split("|")[8], msa?.split("|")[1]); // "ACK^R01^ACK" "AA", the type and the code
  * ```
  */
 export function generateAck(options: GenerateAckOptions = {}): Hl7Message {

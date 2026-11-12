@@ -56,6 +56,14 @@ so this page does not repeat it.
 npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cosyte/ncpdp @cosyte/astm @cosyte/deid
 ```
 
+**Pin the exact version.** Below 1.0 a breaking change can ship in a patch release, so a caret
+range (`^0.1.x`) does not protect you from one. Install with `--save-exact` (pnpm takes the same flag;
+Yarn's is `--exact`) and read the changelog before you move the pin:
+
+```bash
+npm install --save-exact @cosyte/synth
+```
+
 Node.js 22.12 or later, tested on 22.12, 22, 24, and 26. A generator loads its parser on first use
 through `require`, and Node.js loads an ES module that way only from 22.12, so a value you get back
 is an instance of the parser classes you import.
@@ -104,7 +112,8 @@ const corpus = hl7Corpus({ seed: 42, count: 7 }); // one of each family, cycled
 console.log(corpus.artifacts.every((a) => a.warnings.length === 0)); // true, all spec-clean
 
 // Dispatch by kind when the message type is data:
-console.log(roundTrip(generateHl7("VXU^V04", 12345)).content.split("\r")[0]); // its MSH segment
+const vxu = roundTrip(generateHl7("VXU^V04", 12345)).content;
+console.log(vxu.split("\r")[0]?.split("|")[8]); // VXU^V04, the type from MSH-9, never the whole segment
 ```
 
 ### Generate a spec-clean FHIR R4 / US Core resource

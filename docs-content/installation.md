@@ -52,6 +52,14 @@ To install every format at once:
 npm install @cosyte/synth @cosyte/hl7 @cosyte/fhir @cosyte/ccda @cosyte/x12 @cosyte/ncpdp @cosyte/astm @cosyte/deid
 ```
 
+Pin the exact version. Below 1.0 a breaking change can ship in a patch release, so a caret range
+(`^0.1.x`) does not protect you from one. Install with `--save-exact` (pnpm takes the same flag;
+Yarn's is `--exact`) and read the changelog before you move the pin:
+
+```bash
+npm install --save-exact @cosyte/synth
+```
+
 The package has no third-party runtime dependencies. It ships ESM and CommonJS builds, each with its
 own type declarations, so `import` and `require` both work without configuration.
 

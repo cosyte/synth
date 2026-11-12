@@ -34,7 +34,8 @@ export interface GenerateOmlOptions {
  * ```ts
  * import { generateOml } from "@cosyte/synth/hl7";
  * const msg = generateOml({ seed: 12345 });
- * console.log(msg.toString());
+ * const wire = msg.toString(); // the whole message, synthetic: assert on it, never log it
+ * console.log(wire.split("\r")[0]?.split("|")[8]); // "OML^O21^OML_O21", the type in MSH-9
  * ```
  */
 export function generateOml(options: GenerateOmlOptions = {}): Hl7Message {
